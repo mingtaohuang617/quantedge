@@ -7,3 +7,11 @@ __pycache__/
 .DS_Store
 *.log
 .claude/
+
+# Pipeline outputs (regenerated locally)
+output/
+backend/output/
+
+# Legacy migration archives
+files.zip
+quant-pipeline.tar.gz

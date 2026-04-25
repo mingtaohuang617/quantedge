@@ -1,0 +1,9 @@
+yfinance
+pandas
+numpy
+requests
+fastapi
+uvicorn[standard]
+akshare
+python-dotenv
+futu-api

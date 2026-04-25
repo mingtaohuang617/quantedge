@@ -146,16 +146,30 @@
 .light .text-\[\#b0b8c4\] { color: var(--text-subtle) !important; }
 .light .text-\[\#778\],
 .light .text-\[\#777\] { color: var(--text-muted) !important; }
-.light .text-\[\#667\] { color: var(--text-dim) !important; }
+.light .text-\[\#667\],
+.light .text-\[\#556\] { color: var(--text-dim) !important; }
 .light .hover\:text-white:hover { color: var(--text-heading) !important; }
-.light .placeholder-\[\#667\]::placeholder { color: var(--text-dim) !important; }
+.light .hover\:text-\[\#a0aec0\]:hover { color: var(--text-secondary) !important; }
+.light .placeholder-\[\#667\]::placeholder,
+.light .placeholder-\[\#556\]::placeholder { color: var(--text-dim) !important; }
+/* Dark-only solid backgrounds → 浅色对应的纸白背景 */
+.light .bg-\[\#0b0b14\]\/85 { background-color: rgba(240, 242, 248, 0.92) !important; }
+.light .bg-\[\#0f1019\] { background-color: var(--bg-overlay) !important; }
+/* 半透明白文字（玻璃反色） */
+.light .text-white\/80 { color: var(--text-primary) !important; }
+.light .text-white\/10 { color: rgba(15, 23, 42, 0.15) !important; }
 
 /* Override white-opacity borders */
 .light .border-white\/5,
 .light .border-white\/8 { border-color: var(--border-default) !important; }
 .light .border-white\/10,
-.light .border-white\/15 { border-color: var(--border-strong) !important; }
-.light .border-white\/\[0\.02\] { border-color: var(--border-subtle) !important; }
+.light .border-white\/15,
+.light .border-white\/50 { border-color: var(--border-strong) !important; }
+.light .border-white\/\[0\.02\],
+.light .border-white\/\[0\.03\] { border-color: var(--border-subtle) !important; }
+.light .bg-white\/8,
+.light .bg-white\/20 { background-color: var(--bg-hover) !important; }
+.light .hover\:bg-white\/\[0\.02\]:hover { background-color: var(--bg-muted) !important; }
 .light .hover\:border-white\/10:hover { border-color: var(--border-strong) !important; }
 .light .border-t.border-white\/5 { border-color: var(--border-default) !important; }
 .light .border-b.border-white\/5 { border-color: var(--border-default) !important; }
@@ -233,6 +247,24 @@
 .light .text-red-400 { color: #f87171 !important; }
 .light .bg-red-500\/10 { background-color: rgba(248, 113, 113, 0.12) !important; }
 .light .border-red-500\/20 { border-color: rgba(248, 113, 113, 0.30) !important; }
+
+/* Light mode: rank badge adjustments */
+.light .rank-badge.rank-top {
+  background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.15));
+  color: #6366f1 !important;
+  border-color: rgba(99,102,241,0.30);
+}
+
+/* Light mode: settings drawer & hardcoded dark backgrounds */
+.light .bg-\[\#0f1019\] { background-color: #ffffff !important; }
+.light .bg-\[\#0b0b14\]\/85 { background-color: rgba(240, 242, 248, 0.92) !important; }
+
+/* Light mode: status dot border */
+.light .border-deep-base { border-color: #ffffff !important; }
+
+/* Light mode: heavy dark shadows → softer */
+.light .shadow-2xl.shadow-black\/60 { box-shadow: 0 8px 32px rgba(0,0,0,0.12) !important; }
+.light .shadow-2xl.shadow-black\/50 { box-shadow: 0 4px 20px rgba(0,0,0,0.10) !important; }
 
 /* ── End Theme overrides ── */
 
@@ -492,13 +524,30 @@ input[type="text"]:focus {
   stroke: var(--chart-grid) !important;
 }
 
-/* ── Light mode recharts text ── */
+/* ── Light mode recharts overrides ── */
 .light .recharts-text {
   fill: #64748b !important;
 }
 
 .light .recharts-cartesian-axis-tick-value {
   fill: #64748b !important;
+}
+
+.light .recharts-cartesian-grid line {
+  stroke: rgba(0, 0, 0, 0.06) !important;
+}
+
+.light .recharts-reference-line line {
+  stroke: rgba(0, 0, 0, 0.10) !important;
+}
+
+.light .recharts-polar-grid circle,
+.light .recharts-polar-grid line {
+  stroke: rgba(0, 0, 0, 0.12) !important;
+}
+
+.light .recharts-polar-angle-axis-tick-value {
+  fill: #374151 !important;
 }
 
 /* ── Light mode specific overrides ── */
@@ -719,6 +768,7 @@ button, a, select, input {
   /* Ensure glass cards don't overflow */
   .glass-card {
     border-radius: 10px;
+    overflow: hidden;
   }
 
   /* Smooth nav scrolling */
@@ -732,7 +782,77 @@ button, a, select, input {
   }
 
   /* KPI cards compact on mobile */
+  .kpi-card {
+    padding: 10px 12px;
+  }
+
   .kpi-card .kpi-value {
-    font-size: 15px;
+    font-size: 14px;
+  }
+
+  .kpi-card .kpi-label {
+    font-size: 9px;
+  }
+
+  /* Compact delta chip on mobile */
+  .delta-chip {
+    padding: 0px 4px;
+    font-size: 9px;
+  }
+
+  /* Data table compact on mobile */
+  .data-table th {
+    padding: 4px 6px;
+    font-size: 8px;
+  }
+
+  .data-table td {
+    padding: 4px 6px;
+    font-size: 10px;
+  }
+
+  /* Section header smaller on mobile */
+  .section-header {
+    margin-bottom: 8px;
+  }
+
+  /* Recharts responsive font */
+  .recharts-text {
+    font-size: 9px !important;
+  }
+}
+
+/* ── A11y: 统一 keyboard focus ring ──
+   仅在键盘聚焦（focus-visible）时显示，避免鼠标点击时的视觉干扰 */
+*:focus { outline: none; }
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid #818cf8;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid rgba(99, 102, 241, 0.5);
+  outline-offset: 0;
+}
+/* 跳过导航链接：屏幕阅读器可用，视觉上隐藏直到聚焦 */
+.skip-nav {
+  position: absolute; top: -40px; left: 8px; z-index: 100;
+  background: #6366f1; color: #fff; padding: 8px 12px;
+  border-radius: 6px; font-size: 12px; text-decoration: none;
+  transition: top 0.2s;
+}
+.skip-nav:focus { top: 8px; }
+
+/* 尊重 prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
