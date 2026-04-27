@@ -1,0 +1,21 @@
+{
+  "name": "quantedge",
+  "version": "0.6.0",
+  "private": true,
+  "description": "QuantEdge — 自研综合量化投资平台 (评分 + 回测 + 监控 + 日志)",
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "preview": "npm --prefix frontend run preview",
+    "test": "npm --prefix frontend run test",
+    "refresh-data": "python backend/pipeline.py",
+    "serve-api": "python backend/server.py",
+    "lint:py": "ruff check backend",
+    "format:py": "ruff format --check backend",
+    "lint:js": "npm --prefix frontend run lint --if-present",
+    "test:py": "pytest backend/tests"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

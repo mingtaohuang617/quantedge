@@ -1,0 +1,52 @@
+[project]
+name = "quantedge-backend"
+version = "0.6.0"
+description = "QuantEdge backend — pipeline + API for quantitative scoring/backtest/monitoring"
+requires-python = ">=3.10"
+dependencies = [
+  "yfinance",
+  "pandas",
+  "numpy",
+  "requests",
+  "fastapi",
+  "uvicorn[standard]",
+  "akshare",
+  "python-dotenv",
+  "futu-api",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8",
+  "ruff>=0.6",
+]
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+extend-exclude = [".venv", "backend/.venv", "backend/output", "backend/logs"]
+
+[tool.ruff.lint]
+# 起步只开启明显错误类（语法/未定义/常见 bug），不强求 style
+select = ["E9", "F", "B", "UP", "PL"]
+ignore = [
+  "E501",   # 行长由 line-length 控制
+  "PLR2004", # magic value in comparison — 评分阈值大量使用
+  "PLR0911", # too many returns
+  "PLR0912", # too many branches
+  "PLR0913", # too many args
+  "PLR0915", # too many statements
+  "B008",   # FastAPI Depends() 默认值
+]
+
+[tool.ruff.lint.per-file-ignores]
+"backend/config.py" = ["E501"]
+"backend/server.py" = ["F401"]  # logging_config 副作用 import
+
+[tool.pytest.ini_options]
+testpaths = ["backend/tests"]
+python_files = ["test_*.py"]
+addopts = "-q"
+markers = [
+  "network: requires network access (deselected by default)",
+]
