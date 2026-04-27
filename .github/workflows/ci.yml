@@ -42,7 +42,10 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - name: Install
-        run: npm ci
+        # 用 npm install 而非 npm ci：现 lock 中部分 optional native deps
+        # （@esbuild/netbsd-arm64 等）未标记 optional=true，npm ci 在 Linux 会
+        # 报 EBADPLATFORM。npm install 会自动跳过不适配的可选平台依赖。
+        run: npm install --no-audit --no-fund
       - name: Vitest
         run: npm test
       - name: Vite build
