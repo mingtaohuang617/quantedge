@@ -53,7 +53,10 @@
 - FastAPI（API 层）
 - PostgreSQL / TimescaleDB（时序存储）
 
-## 7. 当前阶段
+## 7. 当前阶段（2026-04 更新）
 
-- 前端原型与数据管道初版已在 Claude.ai 网页版完成
-- 正在迁移到本地环境，继续开发
+- 前端原型与数据管道初版已迁移到本仓库
+- 数据管道（`backend/pipeline.py`）支持 iTick / Futu / AKShare / yfinance 多源容错
+- 前端可运行四大模块原型；尚未真正打通 API 实时数据流（见 [TODO P0](TODO.md)）
+- 工程化已配：ruff + pytest + vitest + GitHub Actions CI
+- 架构与数据流细节：[ARCHITECTURE.md](ARCHITECTURE.md)
