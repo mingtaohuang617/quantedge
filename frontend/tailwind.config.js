@@ -5,7 +5,6 @@ export default {
   content: [
     './index.html',
     './src/**/*.{js,jsx,ts,tsx}',
-    './quant-platform.jsx',
   ],
   theme: {
     extend: {

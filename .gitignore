@@ -6,11 +6,15 @@ __pycache__/
 .env
 .DS_Store
 *.log
+backend/logs/
 .claude/
 
 # Pipeline outputs (regenerated locally)
 output/
 backend/output/
+
+# User-added tickers (regenerate with import_nasdaq100.py)
+backend/tickers_custom.json
 
 # Legacy migration archives
 files.zip

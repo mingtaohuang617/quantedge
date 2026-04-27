@@ -1,25 +1,17 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
-import QuantPlatform from '../quant-platform.jsx';
+import QuantPlatform from './quant-platform.jsx';
 import ErrorBoundary from './ErrorBoundary.jsx';
 
-// Recharts 在 React.StrictMode 双挂载期会产生瞬时 0 尺寸的 noisy warn，
-// 图表最终渲染正确；静默该类警告以保留真实错误的信号。
-{
-  const _origWarn = console.warn.bind(console);
-  const filteredWarn = (msg, ...rest) => {
-    if (typeof msg === 'string' && (
-      msg.includes('width(0) and height(0)') ||
-      msg.includes('width(0)') && msg.includes('height(0)')
-    )) return;
-    _origWarn(msg, ...rest);
+// Recharts 在 React.StrictMode 双挂载期会瞬时报告 0×0 尺寸 — 图表会自我修复。
+// 仅 dev 环境过滤这一类 warn；生产环境不染指 console。
+if (import.meta.env.DEV) {
+  const origWarn = console.warn;
+  console.warn = (msg, ...rest) => {
+    if (typeof msg === 'string' && msg.includes('width(0)') && msg.includes('height(0)')) return;
+    origWarn(msg, ...rest);
   };
-  try {
-    Object.defineProperty(console, 'warn', { value: filteredWarn, writable: true, configurable: true });
-  } catch {
-    console.warn = filteredWarn;
-  }
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(
