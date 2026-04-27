@@ -2,13 +2,35 @@
 // URL: /api/yahoo?path=/v8/finance/chart/NVDA?interval=1d&range=1y
 // 也支持 query2: /api/yahoo?host=query2&path=/v10/finance/quoteSummary/NVDA?modules=...
 
+// 同源/白名单校验：避免 endpoint 被第三方滥用消耗 Vercel 配额
+const ALLOWED_HOSTS = new Set([
+  'localhost',
+  '127.0.0.1',
+  // Vercel 生产域名通过 VERCEL_URL 自动注入
+  ...(process.env.VERCEL_URL ? [process.env.VERCEL_URL] : []),
+  ...(process.env.QUANTEDGE_ALLOWED_HOSTS || '').split(',').map(s => s.trim()).filter(Boolean),
+]);
+
+function isAllowedReferer(req) {
+  const ref = req.headers.referer || req.headers.origin;
+  if (!ref) return false;
+  try {
+    return ALLOWED_HOSTS.has(new URL(ref).hostname);
+  } catch {
+    return false;
+  }
+}
+
 export default async function handler(req, res) {
-  // 允许任何来源（同源调用其实不需要，但保险）
-  res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
 
   if (req.method === 'OPTIONS') {
     res.status(200).end();
+    return;
+  }
+
+  if (!isAllowedReferer(req)) {
+    res.status(403).json({ error: 'forbidden: referer not in allowlist' });
     return;
   }
 

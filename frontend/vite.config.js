@@ -58,7 +58,8 @@ export default defineConfig(({ command }) => ({
     outDir: 'dist',
     assetsDir: 'assets',
     target: 'esnext',
-    chunkSizeWarningLimit: 900,
+    sourcemap: 'hidden',
+    chunkSizeWarningLimit: 1500,
     rollupOptions: {
       output: {
         manualChunks: {

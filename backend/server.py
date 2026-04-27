@@ -26,6 +26,8 @@ from datetime import datetime
 import numpy as np
 import yfinance as yf
 
+import logging_config  # noqa: F401  — 副作用：配置轮转日志
+
 
 def sanitize(obj):
     """Recursively replace NaN/Inf with None for JSON serialization."""

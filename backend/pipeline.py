@@ -560,11 +560,8 @@ def run_pipeline():
             json.dump(alerts, f, ensure_ascii=False, indent=2)
             f.write(";\n")
 
-    js_path = OUTPUT_DIR / "frontend_data.js"
-    write_data_module(js_path)
-    log(f"✓ {js_path} (备份)")
-
-    # 同步写入前端 src，供 Vite import
+    # ES 模块只写一份到 frontend/src/data.js（前端 import 入口）
+    # output/frontend_data.js 已经废弃 — stocks_data.json 是权威 JSON 输出
     if FRONTEND_DATA_PATH.parent.exists():
         write_data_module(FRONTEND_DATA_PATH)
         log(f"✓ {FRONTEND_DATA_PATH.resolve()} (前端实时数据)")
