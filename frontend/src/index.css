@@ -277,7 +277,20 @@ body {
   font-family: 'DM Sans', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* S1: Bloomberg 风 — 所有数字默认等宽（涨跌不再"跳动错位"） */
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum", "lnum";
 }
+
+/* S2: 表格密度切换（density-cozy=默认 / density-compact / density-dense） */
+:root { --row-py: 0.75rem; --row-px: 0.75rem; --row-gap: 0.5rem; --row-fs: 0.75rem; }
+.density-compact { --row-py: 0.4rem; --row-px: 0.55rem; --row-gap: 0.3rem; --row-fs: 0.7rem; }
+.density-dense   { --row-py: 0.2rem; --row-px: 0.4rem;  --row-gap: 0.18rem; --row-fs: 0.66rem; }
+/* 把密度变量应用到通用 row 类上 — 不破坏既有显式 padding */
+.density-compact .glass-card,
+.density-dense .glass-card { padding: calc(var(--row-py) + 0.25rem) calc(var(--row-px) + 0.25rem); }
+.density-compact tbody td, .density-compact tbody th { padding: var(--row-py) var(--row-px) !important; font-size: var(--row-fs) !important; }
+.density-dense tbody td, .density-dense tbody th { padding: var(--row-py) var(--row-px) !important; font-size: var(--row-fs) !important; line-height: 1.15 !important; }
 
 /* ── JetBrains Mono for monospace ── */
 .font-mono, code, pre, [class*="font-mono"] {
