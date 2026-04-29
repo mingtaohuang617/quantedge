@@ -4,6 +4,7 @@ import { TrendingUp, TrendingDown, Search, Bell, BookOpen, BarChart3, Activity, 
 import { searchTickers as standaloneSearch, fetchStockData, fetchBenchmarkPrices, fetchRangePrices, validateStockData, validateAllStocks, loadStandaloneStocks, saveStandaloneStocks, checkStandaloneMode, resolveSector, STOCK_CN_NAMES, STOCK_CN_DESCS } from "./standalone.js";
 import { LangProvider, useLang } from "./i18n.jsx";
 import { monteCarlo as mcSimulate, navToReturns as mcNavToReturns, hhi as hhiCalc, effectiveN as effN } from "./math/stats.ts";
+import { idbGet, idbSet } from "./lib/idb.js";
 
 // C1/C2: 拆分主文件 + 代码分割 — 各 Tab 按需加载（首屏不打包这些 chunk）
 const Journal = lazy(() => import("./pages/Journal.jsx"));
@@ -44,21 +45,37 @@ const CACHE_PRICES_PREFIX = "quantedge_price_";
 const CACHE_MAX_AGE = 24 * 60 * 60 * 1000; // 24 hours
 
 function loadCache() {
+  // 同步路径：仅 localStorage（保证首屏可立即渲染）
+  // 若 localStorage 空，DataProvider 会在挂载后异步从 IDB hydrate
   try {
     const raw = localStorage.getItem(CACHE_KEY);
     if (!raw) return null;
-    const cached = JSON.parse(raw);
-    return cached;
+    return JSON.parse(raw);
   } catch { return null; }
 }
 
+// C10: 异步从 IndexedDB 拉取大缓存（容量 ≫ localStorage）
+export async function loadCacheAsync() {
+  const lsRaw = (() => { try { return localStorage.getItem(CACHE_KEY); } catch { return null; } })();
+  if (lsRaw) { try { return JSON.parse(lsRaw); } catch {} }
+  return await idbGet(CACHE_KEY);
+}
+
 function saveCache(stocks, alerts, lastRefresh) {
+  const payload = { stocks, alerts, lastRefresh, timestamp: Date.now() };
+  const json = JSON.stringify(payload);
+  let lsOk = false;
   try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify({
-      stocks, alerts, lastRefresh,
-      timestamp: Date.now(),
-    }));
-  } catch { /* localStorage full — ignore */ }
+    localStorage.setItem(CACHE_KEY, json);
+    lsOk = true;
+  } catch (e) {
+    // C10: localStorage 满了 → 退化到只写 IDB；UI 偏好的小数据不会受影响
+    console.info('[QuantEdge] localStorage 容量超限，转用 IndexedDB 持久化大缓存');
+  }
+  // 总是异步镜像到 IDB（即便 localStorage 成功），作为容量保险
+  // fire-and-forget，不阻塞调用方
+  idbSet(CACHE_KEY, payload).catch(() => {});
+  return lsOk;
 }
 
 function isCacheStale(cached) {
@@ -145,6 +162,79 @@ async function fetchYahooPrices(tickers) {
 export const DataContext = createContext(null);
 export const useData = () => useContext(DataContext);
 
+// ─── C16: Workspace Context (多组合 / 多账户工作区) ───────────
+// 每个工作区独立 namespace：journal / backtest templates / saved runs
+// 共享：股票池（DataContext.stocks）、主题、密度、Yahoo 缓存
+export const WorkspaceContext = createContext(null);
+export const useWorkspace = () => useContext(WorkspaceContext);
+const WORKSPACES_KEY = "quantedge_workspaces";
+const ACTIVE_WORKSPACE_KEY = "quantedge_active_workspace";
+
+function WorkspaceProvider({ children }) {
+  // 加载工作区列表（首次 = 自动迁移旧数据到 "default"）
+  const [workspaces, setWorkspaces] = useState(() => {
+    try {
+      const raw = localStorage.getItem(WORKSPACES_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    // 首次运行：检查是否有旧 journal 数据，迁移
+    const legacyJournal = localStorage.getItem("quantedge_journal");
+    const legacyTemplates = localStorage.getItem("quantedge_bt_templates");
+    if (legacyJournal) {
+      try { localStorage.setItem("quantedge_journal_default", legacyJournal); } catch {}
+    }
+    if (legacyTemplates) {
+      try { localStorage.setItem("quantedge_bt_templates_default", legacyTemplates); } catch {}
+    }
+    return [{ id: "default", name: "默认工作区", color: "#6366f1", createdAt: Date.now() }];
+  });
+  const [activeId, setActiveId] = useState(() => {
+    try { return localStorage.getItem(ACTIVE_WORKSPACE_KEY) || "default"; }
+    catch { return "default"; }
+  });
+
+  useEffect(() => {
+    try { localStorage.setItem(WORKSPACES_KEY, JSON.stringify(workspaces)); } catch {}
+  }, [workspaces]);
+  useEffect(() => {
+    try { localStorage.setItem(ACTIVE_WORKSPACE_KEY, activeId); } catch {}
+  }, [activeId]);
+
+  const active = workspaces.find(w => w.id === activeId) || workspaces[0];
+
+  const create = (name, color = "#06b6d4") => {
+    const id = `ws_${Date.now()}`;
+    const ws = { id, name: name || `工作区 ${workspaces.length + 1}`, color, createdAt: Date.now() };
+    setWorkspaces(prev => [...prev, ws]);
+    setActiveId(id);
+    return ws;
+  };
+  const rename = (id, name) => {
+    setWorkspaces(prev => prev.map(w => w.id === id ? { ...w, name } : w));
+  };
+  const recolor = (id, color) => {
+    setWorkspaces(prev => prev.map(w => w.id === id ? { ...w, color } : w));
+  };
+  const remove = (id) => {
+    if (workspaces.length <= 1) return; // 至少保留一个
+    setWorkspaces(prev => prev.filter(w => w.id !== id));
+    if (activeId === id) setActiveId(workspaces.find(w => w.id !== id)?.id || "default");
+    // 清理该工作区的所有 localStorage
+    Object.keys(localStorage).filter(k => k.endsWith(`_${id}`)).forEach(k => {
+      try { localStorage.removeItem(k); } catch {}
+    });
+  };
+
+  return (
+    <WorkspaceContext.Provider value={{ workspaces, active, activeId, setActiveId, create, rename, recolor, remove }}>
+      {children}
+    </WorkspaceContext.Provider>
+  );
+}
+
+// 工作区命名空间助手 — 在各页面里读写时自动加 ws id 后缀
+export const wsKey = (base, wsId) => `${base}_${wsId || 'default'}`;
+
 function DataProvider({ children }) {
   // 1. 先尝试从 localStorage 读取缓存（即时显示）
   const cached = loadCache();
@@ -172,6 +262,28 @@ function DataProvider({ children }) {
   const [apiOnline, setApiOnline] = useState(false);
   const [standalone, setStandalone] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+
+  // C10: localStorage 为空 → 异步从 IndexedDB hydrate（页面切换浏览器/隐私模式后回来仍能找回数据）
+  useEffect(() => {
+    if (cached?.stocks?.length > 0) return; // localStorage 已有数据，跳过
+    let cancelled = false;
+    (async () => {
+      try {
+        const idbCached = await idbGet(CACHE_KEY);
+        if (cancelled || !idbCached?.stocks?.length) return;
+        // 只在比当前 stocks 更丰富时才覆盖
+        if (idbCached.stocks.length > stocks.length) {
+          setStocks(idbCached.stocks);
+          if (idbCached.alerts) setAlerts(idbCached.alerts);
+          // 顺便回填 localStorage（只要未爆容量）
+          try { localStorage.setItem(CACHE_KEY, JSON.stringify(idbCached)); } catch {}
+          console.info('[QuantEdge] 从 IndexedDB 恢复 ' + idbCached.stocks.length + ' 个标的');
+        }
+      } catch {}
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [lastRefresh, setLastRefresh] = useState(cached?.lastRefresh || "");
   const [priceUpdatedAt, setPriceUpdatedAt] = useState(cached?.timestamp || 0);
   const [priceRefreshing, setPriceRefreshing] = useState(false);
@@ -1367,6 +1479,140 @@ const TickerManager = ({ open, onClose }) => {
 };
 
 // ─── 时钟组件（独立渲染，避免每秒重绘整个页面） ──────────
+// ─── C16: WorkspaceSwitcher — 头部工作区切换器 + 管理弹窗 ───
+const WS_PRESET_COLORS = ['#6366f1', '#06b6d4', '#10b981', '#f59e0b', '#ec4899', '#a855f7', '#f97316'];
+const WorkspaceSwitcher = () => {
+  const { t } = useLang();
+  const ws = useWorkspace();
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState(null); // { id, name, color }
+  const [creating, setCreating] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newColor, setNewColor] = useState(WS_PRESET_COLORS[1]);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) { setOpen(false); setEditing(null); setCreating(false); } };
+    setTimeout(() => document.addEventListener('click', handler), 50);
+    return () => document.removeEventListener('click', handler);
+  }, [open]);
+
+  if (!ws) return null;
+  const { workspaces, active, setActiveId, create, rename, recolor, remove } = ws;
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-[10px] font-medium bg-white/5 hover:bg-white/10 border border-white/5 transition-all btn-tactile"
+        title={t("切换工作区 / 多组合管理")}
+      >
+        <span className="w-2 h-2 rounded-full" style={{ background: active.color }} />
+        <span className="text-white max-w-[90px] truncate">{active.name}</span>
+        <ChevronDown size={10} className="text-[#778]" />
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-1 z-30 glass-card border border-white/10 shadow-2xl shadow-black/50 min-w-[260px]">
+          {/* 工作区列表 */}
+          <div className="p-1">
+            <div className="text-[8px] uppercase tracking-wider text-[#778] px-2 py-1.5 font-mono">{t('工作区')} · {workspaces.length}</div>
+            {workspaces.map(w => {
+              const isActive = w.id === active.id;
+              const isEditing = editing?.id === w.id;
+              return (
+                <div key={w.id} className={`flex items-center gap-2 px-2 py-1.5 rounded-md group ${isActive ? 'bg-indigo-500/10' : 'hover:bg-white/[0.04]'}`}>
+                  {isEditing ? (
+                    <>
+                      <input
+                        value={editing.name}
+                        onChange={(e) => setEditing({ ...editing, name: e.target.value })}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') { rename(w.id, editing.name); recolor(w.id, editing.color); setEditing(null); }
+                          if (e.key === 'Escape') setEditing(null);
+                        }}
+                        autoFocus
+                        className="flex-1 px-1.5 py-0.5 rounded bg-white/5 border border-indigo-400/40 text-xs text-white outline-none font-mono"
+                      />
+                      <div className="flex gap-0.5">
+                        {WS_PRESET_COLORS.map(c => (
+                          <button key={c} onClick={() => setEditing({ ...editing, color: c })}
+                            className={`w-3 h-3 rounded-full transition ${editing.color === c ? 'ring-2 ring-white/60' : 'opacity-50 hover:opacity-100'}`}
+                            style={{ background: c }} />
+                        ))}
+                      </div>
+                      <button onClick={() => { rename(w.id, editing.name); recolor(w.id, editing.color); setEditing(null); }}
+                        className="text-[10px] text-up hover:text-up font-bold">✓</button>
+                    </>
+                  ) : (
+                    <>
+                      <button onClick={() => { setActiveId(w.id); setOpen(false); }} className="flex items-center gap-2 flex-1 min-w-0">
+                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: w.color }} />
+                        <span className={`text-xs truncate ${isActive ? 'text-white font-medium' : 'text-[#a0aec0]'}`}>{w.name}</span>
+                        {isActive && <Check size={10} className="text-indigo-400 shrink-0" />}
+                      </button>
+                      <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                        <button onClick={(e) => { e.stopPropagation(); setEditing({ id: w.id, name: w.name, color: w.color }); }}
+                          className="text-[9px] px-1 py-0.5 rounded text-[#778] hover:text-white hover:bg-white/5"
+                          title={t('重命名')}>✎</button>
+                        {workspaces.length > 1 && (
+                          <button onClick={(e) => {
+                            e.stopPropagation();
+                            if (window.confirm(t('删除工作区 "{n}"？此操作会清除该工作区的日志和回测模板。', { n: w.name }))) {
+                              remove(w.id);
+                            }
+                          }}
+                            className="text-[9px] px-1 py-0.5 rounded text-[#778] hover:text-down hover:bg-down/10"
+                            title={t('删除')}>×</button>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          {/* 新建按钮 */}
+          <div className="border-t border-white/5 p-1">
+            {creating ? (
+              <div className="flex items-center gap-2 px-2 py-1.5">
+                <input
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && newName.trim()) { create(newName.trim(), newColor); setNewName(""); setCreating(false); setOpen(false); }
+                    if (e.key === 'Escape') { setCreating(false); setNewName(""); }
+                  }}
+                  autoFocus
+                  placeholder={t("工作区名称")}
+                  className="flex-1 px-2 py-1 rounded bg-white/5 border border-indigo-400/40 text-xs text-white outline-none"
+                />
+                <div className="flex gap-0.5">
+                  {WS_PRESET_COLORS.map(c => (
+                    <button key={c} onClick={() => setNewColor(c)}
+                      className={`w-3 h-3 rounded-full transition ${newColor === c ? 'ring-2 ring-white/60' : 'opacity-50 hover:opacity-100'}`}
+                      style={{ background: c }} />
+                  ))}
+                </div>
+                <button onClick={() => { if (newName.trim()) { create(newName.trim(), newColor); setNewName(""); setCreating(false); setOpen(false); } }}
+                  className="text-[10px] text-up font-bold">✓</button>
+              </div>
+            ) : (
+              <button onClick={() => setCreating(true)}
+                className="w-full flex items-center gap-1.5 px-2 py-1.5 text-[11px] text-indigo-300 hover:text-indigo-200 hover:bg-indigo-500/10 rounded transition">
+                <Plus size={11} /> {t('新建工作区')}
+              </button>
+            )}
+          </div>
+          <div className="px-3 py-1.5 border-t border-white/5 text-[8px] text-[#667] leading-relaxed">
+            {t('每个工作区独立保存日志 / 回测模板。股票池、行情数据全局共享。')}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const LiveClock = React.memo(() => {
   const [time, setTime] = useState(new Date());
   useEffect(() => { const t = setInterval(() => setTime(new Date()), 1000); return () => clearInterval(t); }, []);
@@ -1404,6 +1650,7 @@ const CommandPalette = ({ open, onClose, stocks, onPickStock, onSwitchTab, curre
     const actionItems = [
       { type: "action", id: "act_theme", label: t("切换深色 / 浅色"), sub: t("Theme toggle"), action: () => onQuickAction?.('theme') },
       { type: "action", id: "act_density", label: t("切换表格密度"), sub: t("Density: cozy / compact / dense"), action: () => onQuickAction?.('density') },
+      { type: "action", id: "act_layout", label: t("切换 Bloomberg 侧栏 / 顶部导航"), sub: t("Layout: topbar / sidebar"), action: () => onQuickAction?.('layout') },
       { type: "action", id: "act_refresh", label: t("刷新行情"), sub: t("Yahoo Finance"), action: () => onQuickAction?.('refresh') },
       { type: "action", id: "act_onboarding", label: t("打开使用教程"), sub: t("Onboarding tour"), action: () => onQuickAction?.('onboarding') },
     ];
@@ -1644,6 +1891,36 @@ function QuantPlatformInner() {
     window.addEventListener("quantedge:showOnboarding", handler);
     return () => window.removeEventListener("quantedge:showOnboarding", handler);
   }, []);
+
+  // H5: PWA 状态 — 新版本可用 + 安装到桌面
+  const [swUpdateReg, setSwUpdateReg] = useState(null);
+  const [installPromptEvent, setInstallPromptEvent] = useState(null);
+  useEffect(() => {
+    const onUpdate = (e) => setSwUpdateReg(e.detail?.reg || null);
+    const onBeforeInstall = (e) => { e.preventDefault(); setInstallPromptEvent(e); };
+    const onInstalled = () => setInstallPromptEvent(null);
+    window.addEventListener("quantedge:swUpdate", onUpdate);
+    window.addEventListener("beforeinstallprompt", onBeforeInstall);
+    window.addEventListener("appinstalled", onInstalled);
+    return () => {
+      window.removeEventListener("quantedge:swUpdate", onUpdate);
+      window.removeEventListener("beforeinstallprompt", onBeforeInstall);
+      window.removeEventListener("appinstalled", onInstalled);
+    };
+  }, []);
+  const applySwUpdate = () => {
+    if (swUpdateReg?.waiting) {
+      swUpdateReg.waiting.postMessage("SKIP_WAITING"); // 触发 controllerchange → 自动 reload
+    } else {
+      window.location.reload();
+    }
+  };
+  const promptInstall = async () => {
+    if (!installPromptEvent) return;
+    installPromptEvent.prompt();
+    const { outcome } = await installPromptEvent.userChoice;
+    if (outcome === "accepted") setInstallPromptEvent(null);
+  };
   const [theme, setTheme] = useState(() => localStorage.getItem("quantedge_theme") || "dark");
   useEffect(() => {
     localStorage.setItem("quantedge_theme", theme);
@@ -1656,6 +1933,13 @@ function QuantPlatformInner() {
     localStorage.setItem("quantedge_density", density);
   }, [density]);
   const cycleDensity = () => setDensity(d => d === "cozy" ? "compact" : d === "compact" ? "dense" : "cozy");
+  // C9: 布局模式 — "topbar"（默认顶部水平 tab）/ "sidebar"（Bloomberg 风左侧栏，仅桌面）
+  const [layoutMode, setLayoutMode] = useState(() => localStorage.getItem("quantedge_layout") || "topbar");
+  useEffect(() => {
+    localStorage.setItem("quantedge_layout", layoutMode);
+  }, [layoutMode]);
+  const toggleLayout = () => setLayoutMode(m => m === "topbar" ? "sidebar" : "topbar");
+  const useSidebar = layoutMode === "sidebar";
 
   // 全局键盘快捷键
   useEffect(() => {
@@ -1703,11 +1987,45 @@ function QuantPlatformInner() {
   if (!user) return <AuthPage />;
 
   return (
-    <div className={`w-full h-screen flex flex-col overflow-hidden density-${density} ${theme === "light" ? "light" : ""}`} style={{
+    <div className={`w-full h-screen flex flex-col overflow-hidden density-${density} ${theme === "light" ? "light" : ""} ${useSidebar ? 'md:pl-12' : ''}`} style={{
       background: "var(--bg-gradient)",
       fontFamily: "'DM Sans', 'Noto Sans SC', sans-serif", color: "var(--text-primary)",
     }}>
       <a href="#main-content" className="skip-nav">{t('跳至主内容')}</a>
+      {/* C9: Bloomberg 风左侧栏（仅桌面 + sidebar 模式） */}
+      {useSidebar && (
+        <aside className="hidden md:flex fixed left-0 top-0 bottom-0 z-40 w-12 flex-col items-stretch border-r border-white/8 bg-white/[0.02] backdrop-blur-md py-2 group/sidebar hover:w-44 transition-[width] duration-200">
+          <div className="px-2 py-1 mb-2 flex items-center gap-2 overflow-hidden">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-white font-bold text-[10px] shrink-0">QE</div>
+            <span className="text-[11px] font-semibold text-white opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200 whitespace-nowrap">QuantEdge</span>
+          </div>
+          <nav role="tablist" aria-label={t('主导航')} className="flex flex-col gap-0.5 px-1.5">
+            {TAB_CFG.map(c => {
+              const I = c.icon;
+              const active = tab === c.id;
+              return (
+                <button
+                  key={c.id}
+                  onClick={() => setTab(c.id)}
+                  role="tab"
+                  aria-selected={active}
+                  aria-label={t(c.label)}
+                  className={`relative flex items-center gap-2 px-2 py-2 rounded-lg text-[11px] font-medium transition-all overflow-hidden whitespace-nowrap btn-tactile ${active ? "bg-gradient-to-r from-indigo-500/30 to-violet-500/15 text-white ring-1 ring-indigo-400/25" : "text-[#a0aec0] hover:text-white hover:bg-white/[0.06]"}`}
+                >
+                  <I size={14} className="shrink-0" />
+                  <span className="opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">{t(c.label)}</span>
+                  {active && <span className="absolute right-0 top-1/2 -translate-y-1/2 h-6 w-0.5 bg-indigo-400 rounded-l" />}
+                </button>
+              );
+            })}
+          </nav>
+          {/* 底部：⌘K 提示 */}
+          <div className="mt-auto px-2 py-2 text-[8px] text-[#667] flex items-center gap-1.5 overflow-hidden whitespace-nowrap">
+            <kbd className="px-1 py-[1px] rounded bg-white/5 border border-white/10 font-mono">⌘K</kbd>
+            <span className="opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">{t('搜索')}</span>
+          </div>
+        </aside>
+      )}
       <header className="flex flex-col md:flex-row items-center justify-between px-3 md:px-6 py-2 md:py-2.5 border-b border-white/5 bg-white/[0.02] backdrop-blur-md flex-shrink-0 gap-2 md:gap-0">
         <div className="flex items-center justify-between w-full md:w-auto">
           <div className="flex items-center gap-2.5 md:gap-3">
@@ -1738,7 +2056,7 @@ function QuantPlatformInner() {
           </div>
         </div>
 
-        <nav role="tablist" aria-label={t('主导航')} className="flex items-center gap-0.5 md:gap-1 bg-white/[0.03] rounded-xl p-0.5 md:p-1 gradient-border w-full md:w-auto overflow-x-auto">
+        <nav role="tablist" aria-label={t('主导航')} className={`${useSidebar ? 'flex md:hidden' : 'flex'} items-center gap-0.5 md:gap-1 bg-white/[0.03] rounded-xl p-0.5 md:p-1 gradient-border w-full md:w-auto overflow-x-auto`}>
           {TAB_CFG.map(c => {
             const I = c.icon;
             return (
@@ -1766,6 +2084,9 @@ function QuantPlatformInner() {
             ))}
           </div>
           <div className="w-px h-5 bg-white/8" />
+          {/* C16: 工作区切换器 */}
+          <WorkspaceSwitcher />
+          <div className="w-px h-5 bg-white/8" />
           <button onClick={toggleTheme} className="p-1.5 rounded-lg bg-white/5 text-[#a0aec0] hover:text-white hover:bg-white/10 border border-white/5 transition-all btn-tactile" title={theme === "dark" ? t("切换浅色模式") : t("切换深色模式")}>
             {theme === "dark" ? <Sun size={14} /> : <Moon size={14} />}
           </button>
@@ -1775,6 +2096,13 @@ function QuantPlatformInner() {
             title={t("表格密度: 点击切换 舒适 / 紧凑 / 密集")}
           >
             {density === "cozy" ? "≡" : density === "compact" ? "≣" : "▦"}
+          </button>
+          {/* C9: Bloomberg 布局切换 — 仅桌面有效 */}
+          <button onClick={toggleLayout}
+            className={`hidden md:flex items-center px-2 py-1.5 rounded-lg text-[10px] font-mono font-medium border transition-all btn-tactile ${useSidebar ? 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30' : 'bg-white/5 text-[#a0aec0] hover:text-white hover:bg-white/10 border-white/5'}`}
+            title={useSidebar ? t("已切换 Bloomberg 侧栏布局，点击恢复顶部导航") : t("切换为 Bloomberg 风左侧栏（仅桌面）")}
+          >
+            {useSidebar ? '◧' : '◨'}
           </button>
           <button onClick={() => setShowManager(true)} className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[10px] font-medium bg-white/5 text-[#a0aec0] hover:text-white hover:bg-white/10 border border-white/5 transition-all btn-tactile" title={t("标的管理")}>
             <Database size={12} />
@@ -1867,6 +2195,10 @@ function QuantPlatformInner() {
                         <span className="font-mono text-cyan-300">{stocks.length}</span>
                       </div>
                       <div className="flex items-center justify-between">
+                        <span className="text-[#778]">{t('持久化')}</span>
+                        <span className="font-mono text-[#a0aec0]">localStorage + IndexedDB</span>
+                      </div>
+                      <div className="flex items-center justify-between">
                         <span className="text-[#778]">{t('模式')}</span>
                         <span className="font-mono text-[#a0aec0]">{apiOnline ? t('后端 API 直连') : t('独立 + 代理')}</span>
                       </div>
@@ -1897,13 +2229,31 @@ function QuantPlatformInner() {
           </button>
         </div>
         <div className="flex items-center gap-2 md:gap-3 shrink-0">
+          {/* H5: PWA 安装到桌面 */}
+          {installPromptEvent && (
+            <button onClick={promptInstall}
+              className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/30 transition"
+              title={t('将 QuantEdge 安装到桌面 — 离线可用 + 启动更快')}
+            >
+              📲 {t('安装')}
+            </button>
+          )}
+          {/* H5: SW 新版本可用 */}
+          {swUpdateReg && (
+            <button onClick={applySwUpdate}
+              className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 transition animate-pulse"
+              title={t('点击刷新使用新版本（已下载完成）')}
+            >
+              ✨ {t('新版本可用')}
+            </button>
+          )}
           <span className="hidden lg:inline-flex items-center gap-1.5 text-[9px] text-[#667]">
             <kbd className="px-1 py-[1px] rounded bg-white/5 border border-white/10 font-mono text-[8px]">⌘K</kbd>
             <span>{t('搜索')}</span>
             <kbd className="px-1 py-[1px] rounded bg-white/5 border border-white/10 font-mono text-[8px] ml-1">Tab</kbd>
             <span>{t('切换')}</span>
           </span>
-          <span className="text-[9px] md:text-[10px] text-[#778] font-mono">v0.6.0 · <span className="text-indigo-400/80">Polished</span></span>
+          <span className="text-[9px] md:text-[10px] text-[#778] font-mono">v0.7.0 · <span className="text-indigo-400/80">PWA</span></span>
         </div>
       </footer>
 
@@ -1922,6 +2272,7 @@ function QuantPlatformInner() {
           else if (act === 'density') cycleDensity();
           else if (act === 'refresh') quickPriceRefresh?.();
           else if (act === 'onboarding') setOnboardOpen(true);
+          else if (act === 'layout') toggleLayout();
         }}
         onLoadTemplate={(tpl) => {
           // C4: 加载策略模板 → 跳转回测引擎并触发加载
@@ -1946,7 +2297,9 @@ export default function QuantPlatform() {
     <LangProvider>
       <AuthProvider>
         <DataProvider>
-          <QuantPlatformInner />
+          <WorkspaceProvider>
+            <QuantPlatformInner />
+          </WorkspaceProvider>
         </DataProvider>
       </AuthProvider>
     </LangProvider>

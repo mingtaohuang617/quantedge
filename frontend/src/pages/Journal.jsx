@@ -4,7 +4,7 @@
 // ─────────────────────────────────────────────────────────────
 import React, { useState, useEffect, useMemo, useCallback, useContext } from "react";
 import { BarChart, Bar, XAxis, YAxis, Cell, Tooltip, ResponsiveContainer } from "recharts";
-import { Plus, Search, Loader, Check, Briefcase, Activity, BookOpen, Trash2, Eye, Layers, Globe, ChevronRight, Zap } from "lucide-react";
+import { Plus, Search, Loader, Check, Briefcase, Activity, BookOpen, Trash2, Eye, Layers, Globe, ChevronRight, Zap, Database, X, Upload } from "lucide-react";
 import { searchTickers as standaloneSearch, fetchStockData, STOCK_CN_NAMES } from "../standalone.js";
 import { useLang } from "../i18n.jsx";
 import {
@@ -15,18 +15,20 @@ import {
   TAG_COLORS,
   TOOLTIP_STYLE,
   Badge,
+  useWorkspace,
+  wsKey,
 } from "../quant-platform.jsx";
 
-const JOURNAL_STORAGE_KEY = "quantedge_journal";
-const loadJournal = () => {
+// C16: 工作区命名空间
+const loadJournal = (wsId) => {
   try {
-    const raw = localStorage.getItem(JOURNAL_STORAGE_KEY);
+    const raw = localStorage.getItem(wsKey("quantedge_journal", wsId));
     if (raw) return JSON.parse(raw);
   } catch {}
   return null;
 };
-const saveJournal = (entries) => {
-  localStorage.setItem(JOURNAL_STORAGE_KEY, JSON.stringify(entries));
+const saveJournal = (entries, wsId) => {
+  try { localStorage.setItem(wsKey("quantedge_journal", wsId), JSON.stringify(entries)); } catch {}
 };
 
 // ─── 持仓编辑器（股数 + 持有成本） ─────────────────────────
@@ -215,10 +217,15 @@ const Journal = () => {
   const { t, lang } = useLang();
   const { stocks: ctxStocks4, standalone } = useContext(DataContext) || {};
   const liveStocks = ctxStocks4 || [];
-  const [entries, setEntries] = useState(() => {
-    const stored = loadJournal();
-    return stored || [];
-  });
+  const ws = useWorkspace();
+  const wsId = ws?.activeId || 'default';
+  const [entries, setEntries] = useState(() => loadJournal(wsId) || []);
+  // C16: 工作区切换时重新加载该工作区的日志，并清空当前选中
+  useEffect(() => {
+    const stored = loadJournal(wsId);
+    setEntries(stored || []);
+    setSel(null);
+  }, [wsId]);
   const [sel, setSel] = useState(null);
   const [showAdd, setShowAdd] = useState(false);
   const [addTicker, setAddTicker] = useState("");
@@ -247,7 +254,7 @@ const Journal = () => {
     });
   }, [liveStocks]);
 
-  useEffect(() => { saveJournal(entries); }, [entries]);
+  useEffect(() => { saveJournal(entries, wsId); }, [entries, wsId]);
 
   const searchStocks = useCallback(async (q) => {
     if (!q.trim()) { setAddSearchResults([]); return; }
@@ -356,6 +363,144 @@ const Journal = () => {
     return { count: held.length, cost, value, gain, gainPct };
   }, [entries]);
 
+  // ─── H4: AI 复盘助手（生成结构化 Claude prompt） ──────────
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiAngle, setAiAngle] = useState('counterfactual');
+  const [aiCopied, setAiCopied] = useState(false);
+
+  const generatePrompt = useCallback(() => {
+    if (!sel) return "";
+    const stk = liveStocks.find(s => s.ticker === sel.ticker);
+    const cur = stk?.currency === "HKD" ? "HK$" : "$";
+    const days = Math.floor((Date.now() - new Date(sel.anchorDate).getTime()) / 86400000);
+    const ret = sel.anchorPrice > 0 ? ((sel.currentPrice - sel.anchorPrice) / sel.anchorPrice * 100).toFixed(2) : "0";
+    const angleQuestion = {
+      counterfactual: t('反事实分析：如果当时我没有买入这只股票，资金放在 SPY/QQQ 等基准上，结果会如何？我的论点哪里对了，哪里错了？'),
+      exit: t('卖出策略：基于我的论点和当前 P&L，应该止盈、止损、还是继续持有？给出明确的触发条件（价格 / 时间 / 估值变化）。'),
+      addmore: t('加仓时机：在什么条件下应该加仓？什么条件下绝对不能加仓？请给出具体的技术 / 基本面信号。'),
+      risk:    t('风险评估：这只股票现在最大的 3 个尾部风险是什么？组合层面如何对冲？'),
+    }[aiAngle] || '';
+    const stkInfo = stk ? `
+- 当前价格: ${cur}${stk.price}
+- 52 周区间: ${cur}${stk.week52Low} ~ ${cur}${stk.week52High}
+- P/E: ${stk.pe ?? 'N/A'} · ROE: ${stk.roe ?? 'N/A'}% · Beta: ${stk.beta ?? 'N/A'}
+- 营收增长: ${stk.revenueGrowth ?? 'N/A'}% · 利润率: ${stk.profitMargin ?? 'N/A'}%
+- 综合评分: ${stk.score?.toFixed(1) ?? 'N/A'}/100
+- 行业: ${stk.sector ?? 'N/A'}` : '';
+    return `# QuantEdge 投资复盘 · ${sel.ticker}
+
+## 基本信息
+- 股票代码: ${sel.ticker} (${sel.name})
+- 锚定日期: ${sel.anchorDate} (${days} 天前)
+- 锚定价格: ${cur}${sel.anchorPrice}
+- 当前价格: ${cur}${sel.currentPrice}
+- 累计收益: ${ret >= 0 ? '+' : ''}${ret}%${sel.shares ? `\n- 持仓股数: ${sel.shares} (成本 ${cur}${sel.costBasis ?? sel.anchorPrice}/股)` : ''}
+${stkInfo}
+
+## 我当时的投资论点
+${sel.thesis || '(未填写)'}
+
+## 标签
+${(sel.tags || []).join(', ') || '(无)'}
+
+## 请你帮我做以下分析
+
+${angleQuestion}
+
+请基于上面的真实数据给出**结构化、可执行**的回答，不要泛泛而谈。如果数据不足以支撑结论，请明确指出需要补充什么信息。`;
+  }, [sel, aiAngle, liveStocks, t]);
+
+  const copyPrompt = useCallback(async () => {
+    const text = generatePrompt();
+    try {
+      await navigator.clipboard.writeText(text);
+      setAiCopied(true);
+      setTimeout(() => setAiCopied(false), 2000);
+    } catch (e) {
+      console.error('Clipboard failed:', e);
+    }
+  }, [generatePrompt]);
+
+  // ─── C12: CSV 导入（富途 / IB / 雪球 / 通用格式） ─────────
+  const [csvImportOpen, setCsvImportOpen] = useState(false);
+  const [csvPreview, setCsvPreview] = useState(null); // { rows: [{ticker, qty, cost, date, _selected}] }
+  const [csvImportError, setCsvImportError] = useState("");
+  const fileInputRef = useRef(null);
+
+  const parseCSV = (text) => {
+    // 简单 CSV 解析 — 支持引号转义
+    const lines = text.replace(/^﻿/, '').split(/\r?\n/).filter(l => l.trim());
+    if (lines.length < 2) return null;
+    const splitRow = (line) => {
+      const out = []; let cur = ""; let inQ = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') { inQ = !inQ; continue; }
+        if (ch === ',' && !inQ) { out.push(cur); cur = ""; continue; }
+        cur += ch;
+      }
+      out.push(cur);
+      return out.map(s => s.trim());
+    };
+    const headers = splitRow(lines[0]).map(h => h.toLowerCase());
+    // 列名匹配（中英文）
+    const findCol = (keys) => headers.findIndex(h => keys.some(k => h.includes(k)));
+    const idxTicker = findCol(['symbol', 'ticker', '代码', '股票代码']);
+    const idxQty    = findCol(['quantity', 'shares', 'qty', '数量', '股数', '持仓']);
+    const idxCost   = findCol(['price', 'cost', 'avg', '成本', '均价', '买入价', '成交均价']);
+    const idxDate   = findCol(['date', '日期', '时间', '买入日期', '成交日期']);
+    if (idxTicker < 0) return { error: '未识别股票代码列（需含 symbol / ticker / 代码）' };
+    const rows = [];
+    for (let i = 1; i < lines.length; i++) {
+      const cols = splitRow(lines[i]);
+      const tk = (cols[idxTicker] || "").toUpperCase().trim();
+      if (!tk) continue;
+      const qty  = idxQty  >= 0 ? parseFloat(cols[idxQty])  || 0 : 0;
+      const cost = idxCost >= 0 ? parseFloat(cols[idxCost]) || 0 : 0;
+      const date = idxDate >= 0 ? cols[idxDate] : new Date().toISOString().slice(0, 10);
+      rows.push({ ticker: tk, qty, cost, date, _selected: true });
+    }
+    return { rows };
+  };
+
+  const handleCsvFile = async (file) => {
+    setCsvImportError("");
+    if (!file) return;
+    const text = await file.text();
+    const result = parseCSV(text);
+    if (!result || result.error) {
+      setCsvImportError(result?.error || t('解析失败'));
+      setCsvPreview(null);
+      return;
+    }
+    setCsvPreview(result);
+  };
+
+  const importCsvEntries = () => {
+    if (!csvPreview?.rows) return;
+    const selected = csvPreview.rows.filter(r => r._selected);
+    if (selected.length === 0) return;
+    const newEntries = selected.map(r => {
+      const stk = liveStocks.find(s => s.ticker === r.ticker);
+      return {
+        id: Date.now() + Math.random(),
+        ticker: r.ticker,
+        name: stk?.name || r.ticker,
+        anchorPrice: r.cost || stk?.price || 0,
+        anchorDate: r.date,
+        currentPrice: stk?.price || r.cost || 0,
+        thesis: t('CSV 导入'),
+        tags: ['导入'],
+        shares: r.qty,
+        costBasis: r.cost,
+        sector: stk?.sector || '未知',
+      };
+    });
+    setEntries(prev => [...newEntries, ...prev]);
+    setCsvImportOpen(false);
+    setCsvPreview(null);
+  };
+
   const peerData = sel?.ticker === "RKLB" ? [
     { name: "RKLB", pe: -176, yours: true },
     { name: "FLY", pe: -45 },
@@ -381,9 +526,18 @@ const Journal = () => {
   return (
     <div className="flex flex-col md:grid md:grid-cols-12 gap-3 md:gap-4 h-full min-h-0 overflow-auto md:overflow-hidden">
       <div className={`md:col-span-4 flex flex-col gap-3 md:min-h-0 ${mobileShowDetail ? "hidden md:flex" : "flex"}`}>
-        <button onClick={() => setShowAdd(!showAdd)} className="w-full py-2.5 rounded-xl text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 hover:bg-indigo-500/20 flex items-center justify-center gap-1.5 shrink-0">
-          <Plus size={14} /> {t('新增看好标的')}
-        </button>
+        <div className="flex gap-2 shrink-0">
+          <button onClick={() => setShowAdd(!showAdd)} className="flex-1 py-2.5 rounded-xl text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 hover:bg-indigo-500/20 flex items-center justify-center gap-1.5">
+            <Plus size={14} /> {t('新增看好标的')}
+          </button>
+          {/* C12: CSV 导入按钮 */}
+          <button onClick={() => setCsvImportOpen(true)}
+            className="px-3 py-2.5 rounded-xl text-xs font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 hover:bg-cyan-500/20 flex items-center gap-1.5"
+            title={t('从 CSV 批量导入持仓（富途/IB/雪球）')}
+          >
+            <Database size={13} /> CSV
+          </button>
+        </div>
         {showAdd && (
           <div className="glass-card p-3 space-y-2 animate-slide-up">
             <div className="relative">
@@ -626,6 +780,21 @@ const Journal = () => {
 
               <PositionEditor entry={sel} currency={currency} onUpdate={(patch) => updateEntry(sel.id, patch)} />
 
+              {/* H4: AI 复盘助手触发条 */}
+              <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-gradient-to-r from-indigo-500/[0.06] via-violet-500/[0.06] to-cyan-500/[0.06] border border-indigo-500/15">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-base">🤖</span>
+                  <div className="min-w-0">
+                    <div className="text-[11px] font-medium text-white">{t('AI 复盘助手')}</div>
+                    <div className="text-[9px] text-[#a0aec0]">{t('用 Claude 帮你做反事实 / 卖出策略 / 加仓 / 风险分析')}</div>
+                  </div>
+                </div>
+                <button onClick={() => setAiOpen(true)}
+                  className="text-[10px] font-medium px-2.5 py-1 rounded-md bg-indigo-500/20 text-indigo-200 hover:bg-indigo-500/35 border border-indigo-400/30 transition shrink-0">
+                  {t('生成 Prompt')} →
+                </button>
+              </div>
+
               <div className="grid grid-cols-3 gap-2">
                 <div className="glass-card glass-card-hover p-2 md:p-3 text-center">
                   <div className="text-[9px] md:text-[10px] text-[#a0aec0] mb-1">{t('锚定价格')}</div>
@@ -700,6 +869,209 @@ const Journal = () => {
           );
         })()}
       </div>
+
+      {/* C12: CSV 导入弹窗 */}
+      {csvImportOpen && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => { setCsvImportOpen(false); setCsvPreview(null); setCsvImportError(""); }}>
+          <div className="w-full max-w-2xl max-h-[85vh] glass-card border border-white/15 shadow-2xl shadow-black/60 flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-white/8 shrink-0">
+              <div className="flex items-center gap-2">
+                <Database size={14} className="text-cyan-400" />
+                <span className="text-sm font-medium text-white">{t('从 CSV 导入持仓')}</span>
+                <span className="text-[9px] text-[#778] font-mono">{t('富途 / IB / 雪球 / 通用')}</span>
+              </div>
+              <button onClick={() => { setCsvImportOpen(false); setCsvPreview(null); setCsvImportError(""); }}
+                className="p-1 rounded hover:bg-white/10 text-[#778] hover:text-white transition">
+                <X size={14} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto p-4 space-y-3">
+              {!csvPreview ? (
+                <>
+                  <div className="text-[11px] text-[#a0aec0] leading-relaxed">
+                    {t('上传 CSV 文件 — 系统会自动识别股票代码 / 数量 / 成本 / 日期列。常见列名：')}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-[10px] font-mono">
+                    <div className="glass-card p-2">
+                      <div className="text-[9px] text-cyan-300 mb-1 font-semibold">{t('支持的列名')}</div>
+                      <div className="text-[#a0aec0] space-y-0.5">
+                        <div><span className="text-[#778]">代码:</span> symbol / ticker / 代码 / 股票代码</div>
+                        <div><span className="text-[#778]">数量:</span> quantity / shares / qty / 数量 / 持仓</div>
+                        <div><span className="text-[#778]">成本:</span> price / cost / avg / 成本 / 均价 / 买入价</div>
+                        <div><span className="text-[#778]">日期:</span> date / 日期 / 时间 / 买入日期</div>
+                      </div>
+                    </div>
+                    <div className="glass-card p-2">
+                      <div className="text-[9px] text-cyan-300 mb-1 font-semibold">{t('示例 CSV')}</div>
+                      <pre className="text-[#a0aec0] text-[9px] leading-relaxed">{`代码,数量,均价,日期
+NVDA,100,420.5,2025-03-15
+AAPL,50,189.2,2025-04-01
+00700.HK,200,310,2025-04-10`}</pre>
+                    </div>
+                  </div>
+                  <input ref={fileInputRef} type="file" accept=".csv,.txt" className="hidden"
+                    onChange={(e) => handleCsvFile(e.target.files?.[0])} />
+                  <button onClick={() => fileInputRef.current?.click()}
+                    className="w-full py-3 rounded-lg border-2 border-dashed border-cyan-500/30 hover:border-cyan-500/60 hover:bg-cyan-500/5 text-cyan-400 transition flex items-center justify-center gap-2 text-xs font-medium">
+                    <Upload size={14} /> {t('选择 CSV 文件')}
+                  </button>
+                  {csvImportError && (
+                    <div className="text-[10px] text-down bg-down/10 border border-down/20 rounded p-2">{csvImportError}</div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-[#a0aec0]">
+                      {t('解析到 {n} 行，勾选后导入', { n: csvPreview.rows.length })}
+                    </span>
+                    <div className="flex gap-1">
+                      <button onClick={() => setCsvPreview({ rows: csvPreview.rows.map(r => ({ ...r, _selected: true })) })}
+                        className="text-[10px] px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-[#a0aec0]">
+                        {t('全选')}
+                      </button>
+                      <button onClick={() => setCsvPreview({ rows: csvPreview.rows.map(r => ({ ...r, _selected: false })) })}
+                        className="text-[10px] px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-[#a0aec0]">
+                        {t('全不选')}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="overflow-auto max-h-[40vh] glass-card p-0">
+                    <table className="w-full text-[10px] tabular-nums">
+                      <thead className="sticky top-0 bg-[var(--bg-card)] border-b border-white/8">
+                        <tr>
+                          <th className="px-2 py-1.5 text-left w-8"></th>
+                          <th className="px-2 py-1.5 text-left text-[#778]">{t('代码')}</th>
+                          <th className="px-2 py-1.5 text-right text-[#778]">{t('数量')}</th>
+                          <th className="px-2 py-1.5 text-right text-[#778]">{t('成本')}</th>
+                          <th className="px-2 py-1.5 text-left text-[#778]">{t('日期')}</th>
+                          <th className="px-2 py-1.5 text-right text-[#778]">{t('在库')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {csvPreview.rows.map((r, i) => {
+                          const inLib = liveStocks.some(s => s.ticker === r.ticker);
+                          return (
+                            <tr key={i} className={`border-b border-white/[0.04] hover:bg-white/[0.02] ${!r._selected ? 'opacity-40' : ''}`}>
+                              <td className="px-2 py-1">
+                                <input type="checkbox" checked={r._selected}
+                                  onChange={(e) => {
+                                    const rows = [...csvPreview.rows];
+                                    rows[i] = { ...rows[i], _selected: e.target.checked };
+                                    setCsvPreview({ rows });
+                                  }} />
+                              </td>
+                              <td className="px-2 py-1 font-mono text-white">{r.ticker}</td>
+                              <td className="px-2 py-1 text-right font-mono text-[#a0aec0]">{r.qty}</td>
+                              <td className="px-2 py-1 text-right font-mono text-[#a0aec0]">{r.cost}</td>
+                              <td className="px-2 py-1 font-mono text-[#a0aec0]">{r.date}</td>
+                              <td className="px-2 py-1 text-right">
+                                {inLib ? (
+                                  <span className="text-[9px] text-up">✓</span>
+                                ) : (
+                                  <span className="text-[9px] text-amber-400">{t('需添加')}</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="text-[9px] text-[#778] leading-relaxed">
+                    {t('已勾选的行将作为新的投资记录加入。「在库」标记表示该标的已在平台股票池中（可获取实时价格）。')}
+                  </div>
+                </>
+              )}
+            </div>
+            {csvPreview && (
+              <div className="flex items-center justify-between px-4 py-3 border-t border-white/8 shrink-0">
+                <button onClick={() => { setCsvPreview(null); setCsvImportError(""); }}
+                  className="text-[11px] px-3 py-1.5 rounded text-[#a0aec0] hover:text-white hover:bg-white/5">
+                  ← {t('重新选择文件')}
+                </button>
+                <button onClick={importCsvEntries}
+                  disabled={csvPreview.rows.filter(r => r._selected).length === 0}
+                  className="text-[11px] font-medium px-3 py-1.5 rounded-md bg-cyan-500/20 text-cyan-200 hover:bg-cyan-500/35 border border-cyan-400/30 disabled:opacity-40 disabled:cursor-not-allowed">
+                  {t('导入 {n} 条记录', { n: csvPreview.rows.filter(r => r._selected).length })}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* H4: AI 复盘助手 Modal */}
+      {aiOpen && sel && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setAiOpen(false)}>
+          <div className="w-full max-w-3xl max-h-[88vh] glass-card border border-white/15 shadow-2xl shadow-black/60 flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-white/8 shrink-0">
+              <div className="flex items-center gap-2">
+                <span className="text-base">🤖</span>
+                <span className="text-sm font-medium text-white">{t('AI 复盘助手')}</span>
+                <span className="text-[9px] text-[#778] font-mono">{sel.ticker}</span>
+              </div>
+              <button onClick={() => setAiOpen(false)} className="p-1 rounded hover:bg-white/10 text-[#778] hover:text-white transition">
+                <X size={14} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto p-4 space-y-3">
+              {/* 选择分析角度 */}
+              <div>
+                <div className="text-[10px] uppercase tracking-wider text-[#778] mb-1.5">{t('选择分析角度')}</div>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {[
+                    { k: 'counterfactual', icon: '🔁', label: t('反事实'), desc: t('如果当时没买…') },
+                    { k: 'exit',          icon: '🚪', label: t('卖出策略'), desc: t('什么时候止盈/止损') },
+                    { k: 'addmore',       icon: '➕', label: t('加仓时机'), desc: t('加仓 / 不加的条件') },
+                    { k: 'risk',          icon: '⚠️', label: t('风险评估'), desc: t('尾部风险 + 对冲') },
+                  ].map(opt => {
+                    const active = aiAngle === opt.k;
+                    return (
+                      <button key={opt.k}
+                        onClick={() => setAiAngle(opt.k)}
+                        className={`text-left px-2.5 py-2 rounded-lg border transition ${active ? 'bg-indigo-500/15 border-indigo-400/40 text-white' : 'bg-white/[0.03] border-white/8 text-[#a0aec0] hover:bg-white/[0.06]'}`}
+                      >
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                          <span>{opt.icon}</span>
+                          <span className="text-xs font-medium">{opt.label}</span>
+                          {active && <Check size={11} className="ml-auto text-indigo-300" />}
+                        </div>
+                        <div className="text-[9px] text-[#778]">{opt.desc}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              {/* Prompt 预览 */}
+              <div>
+                <div className="text-[10px] uppercase tracking-wider text-[#778] mb-1.5 flex items-center justify-between">
+                  <span>{t('生成的 Prompt 预览')}</span>
+                  <span className="font-mono text-[#667]">{generatePrompt().length} {t('字')}</span>
+                </div>
+                <pre className="glass-card p-3 text-[10px] font-mono leading-relaxed text-[#a0aec0] whitespace-pre-wrap max-h-[40vh] overflow-auto select-text">{generatePrompt()}</pre>
+              </div>
+              <div className="text-[10px] text-[#778] leading-relaxed bg-white/[0.02] rounded p-2">
+                💡 {t('当前 MVP 模式：复制 Prompt → 粘贴到 claude.ai 或 ChatGPT。下一阶段我们会接入服务端 Claude API 实现一键自动复盘（需要在 Vercel 配置 ANTHROPIC_API_KEY 环境变量）。')}
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-white/8 shrink-0">
+              <button onClick={() => setAiOpen(false)}
+                className="text-[11px] px-3 py-1.5 rounded text-[#a0aec0] hover:text-white hover:bg-white/5">
+                {t('取消')}
+              </button>
+              <a href="https://claude.ai/new" target="_blank" rel="noopener noreferrer"
+                className="text-[11px] font-medium px-3 py-1.5 rounded-md bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white border border-white/10 transition">
+                {t('打开 claude.ai')} ↗
+              </a>
+              <button onClick={copyPrompt}
+                className="text-[11px] font-medium px-3 py-1.5 rounded-md bg-indigo-500/20 text-indigo-200 hover:bg-indigo-500/35 border border-indigo-400/30 transition flex items-center gap-1">
+                {aiCopied ? <><Check size={11} /> {t('已复制')}</> : <>{t('复制 Prompt')} 📋</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

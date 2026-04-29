@@ -5,3 +5,8 @@ dist
 .DS_Store
 
 .vercel
+
+# Playwright
+test-results
+playwright-report
+playwright/.cache

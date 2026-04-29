@@ -119,6 +119,41 @@
   --accent-cyan-soft: #22d3ee88;
 }
 
+/* ── C17: OKLCH perceptually-uniform palette ──
+   现代浏览器（Chrome 111+ / FF 113+ / Safari 15.4+）使用感知均匀的 OKLCH 色彩
+   确保暗/亮模式下 up/down/amber 看起来"等亮度"，颜色不会过暗或刺眼
+   旧浏览器自动回退到上面的 hex */
+@supports (color: oklch(0% 0 0)) {
+  :root {
+    --accent-up:        oklch(74% 0.16 158);    /* 暗模式：清晰但不刺眼的青绿 */
+    --accent-up-soft:   oklch(74% 0.16 158 / 0.55);
+    --accent-down:      oklch(70% 0.18 25);     /* 暗模式：温暖但醒目的红 */
+    --accent-down-soft: oklch(70% 0.18 25 / 0.55);
+    --accent-amber:     oklch(78% 0.15 75);
+    --accent-amber-soft:oklch(78% 0.15 75 / 0.55);
+    --accent-indigo:    oklch(68% 0.18 270);
+    --accent-indigo-soft:oklch(68% 0.18 270 / 0.55);
+    --accent-violet:    oklch(70% 0.19 295);
+    --accent-violet-soft:oklch(70% 0.19 295 / 0.55);
+    --accent-cyan:      oklch(75% 0.13 200);
+    --accent-cyan-soft: oklch(75% 0.13 200 / 0.55);
+  }
+  .light {
+    --accent-up:        oklch(60% 0.18 158);    /* 亮模式：稍暗以保证 AA 对比度 */
+    --accent-up-soft:   oklch(60% 0.18 158 / 0.55);
+    --accent-down:      oklch(56% 0.20 25);
+    --accent-down-soft: oklch(56% 0.20 25 / 0.55);
+    --accent-amber:     oklch(68% 0.17 70);
+    --accent-amber-soft:oklch(68% 0.17 70 / 0.55);
+    --accent-indigo:    oklch(54% 0.20 270);
+    --accent-indigo-soft:oklch(54% 0.20 270 / 0.55);
+    --accent-violet:    oklch(58% 0.20 295);
+    --accent-violet-soft:oklch(58% 0.20 295 / 0.55);
+    --accent-cyan:      oklch(60% 0.15 200);
+    --accent-cyan-soft: oklch(60% 0.15 200 / 0.55);
+  }
+}
+
 /* ── Theme-aware color overrides ──
    These use CSS variables to automatically switch colors based on .light class */
 
@@ -281,6 +316,16 @@ body {
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum", "lnum";
 }
+
+/* C14: 列表项视口外跳过渲染（浏览器原生虚拟化，比 react-window 轻量）
+   长列表（如 Scoring 股票列表）滚动时浏览器自动跳过屏外元素的布局 / paint
+   降级：旧浏览器忽略此属性，行为与不加完全一致 */
+.virt-row {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 84px; /* 估算行高，密度=standard */
+}
+.density-compact .virt-row { contain-intrinsic-size: 0 32px; }
+.density-dense   .virt-row { contain-intrinsic-size: 0 24px; }
 
 /* S2: 表格密度切换（density-cozy=默认 / density-compact / density-dense） */
 :root { --row-py: 0.75rem; --row-px: 0.75rem; --row-gap: 0.5rem; --row-fs: 0.75rem; }

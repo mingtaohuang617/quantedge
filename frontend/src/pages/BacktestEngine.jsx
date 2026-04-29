@@ -4,7 +4,7 @@
 // ─────────────────────────────────────────────────────────────
 import React, { useState, useEffect, useMemo, useCallback, useRef, useContext } from "react";
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, ComposedChart, ReferenceLine, ReferenceArea } from "recharts";
-import { Activity, AlertCircle, AlertTriangle, BookOpen, Briefcase, Check, ChevronDown, Database, Layers, Loader, Plus, RefreshCw, Search, Target, TrendingDown, Zap } from "lucide-react";
+import { Activity, AlertCircle, AlertTriangle, BookOpen, Briefcase, Check, ChevronDown, Database, Layers, Loader, Plus, RefreshCw, Search, Target, Trash2, TrendingDown, X, Zap } from "lucide-react";
 import { searchTickers as standaloneSearch, fetchStockData, fetchBenchmarkPrices, fetchRangePrices, STOCK_CN_NAMES } from "../standalone.js";
 import { useLang } from "../i18n.jsx";
 import { monteCarlo as mcSimulate, navToReturns as mcNavToReturns, hhi as hhiCalc, effectiveN as effN } from "../math/stats.ts";
@@ -14,6 +14,8 @@ import {
   apiFetch,
   Badge,
   TOOLTIP_STYLE,
+  useWorkspace,
+  wsKey,
 } from "../quant-platform.jsx";
 
 // ─── Backtesting ──────────────────────────────────────────
@@ -177,6 +179,9 @@ const BacktestEngine = () => {
   const { t, lang } = useLang();
   const { stocks: ctxStocks2, setStocks: ctxSetStocks2, standalone, addTicker: addTickerToPlatform } = useContext(DataContext);
   const liveStocks = ctxStocks2 || STOCKS;
+  // C16: 工作区 namespace
+  const ws = useWorkspace();
+  const wsId = ws?.activeId || 'default';
   const [dataLoading, setDataLoading] = useState(false);
   const [dataLoadMsg, setDataLoadMsg] = useState("");
   const [running, setRunning] = useState(false);
@@ -205,6 +210,34 @@ const BacktestEngine = () => {
   const [btResult, setBtResult] = useState(null);
   const [builderOpen, setBuilderOpen] = useState(true); // 组合构建器折叠状态
   const [resultsOpen, setResultsOpen] = useState(true); // 回测结果折叠状态
+  // C11: PNG 报告导出
+  const reportRef = useRef(null);
+  const [exporting, setExporting] = useState(false);
+  const exportPNG = useCallback(async () => {
+    if (!reportRef.current) return;
+    setExporting(true);
+    try {
+      const { toPng } = await import('html-to-image');
+      const node = reportRef.current;
+      // 临时确保所有内容展开
+      const dataUrl = await toPng(node, {
+        backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--bg-base').trim() || '#0B0B15',
+        pixelRatio: 2,
+        cacheBust: true,
+        style: { padding: '16px' },
+      });
+      const link = document.createElement('a');
+      const tickers = Object.keys(portfolio).join('-') || 'portfolio';
+      link.download = `quantedge_${tickers.slice(0, 30)}_${btRange}_${new Date().toISOString().slice(0,10)}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (e) {
+      console.error('[Export PNG] failed:', e);
+      alert(t('导出失败：') + (e?.message || e));
+    } finally {
+      setExporting(false);
+    }
+  }, [portfolio, btRange, t]);
   const [highlightRange, setHighlightRange] = useState(null); // {startDate, endDate, ret} 高亮回测曲线区间
   const [zoomRange, setZoomRange] = useState(null); // {startDate, endDate, label} 点击缩放区间
   const [btRange, setBtRange] = useState("1Y"); // 回测时间维度: 1M|6M|YTD|1Y|5Y|ALL|CUSTOM
@@ -215,8 +248,15 @@ const BacktestEngine = () => {
   const autoRan = useRef(false);
   // 策略模板 — 保存 / 加载
   const [templates, setTemplates] = useState(() => {
-    try { return JSON.parse(localStorage.getItem("quantedge_bt_templates") || "[]"); } catch { return []; }
+    try { return JSON.parse(localStorage.getItem(wsKey("quantedge_bt_templates", wsId)) || "[]"); } catch { return []; }
   });
+  // C16: 工作区切换时重新加载该工作区的回测模板
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(wsKey("quantedge_bt_templates", wsId));
+      setTemplates(raw ? JSON.parse(raw) : []);
+    } catch { setTemplates([]); }
+  }, [wsId]);
   const [showTemplates, setShowTemplates] = useState(false);
   const [logScale, setLogScale] = useState(false); // 对数坐标（长周期更合理）
   const [shareToast, setShareToast] = useState(null); // {msg, t}
@@ -316,17 +356,17 @@ const BacktestEngine = () => {
     const tpl = { name, portfolio: { ...portfolio }, initialCap, costBps, benchTicker, btRange, rebalance, savedAt: Date.now() };
     setTemplates(prev => {
       const next = [...prev.filter(x => x.name !== name), tpl];
-      try { localStorage.setItem("quantedge_bt_templates", JSON.stringify(next)); } catch {}
+      try { localStorage.setItem(wsKey("quantedge_bt_templates", wsId), JSON.stringify(next)); } catch {}
       return next;
     });
-  }, [portfolio, initialCap, costBps, benchTicker, btRange, rebalance]);
+  }, [portfolio, initialCap, costBps, benchTicker, btRange, rebalance, wsId]);
   const deleteTemplate = useCallback((name) => {
     setTemplates(prev => {
       const next = prev.filter(x => x.name !== name);
-      try { localStorage.setItem("quantedge_bt_templates", JSON.stringify(next)); } catch {}
+      try { localStorage.setItem(wsKey("quantedge_bt_templates", wsId), JSON.stringify(next)); } catch {}
       return next;
     });
-  }, []);
+  }, [wsId]);
   const loadTemplate = useCallback(async (tpl) => {
     const tplPortfolio = tpl.portfolio || {};
     setPortfolio(tplPortfolio);
@@ -944,12 +984,153 @@ const BacktestEngine = () => {
       const invVolSum = invVols.reduce((a, b) => a + b, 0);
       const riskParityWeights = invVols.map(iv => Math.round(iv / invVolSum * 1000) / 10);
 
+      // ─── H2: 滚动 / Walk-Forward 回测 — 把整段 navCurve 拆 N 个非重叠窗口，独立算指标 ───
+      // 价值：检测策略稳定性，识别"过拟合一段时间"或"靠少数窗口拉动整体收益"
+      const walkForwardWindows = (() => {
+        const N_WINDOWS = Math.min(6, Math.max(2, Math.floor(navCurve.length / 12)));
+        if (navCurve.length < 24) return null;
+        const step = Math.floor(navCurve.length / N_WINDOWS);
+        const windows = [];
+        for (let w = 0; w < N_WINDOWS; w++) {
+          const si = w * step;
+          const ei = w === N_WINDOWS - 1 ? navCurve.length - 1 : (w + 1) * step;
+          const slice = navCurve.slice(si, ei + 1);
+          if (slice.length < 3) continue;
+          const startNav = slice[0].strategy;
+          const endNav = slice[slice.length - 1].strategy;
+          const wRet = ((endNav - startNav) / startNav) * 100;
+          // 基准窗口收益（用于 alpha）
+          const startBench = slice[0].benchmark;
+          const endBench = slice[slice.length - 1].benchmark;
+          const wBenchRet = startBench > 0 ? ((endBench - startBench) / startBench) * 100 : 0;
+          // 周期回报
+          const wRets = [];
+          for (let i = 1; i < slice.length; i++) {
+            wRets.push((slice[i].strategy - slice[i - 1].strategy) / slice[i - 1].strategy);
+          }
+          const wAvg = wRets.reduce((a, b) => a + b, 0) / Math.max(wRets.length, 1);
+          const wStd = Math.sqrt(wRets.reduce((a, b) => a + (b - wAvg) ** 2, 0) / Math.max(wRets.length, 1));
+          const wSharpe = wStd > 0 ? (wAvg / wStd) * Math.sqrt(periodsPerYear) : 0;
+          // 最大回撤（仅本窗口内）
+          let peak = startNav, wMaxDD = 0;
+          slice.forEach(p => {
+            if (p.strategy > peak) peak = p.strategy;
+            const dd = (p.strategy - peak) / peak * 100;
+            if (dd < wMaxDD) wMaxDD = dd;
+          });
+          const wWinRate = wRets.length > 0 ? (wRets.filter(r => r > 0).length / wRets.length * 100) : 0;
+          windows.push({
+            id: w + 1,
+            label: `W${w + 1}`,
+            startDate: slice[0].date,
+            endDate: slice[slice.length - 1].date,
+            ret: Math.round(wRet * 100) / 100,
+            benchRet: Math.round(wBenchRet * 100) / 100,
+            alpha: Math.round((wRet - wBenchRet) * 100) / 100,
+            sharpe: Math.round(wSharpe * 100) / 100,
+            maxDD: Math.round(wMaxDD * 100) / 100,
+            winRate: Math.round(wWinRate * 10) / 10,
+          });
+        }
+        // 稳定性分数 = 1 / (1 + CV(sharpe))，越接近 1 越稳定
+        const sharpes = windows.map(w => w.sharpe).filter(s => isFinite(s));
+        const sMean = sharpes.reduce((a, b) => a + b, 0) / Math.max(sharpes.length, 1);
+        const sStd = Math.sqrt(sharpes.reduce((a, b) => a + (b - sMean) ** 2, 0) / Math.max(sharpes.length, 1));
+        const cv = sMean !== 0 ? Math.abs(sStd / sMean) : 99;
+        const stability = Math.round((1 / (1 + cv)) * 1000) / 10; // 0~100
+        const positiveWindows = windows.filter(w => w.ret > 0).length;
+        // 集中度风险：如果总收益>50%靠某个单一窗口，标记
+        const totalRet = windows.reduce((a, w) => a + w.ret, 0);
+        const maxWinContribPct = windows.length > 0
+          ? Math.max(...windows.map(w => Math.abs(w.ret) / Math.max(Math.abs(totalRet), 1) * 100))
+          : 0;
+        return {
+          windows,
+          stability,
+          positiveWindows,
+          totalWindows: windows.length,
+          maxWinContribPct: Math.round(maxWinContribPct * 10) / 10,
+          sharpeMean: Math.round(sMean * 100) / 100,
+          sharpeStd: Math.round(sStd * 100) / 100,
+        };
+      })();
+
+      // ─── H3: 风险归因 — 把总方差拆解为 Market(β驱动) / Sector集中 / Idio 三部分 ───
+      const riskAttribution = (() => {
+        if (navCurve.length < 10) return null;
+        // 组合 / 基准每日收益序列
+        const stratRets = [], benchRets = [];
+        for (let i = 1; i < navCurve.length; i++) {
+          const sPrev = navCurve[i - 1].strategy;
+          const sCur = navCurve[i].strategy;
+          const bPrev = navCurve[i - 1].benchmark;
+          const bCur = navCurve[i].benchmark;
+          if (sPrev > 0 && bPrev > 0) {
+            stratRets.push((sCur - sPrev) / sPrev);
+            benchRets.push((bCur - bPrev) / bPrev);
+          }
+        }
+        const n = stratRets.length;
+        if (n < 5) return null;
+        const meanS = stratRets.reduce((a, b) => a + b, 0) / n;
+        const meanB = benchRets.reduce((a, b) => a + b, 0) / n;
+        let covSB = 0, varB = 0, varS = 0;
+        for (let i = 0; i < n; i++) {
+          const ds = stratRets[i] - meanS;
+          const db = benchRets[i] - meanB;
+          covSB += ds * db;
+          varB += db * db;
+          varS += ds * ds;
+        }
+        covSB /= n; varB /= n; varS /= n;
+        const beta = varB > 0 ? covSB / varB : 0;
+        // Market var = β² × σ²_b（β 驱动部分的方差贡献）
+        const marketVar = beta * beta * varB;
+        // Idio var = σ²_p - β² × σ²_b
+        const idioVar = Math.max(0, varS - marketVar);
+        const totalVar = varS;
+        // Sector 集中度：portfolioStocks 按行业聚合权重的 HHI
+        const sectorWeights = {};
+        portfolioStocks.forEach(p => {
+          const sec = (p.stk?.sector || 'Unknown').split('/')[0];
+          sectorWeights[sec] = (sectorWeights[sec] || 0) + p.weight;
+        });
+        const totalW = Object.values(sectorWeights).reduce((a, b) => a + b, 0) || 1;
+        const sectorPct = Object.entries(sectorWeights)
+          .map(([sec, w]) => ({ sector: sec, weight: +(w / totalW * 100).toFixed(1) }))
+          .sort((a, b) => b.weight - a.weight);
+        const hhi = sectorPct.reduce((a, x) => a + (x.weight / 100) ** 2, 0);
+        const effectiveSectors = hhi > 0 ? +(1 / hhi).toFixed(2) : portfolioStocks.length;
+        // Sector contribution 估算：HHI × idio var（高度集中 = sector 风险显性）
+        // 拆分 idio var: sectorVar = HHI × idioVar, residualIdio = (1 - HHI) × idioVar
+        const sectorVar = hhi * idioVar;
+        const residualVar = (1 - hhi) * idioVar;
+        // 转化为百分比贡献
+        const pct = (v) => totalVar > 0 ? +(v / totalVar * 100).toFixed(1) : 0;
+        return {
+          beta: +beta.toFixed(2),
+          totalVol: +(Math.sqrt(totalVar * periodsPerYear) * 100).toFixed(1),
+          marketPct: pct(marketVar),
+          sectorPct: pct(sectorVar),
+          idioPct: pct(residualVar),
+          hhi: +hhi.toFixed(3),
+          effectiveSectors,
+          sectorBreakdown: sectorPct,
+        };
+      })();
+
       setBtResult({
         navCurve, drawdownCurve, holdingResults, segments, monthlyReturns, isAnnual,
         corrMatrix, corrTickers: tickers, rebalanceCount,
         stressResults, riskParityWeights,
         // S8: 实际渲染出数据的额外基准列表
         extraBenches: Object.keys(extraBenchSeries),
+        // H2: 滚动 / Walk-Forward 回测结果
+        walkForward: walkForwardWindows,
+        // H3: 风险归因
+        riskAttribution,
+        // 保留中间数据给 H3 风险归因使用
+        normSeries, periodsPerYear, returnsSeries,
         kelly: { full: Math.round(kellyFull * 1000) / 10, half: Math.round(kellyHalf * 1000) / 10, payoffRatio: Math.round(payoffRatio * 100) / 100, winRate: Math.round(pWin * 1000) / 10 },
         metrics: {
           totalReturn: Math.round(totalReturn * 100) / 100,
@@ -1308,13 +1489,36 @@ const BacktestEngine = () => {
           <div className="flex flex-col items-center justify-center h-full gap-4">
             <div className="text-center" style={{ color: "var(--text-muted)" }}>
               <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-indigo-500/10 to-violet-500/10 border border-indigo-500/15 flex items-center justify-center">
-                <Activity size={28} className="text-indigo-400/40" />
+                <Activity size={28} className={`text-indigo-400/40 ${running || dataLoading ? 'animate-pulse' : ''}`} />
               </div>
               <span className="text-sm mb-1.5 block font-medium" style={{ color: "var(--text-secondary)" }}>
                 {dataLoading ? dataLoadMsg : (running ? t('正在计算回测...') : t('构建组合后自动运行回测'))}
               </span>
               <span className="text-[10px] block">{t('基于 {n} 个标的的真实价格历史 · 支持多时间维度', {n: portfolioStocks.length})}</span>
             </div>
+            {/* C13: 加载中显示 skeleton 占位（净值曲线 + 4 个 KPI 卡） */}
+            {(running || dataLoading) && (
+              <div className="w-full max-w-2xl px-4 space-y-3">
+                {/* skeleton NAV chart */}
+                <div className="glass-card p-3">
+                  <div className="skeleton h-3 w-1/4 rounded mb-2" />
+                  <div className="h-32 flex items-end gap-px">
+                    {[...Array(36)].map((_, i) => (
+                      <div key={i} className="skeleton flex-1 rounded-sm" style={{ height: `${30 + Math.sin(i * 0.4) * 35 + i * 0.7}%`, animationDelay: `${i * 0.025}s` }} />
+                    ))}
+                  </div>
+                </div>
+                {/* skeleton KPI 卡 */}
+                <div className="grid grid-cols-4 gap-2">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="glass-card p-2 space-y-1.5">
+                      <div className="skeleton h-2 w-2/3 rounded" />
+                      <div className="skeleton h-4 w-3/4 rounded" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             {/* S7: 缺数据标的诊断卡 */}
             {missingDataTickers.length > 0 && !running && !dataLoading && (
               <div className="glass-card p-3 w-full max-w-md border border-amber-500/30 bg-amber-500/5">
@@ -1395,14 +1599,11 @@ const BacktestEngine = () => {
             )}
           </div>
         ) : btResult && (
-          <div className="flex flex-col gap-2">
-            {/* 回测结果 header — 可折叠 */}
+          <div ref={reportRef} className="flex flex-col gap-2">
+            {/* 回测结果 header — 可折叠 + C11 PNG 导出按钮 */}
             <div className="rounded-xl px-3 py-2.5 border border-indigo-500/15 bg-indigo-500/[0.04]">
-              <div
-                className="flex items-center justify-between cursor-pointer select-none"
-                onClick={() => setResultsOpen(v => !v)}
-              >
-                <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between select-none">
+                <div className="flex items-center gap-2 cursor-pointer flex-1" onClick={() => setResultsOpen(v => !v)}>
                   <Activity size={14} className="text-indigo-400" />
                   <span className="text-xs font-medium" style={{ color: "var(--text-heading)" }}>{t('回测结果')}</span>
                   <span className="text-[10px] text-[#a0aec0] font-mono">
@@ -1413,10 +1614,24 @@ const BacktestEngine = () => {
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
+                  {/* C11: PNG 导出 */}
+                  <button onClick={(e) => { e.stopPropagation(); exportPNG(); }}
+                    disabled={exporting}
+                    className="flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-md bg-cyan-500/15 text-cyan-300 border border-cyan-400/30 hover:bg-cyan-500/25 transition disabled:opacity-50"
+                    title={t('截图整份回测报告为 PNG（含曲线 / 指标 / 对比表 / 蒙特卡洛 / 压力测试）')}>
+                    {exporting ? (
+                      <RefreshCw size={10} className="animate-spin" />
+                    ) : (
+                      <Database size={10} />
+                    )}
+                    {exporting ? t('生成中…') : 'PNG'}
+                  </button>
                   <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-md ${m.totalReturn >= 0 ? "bg-up/10 text-up border border-up/20" : "bg-down/10 text-down border border-down/20"}`}>
                     {m.totalReturn >= 0 ? "+" : ""}{m.totalReturn}%
                   </span>
-                  <ChevronDown size={14} className={`text-[#a0aec0] shrink-0 transition-transform duration-200 ${resultsOpen ? "rotate-180" : ""}`} />
+                  <button onClick={() => setResultsOpen(v => !v)} className="p-0.5 hover:bg-white/5 rounded">
+                    <ChevronDown size={14} className={`text-[#a0aec0] shrink-0 transition-transform duration-200 ${resultsOpen ? "rotate-180" : ""}`} />
+                  </button>
                 </div>
               </div>
             </div>
@@ -2147,6 +2362,152 @@ const BacktestEngine = () => {
                 </div>
               </div>
             </div>
+
+            {/* ─── H2: 滚动 / Walk-Forward 回测 ─── */}
+            {btResult.walkForward && btResult.walkForward.windows.length >= 2 && (() => {
+              const wf = btResult.walkForward;
+              const stabilityColor = wf.stability >= 70 ? 'text-up' : wf.stability >= 40 ? 'text-amber-400' : 'text-down';
+              const stabLabel = wf.stability >= 70 ? t('稳定') : wf.stability >= 40 ? t('一般') : t('不稳');
+              const concentrationWarn = wf.maxWinContribPct >= 50;
+              return (
+                <div className="glass-card p-3">
+                  <div className="section-header flex items-center gap-2 flex-wrap">
+                    <Layers size={12} className="text-cyan-400" />
+                    <span className="section-title">{t('滚动回测 · Walk-Forward')}</span>
+                    <span className="text-[9px] text-[#778] font-mono">{wf.totalWindows} {t('个非重叠窗口')}</span>
+                    {/* 稳定性指标 */}
+                    <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded border tabular-nums ${
+                      wf.stability >= 70 ? 'bg-up/10 text-up border-up/20'
+                        : wf.stability >= 40 ? 'bg-amber-400/10 text-amber-400 border-amber-400/20'
+                        : 'bg-down/10 text-down border-down/20'
+                    }`}>
+                      {t('稳定度')} {wf.stability}/100 · {stabLabel}
+                    </span>
+                    <span className="text-[9px] text-[#a0aec0] font-mono">
+                      {wf.positiveWindows}/{wf.totalWindows} {t('窗口正收益')}
+                    </span>
+                    {concentrationWarn && (
+                      <span className="text-[9px] font-mono text-amber-400 bg-amber-400/10 border border-amber-400/20 rounded px-1.5 py-0.5">
+                        ⚠ {t('单窗口贡献')} {wf.maxWinContribPct}%
+                      </span>
+                    )}
+                  </div>
+                  <div className="overflow-x-auto -mx-1">
+                    <table className="w-full text-[10px] tabular-nums">
+                      <thead>
+                        <tr className="border-b border-white/8">
+                          <th className="text-left font-medium text-[#778] py-1.5 px-2">{t('窗口')}</th>
+                          <th className="text-left font-medium text-[#778] py-1.5 px-2">{t('区间')}</th>
+                          <th className="text-right font-medium text-[#778] py-1.5 px-2">{t('收益')}</th>
+                          <th className="text-right font-medium text-[#778] py-1.5 px-2">{t('基准')}</th>
+                          <th className="text-right font-medium text-[#778] py-1.5 px-2">α</th>
+                          <th className="text-right font-medium text-[#778] py-1.5 px-2">Sharpe</th>
+                          <th className="text-right font-medium text-[#778] py-1.5 px-2">{t('最大回撤')}</th>
+                          <th className="text-right font-medium text-[#778] py-1.5 px-2">{t('胜率')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {wf.windows.map(w => (
+                          <tr key={w.id} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
+                            <td className="py-1 px-2 font-mono text-cyan-300">{w.label}</td>
+                            <td className="py-1 px-2 font-mono text-[#a0aec0] text-[9px]">{w.startDate} ~ {w.endDate}</td>
+                            <td className={`py-1 px-2 text-right font-mono font-bold ${w.ret >= 0 ? 'text-up' : 'text-down'}`}>
+                              {w.ret >= 0 ? '+' : ''}{w.ret}%
+                            </td>
+                            <td className={`py-1 px-2 text-right font-mono ${w.benchRet >= 0 ? 'text-up' : 'text-down'}`}>
+                              {w.benchRet >= 0 ? '+' : ''}{w.benchRet}%
+                            </td>
+                            <td className={`py-1 px-2 text-right font-mono ${w.alpha >= 0 ? 'text-up' : 'text-down'}`}>
+                              {w.alpha >= 0 ? '+' : ''}{w.alpha}%
+                            </td>
+                            <td className={`py-1 px-2 text-right font-mono ${w.sharpe >= 1 ? 'text-up' : w.sharpe >= 0 ? 'text-amber-400' : 'text-down'}`}>{w.sharpe}</td>
+                            <td className="py-1 px-2 text-right font-mono text-down">{w.maxDD}%</td>
+                            <td className="py-1 px-2 text-right font-mono text-[#a0aec0]">{w.winRate}%</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="mt-2 pt-2 border-t border-white/5 text-[9px] text-[#667] leading-relaxed">
+                    {t('稳定度 = 1 / (1 + CV(Sharpe))。窗口间 Sharpe 差异越小，分数越高，策略越不依赖某段特定行情。')}
+                    {concentrationWarn && <> · <span className="text-amber-400">{t('单一窗口贡献过高 — 警惕过拟合')}</span></>}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* ─── H3: 风险归因 · 拆解组合波动来源 ─── */}
+            {btResult.riskAttribution && (() => {
+              const ra = btResult.riskAttribution;
+              return (
+                <div className="glass-card p-3">
+                  <div className="section-header flex items-center gap-2 flex-wrap">
+                    <Target size={12} className="text-violet-400" />
+                    <span className="section-title">{t('风险归因 · 波动来源拆解')}</span>
+                    <span className="text-[9px] text-[#778] font-mono">{t('年化波动')} {ra.totalVol}%</span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.5 rounded border bg-violet-500/10 text-violet-300 border-violet-500/20">β = {ra.beta}</span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.5 rounded border bg-cyan-500/10 text-cyan-300 border-cyan-500/20">
+                      {t('有效板块')} {ra.effectiveSectors}
+                    </span>
+                  </div>
+                  {/* 三段彩色堆叠条 */}
+                  <div className="mt-2 mb-3">
+                    <div className="flex h-5 rounded-md overflow-hidden border border-white/8">
+                      <div className="h-full flex items-center justify-center text-[9px] font-bold text-white whitespace-nowrap"
+                        style={{ width: `${ra.marketPct}%`, background: 'linear-gradient(90deg, #6366f1, #4169E1)', minWidth: ra.marketPct > 0 ? '24px' : '0' }}
+                        title={t('Market（β² × σ²_基准）')}>
+                        {ra.marketPct >= 8 ? `${ra.marketPct}%` : ''}
+                      </div>
+                      <div className="h-full flex items-center justify-center text-[9px] font-bold text-white whitespace-nowrap"
+                        style={{ width: `${ra.sectorPct}%`, background: 'linear-gradient(90deg, #f59e0b, #f97316)', minWidth: ra.sectorPct > 0 ? '24px' : '0' }}
+                        title={t('Sector 集中度（HHI × Idio Var）')}>
+                        {ra.sectorPct >= 8 ? `${ra.sectorPct}%` : ''}
+                      </div>
+                      <div className="h-full flex items-center justify-center text-[9px] font-bold text-white whitespace-nowrap"
+                        style={{ width: `${ra.idioPct}%`, background: 'linear-gradient(90deg, #06b6d4, #14b8a6)', minWidth: ra.idioPct > 0 ? '24px' : '0' }}
+                        title={t('Idio（个股特质风险）')}>
+                        {ra.idioPct >= 8 ? `${ra.idioPct}%` : ''}
+                      </div>
+                    </div>
+                    <div className="flex justify-between mt-1 text-[9px] tabular-nums">
+                      <span className="flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-sm" style={{ background: '#6366f1' }} />
+                        <span className="text-[#a0aec0]">Market β² · {ra.marketPct}%</span>
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-sm" style={{ background: '#f59e0b' }} />
+                        <span className="text-[#a0aec0]">Sector · {ra.sectorPct}%</span>
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-sm" style={{ background: '#06b6d4' }} />
+                        <span className="text-[#a0aec0]">Idio · {ra.idioPct}%</span>
+                      </span>
+                    </div>
+                  </div>
+                  {/* 板块权重明细 */}
+                  <div className="text-[9px] uppercase tracking-wider text-[#778] mb-1">{t('板块权重 (HHI = {h})', {h: ra.hhi})}</div>
+                  <div className="space-y-1">
+                    {ra.sectorBreakdown.slice(0, 5).map(({ sector, weight }) => (
+                      <div key={sector} className="flex items-center gap-2 text-[10px]">
+                        <span className="text-[#a0aec0] w-24 truncate">{t(sector)}</span>
+                        <div className="flex-1 h-1 bg-white/[0.05] rounded-full overflow-hidden">
+                          <div className="h-full rounded-full" style={{ width: `${weight}%`, background: weight > 30 ? '#f59e0b' : '#6366f1' }} />
+                        </div>
+                        <span className="text-[#a0aec0] font-mono tabular-nums w-10 text-right">{weight}%</span>
+                      </div>
+                    ))}
+                    {ra.sectorBreakdown.length > 5 && (
+                      <div className="text-[8px] text-[#667] text-right">+ {ra.sectorBreakdown.length - 5} {t('个其他板块')}</div>
+                    )}
+                  </div>
+                  <div className="mt-2 pt-2 border-t border-white/5 text-[9px] text-[#667] leading-relaxed">
+                    {t('Market = β²×σ²基准（跟大盘的部分）。Sector = HHI × 个股残差方差（板块集中度风险）。Idio = 真正的个股特质风险（多元化能消除的部分）。')}
+                    {ra.marketPct >= 70 && <> · <span className="text-amber-400">{t('过度依赖大盘 — 考虑加入低 β 资产分散')}</span></>}
+                    {ra.sectorPct >= 30 && <> · <span className="text-amber-400">{t('板块集中 — 单一行业冲击会放大波动')}</span></>}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* ─── 压力测试 ─── */}
             <div className="glass-card p-3">

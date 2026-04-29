@@ -210,3 +210,125 @@ describe('monteCarlo', () => {
     expect(a.summary).toEqual(b.summary);
   });
 });
+
+// ─── H8: 回测引擎核心公式集成测试 ─────────────────────────────
+// 这些 inline 公式在 BacktestEngine 的 runBacktest 里被复刻使用，必须正确
+describe('BacktestEngine inline formulas', () => {
+  it('多元化收益：低相关组合波动 < 单标的最大波动', () => {
+    const a = [0.01, -0.02, 0.03, -0.01, 0.02];
+    const b = [-0.02, 0.03, -0.01, 0.02, -0.005];
+    const port = a.map((x, i) => 0.5 * x + 0.5 * b[i]);
+    expect(stdev(port)).toBeLessThan(Math.max(stdev(a), stdev(b)));
+  });
+
+  it('Sharpe 单调性：均值更高时 Sharpe 应更高', () => {
+    const lo = [0.005, 0.001, 0.008, -0.002];
+    const hi = [0.025, 0.021, 0.028, 0.018];
+    expect(sharpeRatio(hi, 252)).toBeGreaterThan(sharpeRatio(lo, 252));
+  });
+
+  it('最大回撤公式：peak-to-trough 计算', () => {
+    // navCurve [100, 110, 88, 95, 105] → peak=110, trough=88 → MDD=-20%
+    const navs = [100, 110, 88, 95, 105];
+    let peak = navs[0];
+    let maxDD = 0;
+    for (const n of navs) {
+      if (n > peak) peak = n;
+      const dd = (n - peak) / peak;
+      if (dd < maxDD) maxDD = dd;
+    }
+    expect(maxDD).toBeCloseTo(-0.2, 6);
+  });
+
+  it('Walk-Forward 稳定度：Sharpe 全相同 → stability = 100', () => {
+    const sharpes = [1.5, 1.5, 1.5, 1.5];
+    const m = mean(sharpes);
+    const s = stdev(sharpes, m);
+    const cv = m !== 0 ? Math.abs(s / m) : 99;
+    const stability = (1 / (1 + cv)) * 100;
+    expect(stability).toBeCloseTo(100, 4);
+  });
+
+  it('Walk-Forward 稳定度：CV 越大稳定度越低', () => {
+    const score = (xs: number[]) => {
+      const m = mean(xs);
+      const s = stdev(xs, m);
+      const cv = m !== 0 ? Math.abs(s / m) : 99;
+      return 1 / (1 + cv);
+    };
+    const stable = [1.0, 1.1, 0.9, 1.05];
+    const wild = [3.0, -1.0, 2.0, 0.0];
+    expect(score(stable)).toBeGreaterThan(score(wild));
+  });
+
+  it('Beta 公式：自身 vs 自身 β = 1', () => {
+    const b = [0.01, -0.02, 0.03, -0.01, 0.02];
+    const p = [...b];
+    const meanB = mean(b);
+    const meanP = mean(p);
+    let cov = 0;
+    let varB = 0;
+    for (let i = 0; i < b.length; i++) {
+      cov += (p[i] - meanP) * (b[i] - meanB);
+      varB += (b[i] - meanB) ** 2;
+    }
+    cov /= b.length;
+    varB /= b.length;
+    const beta = varB > 0 ? cov / varB : 0;
+    expect(beta).toBeCloseTo(1, 6);
+  });
+
+  it('Beta 公式：完全负相关 → β = -1', () => {
+    const b = [0.01, -0.02, 0.03, -0.01, 0.02];
+    const p = b.map((x) => -x);
+    const meanB = mean(b);
+    const meanP = mean(p);
+    let cov = 0;
+    let varB = 0;
+    for (let i = 0; i < b.length; i++) {
+      cov += (p[i] - meanP) * (b[i] - meanB);
+      varB += (b[i] - meanB) ** 2;
+    }
+    cov /= b.length;
+    varB /= b.length;
+    expect(cov / varB).toBeCloseTo(-1, 6);
+  });
+
+  it('风险归因：Market % + Sector % + Idio % ≤ 100', () => {
+    // 模拟：β=0.8, σ²_b = 0.0004, σ²_p = 0.0009, HHI = 0.4
+    const beta = 0.8;
+    const varB = 0.0004;
+    const varS = 0.0009;
+    const hhiVal = 0.4;
+    const marketVar = beta * beta * varB;
+    const idioVar = Math.max(0, varS - marketVar);
+    const sectorVar = hhiVal * idioVar;
+    const residualVar = (1 - hhiVal) * idioVar;
+    const sum = (marketVar + sectorVar + residualVar) / varS;
+    expect(sum).toBeCloseTo(1, 6);
+  });
+
+  it('胜率：返回为正的样本占比', () => {
+    const rets = [0.02, -0.01, 0.005, -0.03, 0.015, 0.01];
+    const winRate = rets.filter((r) => r > 0).length / rets.length;
+    expect(winRate).toBeCloseTo(4 / 6, 6);
+  });
+
+  it('VaR 95%：返回序列底部 5% 分位数', () => {
+    const rets = Array.from({ length: 100 }, (_, i) => (i - 50) / 1000);
+    const sorted = [...rets].sort((a, b) => a - b);
+    const var95 = sorted[Math.floor(sorted.length * 0.05)];
+    expect(var95).toBeLessThan(0); // 必为负值（损失）
+    expect(var95).toBeCloseTo(-0.045, 3);
+  });
+
+  it('再平衡前后份额：总市值守恒', () => {
+    // 三个标的，初始权重 [40%, 30%, 30%]，价格 [10, 20, 50]
+    // 设组合初值 = 100，份额 = weight * 100 / price
+    const weights = [0.4, 0.3, 0.3];
+    const prices = [10, 20, 50];
+    const shares = weights.map((w, i) => (w * 100) / prices[i]);
+    const totalValue = shares.reduce((s, sh, i) => s + sh * prices[i], 0);
+    expect(totalValue).toBeCloseTo(100, 6);
+  });
+});

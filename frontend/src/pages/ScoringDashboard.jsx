@@ -4,7 +4,7 @@
 // ─────────────────────────────────────────────────────────────
 import React, { useState, useEffect, useMemo, useCallback, useRef, useContext } from "react";
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, Radar, PolarGrid, PolarAngleAxis, ComposedChart, ReferenceLine } from "recharts";
-import { Activity, ArrowDownRight, ArrowUpRight, Calendar, Check, ChevronDown, ChevronRight, Clock, Database, Eye, Filter, GripVertical, Info, Layers, Loader, Minus, Plus, RefreshCw, Search, Settings, Star, TrendingUp, Zap } from "lucide-react";
+import { Activity, ArrowDownRight, ArrowUpRight, Briefcase, Calendar, Check, ChevronDown, ChevronRight, Clock, Database, Eye, Filter, GripVertical, Info, Layers, Loader, Maximize2, Minus, Plus, RefreshCw, Search, Settings, Star, Trash2, TrendingUp, X, Zap } from "lucide-react";
 import { searchTickers as standaloneSearch, fetchRangePrices, STOCK_CN_NAMES, STOCK_CN_DESCS } from "../standalone.js";
 import { useLang } from "../i18n.jsx";
 import { STOCKS } from "../data.js";
@@ -603,6 +603,59 @@ const ScoringDashboard = () => {
           )}
         </div>
       ))}
+      {/* C8: 恐惧贪婪指数 + 板块热力 — 复用 stocks 数据，无额外网络 */}
+      {(() => {
+        if (!liveStocks?.length) return null;
+        const valid = liveStocks.map(s => safeChange(s.change)).filter(c => isFinite(c));
+        if (valid.length === 0) return null;
+        const avg = valid.reduce((a, b) => a + b, 0) / valid.length;
+        const breadth = valid.filter(c => c > 0).length / valid.length;
+        const fearGreed = Math.round(Math.min(100, Math.max(0, 50 + avg * 8)) * 0.6 + breadth * 100 * 0.4);
+        const fgLabel = fearGreed > 75 ? t('极度贪婪') : fearGreed > 60 ? t('贪婪') : fearGreed > 40 ? t('中性') : fearGreed > 25 ? t('恐惧') : t('极度恐惧');
+        const fgColor = fearGreed > 60 ? 'text-up' : fearGreed > 40 ? 'text-amber-400' : 'text-down';
+        const fgBg = fearGreed > 60 ? 'bg-up' : fearGreed > 40 ? 'bg-amber-400' : 'bg-down';
+        // 板块聚合 — 取前 5 个 |avg| 最大
+        const groups = {};
+        liveStocks.forEach(s => {
+          const c = safeChange(s.change);
+          if (!isFinite(c) || !s.sector) return;
+          const k = s.sector.split('/')[0];
+          if (!groups[k]) groups[k] = { sum: 0, n: 0 };
+          groups[k].sum += c; groups[k].n += 1;
+        });
+        const sectors = Object.entries(groups)
+          .map(([name, { sum, n }]) => ({ name, val: +(sum / n).toFixed(2), n }))
+          .filter(s => s.n >= 2)
+          .sort((a, b) => Math.abs(b.val) - Math.abs(a.val))
+          .slice(0, 5);
+        return (
+          <>
+            <span className="text-white/10 shrink-0">|</span>
+            <div className="flex items-center gap-1.5 shrink-0" title={t('恐惧贪婪指数：基于今日涨跌均值 + 上涨宽度')}>
+              <span className="text-[#a0aec0] font-medium uppercase text-[8px]">F&G</span>
+              <span className={`w-1.5 h-1.5 rounded-full ${fgBg}`} />
+              <span className={`font-mono tabular-nums font-bold ${fgColor}`}>{fearGreed}</span>
+              <span className={`text-[9px] ${fgColor}`}>{fgLabel}</span>
+            </div>
+            {sectors.length > 0 && (
+              <>
+                <span className="text-white/10 shrink-0">|</span>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-[#a0aec0] font-medium uppercase text-[8px]">{t('板块')}</span>
+                  {sectors.map(s => (
+                    <span key={s.name} className="flex items-center gap-1" title={`${s.name} · ${s.n} ${t('只')}`}>
+                      <span className="text-[10px] text-[#a0aec0] truncate max-w-[60px]">{t(s.name)}</span>
+                      <span className={`font-mono tabular-nums text-[10px] ${s.val >= 0 ? 'text-up' : 'text-down'}`}>
+                        {s.val >= 0 ? '+' : ''}{s.val.toFixed(2)}%
+                      </span>
+                    </span>
+                  ))}
+                </div>
+              </>
+            )}
+          </>
+        );
+      })()}
       <span className="ml-auto flex items-center gap-2 text-[9px] text-[#778] shrink-0">
         <Clock size={9} className="opacity-60" />
         {indicesTime ? new Date(indicesTime).toLocaleTimeString(lang === 'zh' ? 'zh-CN' : 'en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '—'}
@@ -985,7 +1038,7 @@ const ScoringDashboard = () => {
               ))}
             </div>
           ) : filtered.map((stk, i) => (
-            <button key={stk.ticker} onClick={() => { setSel(stk); setMobileShowDetail(true); }} onContextMenu={(e) => handleContextMenu(e, stk)} className={`w-full text-left px-2.5 ${density === "compact" ? "py-1" : "py-2.5 md:py-2"} rounded-lg transition-all duration-200 border animate-stagger active:scale-[0.98] group relative ${sel?.ticker === stk.ticker ? "bg-gradient-to-r from-indigo-500/35 via-indigo-500/15 to-transparent border-indigo-500/30 shadow-lg shadow-indigo-500/5" : "bg-white/[0.02] border-transparent hover:bg-white/[0.04] hover:border-white/10"}`} style={{ animationDelay: `${i * 0.03}s` }}>
+            <button key={stk.ticker} onClick={() => { setSel(stk); setMobileShowDetail(true); }} onContextMenu={(e) => handleContextMenu(e, stk)} className={`virt-row w-full text-left px-2.5 ${density === "compact" ? "py-1" : "py-2.5 md:py-2"} rounded-lg transition-all duration-200 border ${i < 30 ? 'animate-stagger' : ''} active:scale-[0.98] group relative ${sel?.ticker === stk.ticker ? "bg-gradient-to-r from-indigo-500/35 via-indigo-500/15 to-transparent border-indigo-500/30 shadow-lg shadow-indigo-500/5" : "bg-white/[0.02] border-transparent hover:bg-white/[0.04] hover:border-white/10"}`} style={{ animationDelay: i < 30 ? `${i * 0.03}s` : undefined }}>
               {density === "compact" ? (
                 <div className="flex items-center gap-2">
                   <span className="text-[9px] w-4 text-center text-[#667] font-mono shrink-0">{i + 1}</span>
@@ -1125,11 +1178,23 @@ const ScoringDashboard = () => {
               )}
               <div ref={chartContainerRef} className="h-36 chart-glow relative">
                 {chartData.length < 2 && (
-                  <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-1 rounded-lg bg-white/[0.02] border border-dashed border-white/10">
-                    <Activity size={20} className="text-[#778] opacity-50" />
-                    <span className="text-[10px] text-[#778]">{t('该周期暂无价格数据')}</span>
-                    <span className="text-[9px] text-[#556]">{sel.priceHistory && sel.priceHistory.length > 0 ? t('请尝试其他时间维度') : t('数据加载中或不可用')}</span>
-                  </div>
+                  loading ? (
+                    /* C13: 加载中显示 skeleton shimmer */
+                    <div className="absolute inset-0 z-10 flex flex-col gap-1 p-2 rounded-lg overflow-hidden">
+                      <div className="skeleton h-3 w-1/3 rounded-md" />
+                      <div className="flex-1 flex items-end gap-px mt-1">
+                        {[...Array(20)].map((_, i) => (
+                          <div key={i} className="skeleton flex-1 rounded-sm" style={{ height: `${30 + Math.sin(i * 0.6) * 30 + Math.random() * 20}%`, animationDelay: `${i * 0.05}s` }} />
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-1 rounded-lg bg-white/[0.02] border border-dashed border-white/10">
+                      <Activity size={20} className="text-[#778] opacity-50" />
+                      <span className="text-[10px] text-[#778]">{t('该周期暂无价格数据')}</span>
+                      <span className="text-[9px] text-[#556]">{sel.priceHistory && sel.priceHistory.length > 0 ? t('请尝试其他时间维度') : t('数据加载中或不可用')}</span>
+                    </div>
+                  )
                 )}
                 {chartSize.w > 0 && chartSize.h > 0 && (
                 <ComposedChart width={chartSize.w} height={chartSize.h} data={chartDataWithBench} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
@@ -1204,8 +1269,76 @@ const ScoringDashboard = () => {
               </div>
             </div>
 
+            {/* C7: 我的持仓快照（如果该 ticker 在 journal 里） */}
+            {(() => {
+              try {
+                const wsId = localStorage.getItem('quantedge_active_workspace') || 'default';
+                const raw = localStorage.getItem(`quantedge_journal_${wsId}`);
+                if (!raw) return null;
+                const entries = JSON.parse(raw);
+                const myEntries = entries.filter(e => e.ticker === sel.ticker);
+                if (myEntries.length === 0) return null;
+                const totalShares = myEntries.reduce((s, e) => s + (Number(e.shares) || 0), 0);
+                const totalCost = myEntries.reduce((s, e) => {
+                  const sh = Number(e.shares) || 0;
+                  const cb = e.costBasis != null ? Number(e.costBasis) : Number(e.anchorPrice) || 0;
+                  return s + sh * cb;
+                }, 0);
+                const curPrice = Number(sel.price) || 0;
+                const curValue = totalShares * curPrice;
+                const gain = curValue - totalCost;
+                const gainPct = totalCost > 0 ? (gain / totalCost * 100) : 0;
+                const cur = sel.currency === "HKD" ? "HK$" : "$";
+                return (
+                  <div id="detail-myposition" className="glass-card border border-cyan-500/25 bg-cyan-500/[0.03] px-3 py-2 flex items-center gap-3 flex-wrap scroll-mt-12">
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <Briefcase size={12} className="text-cyan-400" />
+                      <span className="text-[10px] uppercase tracking-wider text-cyan-300 font-semibold">{t('我的持仓')}</span>
+                      <span className="text-[9px] text-[#778] font-mono">{myEntries.length} {t('条记录')}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-[10px] tabular-nums">
+                      {totalShares > 0 && (
+                        <>
+                          <div><span className="text-[#778]">{t('股数')} </span><span className="text-white font-mono">{totalShares}</span></div>
+                          <div><span className="text-[#778]">{t('均价')} </span><span className="text-white font-mono">{cur}{(totalCost/totalShares).toFixed(2)}</span></div>
+                          <div><span className="text-[#778]">{t('市值')} </span><span className="text-white font-mono">{cur}{curValue.toFixed(0)}</span></div>
+                          <div><span className="text-[#778]">{t('盈亏')} </span><span className={`font-mono font-bold ${gain >= 0 ? 'text-up' : 'text-down'}`}>{gain >= 0 ? '+' : ''}{cur}{gain.toFixed(0)} ({gain >= 0 ? '+' : ''}{gainPct.toFixed(1)}%)</span></div>
+                        </>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => window.dispatchEvent(new CustomEvent("quantedge:nav", { detail: "journal" }))}
+                      className="ml-auto text-[9px] px-2 py-0.5 rounded bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-400/20 transition shrink-0"
+                    >{t('打开日志')} →</button>
+                  </div>
+                );
+              } catch { return null; }
+            })()}
+
+            {/* C7: 详情 Tab 锚点导航条 */}
+            <div className="flex items-center gap-1 sticky top-0 z-10 px-1 py-1.5 -mt-1 mb-1 backdrop-blur-md bg-[var(--bg-card)]/85 border-b border-white/5 rounded-t overflow-x-auto">
+              {[
+                { id: "overview", label: t("综合") },
+                { id: "fundamental", label: t("基本面") },
+                { id: "technical", label: t("技术面") },
+                { id: "liquidity", label: t("资金面") },
+                { id: "myposition", label: t("我的持仓") },
+              ].map((tabItem) => (
+                <button
+                  key={tabItem.id}
+                  onClick={() => {
+                    const target = document.getElementById(`detail-${tabItem.id}`);
+                    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }}
+                  className="px-2.5 py-1 text-[10px] font-medium rounded-md text-[#a0aec0] hover:text-white hover:bg-white/[0.06] transition-all whitespace-nowrap shrink-0"
+                >
+                  {tabItem.label}
+                </button>
+              ))}
+            </div>
+
             {/* ── KPI 速览条（综合评分 + 关键因子） ── */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div id="detail-overview" className="grid grid-cols-2 sm:grid-cols-4 gap-2 scroll-mt-12">
               {/* S6: 综合评分 + 鼠标悬停展示子分数构成 */}
               <div className="glass-card p-2.5 group relative cursor-help">
                 <div className="text-[9px] text-[#778] uppercase tracking-wider mb-0.5 flex items-center gap-1">
@@ -1274,7 +1407,7 @@ const ScoringDashboard = () => {
                 </>
               ) : (
                 <>
-                  <div className="glass-card p-2.5">
+                  <div id="detail-fundamental" className="glass-card p-2.5 scroll-mt-12">
                     <div className="text-[9px] text-[#778] uppercase tracking-wider mb-0.5">P/E</div>
                     <div className="flex items-baseline gap-1">
                       <span className="text-lg font-bold font-mono tabular-nums text-white">{sel.pe != null && sel.pe > 0 ? sel.pe.toFixed(1) : '—'}</span>
@@ -1337,7 +1470,8 @@ const ScoringDashboard = () => {
 
                 {/* ── 52周价格区间 + 技术信号 ── */}
                 <div
-                  className={`glass-card p-3 relative group/drag cursor-move transition-all ${draggingCard === 'range52w' ? 'opacity-40 scale-95' : ''}`}
+                  id="detail-technical"
+                  className={`glass-card p-3 relative group/drag cursor-move transition-all scroll-mt-12 ${draggingCard === 'range52w' ? 'opacity-40 scale-95' : ''}`}
                   style={{ order: cardOrder.indexOf('range52w') }}
                   draggable
                   onDragStart={() => setDraggingCard('range52w')}
@@ -1637,7 +1771,7 @@ const ScoringDashboard = () => {
                   </>
                 ) : (
                   <>
-                    <div className="section-header">
+                    <div id="detail-liquidity" className="section-header scroll-mt-12">
                       <Database size={11} className="text-indigo-400" />
                       <span className="section-title">{t('核心指标 · 真实数据')}</span>
                     </div>

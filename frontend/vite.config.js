@@ -86,4 +86,8 @@ export default defineConfig(({ command }) => ({
       },
     },
   },
+  // H6: vitest 排除 Playwright E2E 目录（避免 vitest 误跑 .spec.ts）
+  test: {
+    exclude: ['node_modules', 'dist', 'tests-e2e/**'],
+  },
 }));

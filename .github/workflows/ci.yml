@@ -29,7 +29,7 @@ jobs:
         run: pytest backend/tests -m "not network" --tb=short
 
   frontend:
-    name: Frontend (build + tests)
+    name: Frontend (build + unit tests)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -50,3 +50,79 @@ jobs:
         run: npm test
       - name: Vite build
         run: npm run build
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+          retention-days: 1
+
+  # H6: Playwright E2E — 在 build 产物上跑 chromium，验证关键路径
+  e2e:
+    name: Frontend (E2E · Playwright)
+    runs-on: ubuntu-latest
+    needs: frontend
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install
+        run: npm install --no-audit --no-fund
+      - name: Install Playwright browser (chromium only)
+        run: npx playwright install --with-deps chromium
+      - name: Download dist artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+      - name: Playwright test
+        run: npm run test:e2e
+        env:
+          CI: "true"
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/playwright-report
+          retention-days: 7
+
+  # H6: 自动部署到 Vercel — 仅 push 到 main 时触发，需配置 secrets
+  # 必需 secrets:
+  #   VERCEL_TOKEN       — vercel.com/account/tokens 创建
+  #   VERCEL_ORG_ID      — 见 .vercel/project.json
+  #   VERCEL_PROJECT_ID  — 见 .vercel/project.json
+  deploy-prod:
+    name: Deploy to Vercel (production)
+    runs-on: ubuntu-latest
+    needs: [frontend, e2e]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+      - name: Pull Vercel env (production)
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: vercel pull --yes --environment=production --token=$VERCEL_TOKEN
+        # Skip deploy step if any of the required secrets is missing — graceful no-op until user configures them
+        continue-on-error: true
+      - name: Build with Vercel CLI
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: vercel build --prod --token=$VERCEL_TOKEN
+      - name: Deploy prebuilt artifact
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN

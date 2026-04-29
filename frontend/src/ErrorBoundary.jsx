@@ -18,6 +18,15 @@ export default class ErrorBoundary extends React.Component {
     // 尽力记录到 console，便于排查
     console.error('[QuantEdge:ErrorBoundary]', error, info);
     this.setState({ info });
+    // H7: 上报到 Sentry（若已配置 DSN）
+    try {
+      // window.Sentry 由 main.jsx 中的异步 init 设置（@sentry/react 自动 attach 全局 hub）
+      if (typeof window !== 'undefined' && window.__SENTRY__) {
+        import('@sentry/react').then(Sentry => {
+          Sentry.captureException(error, { contexts: { react: { componentStack: info?.componentStack } } });
+        }).catch(() => {});
+      }
+    } catch {}
   }
 
   reload = () => { window.location.reload(); };

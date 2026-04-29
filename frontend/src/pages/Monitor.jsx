@@ -2,8 +2,8 @@
 // Monitor — 实时监控 / 智能预警 / 板块情绪
 // 从 quant-platform.jsx 抽出（C1 重构第二步），通过 React.lazy 懒加载
 // ─────────────────────────────────────────────────────────────
-import React, { useState, useEffect, useMemo, useContext } from "react";
-import { Activity, Bell, Check } from "lucide-react";
+import React, { useState, useEffect, useMemo, useContext, useCallback, useRef } from "react";
+import { Activity, Bell, BellOff, Check } from "lucide-react";
 import { useLang } from "../i18n.jsx";
 import {
   DataContext,
@@ -164,6 +164,62 @@ const Monitor = () => {
   });
   const hiddenCount = mergedAlerts.length - liveAlerts.length;
 
+  // ── C6: 浏览器 Notification 桌面通知 ───────────────────────
+  const [notifEnabled, setNotifEnabled] = useState(() => {
+    try { return localStorage.getItem('quantedge_notif_enabled') === 'true'; } catch { return false; }
+  });
+  const [notifPermission, setNotifPermission] = useState(() => {
+    return typeof Notification !== 'undefined' ? Notification.permission : 'unsupported';
+  });
+  const lastNotifiedIds = useRef(new Set()); // 防止重复推送同一个 alert
+
+  useEffect(() => {
+    try { localStorage.setItem('quantedge_notif_enabled', String(notifEnabled)); } catch {}
+  }, [notifEnabled]);
+
+  const requestNotifPermission = useCallback(async () => {
+    if (typeof Notification === 'undefined') return;
+    if (Notification.permission === 'granted') {
+      setNotifEnabled(true);
+      setNotifPermission('granted');
+      return;
+    }
+    try {
+      const result = await Notification.requestPermission();
+      setNotifPermission(result);
+      if (result === 'granted') setNotifEnabled(true);
+    } catch (e) { console.warn('[Notif] permission request failed:', e); }
+  }, []);
+
+  // 监听 liveAlerts 变化，对新出现的 high / warning 推送桌面通知
+  useEffect(() => {
+    if (!notifEnabled || notifPermission !== 'granted') return;
+    if (typeof Notification === 'undefined') return;
+    const toNotify = liveAlerts.filter(a =>
+      !lastNotifiedIds.current.has(a.id) &&
+      !ackedIds.has(a.id) &&
+      (a.severity === 'high' || a.severity === 'warning')
+    );
+    if (toNotify.length === 0) return;
+    // 限速：单次最多 3 条，避免刷屏
+    toNotify.slice(0, 3).forEach(a => {
+      const title = a.severity === 'high' ? `🔴 ${a.ticker}` : `🟡 ${a.ticker}`;
+      try {
+        const n = new Notification(title, {
+          body: a.message,
+          tag: a.id, // 同 id 自动替换
+          requireInteraction: a.severity === 'high',
+          silent: false,
+        });
+        // 点击通知 → 聚焦窗口
+        n.onclick = () => { window.focus(); n.close(); };
+        // 自动关闭（仅 warning 等级）
+        if (a.severity !== 'high') setTimeout(() => n.close(), 8000);
+      } catch (e) { /* 静默失败 */ }
+      lastNotifiedIds.current.add(a.id);
+    });
+  }, [liveAlerts, notifEnabled, notifPermission, ackedIds]);
+
   const sectors = useMemo(() => {
     const groups = {};
     liveStocks.forEach(s => {
@@ -277,7 +333,38 @@ const Monitor = () => {
           title={t("智能预警")}
           icon={<Bell size={14} className="text-indigo-400" />}
           badge={<Badge variant="accent">{liveAlerts.length}</Badge>}
-          extra={<><div className="live-dot" /><span className="text-[10px] text-[#a0aec0]">{t('实时数据流')}</span></>}
+          extra={<>
+            <div className="live-dot" /><span className="text-[10px] text-[#a0aec0]">{t('实时数据流')}</span>
+            {/* C6: 桌面通知开关 */}
+            {notifPermission !== 'unsupported' && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (notifPermission === 'granted') {
+                    setNotifEnabled(v => !v);
+                  } else {
+                    requestNotifPermission();
+                  }
+                }}
+                title={
+                  notifPermission === 'denied' ? t('浏览器已拒绝通知权限 — 请在地址栏左侧的锁图标里手动开启') :
+                  notifEnabled && notifPermission === 'granted' ? t('桌面通知已开启 · 高/警告级预警会推送（点击关闭）') :
+                  t('开启桌面通知（点击授权）')
+                }
+                className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium border transition ${
+                  notifEnabled && notifPermission === 'granted'
+                    ? 'bg-up/15 text-up border-up/30'
+                    : notifPermission === 'denied'
+                      ? 'bg-down/10 text-down/80 border-down/20 cursor-not-allowed'
+                      : 'bg-white/[0.04] text-[#a0aec0] border-white/10 hover:text-white hover:bg-white/[0.08]'
+                }`}
+                disabled={notifPermission === 'denied'}
+              >
+                {notifEnabled && notifPermission === 'granted' ? <Bell size={9} /> : <BellOff size={9} />}
+                {notifPermission === 'denied' ? t('被拒') : (notifEnabled && notifPermission === 'granted' ? t('已开') : t('桌面通知'))}
+              </button>
+            )}
+          </>}
           flex
           className="md:flex-1 flex flex-col md:min-h-0"
         >
