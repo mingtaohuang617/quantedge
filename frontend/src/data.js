@@ -1,9 +1,8796 @@
-// 自动生成 - 由 localStorage 导出
-// 注意：change 字段已清零（原始快照中存储了累计涨幅而非当日涨跌，
-//       避免首屏误报。真实当日涨跌由前端首次 Yahoo 快速刷新后填入）
-// 生成时间: 2026-04-20 13:47:20
-// 标的数量: 171
+// 自动生成 - 由 backend/pipeline.py 写出，请勿手动编辑
+// 生成时间: 2026-04-30 22:32:10 (手动追加 KR 标的)
 
-export const STOCKS = [{"ticker":"MARS","name":"Roundhill MARS ETF","market":"US","sector":"航天/太空","currency":"USD","price":30.41,"change":0,"score":83,"subScores":{"cost":85,"liquidity":50,"momentum":98,"risk":85},"isETF":true,"etfType":"主题ETF","leverage":null,"expenseRatio":0.5,"premiumDiscount":0,"aum":"12M","adv":"61342","benchmark":"主动管理","issuer":"Roundhill Investments","pe":null,"roe":null,"momentum":98,"rsi":65,"revenueGrowth":null,"profitMargin":null,"ebitda":null,"marketCap":"12M","revenue":null,"eps":null,"beta":null,"week52High":31,"week52Low":23.59,"avgVolume":"61342","nextEarnings":null,"rank":1},{"ticker":"UFO","name":"Procure Space ETF","market":"US","sector":"航天/太空","currency":"USD","price":51.1,"change":0,"score":81.4,"subScores":{"cost":85,"liquidity":70,"momentum":79.6,"risk":85},"isETF":true,"etfType":"主题ETF","leverage":null,"expenseRatio":0.5,"premiumDiscount":0,"aum":"376M","adv":"575481","benchmark":"S-Network Space Index","issuer":"Procure ETFs","pe":null,"roe":null,"momentum":79.6,"rsi":62,"revenueGrowth":null,"profitMargin":null,"ebitda":null,"marketCap":"376M","revenue":null,"eps":null,"beta":1.58,"week52High":52,"week52Low":20.371,"avgVolume":"575481","nextEarnings":null,"rank":2},{"ticker":"MU","name":"Micron Technology","market":"US","sector":"半导体/存储","currency":"USD","price":416.35,"change":0,"score":80.4,"subScores":{"fundamental":90,"technical":52.9,"growth":95},"isETF":false,"pe":19.64,"roe":39.8,"momentum":35.7,"rsi":53.1,"revenueGrowth":196.3,"profitMargin":41.5,"ebitda":"36.8B","marketCap":"469.5B","revenue":"58.1B","eps":21.2,"beta":1.61,"week52High":471.34,"week52Low":65.65,"avgVolume":"42M","nextEarnings":null,"rank":3},{"ticker":"EWY","name":"iShares MSCI South Korea ETF","market":"US","sector":"韩国/综合","currency":"USD","price":137.76,"change":0,"score":79.2,"subScores":{"cost":85,"liquidity":90,"momentum":58.8,"risk":85},"isETF":true,"etfType":"国家ETF","leverage":null,"expenseRatio":0.5,"premiumDiscount":0,"aum":"15.7B","adv":"22M","benchmark":"MSCI Korea 25/50 Index","issuer":"iShares (BlackRock)","pe":null,"roe":null,"momentum":58.8,"rsi":53.8,"revenueGrowth":null,"profitMargin":null,"ebitda":null,"marketCap":"15.7B","revenue":null,"eps":null,"beta":1.95,"week52High":154.22,"week52Low":53.64,"avgVolume":"22M","nextEarnings":null,"rank":4},{"ticker":"NVDA","name":"NVIDIA Corp","market":"US","sector":"半导体/AI","currency":"USD","price":188.99,"change":0,"score":78.8,"subScores":{"fundamental":83.3,"technical":56.5,"growth":95},"isETF":false,"pe":38.57,"roe":101.5,"momentum":57.9,"rsi":66.2,"revenueGrowth":73.2,"profitMargin":55.6,"ebitda":"133.2B","marketCap":"4.59T","revenue":"215.9B","eps":4.9,"beta":2.33,"week52High":212.19,"week52Low":95.04,"avgVolume":"180M","nextEarnings":null,"rank":5},{"ticker":"00005.HK","name":"汇丰控股","market":"HK","sector":"银行/金融","currency":"HKD","price":138.8,"change":0,"score":77.5,"subScores":{"fundamental":83.3,"technical":52.1,"growth":95},"isETF":false,"pe":14.77,"roe":11.6,"momentum":69.2,"rsi":73.7,"revenueGrowth":58.4,"profitMargin":35.2,"ebitda":null,"marketCap":"2.39T","revenue":"63.2B","eps":9.4,"beta":0.56,"week52High":148,"week52Low":77.1,"avgVolume":"19M","nextEarnings":"2026-05-05","rank":6},{"ticker":"IYZ","name":"iShares U.S. Telecom ETF","market":"US","sector":"电信/通信","currency":"USD","price":40.97,"change":0,"score":76.8,"subScores":{"cost":85,"liquidity":70,"momentum":61,"risk":85},"isETF":true,"etfType":"行业ETF","leverage":null,"expenseRatio":0.5,"premiumDiscount":0,"aum":"798M","adv":"2M","benchmark":"Dow Jones U.S. Select Telecommunications","issuer":"iShares (BlackRock)","pe":null,"roe":null,"momentum":61,"rsi":57.8,"revenueGrowth":null,"profitMargin":null,"ebitda":null,"marketCap":"798M","revenue":null,"eps":null,"beta":0.69,"week52High":41.95,"week52Low":24.85,"avgVolume":"2M","nextEarnings":null,"rank":7},{"ticker":"09633.HK","name":"NONGFU SPRING","nameCN":"农夫山泉","market":"HK","sector":"消费/饮料","currency":"HKD","price":47.28,"change":0,"score":76.5,"subScores":{"fundamental":83.3,"technical":64,"growth":80},"isETF":false,"pe":29.2,"roe":44.2,"momentum":73.1,"rsi":64.9,"revenueGrowth":30,"profitMargin":30.2,"ebitda":"22.8B","marketCap":"532.0B","revenue":"52.6B","eps":1.62,"beta":0.3,"week52High":56.25,"week52Low":34.85,"avgVolume":"6.8M","nextEarnings":"2026-03-24","_fetchedAt":1776649961164,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":8},{"ticker":"AVGO","name":"Broadcom Inc.","nameCN":"博通","market":"US","sector":"半导体","currency":"USD","price":406.54,"change":0,"score":74.9,"subScores":{"fundamental":76.7,"technical":67.5,"growth":80},"isETF":false,"pe":79.4,"roe":33.4,"momentum":100,"rsi":93.9,"revenueGrowth":29.5,"profitMargin":36.6,"ebitda":"37.2B","marketCap":"1.93T","revenue":"68.3B","eps":5.12,"beta":1.25,"week52High":414.61,"week52Low":161.61,"avgVolume":"26.5M","nextEarnings":"2026-06-04","_fetchedAt":1776650032698,"_dataQuality":{"score":98,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"},{"dim":"accuracy","severity":"medium","msg":"日涨跌幅异常: 137.76% (超过±50%)"}],"scores":{"completeness":95,"accuracy":90,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":9},{"ticker":"SOXL","name":"Direxion Daily Semiconductor Bull 3X","market":"US","sector":"半导体/杠杆","currency":"USD","price":76.99,"change":0,"score":74.5,"subScores":{"cost":85,"liquidity":90,"momentum":100,"risk":85},"isETF":true,"etfType":"3倍杠杆ETF","leverage":"3x","expenseRatio":0.5,"premiumDiscount":0,"aum":"12.2B","adv":"88M","benchmark":"ICE Semiconductor Index 每日3倍","issuer":"Direxion","pe":null,"roe":null,"momentum":100,"rsi":71.1,"revenueGrowth":null,"profitMargin":null,"ebitda":null,"marketCap":"12.2B","revenue":null,"eps":null,"beta":5.13,"week52High":78.3,"week52Low":8.15,"avgVolume":"88M","nextEarnings":null,"rank":10},{"ticker":"RDDT","name":"Reddit, Inc.","nameCN":"Reddit","market":"US","sector":"互联网/社区","currency":"USD","price":163.8,"change":0,"score":74.2,"subScores":{"fundamental":65,"technical":65.8,"growth":95},"isETF":false,"pe":62.52,"roe":20.9,"momentum":96.5,"rsi":87.8,"revenueGrowth":69.7,"profitMargin":24.1,"ebitda":"457.9M","marketCap":"31.3B","revenue":"2.2B","eps":2.62,"beta":2.41,"week52High":282.95,"week52Low":90.78,"avgVolume":"5.4M","nextEarnings":"2026-05-01","_fetchedAt":1776650153049,"_dataQuality":{"score":98,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 26个 (预期≥100)"},{"dim":"accuracy","severity":"medium","msg":"日涨跌幅异常: 70.34% (超过±50%)"}],"scores":{"completeness":95,"accuracy":90,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":11},{"ticker":"HOOD","name":"Robinhood Markets, Inc.","nameCN":"Robinhood","market":"US","sector":"互联网/券商","currency":"USD","price":90.75,"change":0,"score":72.9,"subScores":{"fundamental":71.7,"technical":67.5,"growth":80},"isETF":false,"pe":44.27,"roe":22,"momentum":100,"rsi":85,"revenueGrowth":26.5,"profitMargin":42.1,"ebitda":null,"marketCap":"81.7B","revenue":"4.5B","eps":2.05,"beta":2.46,"week52High":153.86,"week52Low":39.21,"avgVolume":"31.9M","nextEarnings":"2026-04-29","_fetchedAt":1776650073458,"_dataQuality":{"score":98,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 58个 (预期≥100)"},{"dim":"accuracy","severity":"medium","msg":"日涨跌幅异常: 120.37% (超过±50%)"}],"scores":{"completeness":95,"accuracy":90,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":12},{"ticker":"ADBE","name":"Adobe Inc.","nameCN":"Adobe","market":"US","sector":"软件/创意","currency":"USD","price":244.45,"change":0,"score":72.6,"subScores":{"fundamental":88.3,"technical":59.2,"growth":65},"isETF":false,"pe":14.25,"roe":58.8,"momentum":48.4,"rsi":57.1,"revenueGrowth":12,"profitMargin":29.5,"ebitda":"9.5B","marketCap":"99.6B","revenue":"24.5B","eps":17.16,"beta":1.52,"week52High":422.95,"week52Low":224.13,"avgVolume":"5.9M","nextEarnings":"2026-06-12","_fetchedAt":1776649968515,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":13},{"ticker":"LITE","name":"Lumentum Holdings","market":"US","sector":"光通信/激光","currency":"USD","price":873.09,"change":0,"score":72.4,"subScores":{"fundamental":51.7,"technical":77.5,"growth":95},"isETF":false,"pe":256.04,"roe":29.3,"momentum":100,"rsi":61.5,"revenueGrowth":65.5,"profitMargin":12,"ebitda":"268M","marketCap":"62.3B","revenue":"2.1B","eps":3.41,"beta":1.39,"week52High":960,"week52Low":49.13,"avgVolume":"6M","nextEarnings":null,"rank":14},{"ticker":"09961.HK","name":"TRIP.COM-S","nameCN":"携程集团","market":"HK","sector":"互联网/旅游","currency":"HKD","price":424.8,"change":0,"score":72.1,"subScores":{"fundamental":90,"technical":55.3,"growth":65},"isETF":false,"pe":7.75,"roe":21.1,"momentum":55.5,"rsi":68,"revenueGrowth":20.8,"profitMargin":53.3,"ebitda":"16.6B","marketCap":"277.7B","revenue":"62.4B","eps":54.78,"beta":-0.11,"week52High":613,"week52Low":376,"avgVolume":"3.4M","nextEarnings":"2026-05-18","_fetchedAt":1776649963728,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":15},{"ticker":"IGV","name":"iShares Expanded Tech-Software ETF","market":"US","sector":"软件/科技","currency":"USD","price":77.44,"change":0,"score":71.5,"subScores":{"cost":85,"liquidity":90,"momentum":27.9,"risk":85},"isETF":true,"etfType":"行业ETF","leverage":null,"expenseRatio":0.5,"premiumDiscount":0,"aum":"10.4B","adv":"24M","benchmark":"S&P North American Expanded Technology Software","issuer":"iShares (BlackRock)","pe":null,"roe":null,"momentum":27.9,"rsi":32.8,"revenueGrowth":null,"profitMargin":null,"ebitda":null,"marketCap":"10.4B","revenue":null,"eps":null,"beta":1.02,"week52High":117.99,"week52Low":73.93,"avgVolume":"24M","nextEarnings":null,"rank":16},{"ticker":"SNXX","name":"GraniteShares 2x Long SNDK Daily ETF","market":"US","sector":"存储/杠杆","currency":"USD","price":72.78,"change":0,"score":71.5,"subScores":{"cost":85,"liquidity":70,"momentum":100,"risk":85},"isETF":true,"etfType":"2倍杠杆ETF","leverage":"2x","expenseRatio":0.5,"premiumDiscount":0,"aum":"625M","adv":"10M","benchmark":"SanDisk Corp (SNDK) 每日2倍","issuer":"GraniteShares","pe":null,"roe":null,"momentum":100,"rsi":70.1,"revenueGrowth":null,"profitMargin":null,"ebitda":null,"marketCap":"625M","revenue":null,"eps":null,"beta":null,"week52High":73.66,"week52Low":25.11,"avgVolume":"10M","nextEarnings":null,"rank":17},{"ticker":"MSFT","name":"Microsoft Corporation","market":"US","sector":"软件/云计算","currency":"USD","price":378.87,"change":0,"score":71.5,"subScores":{"fundamental":90,"technical":53.4,"growth":65},"isETF":false,"pe":23.71,"roe":34.4,"momentum":36.8,"rsi":46.5,"revenueGrowth":16.7,"profitMargin":39,"ebitda":"175.3B","marketCap":"2.82T","revenue":"305.5B","eps":15.98,"beta":1.11,"week52High":555.45,"week52Low":355.67,"avgVolume":"37M","nextEarnings":null,"rank":18},{"ticker":"03486.HK","name":"易方达亚洲科技ETF","market":"HK","sector":"亚洲科技","currency":"HKD","price":15.36,"change":0,"score":71,"subScores":{"cost":85,"liquidity":50,"momentum":50,"risk":85},"isETF":true,"etfType":"主题ETF","leverage":null,"expenseRatio":0.5,"premiumDiscount":0,"aum":"24M","adv":"193733","benchmark":"亚洲科技指数","issuer":"易方达资产管理","pe":null,"roe":null,"momentum":50,"rsi":50,"revenueGrowth":null,"profitMargin":null,"ebitda":null,"marketCap":"24M","revenue":null,"eps":null,"beta":null,"week52High":15.5,"week52Low":13.39,"avgVolume":"193733","nextEarnings":null,"rank":19},{"ticker":"META","name":"Meta Platforms, Inc.","nameCN":"Meta","market":"US","sector":"互联网/社交","currency":"USD","price":688.55,"change":0,"score":70.6,"subScores":{"fundamental":83.3,"technical":59.4,"growth":65},"isETF":false,"pe":29.32,"roe":30.2,"momentum":83.7,"rsi":96.5,"revenueGrowth":23.8,"profitMargin":30.1,"ebitda":"101.9B","marketCap":"1.75T","revenue":"201.0B","eps":23.48,"beta":1.31,"week52High":796.25,"week52Low":479.8,"avgVolume":"16.3M","nextEarnings":"2026-04-30","_fetchedAt":1776650116968,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":20},{"ticker":"NFLX","name":"Netflix, Inc.","nameCN":"奈飞","market":"US","sector":"互联网/流媒体","currency":"USD","price":97.31,"change":0,"score":70.4,"subScores":{"fundamental":76.7,"technical":67.6,"growth":65},"isETF":false,"pe":31.49,"roe":48.5,"momentum":65.2,"rsi":57.1,"revenueGrowth":16.2,"profitMargin":28.5,"ebitda":"14.3B","marketCap":"410.9B","revenue":"46.9B","eps":3.09,"beta":1.67,"week52High":134.115,"week52Low":75.01,"avgVolume":"48.7M","nextEarnings":"2026-07-17","_fetchedAt":1776650122626,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":21},{"ticker":"PLTR","name":"Palantir Technologies Inc.","nameCN":"帕兰提尔","market":"US","sector":"软件/大数据","currency":"USD","price":146.39,"change":0,"score":70.3,"subScores":{"fundamental":65,"technical":52.5,"growth":95},"isETF":false,"pe":232.37,"roe":26,"momentum":35.1,"rsi":52.8,"revenueGrowth":70,"profitMargin":36.3,"ebitda":"1.4B","marketCap":"350.1B","revenue":"4.5B","eps":0.63,"beta":1.67,"week52High":207.52,"week52Low":89.31,"avgVolume":"52.8M","nextEarnings":"2026-05-05","_fetchedAt":1776650131622,"_dataQuality":{"score":98,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"},{"dim":"accuracy","severity":"medium","msg":"日涨跌幅异常: 56.1% (超过±50%)"}],"scores":{"completeness":95,"accuracy":90,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":22},{"ticker":"GOOGL","name":"Alphabet Inc.","nameCN":"谷歌","market":"US","sector":"互联网/搜索","currency":"USD","price":341.68,"change":0,"score":69.8,"subScores":{"fundamental":83.3,"technical":56.5,"growth":65},"isETF":false,"pe":31.64,"roe":35.7,"momentum":78.1,"rsi":93.7,"revenueGrowth":18,"profitMargin":32.8,"ebitda":"150.2B","marketCap":"4.13T","revenue":"402.8B","eps":10.8,"beta":1.13,"week52High":349,"week52Low":146.1,"avgVolume":"32.9M","nextEarnings":"2026-04-30","_fetchedAt":1776650067483,"_dataQuality":{"score":98,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"},{"dim":"accuracy","severity":"medium","msg":"日涨跌幅异常: 126.04% (超过±50%)"}],"scores":{"completeness":95,"accuracy":90,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":23},{"ticker":"GOOG","name":"Alphabet Inc.","nameCN":"谷歌","market":"US","sector":"互联网/搜索","currency":"USD","price":339.4,"change":0,"score":69.7,"subScores":{"fundamental":83.3,"technical":56.3,"growth":65},"isETF":false,"pe":31.34,"roe":35.7,"momentum":77.5,"rsi":95.3,"revenueGrowth":18,"profitMargin":32.8,"ebitda":"150.2B","marketCap":"4.11T","revenue":"402.8B","eps":10.83,"beta":1.13,"week52High":350.15,"week52Low":148.4,"avgVolume":"21.3M","nextEarnings":"2026-04-30","_fetchedAt":1776650066502,"_dataQuality":{"score":98,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"},{"dim":"accuracy","severity":"medium","msg":"日涨跌幅异常: 121.31% (超过±50%)"}],"scores":{"completeness":95,"accuracy":90,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":24},{"ticker":"00175.HK","name":"GEELY AUTO","nameCN":"吉利汽车","market":"HK","sector":"汽车/整车","currency":"HKD","price":24.46,"change":0,"score":69.6,"subScores":{"fundamental":63.3,"technical":67.5,"growth":80},"isETF":false,"pe":13.08,"roe":17.9,"momentum":100,"rsi":79.4,"revenueGrowth":45.8,"profitMargin":4.9,"ebitda":"16.1B","marketCap":"264.2B","revenue":"345.2B","eps":1.87,"beta":0.45,"week52High":25.62,"week52Low":14.96,"avgVolume":"76.5M","nextEarnings":"2026-03-18","_fetchedAt":1776649923387,"_dataQuality":{"score":98,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"},{"dim":"accuracy","severity":"medium","msg":"日涨跌幅异常: 57.81% (超过±50%)"}],"scores":{"completeness":95,"accuracy":90,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":25},{"ticker":"00388.HK","name":"HKEX","nameCN":"香港交易所","market":"HK","sector":"金融/交易所","currency":"HKD","price":409.6,"change":0,"score":69.2,"subScores":{"fundamental":83.3,"technical":54.6,"growth":65},"isETF":false,"pe":29.24,"roe":31.5,"momentum":54.2,"rsi":63.8,"revenueGrowth":13.8,"profitMargin":61.5,"ebitda":"21.8B","marketCap":"517.7B","revenue":"28.9B","eps":14.01,"beta":0.93,"week52High":466,"week52Low":328.2,"avgVolume":"5.0M","nextEarnings":"2026-04-29","_fetchedAt":1776649930566,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":26},{"ticker":"AAPL","name":"Apple Inc.","market":"US","sector":"科技/消费电子","currency":"USD","price":257.58,"change":0,"score":68.9,"subScores":{"fundamental":76.7,"technical":62.4,"growth":65},"isETF":false,"pe":32.65,"roe":152,"momentum":54.7,"rsi":58.7,"revenueGrowth":15.7,"profitMargin":27,"ebitda":"152.9B","marketCap":"3.79T","revenue":"435.6B","eps":7.89,"beta":1.11,"week52High":288.62,"week52Low":189.81,"avgVolume":"47M","nextEarnings":null,"rank":27},{"ticker":"LRCX","name":"Lam Research Corporation","nameCN":"拉姆研究","market":"US","sector":"半导体","currency":"USD","price":267.6,"change":0,"score":68.3,"subScores":{"fundamental":76.7,"technical":60.5,"growth":65},"isETF":false,"pe":54.95,"roe":65.6,"momentum":85.9,"rsi":75.7,"revenueGrowth":22.1,"profitMargin":30.2,"ebitda":"7.3B","marketCap":"336.1B","revenue":"20.6B","eps":4.87,"beta":1.79,"week52High":273.5,"week52Low":61.14,"avgVolume":"10.8M","nextEarnings":"2026-04-23","_fetchedAt":1776650084278,"_dataQuality":{"score":98,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"},{"dim":"accuracy","severity":"medium","msg":"日涨跌幅异常: 319.7% (超过±50%)"}],"scores":{"completeness":95,"accuracy":90,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":28},{"ticker":"ARM","name":"Arm Holdings plc","nameCN":"ARM控股","market":"US","sector":"半导体","currency":"USD","price":166.73,"change":0,"score":67.9,"subScores":{"fundamental":51.7,"technical":77.5,"growth":80},"isETF":false,"pe":222.31,"roe":11.3,"momentum":100,"rsi":67.4,"revenueGrowth":26.3,"profitMargin":17.1,"ebitda":"1.1B","marketCap":"177.1B","revenue":"4.7B","eps":0.75,"beta":3.34,"week52High":183.16,"week52Low":95.32,"avgVolume":"6.9M","nextEarnings":"2026-05-07","_fetchedAt":1776649995145,"_dataQuality":{"score":98,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 32个 (预期≥100)"},{"dim":"accuracy","severity":"medium","msg":"日涨跌幅异常: 65.52% (超过±50%)"}],"scores":{"completeness":95,"accuracy":90,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":29},{"ticker":"TXN","name":"Texas Instruments Incorporated","nameCN":"德州仪器","market":"US","sector":"半导体","currency":"USD","price":229.82,"change":0,"score":67.8,"subScores":{"fundamental":70,"technical":67.5,"growth":65},"isETF":false,"pe":42.17,"roe":30.1,"momentum":100,"rsi":85.4,"revenueGrowth":10.4,"profitMargin":28.3,"ebitda":"8.0B","marketCap":"209.2B","revenue":"17.7B","eps":5.45,"beta":0.99,"week52High":231.32,"week52Low":142.64,"avgVolume":"7.4M","nextEarnings":"2026-04-23","_fetchedAt":1776650190329,"_dataQuality":{"score":98,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"},{"dim":"accuracy","severity":"medium","msg":"日涨跌幅异常: 54.82% (超过±50%)"}],"scores":{"completeness":95,"accuracy":90,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":30},{"ticker":"FTNT","name":"Fortinet, Inc.","nameCN":"飞塔网络","market":"US","sector":"软件/网络安全","currency":"USD","price":81.84,"change":0,"score":67.6,"subScores":{"fundamental":76.7,"technical":58.1,"growth":65},"isETF":false,"pe":33.82,"roe":135.7,"momentum":46.2,"rsi":58.9,"revenueGrowth":14.8,"profitMargin":27.3,"ebitda":"2.2B","marketCap":"60.9B","revenue":"6.8B","eps":2.42,"beta":1,"week52High":109.33,"week52Low":70.12,"avgVolume":"6.7M","nextEarnings":"2026-05-07","_fetchedAt":1776650064058,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":31},{"ticker":"00016.HK","name":"SHK PPT","nameCN":"新鸿基地产","market":"HK","sector":"地产/开发","currency":"HKD","price":134.5,"change":0,"score":67.1,"subScores":{"fundamental":65,"technical":57,"growth":80},"isETF":false,"pe":17.72,"roe":3.7,"momentum":44,"rsi":55.9,"revenueGrowth":32,"profitMargin":23.8,"ebitda":"29.4B","marketCap":"389.8B","revenue":"92.5B","eps":7.59,"beta":0.83,"week52High":148.8,"week52Low":70.4,"avgVolume":"7.4M","nextEarnings":"2026-02-26","_fetchedAt":1776649924750,"_dataQuality":{"score":98,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"},{"dim":"accuracy","severity":"medium","msg":"日涨跌幅异常: 89.7% (超过±50%)"}],"scores":{"completeness":95,"accuracy":90,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":32},{"ticker":"02020.HK","name":"ANTA SPORTS","nameCN":"安踏体育","market":"HK","sector":"消费/运动品牌","currency":"HKD","price":85.95,"change":0,"score":67.1,"subScores":{"fundamental":78.3,"technical":54.1,"growth":65},"isETF":false,"pe":15.61,"roe":22.5,"momentum":73.2,"rsi":81,"revenueGrowth":12.4,"profitMargin":16.9,"ebitda":"20.5B","marketCap":"238.3B","revenue":"80.2B","eps":5.51,"beta":0.64,"week52High":106.3,"week52Low":74.2,"avgVolume":"10.9M","nextEarnings":"2026-03-25","_fetchedAt":1776649946229,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":33},{"ticker":"FAST","name":"Fastenal Company","nameCN":"快扣","market":"US","sector":"工业/紧固件","currency":"USD","price":45.78,"change":0,"score":66.6,"subScores":{"fundamental":70,"technical":63.6,"growth":65},"isETF":false,"pe":40.51,"roe":33.8,"momentum":57.2,"rsi":53.4,"revenueGrowth":12.4,"profitMargin":15.4,"ebitda":"1.9B","marketCap":"52.6B","revenue":"8.4B","eps":1.13,"beta":0.84,"week52High":50.63,"week52Low":38.97,"avgVolume":"8.5M","nextEarnings":"2026-07-13","_fetchedAt":1776650062615,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":34},{"ticker":"DXCM","name":"DexCom, Inc.","nameCN":"德康医疗","market":"US","sector":"医疗/器械","currency":"USD","price":63.98,"change":0,"score":66.3,"subScores":{"fundamental":76.7,"technical":53.9,"growth":65},"isETF":false,"pe":30.61,"roe":34.5,"momentum":37.8,"rsi":56.7,"revenueGrowth":13.1,"profitMargin":17.9,"ebitda":"1.2B","marketCap":"24.7B","revenue":"4.7B","eps":2.09,"beta":1.56,"week52High":89.98,"week52Low":54.11,"avgVolume":"4.7M","nextEarnings":"2026-05-01","_fetchedAt":1776650058412,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":35},{"ticker":"MELI","name":"MercadoLibre, Inc.","nameCN":"美客多","market":"US","sector":"电商/拉美","currency":"USD","price":1855.83,"change":0,"score":66.3,"subScores":{"fundamental":63.3,"technical":56.6,"growth":80},"isETF":false,"pe":47.17,"roe":36,"momentum":78.3,"rsi":79.7,"revenueGrowth":44.6,"profitMargin":6.9,"ebitda":"4.0B","marketCap":"94.1B","revenue":"28.9B","eps":39.34,"beta":1.49,"week52High":2645.22,"week52Low":1593.21,"avgVolume":"568.6K","nextEarnings":"2026-05-08","_fetchedAt":1776650088930,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":36},{"ticker":"ROST","name":"Ross Stores, Inc.","nameCN":"罗斯百货","market":"US","sector":"零售/折扣","currency":"USD","price":227.82,"change":0,"score":66.3,"subScores":{"fundamental":70,"technical":62.7,"growth":65},"isETF":false,"pe":34.47,"roe":36.7,"momentum":70.4,"rsi":68.4,"revenueGrowth":12.2,"profitMargin":9.4,"ebitda":"3.2B","marketCap":"73.7B","revenue":"22.8B","eps":6.61,"beta":0.93,"week52High":228.71,"week52Low":124.49,"avgVolume":"2.6M","nextEarnings":"2026-05-22","_fetchedAt":1776650158372,"_dataQuality":{"score":98,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"},{"dim":"accuracy","severity":"medium","msg":"日涨跌幅异常: 63.16% (超过±50%)"}],"scores":{"completeness":95,"accuracy":90,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":37},{"ticker":"00027.HK","name":"GALAXY ENT","nameCN":"银河娱乐","market":"HK","sector":"消费/博彩","currency":"HKD","price":35.06,"change":0,"score":66.2,"subScores":{"fundamental":76.7,"technical":53.4,"growth":65},"isETF":false,"pe":14.35,"roe":13.4,"momentum":36.8,"rsi":51.3,"revenueGrowth":18.3,"profitMargin":21.7,"ebitda":"13.2B","marketCap":"153.4B","revenue":"49.3B","eps":2.44,"beta":0.57,"week52High":44.22,"week52Low":26.7,"avgVolume":"10.0M","nextEarnings":"2026-05-07","_fetchedAt":1776649927305,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":38},{"ticker":"ABNB","name":"Airbnb, Inc.","nameCN":"爱彼迎","market":"US","sector":"互联网/旅游","currency":"USD","price":141.55,"change":0,"score":66,"subScores":{"fundamental":76.7,"technical":52.8,"growth":65},"isETF":false,"pe":35.12,"roe":30.2,"momentum":70.6,"rsi":81.2,"revenueGrowth":12,"profitMargin":20.5,"ebitda":"2.6B","marketCap":"84.9B","revenue":"12.2B","eps":4.03,"beta":1.16,"week52High":143.88,"week52Low":109.79,"avgVolume":"4.4M","nextEarnings":"2026-05-08","_fetchedAt":1776649965901,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":39},{"ticker":"AMZN","name":"Amazon.com, Inc.","nameCN":"亚马逊","market":"US","sector":"电商/云计算","currency":"USD","price":250.56,"change":0,"score":65.8,"subScores":{"fundamental":65,"technical":67.5,"growth":65},"isETF":false,"pe":34.95,"roe":22.3,"momentum":100,"rsi":97.5,"revenueGrowth":13.6,"profitMargin":10.8,"ebitda":"145.7B","marketCap":"2.69T","revenue":"716.9B","eps":7.17,"beta":1.38,"week52High":258.6,"week52Low":165.29,"avgVolume":"51.6M","nextEarnings":"2026-04-30","_fetchedAt":1776649989706,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":40},{"ticker":"ASML","name":"ASML Holding N.V. - New York Re","nameCN":"阿斯麦","market":"US","sector":"半导体","currency":"USD","price":1459.8,"change":0,"score":65.8,"subScores":{"fundamental":70,"technical":61,"growth":65},"isETF":false,"pe":47.85,"roe":52.2,"momentum":67.1,"rsi":63.5,"revenueGrowth":13.2,"profitMargin":29.7,"ebitda":"12.7B","marketCap":"573.2B","revenue":"33.7B","eps":30.51,"beta":1.38,"week52High":1547.22,"week52Low":614.06,"avgVolume":"1.8M","nextEarnings":"2026-07-15","_fetchedAt":1776650034935,"_dataQuality":{"score":98,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"},{"dim":"accuracy","severity":"medium","msg":"日涨跌幅异常: 128.04% (超过±50%)"}],"scores":{"completeness":95,"accuracy":90,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":41},{"ticker":"MRVL","name":"Marvell Technology, Inc.","nameCN":"美满电子","market":"US","sector":"半导体","currency":"USD","price":139.69,"change":0,"score":65.8,"subScores":{"fundamental":65,"technical":67.5,"growth":65},"isETF":false,"pe":45.5,"roe":19.3,"momentum":100,"rsi":86.3,"revenueGrowth":22.1,"profitMargin":32.6,"ebitda":"2.6B","marketCap":"122.2B","revenue":"8.2B","eps":3.07,"beta":1.82,"week52High":139.91,"week52Low":48.09,"avgVolume":"20.4M","nextEarnings":"2026-05-29","_fetchedAt":1776650119743,"_dataQuality":{"score":98,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"},{"dim":"accuracy","severity":"medium","msg":"日涨跌幅异常: 170.19% (超过±50%)"}],"scores":{"completeness":95,"accuracy":90,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":42},{"ticker":"AEP","name":"American Electric Power Company","nameCN":"美国电力","market":"US","sector":"公用事业/电力","currency":"USD","price":133.66,"change":0,"score":65.4,"subScores":{"fundamental":71.7,"technical":57.3,"growth":65},"isETF":false,"pe":20.07,"roe":12.5,"momentum":59.6,"rsi":63.1,"revenueGrowth":13.2,"profitMargin":16.4,"ebitda":"9.0B","marketCap":"72.7B","revenue":"21.9B","eps":6.66,"beta":0.57,"week52High":137.74,"week52Low":97.46,"avgVolume":"3.4M","nextEarnings":"2026-05-05","_fetchedAt":1776649971074,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":43},{"ticker":"AMGN","name":"Amgen Inc.","nameCN":"安进","market":"US","sector":"医疗/生物科技","currency":"USD","price":355.3,"change":0,"score":65.4,"subScores":{"fundamental":83.3,"technical":61.9,"growth":45},"isETF":false,"pe":24.93,"roe":106.1,"momentum":53.8,"rsi":56.5,"revenueGrowth":8.6,"profitMargin":21,"ebitda":"16.6B","marketCap":"191.5B","revenue":"36.8B","eps":14.25,"beta":0.47,"week52High":391.29,"week52Low":261.43,"avgVolume":"2.8M","nextEarnings":"2026-05-01","_fetchedAt":1776649991944,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":44},{"ticker":"MNST","name":"Monster Beverage Corporation","nameCN":"怪物饮料","market":"US","sector":"消费/饮料","currency":"USD","price":76.72,"change":0,"score":65.4,"subScores":{"fundamental":71.7,"technical":57.5,"growth":65},"isETF":false,"pe":39.55,"roe":26.8,"momentum":60.1,"rsi":69.3,"revenueGrowth":17.6,"profitMargin":23,"ebitda":"2.7B","marketCap":"75.1B","revenue":"8.3B","eps":1.94,"beta":0.51,"week52High":87.38,"week52Low":57.01,"avgVolume":"6.0M","nextEarnings":"2026-05-08","_fetchedAt":1776650118271,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":45},{"ticker":"SMH","name":"VanEck Semiconductor ETF","nameCN":"半导体ETF","market":"US","sector":"ETF/半导体","currency":"USD","price":464.16,"change":0,"score":65.3,"subScores":{"cost":50,"liquidity":50,"momentum":93.8,"risk":50},"isETF":true,"pe":45.55,"roe":null,"momentum":93.8,"rsi":89.7,"revenueGrowth":null,"profitMargin":null,"ebitda":null,"marketCap":"5.4B","revenue":null,"eps":null,"beta":null,"week52High":464.58,"week52Low":184.4,"avgVolume":"9.1M","nextEarnings":null,"_fetchedAt":1776650163342,"_dataQuality":{"score":98,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"},{"dim":"accuracy","severity":"medium","msg":"日涨跌幅异常: 141.08% (超过±50%)"}],"scores":{"completeness":95,"accuracy":90,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":46},{"ticker":"07552.HK","name":"南方两倍做空纳指","market":"HK","sector":"纳指/反向ETF","currency":"HKD","price":1.76,"change":0,"score":65.2,"subScores":{"cost":85,"liquidity":90,"momentum":62.9,"risk":85},"isETF":true,"etfType":"2倍反向ETF","leverage":"-2x","expenseRatio":0.5,"premiumDiscount":0,"aum":"3.2B","adv":"352M","benchmark":"NASDAQ-100 Index 每日-2倍","issuer":"南方东英","pe":null,"roe":null,"momentum":62.9,"rsi":52.8,"revenueGrowth":null,"profitMargin":null,"ebitda":null,"marketCap":"3.2B","revenue":null,"eps":null,"beta":null,"week52High":2.256,"week52Low":1.018,"avgVolume":"352M","nextEarnings":null,"rank":47},{"ticker":"PYPL","name":"PayPal Holdings, Inc.","nameCN":"PayPal","market":"US","sector":"互联网/支付","currency":"USD","price":50.81,"change":0,"score":65.2,"subScores":{"fundamental":83.3,"technical":61.3,"growth":45},"isETF":false,"pe":9.39,"roe":25.7,"momentum":87.5,"rsi":82.5,"revenueGrowth":3.7,"profitMargin":15.8,"ebitda":"6.6B","marketCap":"46.8B","revenue":"33.2B","eps":5.41,"beta":1.41,"week52High":79.5,"week52Low":38.46,"avgVolume":"23.6M","nextEarnings":"2026-05-05","_fetchedAt":1776650136656,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":48},{"ticker":"ADI","name":"Analog Devices, Inc.","nameCN":"亚德诺","market":"US","sector":"半导体","currency":"USD","price":371.45,"change":0,"score":64.8,"subScores":{"fundamental":51.7,"technical":67,"growth":80},"isETF":false,"pe":68.03,"roe":7.9,"momentum":99.1,"rsi":88.1,"revenueGrowth":30.4,"profitMargin":23,"ebitda":"5.5B","marketCap":"181.3B","revenue":"11.8B","eps":5.46,"beta":1.05,"week52High":372.45,"week52Low":171,"avgVolume":"4.0M","nextEarnings":"2026-05-21","_fetchedAt":1776649969890,"_dataQuality":{"score":98,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"},{"dim":"accuracy","severity":"medium","msg":"日涨跌幅异常: 110.73% (超过±50%)"}],"scores":{"completeness":95,"accuracy":90,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":49},{"ticker":"TQQQ","name":"ProShares UltraPro QQQ","market":"US","sector":"纳指/杠杆","currency":"USD","price":49.39,"change":0,"score":64.7,"subScores":{"cost":85,"liquidity":90,"momentum":60.6,"risk":85},"isETF":true,"etfType":"3倍杠杆ETF","leverage":"3x","expenseRatio":0.5,"premiumDiscount":0,"aum":"24.6B","adv":"107M","benchmark":"NASDAQ-100 Index 每日3倍","issuer":"ProShares","pe":null,"roe":null,"momentum":60.6,"rsi":62.4,"revenueGrowth":null,"profitMargin":null,"ebitda":null,"marketCap":"24.6B","revenue":null,"eps":null,"beta":3.46,"week52High":60.685,"week52Low":20.12,"avgVolume":"107M","nextEarnings":null,"rank":50},{"ticker":"TTD","name":"The Trade Desk, Inc.","nameCN":"交易柜台","market":"US","sector":"互联网/广告","currency":"USD","price":22.47,"change":0,"score":64.5,"subScores":{"fundamental":71.7,"technical":54.5,"growth":65},"isETF":false,"pe":24.97,"roe":16.3,"momentum":38.9,"rsi":57,"revenueGrowth":14.3,"profitMargin":15.3,"ebitda":"690.1M","marketCap":"10.7B","revenue":"2.9B","eps":0.9,"beta":1.17,"week52High":91.45,"week52Low":19.74,"avgVolume":"19.4M","nextEarnings":"2026-05-08","_fetchedAt":1776650184242,"_dataQuality":{"score":98,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"},{"dim":"accuracy","severity":"medium","msg":"日涨跌幅异常: -55.29% (超过±50%)"}],"scores":{"completeness":95,"accuracy":90,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":51},{"ticker":"02382.HK","name":"SUNNY OPTICAL","nameCN":"舜宇光学","market":"HK","sector":"光学/精密制造","currency":"HKD","price":65.6,"change":0,"score":64,"subScores":{"fundamental":65,"technical":61.5,"growth":65},"isETF":false,"pe":19.07,"roe":17.5,"momentum":88,"rsi":83.8,"revenueGrowth":21.3,"profitMargin":10.7,"ebitda":"5.6B","marketCap":"70.4B","revenue":"43.2B","eps":3.44,"beta":0.96,"week52High":91.4,"week52Low":51.5,"avgVolume":"12.1M","nextEarnings":"2026-03-30","_fetchedAt":1776649949849,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":52},{"ticker":"GILD","name":"Gilead Sciences, Inc.","nameCN":"吉利德","market":"US","sector":"医疗/生物科技","currency":"USD","price":137.64,"change":0,"score":63.9,"subScores":{"fundamental":83.3,"technical":57,"growth":45},"isETF":false,"pe":20.27,"roe":40.7,"momentum":43.9,"rsi":58.9,"revenueGrowth":4.7,"profitMargin":28.9,"ebitda":"14.6B","marketCap":"170.8B","revenue":"29.4B","eps":6.79,"beta":0.4,"week52High":157.29,"week52Low":93.37,"avgVolume":"6.9M","nextEarnings":"2026-04-24","_fetchedAt":1776650067958,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":53},{"ticker":"IDXX","name":"IDEXX Laboratories, Inc.","nameCN":"爱德士","market":"US","sector":"医疗/诊断","currency":"USD","price":589.25,"change":0,"score":63.9,"subScores":{"fundamental":70,"technical":54.5,"growth":65},"isETF":false,"pe":45.05,"roe":66.2,"momentum":54.1,"rsi":62.4,"revenueGrowth":14.3,"profitMargin":24.6,"ebitda":"1.5B","marketCap":"46.9B","revenue":"4.3B","eps":13.08,"beta":1.72,"week52High":769.98,"week52Low":402.85,"avgVolume":"520.5K","nextEarnings":"2026-05-05","_fetchedAt":1776650071395,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":54},{"ticker":"KLAC","name":"KLA Corporation","nameCN":"科磊","market":"US","sector":"半导体","currency":"USD","price":1791.44,"change":0,"score":63.9,"subScores":{"fundamental":76.7,"technical":65.7,"growth":45},"isETF":false,"pe":52.08,"roe":100.7,"momentum":96.3,"rsi":79.1,"revenueGrowth":7.2,"profitMargin":35.8,"ebitda":"5.7B","marketCap":"235.4B","revenue":"12.7B","eps":34.4,"beta":1.44,"week52High":1798,"week52Low":607.7,"avgVolume":"1.1M","nextEarnings":"2026-04-30","_fetchedAt":1776650080524,"_dataQuality":{"score":98,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"},{"dim":"accuracy","severity":"medium","msg":"日涨跌幅异常: 182.37% (超过±50%)"}],"scores":{"completeness":95,"accuracy":90,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":55},{"ticker":"CRM","name":"Salesforce, Inc.","nameCN":"赛富时","market":"US","sector":"软件/CRM","currency":"USD","price":182.14,"change":0,"score":63.7,"subScores":{"fundamental":71.7,"technical":51.8,"growth":65},"isETF":false,"pe":23.35,"roe":12.4,"momentum":33.5,"rsi":52.8,"revenueGrowth":12.1,"profitMargin":18,"ebitda":"12.5B","marketCap":"168.1B","revenue":"41.5B","eps":7.8,"beta":1.29,"week52High":296.05,"week52Low":163.52,"avgVolume":"13.9M","nextEarnings":"2026-05-28","_fetchedAt":1776650049163,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":56},{"ticker":"07747.HK","name":"南方两倍做多纳指","market":"HK","sector":"纳指/杠杆ETF","currency":"HKD","price":77.48,"change":0,"score":63.6,"subScores":{"cost":85,"liquidity":70,"momentum":68.4,"risk":85},"isETF":true,"etfType":"2倍杠杆ETF","leverage":"2x","expenseRatio":0.5,"premiumDiscount":0,"aum":"728M","adv":"9M","benchmark":"NASDAQ-100 Index 每日2倍","issuer":"南方东英","pe":null,"roe":null,"momentum":68.4,"rsi":48.4,"revenueGrowth":null,"profitMargin":null,"ebitda":null,"marketCap":"728M","revenue":null,"eps":null,"beta":null,"week52High":107.55,"week52Low":8.21,"avgVolume":"9M","nextEarnings":null,"rank":57},{"ticker":"REGN","name":"Regeneron Pharmaceuticals, Inc.","nameCN":"再生元","market":"US","sector":"医疗/生物科技","currency":"USD","price":750.57,"change":0,"score":63.5,"subScores":{"fundamental":78.3,"technical":62.2,"growth":45},"isETF":false,"pe":18.08,"roe":14.9,"momentum":54.4,"rsi":55.1,"revenueGrowth":2.5,"profitMargin":31.4,"ebitda":"4.2B","marketCap":"79.4B","revenue":"14.3B","eps":41.51,"beta":0.4,"week52High":821.11,"week52Low":476.49,"avgVolume":"690.2K","nextEarnings":"2026-04-29","_fetchedAt":1776650150516,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":58},{"ticker":"PEP","name":"Pepsico, Inc.","nameCN":"百事可乐","market":"US","sector":"消费/饮料","currency":"USD","price":157.67,"change":0,"score":63.4,"subScores":{"fundamental":76.7,"technical":64,"growth":45},"isETF":false,"pe":24.75,"roe":43.9,"momentum":58.1,"rsi":59.9,"revenueGrowth":8.5,"profitMargin":9.1,"ebitda":"18.7B","marketCap":"215.5B","revenue":"95.4B","eps":6.37,"beta":0.41,"week52High":171.48,"week52Low":127.6,"avgVolume":"7.5M","nextEarnings":"2026-07-16","_fetchedAt":1776650133891,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":59},{"ticker":"03986.HK","name":"兆易创新","market":"HK","sector":"半导体/MCU","currency":"HKD","price":391.6,"change":0,"score":63.3,"subScores":{"fundamental":45,"technical":71,"growth":80},"isETF":false,"pe":138.87,"roe":9.3,"momentum":71.9,"rsi":42.1,"revenueGrowth":39,"profitMargin":17.9,"ebitda":"1.8B","marketCap":"274.6B","revenue":"9.2B","eps":2.82,"beta":1.55,"week52High":463.6,"week52Low":220,"avgVolume":"2M","nextEarnings":null,"rank":60},{"ticker":"00700.HK","name":"腾讯控股","market":"HK","sector":"通信服务/Internet Content & Information","currency":"HKD","price":490,"change":0,"score":62.3,"subScores":{"fundamental":71.7,"technical":47.1,"growth":65},"isETF":false,"pe":17.69,"roe":20,"momentum":24.2,"rsi":40.6,"revenueGrowth":12.7,"profitMargin":29.9,"ebitda":"273.4B","marketCap":"4.43T","revenue":"751.8B","eps":27.7,"beta":0.8,"week52High":683,"week52Low":440.2,"avgVolume":"29M","nextEarnings":null,"rank":61},{"ticker":"DLTR","name":"Dollar Tree, Inc.","nameCN":"达乐树","market":"US","sector":"零售/折扣","currency":"USD","price":105.93,"change":0,"score":62.3,"subScores":{"fundamental":76.7,"technical":60.5,"growth":45},"isETF":false,"pe":17.83,"roe":31.7,"momentum":50.9,"rsi":48.3,"revenueGrowth":9,"profitMargin":6.6,"ebitda":"2.3B","marketCap":"21.1B","revenue":"19.4B","eps":5.94,"beta":0.74,"week52High":142.4,"week52Low":77.98,"avgVolume":"3.2M","nextEarnings":"2026-06-03","_fetchedAt":1776650058632,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":62},{"ticker":"PAYX","name":"Paychex, Inc.","nameCN":"Paychex","market":"US","sector":"软件/人力资源","currency":"USD","price":91.96,"change":0,"score":62.3,"subScores":{"fundamental":61.7,"technical":60.4,"growth":65},"isETF":false,"pe":20.3,"roe":null,"momentum":50.7,"rsi":50.8,"revenueGrowth":19.9,"profitMargin":26.6,"ebitda":"1.6B","marketCap":"32.9B","revenue":"4.0B","eps":4.53,"beta":null,"week52High":161.24,"week52Low":85.45,"avgVolume":"4.3M","nextEarnings":"2026-06-25","_fetchedAt":1776650127231,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":63},{"ticker":"KORU","name":"Direxion Daily South Korea Bull 3X","market":"US","sector":"韩国/杠杆","currency":"USD","price":384.07,"change":0,"score":62.2,"subScores":{"cost":85,"liquidity":90,"momentum":50.9,"risk":85},"isETF":true,"etfType":"3倍杠杆ETF","leverage":"3x","expenseRatio":0.5,"premiumDiscount":0,"aum":"1.1B","adv":"927003","benchmark":"MSCI Korea 25/50 Index 每日3倍","issuer":"Direxion","pe":null,"roe":null,"momentum":50.9,"rsi":50.9,"revenueGrowth":null,"profitMargin":null,"ebitda":null,"marketCap":"1.1B","revenue":null,"eps":null,"beta":4,"week52High":665.4,"week52Low":35.7,"avgVolume":"927003","nextEarnings":null,"rank":64},{"ticker":"ILMN","name":"Illumina, Inc.","nameCN":"因美纳","market":"US","sector":"医疗/基因测序","currency":"USD","price":134.5,"change":0,"score":61.9,"subScores":{"fundamental":83.3,"technical":50.3,"growth":45},"isETF":false,"pe":24.68,"roe":33.4,"momentum":65.6,"rsi":75.1,"revenueGrowth":5,"profitMargin":19.6,"ebitda":"1.1B","marketCap":"20.6B","revenue":"4.3B","eps":5.45,"beta":1.49,"week52High":155.53,"week52Low":69.83,"avgVolume":"1.9M","nextEarnings":"2026-05-01","_fetchedAt":1776650072276,"_dataQuality":{"score":98,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"},{"dim":"accuracy","severity":"medium","msg":"日涨跌幅异常: 88.9% (超过±50%)"}],"scores":{"completeness":95,"accuracy":90,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":65},{"ticker":"SMCI","name":"Super Micro Computer, Inc.","nameCN":"超微电脑","market":"US","sector":"半导体/服务器","currency":"USD","price":28.56,"change":0,"score":61.9,"subScores":{"fundamental":58.3,"technical":33.5,"growth":95},"isETF":false,"pe":20.85,"roe":13.2,"momentum":31.9,"rsi":78.5,"revenueGrowth":123.4,"profitMargin":3.1,"ebitda":"1.1B","marketCap":"17.1B","revenue":"28.1B","eps":1.37,"beta":1.63,"week52High":62.36,"week52Low":19.48,"avgVolume":"36.6M","nextEarnings":"2026-05-06","_fetchedAt":1776650157378,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":66},{"ticker":"07234.HK","name":"XL二博时中创业","market":"HK","sector":"创业板/杠杆ETF","currency":"HKD","price":9.73,"change":0,"score":61.7,"subScores":{"cost":85,"liquidity":50,"momentum":72.7,"risk":85},"isETF":true,"etfType":"2倍杠杆ETF","leverage":"2x","expenseRatio":0.5,"premiumDiscount":0,"aum":"38M","adv":"1M","benchmark":"创业板指数 每日2倍","issuer":"博时基金","pe":null,"roe":null,"momentum":72.7,"rsi":61,"revenueGrowth":null,"profitMargin":null,"ebitda":null,"marketCap":"38M","revenue":null,"eps":null,"beta":null,"week52High":9.79,"week52Low":2.736,"avgVolume":"1M","nextEarnings":null,"rank":67},{"ticker":"02269.HK","name":"WUXI BIO","nameCN":"药明生物","market":"HK","sector":"医疗/生物科技","currency":"HKD","price":35.9,"change":0,"score":61.7,"subScores":{"fundamental":65,"technical":53.9,"growth":65},"isETF":false,"pe":26.99,"roe":11.6,"momentum":52.7,"rsi":69.9,"revenueGrowth":17.2,"profitMargin":22.5,"ebitda":"7.9B","marketCap":"148.4B","revenue":"21.8B","eps":1.33,"beta":0.62,"week52High":44,"week52Low":20.4,"avgVolume":"31.0M","nextEarnings":"2026-03-24","_fetchedAt":1776649946235,"_dataQuality":{"score":98,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"},{"dim":"accuracy","severity":"medium","msg":"日涨跌幅异常: 75.12% (超过±50%)"}],"scores":{"completeness":95,"accuracy":90,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":68},{"ticker":"SOXS","name":"Direxion Daily Semiconductor Be","market":"US","sector":"Trading--Inverse Equity","currency":"USD","price":23.44,"change":0,"score":61.5,"subScores":{"cost":85,"liquidity":70,"momentum":0,"risk":85},"isETF":true,"etfType":"主题ETF","leverage":null,"expenseRatio":0.5,"premiumDiscount":0,"aum":"856M","adv":"45M","benchmark":"N/A","issuer":"Direxion Funds","pe":null,"roe":null,"momentum":0,"rsi":31.1,"revenueGrowth":null,"profitMargin":null,"ebitda":null,"marketCap":"856M","revenue":null,"eps":null,"beta":-3.99,"week52High":585.6,"week52Low":23.01,"avgVolume":"45M","nextEarnings":null,"rank":69},{"ticker":"VRTX","name":"Vertex Pharmaceuticals Incorpor","nameCN":"福泰制药","market":"US","sector":"医疗/生物科技","currency":"USD","price":441.2,"change":0,"score":61.5,"subScores":{"fundamental":78.3,"technical":55.4,"growth":45},"isETF":false,"pe":28.82,"roe":22.5,"momentum":40.8,"rsi":55.3,"revenueGrowth":9.5,"profitMargin":32.9,"ebitda":"4.9B","marketCap":"112.2B","revenue":"12.0B","eps":15.31,"beta":0.37,"week52High":510.77,"week52Low":362.5,"avgVolume":"1.4M","nextEarnings":"2026-05-05","_fetchedAt":1776650188917,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":70},{"ticker":"07200.HK","name":"南方两倍做多恒指","market":"HK","sector":"恒指/杠杆ETF","currency":"HKD","price":5.77,"change":0,"score":61.3,"subScores":{"cost":85,"liquidity":90,"momentum":47.4,"risk":85},"isETF":true,"etfType":"2倍杠杆ETF","leverage":"2x","expenseRatio":0.5,"premiumDiscount":0,"aum":"2.9B","adv":"52M","benchmark":"恒生指数 (HSI) 每日2倍","issuer":"南方东英","pe":null,"roe":null,"momentum":47.4,"rsi":51.4,"revenueGrowth":null,"profitMargin":null,"ebitda":null,"marketCap":"2.9B","revenue":null,"eps":null,"beta":null,"week52High":7,"week52Low":3.938,"avgVolume":"52M","nextEarnings":null,"rank":71},{"ticker":"INTU","name":"Intuit Inc.","nameCN":"财捷","market":"US","sector":"软件/财务","currency":"USD","price":393.25,"change":0,"score":61.1,"subScores":{"fundamental":71.7,"technical":43,"growth":65},"isETF":false,"pe":25.57,"roe":23.5,"momentum":16,"rsi":42.3,"revenueGrowth":17.4,"profitMargin":21.6,"ebitda":"6.1B","marketCap":"109.4B","revenue":"20.1B","eps":15.38,"beta":1.21,"week52High":813.7,"week52Low":342.11,"avgVolume":"4.2M","nextEarnings":"2026-05-22","_fetchedAt":1776650072589,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":72},{"ticker":"SNPS","name":"Synopsys, Inc.","nameCN":"新思科技","market":"US","sector":"半导体/EDA","currency":"USD","price":449.58,"change":0,"score":61.1,"subScores":{"fundamental":45,"technical":48.8,"growth":95},"isETF":false,"pe":68.95,"roe":5.5,"momentum":62.5,"rsi":82.4,"revenueGrowth":65.5,"profitMargin":13.8,"ebitda":"1.6B","marketCap":"86.1B","revenue":"8.0B","eps":6.52,"beta":1.15,"week52High":651.73,"week52Low":376.18,"avgVolume":"2.2M","nextEarnings":"2026-05-28","_fetchedAt":1776650163197,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":73},{"ticker":"01024.HK","name":"KUAISHOU-W","nameCN":"快手","market":"HK","sector":"互联网/短视频","currency":"HKD","price":47.14,"change":0,"score":60.7,"subScores":{"fundamental":76.7,"technical":35,"growth":65},"isETF":false,"pe":9.71,"roe":26.3,"momentum":0,"rsi":56.4,"revenueGrowth":11.8,"profitMargin":13,"ebitda":"21.8B","marketCap":"204.5B","revenue":"142.8B","eps":4.86,"beta":1.24,"week52High":92.6,"week52Low":44.2,"avgVolume":"40.4M","nextEarnings":"2026-05-26","_fetchedAt":1776649935111,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":74},{"ticker":"DASH","name":"DoorDash, Inc.","nameCN":"DoorDash","market":"US","sector":"互联网/外卖","currency":"USD","price":183.89,"change":0,"score":60.6,"subScores":{"fundamental":45,"technical":61.9,"growth":80},"isETF":false,"pe":86.33,"roe":10.4,"momentum":88.7,"rsi":82.4,"revenueGrowth":37.7,"profitMargin":6.8,"ebitda":"1.2B","marketCap":"79.9B","revenue":"13.7B","eps":2.13,"beta":1.93,"week52High":285.5,"week52Low":143.3,"avgVolume":"5.1M","nextEarnings":"2026-05-07","_fetchedAt":1776650052348,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":75},{"ticker":"03988.HK","name":"BANK OF CHINA","nameCN":"中国银行","market":"HK","sector":"银行/国有","currency":"HKD","price":5.13,"change":0,"score":60.5,"subScores":{"fundamental":76.7,"technical":54.5,"growth":45},"isETF":false,"pe":6.04,"roe":8.4,"momentum":74,"rsi":83.7,"revenueGrowth":6.3,"profitMargin":43.5,"ebitda":null,"marketCap":"2.18T","revenue":"559.1B","eps":0.85,"beta":0.1,"week52High":5.15,"week52Low":4.11,"avgVolume":"215.8M","nextEarnings":"2026-04-29","_fetchedAt":1776649954880,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":76},{"ticker":"GEHC","name":"GE HealthCare Technologies Inc.","nameCN":"通用医疗","market":"US","sector":"医疗/器械","currency":"USD","price":74.66,"change":0,"score":60.2,"subScores":{"fundamental":71.7,"technical":60.1,"growth":45},"isETF":false,"pe":16.41,"roe":22.4,"momentum":65.2,"rsi":67.4,"revenueGrowth":7.1,"profitMargin":10.1,"ebitda":"3.6B","marketCap":"34.1B","revenue":"20.6B","eps":4.55,"beta":1.3,"week52High":89.77,"week52Low":59.95,"avgVolume":"3.6M","nextEarnings":"2026-04-29","_fetchedAt":1776650062871,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 41个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":77},{"ticker":"ARKK","name":"ARK Innovation ETF","nameCN":"方舟创新ETF","market":"US","sector":"ETF/创新","currency":"USD","price":79.23,"change":0,"score":60,"subScores":{"cost":50,"liquidity":50,"momentum":78.7,"risk":50},"isETF":true,"pe":52.17,"roe":null,"momentum":78.7,"rsi":86.4,"revenueGrowth":null,"profitMargin":null,"ebitda":null,"marketCap":null,"revenue":null,"eps":null,"beta":null,"week52High":92.65,"week52Low":43.68,"avgVolume":"10.5M","nextEarnings":null,"_fetchedAt":1776649994077,"_dataQuality":{"score":98,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"},{"dim":"accuracy","severity":"medium","msg":"日涨跌幅异常: 75.6% (超过±50%)"}],"scores":{"completeness":95,"accuracy":90,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":78},{"ticker":"ISRG","name":"Intuitive Surgical, Inc.","nameCN":"直觉外科","market":"US","sector":"医疗/器械","currency":"USD","price":469.21,"change":0,"score":60,"subScores":{"fundamental":58.3,"technical":57.2,"growth":65},"isETF":false,"pe":59.54,"roe":16.7,"momentum":44.4,"rsi":59.7,"revenueGrowth":18.8,"profitMargin":28.4,"ebitda":"3.6B","marketCap":"166.6B","revenue":"10.1B","eps":7.88,"beta":1.68,"week52High":603.88,"week52Low":427.84,"avgVolume":"1.9M","nextEarnings":"2026-04-22","_fetchedAt":1776650076673,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":79},{"ticker":"09999.HK","name":"NTES-S","nameCN":"网易","market":"HK","sector":"互联网/游戏","currency":"HKD","price":184.5,"change":0,"score":59.9,"subScores":{"fundamental":78.3,"technical":50.3,"growth":45},"isETF":false,"pe":15.34,"roe":22.6,"momentum":45.6,"rsi":66.5,"revenueGrowth":3,"profitMargin":30,"ebitda":"38.1B","marketCap":"588.7B","revenue":"112.6B","eps":12.03,"beta":0.82,"week52High":248,"week52Low":155.9,"avgVolume":"7.1M","nextEarnings":null,"_fetchedAt":1776649965993,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":80},{"ticker":"IWM","name":"iShares Russell 2000 ETF","nameCN":"罗素2000ETF","market":"US","sector":"ETF/罗素2000","currency":"USD","price":275.78,"change":0,"score":59.9,"subScores":{"cost":50,"liquidity":50,"momentum":78.4,"risk":50},"isETF":true,"pe":19.97,"roe":null,"momentum":78.4,"rsi":89.9,"revenueGrowth":null,"profitMargin":null,"ebitda":null,"marketCap":"77.5B","revenue":null,"eps":null,"beta":null,"week52High":277.63,"week52Low":180.77,"avgVolume":"44.0M","nextEarnings":null,"_fetchedAt":1776650078198,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":81},{"ticker":"AMD","name":"Advanced Micro Devices, Inc.","nameCN":"超威半导体","market":"US","sector":"半导体","currency":"USD","price":278.39,"change":0,"score":59.6,"subScores":{"fundamental":38.3,"technical":67.5,"growth":80},"isETF":false,"pe":106.26,"roe":7.1,"momentum":100,"rsi":93.3,"revenueGrowth":34.1,"profitMargin":12.5,"ebitda":"6.7B","marketCap":"453.9B","revenue":"34.6B","eps":2.62,"beta":1.96,"week52High":281.05,"week52Low":83.75,"avgVolume":"37.4M","nextEarnings":"2026-05-06","_fetchedAt":1776649990611,"_dataQuality":{"score":98,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"},{"dim":"accuracy","severity":"medium","msg":"日涨跌幅异常: 218.16% (超过±50%)"}],"scores":{"completeness":95,"accuracy":90,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":82},{"ticker":"TMUS","name":"T-Mobile US, Inc.","nameCN":"T-Mobile美国","market":"US","sector":"通信/运营商","currency":"USD","price":197.67,"change":0,"score":59.6,"subScores":{"fundamental":65,"technical":47.1,"growth":65},"isETF":false,"pe":20.32,"roe":18.2,"momentum":39.2,"rsi":33,"revenueGrowth":11.3,"profitMargin":12.4,"ebitda":"32.8B","marketCap":"221.1B","revenue":"88.3B","eps":9.73,"beta":0.42,"week52High":263.79,"week52Low":181.36,"avgVolume":"6.2M","nextEarnings":"2026-04-29","_fetchedAt":1776650185466,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":83},{"ticker":"DRAM","name":"Roundhill Memory ETF","market":"US","sector":"存储/ETF","currency":"USD","price":32.52,"change":0,"score":59.5,"subScores":{"cost":85,"liquidity":40,"momentum":50,"risk":35},"isETF":true,"etfType":"主题ETF","leverage":null,"expenseRatio":0.65,"premiumDiscount":0,"aum":"N/A","adv":"6M","benchmark":"主动管理 - 无跟踪指数","issuer":"Roundhill Investments","pe":null,"roe":null,"momentum":50,"rsi":50,"revenueGrowth":null,"profitMargin":null,"ebitda":null,"marketCap":null,"revenue":null,"eps":null,"beta":null,"week52High":33.39,"week52Low":26.14,"avgVolume":"6M","nextEarnings":null,"topHoldings":[{"name":"Samsung Electronics","weight":25.02},{"name":"Micron Technology","weight":24.13},{"name":"SK Hynix","weight":23.61},{"name":"Kioxia Holdings","weight":4.98},{"name":"SanDisk Corp","weight":4.65}],"concentrationTop3":72.76,"totalHoldings":9,"rank":84},{"ticker":"NXPI","name":"NXP Semiconductors N.V.","nameCN":"恩智浦","market":"US","sector":"半导体","currency":"USD","price":216.03,"change":0,"score":59.5,"subScores":{"fundamental":71.7,"technical":57.9,"growth":45},"isETF":false,"pe":27.17,"roe":20.7,"momentum":80.8,"rsi":77,"revenueGrowth":7.2,"profitMargin":16.5,"ebitda":"4.1B","marketCap":"54.6B","revenue":"12.3B","eps":7.95,"beta":1.47,"week52High":256.36,"week52Low":166.6,"avgVolume":"2.9M","nextEarnings":"2026-04-29","_fetchedAt":1776650123560,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":85},{"ticker":"00939.HK","name":"CCB","nameCN":"建设银行","market":"HK","sector":"银行/国有","currency":"HKD","price":8.68,"change":0,"score":59.4,"subScores":{"fundamental":76.7,"technical":50.8,"growth":45},"isETF":false,"pe":5.83,"roe":9.7,"momentum":66.6,"rsi":89.4,"revenueGrowth":2.4,"profitMargin":55.8,"ebitda":null,"marketCap":"2.33T","revenue":"607.6B","eps":1.49,"beta":0.22,"week52High":8.69,"week52Low":6.26,"avgVolume":"244.1M","nextEarnings":"2026-04-29","_fetchedAt":1776649935005,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":86},{"ticker":"CTSH","name":"Cognizant Technology Solutions ","nameCN":"高知特","market":"US","sector":"科技/IT服务","currency":"USD","price":61.3,"change":0,"score":59.3,"subScores":{"fundamental":70,"technical":59.5,"growth":45},"isETF":false,"pe":13.44,"roe":15.2,"momentum":49,"rsi":56.5,"revenueGrowth":4.9,"profitMargin":10.6,"ebitda":"3.8B","marketCap":"29.6B","revenue":"21.1B","eps":4.56,"beta":0.98,"week52High":87.03,"week52Low":57.39,"avgVolume":"6.7M","nextEarnings":"2026-04-29","_fetchedAt":1776650053367,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":87},{"ticker":"LULU","name":"lululemon athletica inc.","nameCN":"露露柠檬","market":"US","sector":"零售/运动服饰","currency":"USD","price":167.28,"change":0,"score":59.3,"subScores":{"fundamental":81.7,"technical":43.8,"growth":45},"isETF":false,"pe":12.61,"roe":34,"momentum":52.6,"rsi":74.1,"revenueGrowth":0.8,"profitMargin":14.2,"ebitda":"2.7B","marketCap":"19.6B","revenue":"11.1B","eps":13.27,"beta":1.07,"week52High":340.25,"week52Low":143.96,"avgVolume":"2.5M","nextEarnings":"2026-06-05","_fetchedAt":1776650085283,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":88},{"ticker":"XEL","name":"Xcel Energy Inc.","nameCN":"埃克塞尔能源","market":"US","sector":"公用事业/电力","currency":"USD","price":81.08,"change":0,"score":59.3,"subScores":{"fundamental":58.3,"technical":55,"growth":65},"isETF":false,"pe":23.71,"roe":9.4,"momentum":54.9,"rsi":62.5,"revenueGrowth":14.1,"profitMargin":13.8,"ebitda":"6.0B","marketCap":"50.6B","revenue":"14.7B","eps":3.42,"beta":0.44,"week52High":84.23,"week52Low":65.21,"avgVolume":"4.8M","nextEarnings":"2026-04-30","_fetchedAt":1776650194004,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":89},{"ticker":"COST","name":"Costco Wholesale Corporation","nameCN":"好市多","market":"US","sector":"零售/会员仓储","currency":"USD","price":999.89,"change":0,"score":59.1,"subScores":{"fundamental":51.7,"technical":63.2,"growth":65},"isETF":false,"pe":52.08,"roe":29.7,"momentum":56.4,"rsi":55.7,"revenueGrowth":21.5,"profitMargin":3,"ebitda":"13.5B","marketCap":"443.8B","revenue":"286.3B","eps":19.2,"beta":0.98,"week52High":1067.08,"week52Low":844.06,"avgVolume":"2.0M","nextEarnings":"2026-05-29","_fetchedAt":1776650045037,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":90},{"ticker":"BKNG","name":"Booking Holdings Inc. Common St","nameCN":"缤客","market":"US","sector":"互联网/旅游","currency":"USD","price":192.01,"change":0,"score":58.7,"subScores":{"fundamental":55,"technical":57.3,"growth":65},"isETF":false,"pe":29,"roe":null,"momentum":79.5,"rsi":77.1,"revenueGrowth":16,"profitMargin":20.1,"ebitda":"10.1B","marketCap":"152.0B","revenue":"26.9B","eps":6.62,"beta":1.2,"week52High":233.5764,"week52Low":150.618,"avgVolume":"10.5M","nextEarnings":"2026-04-29","_fetchedAt":1776650038761,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":91},{"ticker":"CDW","name":"CDW Corporation","nameCN":"CDW","market":"US","sector":"科技/IT分销","currency":"USD","price":133.96,"change":0,"score":58.7,"subScores":{"fundamental":70,"technical":57.5,"growth":45},"isETF":false,"pe":16.58,"roe":43,"momentum":79.9,"rsi":84.5,"revenueGrowth":6.3,"profitMargin":4.8,"ebitda":"2.0B","marketCap":"17.3B","revenue":"22.4B","eps":8.08,"beta":1.02,"week52High":192.3,"week52Low":112.98,"avgVolume":"1.7M","nextEarnings":"2026-05-06","_fetchedAt":1776650042501,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":92},{"ticker":"CSCO","name":"Cisco Systems, Inc.","nameCN":"思科","market":"US","sector":"通信/网络设备","currency":"USD","price":86.25,"change":0,"score":58.6,"subScores":{"fundamental":71.7,"technical":54.8,"growth":45},"isETF":false,"pe":31.03,"roe":23.8,"momentum":74.6,"rsi":70.4,"revenueGrowth":9.7,"profitMargin":18.8,"ebitda":"16.3B","marketCap":"340.8B","revenue":"59.1B","eps":2.78,"beta":0.82,"week52High":88.19,"week52Low":53.83,"avgVolume":"23.8M","nextEarnings":"2026-05-14","_fetchedAt":1776650049250,"_dataQuality":{"score":98,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"},{"dim":"accuracy","severity":"medium","msg":"日涨跌幅异常: 54.68% (超过±50%)"}],"scores":{"completeness":95,"accuracy":90,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":93},{"ticker":"SNDK","name":"Sandisk Corp","market":"US","sector":"存储/NAND","currency":"USD","price":910.3,"change":0,"score":58.4,"subScores":{"fundamental":16.7,"technical":77.5,"growth":95},"isETF":false,"pe":null,"roe":-9.4,"momentum":100,"rsi":70,"revenueGrowth":61.2,"profitMargin":-11.7,"ebitda":"1.4B","marketCap":"134.4B","revenue":"8.9B","eps":-7.5,"beta":null,"week52High":917.56,"week52Low":28.94,"avgVolume":"20M","nextEarnings":null,"rank":94},{"ticker":"CEG","name":"Constellation Energy Corporatio","nameCN":"星座能源","market":"US","sector":"能源/核电","currency":"USD","price":296.21,"change":0,"score":58.4,"subScores":{"fundamental":58.3,"technical":52,"growth":65},"isETF":false,"pe":39.97,"roe":16.4,"momentum":34,"rsi":46.5,"revenueGrowth":12.9,"profitMargin":9.1,"ebitda":"5.6B","marketCap":"107.3B","revenue":"25.5B","eps":7.41,"beta":1.19,"week52High":412.7,"week52Low":188.006,"avgVolume":"3.6M","nextEarnings":"2026-05-11","_fetchedAt":1776650044033,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 52个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":95},{"ticker":"QQQ","name":"Invesco QQQ Trust, Series 1","nameCN":"纳指100ETF","market":"US","sector":"ETF/纳指100","currency":"USD","price":648.85,"change":0,"score":58.2,"subScores":{"cost":50,"liquidity":50,"momentum":73.5,"risk":50},"isETF":true,"pe":34.28,"roe":null,"momentum":73.5,"rsi":95.5,"revenueGrowth":null,"profitMargin":null,"ebitda":null,"marketCap":"255.1B","revenue":null,"eps":null,"beta":null,"week52High":650,"week52Low":427.93,"avgVolume":"64.8M","nextEarnings":null,"_fetchedAt":1776650151239,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":96},{"ticker":"AZN","name":"AstraZeneca PLC","nameCN":"阿斯利康","market":"US","sector":"医疗/制药","currency":"USD","price":204.8,"change":0,"score":58.1,"subScores":{"fundamental":71.7,"technical":53,"growth":45},"isETF":false,"pe":31.36,"roe":22.8,"momentum":71,"rsi":73.4,"revenueGrowth":4.1,"profitMargin":17.4,"ebitda":"19.3B","marketCap":"317.5B","revenue":"58.7B","eps":6.53,"beta":0.28,"week52High":212.71,"week52Low":132.32,"avgVolume":"2.3M","nextEarnings":"2026-04-30","_fetchedAt":1776650034877,"_dataQuality":{"score":98,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"},{"dim":"accuracy","severity":"medium","msg":"日涨跌幅异常: 51.5% (超过±50%)"}],"scores":{"completeness":95,"accuracy":90,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":97},{"ticker":"00241.HK","name":"ALI HEALTH","nameCN":"阿里健康","market":"HK","sector":"医疗/互联网","currency":"HKD","price":4.73,"change":0,"score":57.8,"subScores":{"fundamental":58.3,"technical":49.8,"growth":65},"isETF":false,"pe":33.86,"roe":11.8,"momentum":29.6,"rsi":51,"revenueGrowth":17,"profitMargin":5.8,"ebitda":"1.8B","marketCap":"76.4B","revenue":"33.0B","eps":0.14,"beta":1.69,"week52High":7.91,"week52Low":4.12,"avgVolume":"96.1M","nextEarnings":null,"_fetchedAt":1776649931756,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":98},{"ticker":"LIN","name":"Linde plc","nameCN":"林德","market":"US","sector":"基础材料/工业气体","currency":"USD","price":492.23,"change":0,"score":57.7,"subScores":{"fundamental":65,"technical":60.6,"growth":45},"isETF":false,"pe":33.67,"roe":17.8,"momentum":51.2,"rsi":50.9,"revenueGrowth":5.8,"profitMargin":20.3,"ebitda":"13.3B","marketCap":"228.1B","revenue":"34.0B","eps":14.62,"beta":0.79,"week52High":510.65,"week52Low":387.78,"avgVolume":"2.6M","nextEarnings":"2026-05-01","_fetchedAt":1776650082999,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":99},{"ticker":"02388.HK","name":"BOC HONG KONG","nameCN":"中银香港","market":"HK","sector":"银行/零售","currency":"HKD","price":43.98,"change":0,"score":57.4,"subScores":{"fundamental":83.3,"technical":60.3,"growth":20},"isETF":false,"pe":11.6,"roe":11.7,"momentum":65.6,"rsi":65.8,"revenueGrowth":-2.7,"profitMargin":58.4,"ebitda":null,"marketCap":"465.0B","revenue":"68.7B","eps":3.79,"beta":0.21,"week52High":44.9,"week52Low":29.1,"avgVolume":"12.4M","nextEarnings":"2026-04-29","_fetchedAt":1776649951312,"_dataQuality":{"score":98,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"},{"dim":"accuracy","severity":"medium","msg":"日涨跌幅异常: 50.36% (超过±50%)"}],"scores":{"completeness":95,"accuracy":90,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":100},{"ticker":"01299.HK","name":"AIA","nameCN":"友邦保险","market":"HK","sector":"保险/寿险","currency":"HKD","price":83.1,"change":0,"score":57.3,"subScores":{"fundamental":71.7,"technical":50.4,"growth":45},"isETF":false,"pe":18,"roe":14.8,"momentum":45.7,"rsi":39.7,"revenueGrowth":6,"profitMargin":23.8,"ebitda":"10.0B","marketCap":"867.7B","revenue":"26.2B","eps":4.62,"beta":0.67,"week52High":92.15,"week52Low":53.6,"avgVolume":"29.8M","nextEarnings":"2026-03-18","_fetchedAt":1776649939888,"_dataQuality":{"score":98,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"},{"dim":"accuracy","severity":"medium","msg":"日涨跌幅异常: 53.18% (超过±50%)"}],"scores":{"completeness":95,"accuracy":90,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":101},{"ticker":"MAR","name":"Marriott International","nameCN":"万豪国际","market":"US","sector":"酒店/旅游","currency":"USD","price":377.93,"change":0,"score":57,"subScores":{"fundamental":61.7,"technical":62.9,"growth":45},"isETF":false,"pe":39.7,"roe":null,"momentum":90.8,"rsi":85,"revenueGrowth":6.3,"profitMargin":37.3,"ebitda":"4.6B","marketCap":"100.1B","revenue":"7.0B","eps":9.52,"beta":1.1,"week52High":379.56,"week52Low":212.53,"avgVolume":"1.6M","nextEarnings":"2026-05-06","_fetchedAt":1776650083977,"_dataQuality":{"score":98,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"},{"dim":"accuracy","severity":"medium","msg":"日涨跌幅异常: 71.47% (超过±50%)"}],"scores":{"completeness":95,"accuracy":90,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":102},{"ticker":"SIRI","name":"SiriusXM Holdings Inc.","nameCN":"SiriusXM","market":"US","sector":"传媒/广播","currency":"USD","price":25.48,"change":0,"score":56.7,"subScores":{"fundamental":63.3,"technical":59.7,"growth":45},"isETF":false,"pe":11.43,"roe":7.1,"momentum":84.4,"rsi":79.3,"revenueGrowth":0.2,"profitMargin":9.4,"ebitda":"2.4B","marketCap":"8.6B","revenue":"8.6B","eps":2.23,"beta":0.86,"week52High":25.91,"week52Low":19.41,"avgVolume":"4.7M","nextEarnings":"2026-04-30","_fetchedAt":1776650157061,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":103},{"ticker":"SPY","name":"State Street SPDR S&P 500 ETF T","nameCN":"标普500ETF","market":"US","sector":"ETF/标普500","currency":"USD","price":710.14,"change":0,"score":56.7,"subScores":{"cost":50,"liquidity":50,"momentum":69.1,"risk":50},"isETF":true,"pe":28.16,"roe":null,"momentum":69.1,"rsi":96.8,"revenueGrowth":null,"profitMargin":null,"ebitda":null,"marketCap":"651.8B","revenue":null,"eps":null,"beta":null,"week52High":712.39,"week52Low":508.46,"avgVolume":"86.3M","nextEarnings":null,"_fetchedAt":1776650161076,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":104},{"ticker":"CCEP","name":"Coca-Cola Europacific Partners ","nameCN":"可口可乐欧洲","market":"US","sector":"消费/饮料分销","currency":"USD","price":98.8,"change":0,"score":56.5,"subScores":{"fundamental":71.7,"technical":47.9,"growth":45},"isETF":false,"pe":19.64,"roe":22.9,"momentum":60.8,"rsi":77.8,"revenueGrowth":0.2,"profitMargin":9.3,"ebitda":"3.4B","marketCap":"44.0B","revenue":"20.9B","eps":5.03,"beta":0.51,"week52High":110.9,"week52Low":84.66,"avgVolume":"1.9M","nextEarnings":"2026-02-17","_fetchedAt":1776650038300,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":105},{"ticker":"CTAS","name":"Cintas Corporation","nameCN":"信达思","market":"US","sector":"工业/制服租赁","currency":"USD","price":179.17,"change":0,"score":56.4,"subScores":{"fundamental":76.7,"technical":40.6,"growth":45},"isETF":false,"pe":37.72,"roe":41.3,"momentum":46.3,"rsi":80,"revenueGrowth":8.9,"profitMargin":17.6,"ebitda":"2.9B","marketCap":"71.7B","revenue":"11.0B","eps":4.75,"beta":1.01,"week52High":229.24,"week52Low":165.6,"avgVolume":"2.2M","nextEarnings":"2026-03-25","_fetchedAt":1776650054858,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":106},{"ticker":"VRSK","name":"Verisk Analytics, Inc.","nameCN":"韦里斯克","market":"US","sector":"软件/数据分析","currency":"USD","price":178.07,"change":0,"score":56.3,"subScores":{"fundamental":76.7,"technical":45.4,"growth":40},"isETF":false,"pe":27.48,"roe":437.9,"momentum":20.7,"rsi":45.3,"revenueGrowth":null,"profitMargin":29.6,"ebitda":"1.5B","marketCap":"24.6B","revenue":"3.1B","eps":6.48,"beta":0.82,"week52High":322.92,"week52Low":161.7,"avgVolume":"2.1M","nextEarnings":"2026-04-29","_fetchedAt":1776650189443,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":107},{"ticker":"03968.HK","name":"CM BANK","nameCN":"招商银行","market":"HK","sector":"银行/零售","currency":"HKD","price":50.5,"change":0,"score":56,"subScores":{"fundamental":83.3,"technical":55.6,"growth":20},"isETF":false,"pe":7.72,"roe":12,"momentum":56.2,"rsi":66.4,"revenueGrowth":-5.1,"profitMargin":51.4,"ebitda":null,"marketCap":"1.27T","revenue":"292.2B","eps":6.55,"beta":0.69,"week52High":56.75,"week52Low":41.9,"avgVolume":"15.9M","nextEarnings":"2026-04-28","_fetchedAt":1776649953994,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":108},{"ticker":"CDNS","name":"Cadence Design Systems, Inc.","nameCN":"楷登电子","market":"US","sector":"半导体/EDA","currency":"USD","price":311.03,"change":0,"score":55.3,"subScores":{"fundamental":65,"technical":52.8,"growth":45},"isETF":false,"pe":76.42,"roe":21.9,"momentum":70.6,"rsi":71.4,"revenueGrowth":6.2,"profitMargin":20.9,"ebitda":"1.9B","marketCap":"85.9B","revenue":"5.3B","eps":4.07,"beta":1.04,"week52High":376.45,"week52Low":247.7,"avgVolume":"2.6M","nextEarnings":"2026-04-28","_fetchedAt":1776650037206,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":109},{"ticker":"01810.HK","name":"XIAOMI-W","nameCN":"小米集团","market":"HK","sector":"消费电子/IoT","currency":"HKD","price":32.58,"change":0,"score":54.8,"subScores":{"fundamental":65,"technical":50.9,"growth":45},"isETF":false,"pe":18.21,"roe":18.3,"momentum":31.8,"rsi":50.8,"revenueGrowth":7.3,"profitMargin":9.1,"ebitda":"43.0B","marketCap":"842.4B","revenue":"457.3B","eps":1.79,"beta":0.79,"week52High":61.45,"week52Low":30.26,"avgVolume":"171.5M","nextEarnings":"2026-06-02","_fetchedAt":1776649944011,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":110},{"ticker":"BKR","name":"Baker Hughes Company","nameCN":"贝克休斯","market":"US","sector":"能源/油服","currency":"USD","price":59.78,"change":0,"score":54.7,"subScores":{"fundamental":65,"technical":50.6,"growth":45},"isETF":false,"pe":22.99,"roe":14.6,"momentum":46.2,"rsi":34.9,"revenueGrowth":0.3,"profitMargin":9.3,"ebitda":"4.7B","marketCap":"59.3B","revenue":"27.7B","eps":2.6,"beta":0.9,"week52High":67,"week52Low":34.56,"avgVolume":"10.0M","nextEarnings":"2026-04-24","_fetchedAt":1776650039920,"_dataQuality":{"score":98,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"},{"dim":"accuracy","severity":"medium","msg":"日涨跌幅异常: 53.64% (超过±50%)"}],"scores":{"completeness":95,"accuracy":90,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":111},{"ticker":"01276.HK","name":"恒瑞医药","market":"HK","sector":"医疗健康/Drug Manufacturers - Specialty & Generic","currency":"HKD","price":64.7,"change":0,"score":54.5,"subScores":{"fundamental":58.3,"technical":59,"growth":45},"isETF":false,"pe":47.93,"roe":14.3,"momentum":48.1,"rsi":48.6,"revenueGrowth":8.3,"profitMargin":24.4,"ebitda":"8.9B","marketCap":"429.4B","revenue":"31.6B","eps":1.35,"beta":0.21,"week52High":95.2,"week52Low":52.5,"avgVolume":"3M","nextEarnings":null,"rank":112},{"ticker":"YINN","name":"Direxion Daily FTSE China Bull 3X","market":"US","sector":"中国/杠杆","currency":"USD","price":33.33,"change":0,"score":54.2,"subScores":{"cost":85,"liquidity":70,"momentum":30.9,"risk":85},"isETF":true,"etfType":"3倍杠杆ETF","leverage":"3x","expenseRatio":0.5,"premiumDiscount":0,"aum":"729M","adv":"2M","benchmark":"FTSE China 50 Index 每日3倍","issuer":"Direxion","pe":null,"roe":null,"momentum":30.9,"rsi":56.8,"revenueGrowth":null,"profitMargin":null,"ebitda":null,"marketCap":"729M","revenue":null,"eps":null,"beta":1.27,"week52High":57.71,"week52Low":27.73,"avgVolume":"2M","nextEarnings":null,"rank":113},{"ticker":"CPRT","name":"Copart, Inc.","nameCN":"科帕特","market":"US","sector":"软件/拍卖","currency":"USD","price":33.45,"change":0,"score":54.1,"subScores":{"fundamental":78.3,"technical":56,"growth":20},"isETF":false,"pe":21.04,"roe":17.1,"momentum":57.1,"rsi":64.6,"revenueGrowth":-3.6,"profitMargin":33.8,"ebitda":"1.9B","marketCap":"32.4B","revenue":"4.6B","eps":1.59,"beta":1.14,"week52High":63.85,"week52Low":32.2,"avgVolume":"9.2M","nextEarnings":"2026-05-22","_fetchedAt":1776650047775,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":114},{"ticker":"QCOM","name":"QUALCOMM Incorporated","nameCN":"高通","market":"US","sector":"半导体","currency":"USD","price":136.2,"change":0,"score":53.7,"subScores":{"fundamental":65,"technical":47.2,"growth":45},"isETF":false,"pe":27.46,"roe":21.5,"momentum":59.4,"rsi":74.4,"revenueGrowth":5,"profitMargin":12,"ebitda":"13.8B","marketCap":"145.5B","revenue":"44.9B","eps":4.96,"beta":1.28,"week52High":205.95,"week52Low":121.99,"avgVolume":"11.3M","nextEarnings":"2026-04-30","_fetchedAt":1776650132881,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":115},{"ticker":"UGL","name":"ProShares Ultra Gold","market":"US","sector":"黄金/杠杆","currency":"USD","price":61.79,"change":0,"score":53.6,"subScores":{"cost":85,"liquidity":90,"momentum":16.3,"risk":85},"isETF":true,"etfType":"2倍杠杆ETF","leverage":"2x","expenseRatio":0.5,"premiumDiscount":0,"aum":"1.1B","adv":"6M","benchmark":"Bloomberg Gold Subindex 每日2倍","issuer":"ProShares","pe":null,"roe":null,"momentum":16.3,"rsi":64.5,"revenueGrowth":null,"profitMargin":null,"ebitda":null,"marketCap":"1.1B","revenue":null,"eps":null,"beta":0.13,"week52High":90.4,"week52Low":32.1125,"avgVolume":"6M","nextEarnings":null,"rank":116},{"ticker":"ROP","name":"Roper Technologies, Inc.","nameCN":"罗珀科技","market":"US","sector":"软件/工业","currency":"USD","price":362.44,"change":0,"score":53.6,"subScores":{"fundamental":58.3,"technical":55.8,"growth":45},"isETF":false,"pe":25.51,"roe":7.9,"momentum":56.5,"rsi":65.9,"revenueGrowth":9.7,"profitMargin":19.4,"ebitda":"3.1B","marketCap":"37.3B","revenue":"7.9B","eps":14.21,"beta":0.89,"week52High":584.03,"week52Low":313.07,"avgVolume":"1.7M","nextEarnings":"2026-04-23","_fetchedAt":1776650151923,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":117},{"ticker":"02628.HK","name":"CHINA LIFE","nameCN":"中国人寿","market":"HK","sector":"保险/寿险","currency":"HKD","price":27.72,"change":0,"score":53,"subScores":{"fundamental":90,"technical":36.6,"growth":20},"isETF":false,"pe":4.43,"roe":27.7,"momentum":38.3,"rsi":74.6,"revenueGrowth":-33.6,"profitMargin":43.8,"ebitda":"193.8B","marketCap":"1.27T","revenue":"351.9B","eps":6.26,"beta":0.82,"week52High":36.16,"week52Low":13.58,"avgVolume":"64.9M","nextEarnings":"2026-04-29","_fetchedAt":1776649948722,"_dataQuality":{"score":98,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"},{"dim":"accuracy","severity":"medium","msg":"日涨跌幅异常: 102.63% (超过±50%)"}],"scores":{"completeness":95,"accuracy":90,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":118},{"ticker":"GFS","name":"GlobalFoundries Inc.","nameCN":"格芯","market":"US","sector":"半导体","currency":"USD","price":54.75,"change":0,"score":52.9,"subScores":{"fundamental":51.7,"technical":67.5,"growth":40},"isETF":false,"pe":34.43,"roe":7.8,"momentum":100,"rsi":82.6,"revenueGrowth":null,"profitMargin":13,"ebitda":"2.0B","marketCap":"30.1B","revenue":"6.8B","eps":1.59,"beta":1.46,"week52High":54.98,"week52Low":30.73,"avgVolume":"3.9M","nextEarnings":"2026-05-05","_fetchedAt":1776650069041,"_dataQuality":{"score":98,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 55个 (预期≥100)"},{"dim":"accuracy","severity":"medium","msg":"日涨跌幅异常: 72.71% (超过±50%)"}],"scores":{"completeness":95,"accuracy":90,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":119},{"ticker":"PANW","name":"Palo Alto Networks, Inc.","nameCN":"派拓网络","market":"US","sector":"软件/网络安全","currency":"USD","price":167.85,"change":0,"score":52.8,"subScores":{"fundamental":45,"technical":51.1,"growth":65},"isETF":false,"pe":93.25,"roe":16.3,"momentum":47.2,"rsi":67,"revenueGrowth":14.9,"profitMargin":13,"ebitda":"1.5B","marketCap":"137.0B","revenue":"9.9B","eps":1.8,"beta":0.77,"week52High":223.61,"week52Low":139.57,"avgVolume":"11.0M","nextEarnings":"2026-05-21","_fetchedAt":1776650129524,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":120},{"ticker":"WDAY","name":"Workday, Inc.","nameCN":"Workday","market":"US","sector":"软件/HR","currency":"USD","price":123.83,"change":0,"score":52.8,"subScores":{"fundamental":45,"technical":51,"growth":65},"isETF":false,"pe":47.81,"roe":8.2,"momentum":32.1,"rsi":49.6,"revenueGrowth":14.5,"profitMargin":7.3,"ebitda":"1.4B","marketCap":"32.6B","revenue":"9.6B","eps":2.59,"beta":1.14,"week52High":276,"week52Low":110.36,"avgVolume":"5.5M","nextEarnings":"2026-05-22","_fetchedAt":1776650192580,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":121},{"ticker":"MDLZ","name":"Mondelez International, Inc.","nameCN":"亿滋国际","market":"US","sector":"消费/食品","currency":"USD","price":57.25,"change":0,"score":52.7,"subScores":{"fundamental":51.7,"technical":61.7,"growth":45},"isETF":false,"pe":30.29,"roe":9.3,"momentum":53.4,"rsi":44,"revenueGrowth":9.3,"profitMargin":6.4,"ebitda":"5.0B","marketCap":"73.5B","revenue":"38.5B","eps":1.89,"beta":0.39,"week52High":71.15,"week52Low":51.2,"avgVolume":"10.5M","nextEarnings":"2026-04-29","_fetchedAt":1776650089999,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":122},{"ticker":"09988.HK","name":"阿里巴巴-W","market":"HK","sector":"电商/科技","currency":"HKD","price":123.2,"change":0,"score":52.4,"subScores":{"fundamental":58.3,"technical":52,"growth":45},"isETF":false,"pe":22.2,"roe":8.2,"momentum":34,"rsi":42.1,"revenueGrowth":1.7,"profitMargin":8.9,"ebitda":"138.7B","marketCap":"2.36T","revenue":"1.02T","eps":5.55,"beta":0.49,"week52High":186.2,"week52Low":101.8,"avgVolume":"89M","nextEarnings":null,"rank":123},{"ticker":"00941.HK","name":"CHINA MOBILE","nameCN":"中国移动","market":"HK","sector":"电信/运营商","currency":"HKD","price":81.55,"change":0,"score":52.3,"subScores":{"fundamental":63.3,"technical":45,"growth":45},"isETF":false,"pe":11.26,"roe":10,"momentum":55,"rsi":89.3,"revenueGrowth":2.5,"profitMargin":13.1,"ebitda":"295.2B","marketCap":"1.79T","revenue":"1.05T","eps":7.24,"beta":0.21,"week52High":90.6,"week52Low":75.85,"avgVolume":"24.5M","nextEarnings":"2026-04-22","_fetchedAt":1776649936383,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":124},{"ticker":"01398.HK","name":"ICBC","nameCN":"工商银行","market":"HK","sector":"银行/国有","currency":"HKD","price":7.06,"change":0,"score":52.2,"subScores":{"fundamental":76.7,"technical":51.8,"growth":20},"isETF":false,"pe":6.14,"roe":9,"momentum":68.6,"rsi":81.2,"revenueGrowth":-3.5,"profitMargin":55.1,"ebitda":null,"marketCap":"3.30T","revenue":"668.4B","eps":1.15,"beta":0.13,"week52High":7.09,"week52Low":5.15,"avgVolume":"208.1M","nextEarnings":"2026-03-27","_fetchedAt":1776649941030,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":125},{"ticker":"WMT","name":"Walmart Inc.","market":"US","sector":"消费/必需品/Discount Stores","currency":"USD","price":125.15,"change":0,"score":52,"subScores":{"fundamental":51.7,"technical":59.4,"growth":45},"isETF":false,"pe":45.84,"roe":21.8,"momentum":48.8,"rsi":59.7,"revenueGrowth":5.6,"profitMargin":3.1,"ebitda":"44.0B","marketCap":"997.7B","revenue":"713.2B","eps":2.73,"beta":0.66,"week52High":134.69,"week52Low":90.61,"avgVolume":"30M","nextEarnings":null,"rank":126},{"ticker":"ODFL","name":"Old Dominion Freight Line, Inc.","nameCN":"欧德物流","market":"US","sector":"工业/物流","currency":"USD","price":217.76,"change":0,"score":52,"subScores":{"fundamental":65,"technical":66.8,"growth":20},"isETF":false,"pe":45.08,"roe":23.9,"momentum":98.5,"rsi":77.6,"revenueGrowth":-5.7,"profitMargin":18.6,"ebitda":"1.7B","marketCap":"45.5B","revenue":"5.5B","eps":4.83,"beta":1.21,"week52High":221.63,"week52Low":126.01,"avgVolume":"2.3M","nextEarnings":"2026-04-29","_fetchedAt":1776650123997,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":127},{"ticker":"RKLX","name":"GraniteShares 2x Long RKLB Daily ETF","market":"US","sector":"航天/杠杆","currency":"USD","price":30.36,"change":0,"score":51.5,"subScores":{"cost":85,"liquidity":70,"momentum":20,"risk":85},"isETF":true,"etfType":"2倍杠杆ETF","leverage":"2x","expenseRatio":0.5,"premiumDiscount":0,"aum":"162M","adv":"2M","benchmark":"Rocket Lab (RKLB) 每日2倍","issuer":"GraniteShares","pe":null,"roe":null,"momentum":20,"rsi":50.1,"revenueGrowth":null,"profitMargin":null,"ebitda":null,"marketCap":"162M","revenue":null,"eps":null,"beta":null,"week52High":78,"week52Low":5.781667,"avgVolume":"2M","nextEarnings":null,"rank":128},{"ticker":"DDOG","name":"Datadog, Inc.","nameCN":"Datadog","market":"US","sector":"软件/可观测性","currency":"USD","price":126.61,"change":0,"score":51.5,"subScores":{"fundamental":31.7,"technical":49.3,"growth":80},"isETF":false,"pe":422.03,"roe":3.3,"momentum":43.6,"rsi":64.4,"revenueGrowth":29.2,"profitMargin":3.1,"ebitda":"7.5M","marketCap":"44.8B","revenue":"3.4B","eps":0.3,"beta":1.29,"week52High":201.69,"week52Low":87.695,"avgVolume":"5.8M","nextEarnings":"2026-05-07","_fetchedAt":1776650053865,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":129},{"ticker":"ORLY","name":"O'Reilly Automotive, Inc.","nameCN":"奥莱利汽配","market":"US","sector":"零售/汽配","currency":"USD","price":93.71,"change":0,"score":51.1,"subScores":{"fundamental":48.3,"technical":60.8,"growth":45},"isETF":false,"pe":31.55,"roe":null,"momentum":66.5,"rsi":64.4,"revenueGrowth":7.8,"profitMargin":14.3,"ebitda":"4.0B","marketCap":"78.6B","revenue":"17.8B","eps":2.97,"beta":0.6,"week52High":108.72,"week52Low":86.77,"avgVolume":"5.9M","nextEarnings":"2026-04-30","_fetchedAt":1776650128292,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":130},{"ticker":"AAOI","name":"Applied Optoelectronics, Inc.","market":"US","sector":"光通信/激光","currency":"USD","price":150,"change":0,"score":50.9,"subScores":{"fundamental":16.7,"technical":67.5,"growth":80},"isETF":false,"pe":null,"roe":-7.9,"momentum":100,"rsi":73.2,"revenueGrowth":33.9,"profitMargin":-8.4,"ebitda":"-27M","marketCap":"11.7B","revenue":"456M","eps":-0.63,"beta":3.22,"week52High":155,"week52Low":9.711,"avgVolume":"10M","nextEarnings":null,"rank":131},{"ticker":"AMAT","name":"Applied Materials, Inc.","nameCN":"应用材料","market":"US","sector":"半导体","currency":"USD","price":396.94,"change":0,"score":50.9,"subScores":{"fundamental":70,"technical":56.4,"growth":20},"isETF":false,"pe":40.67,"roe":38.9,"momentum":77.8,"rsi":75.4,"revenueGrowth":-2.1,"profitMargin":27.8,"ebitda":"8.9B","marketCap":"315.0B","revenue":"28.2B","eps":9.76,"beta":1.64,"week52High":407.29,"week52Low":132.8,"avgVolume":"7.2M","nextEarnings":"2026-05-15","_fetchedAt":1776649990918,"_dataQuality":{"score":98,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"},{"dim":"accuracy","severity":"medium","msg":"日涨跌幅异常: 188.77% (超过±50%)"}],"scores":{"completeness":95,"accuracy":90,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":132},{"ticker":"SCO","name":"ProShares UltraShort Crude Oil","market":"US","sector":"原油/反向","currency":"USD","price":7.53,"change":0,"score":50.2,"subScores":{"cost":85,"liquidity":70,"momentum":15,"risk":85},"isETF":true,"etfType":"2倍反向ETF","leverage":"-2x","expenseRatio":0.5,"premiumDiscount":0,"aum":"970M","adv":"23M","benchmark":"Bloomberg WTI Crude Oil Subindex 每日-2倍","issuer":"ProShares","pe":null,"roe":null,"momentum":15,"rsi":35.1,"revenueGrowth":null,"profitMargin":null,"ebitda":null,"marketCap":"970M","revenue":null,"eps":null,"beta":-2.32,"week52High":23.33,"week52Low":7.46,"avgVolume":"23M","nextEarnings":null,"rank":133},{"ticker":"09618.HK","name":"JD-SW","nameCN":"京东集团","market":"HK","sector":"电商/物流","currency":"HKD","price":122.2,"change":0,"score":50,"subScores":{"fundamental":51.7,"technical":52.9,"growth":45},"isETF":false,"pe":16.49,"roe":7.6,"momentum":70.8,"rsi":75.6,"revenueGrowth":1.5,"profitMargin":1.5,"ebitda":"13.4B","marketCap":"354.4B","revenue":"1.31T","eps":7.41,"beta":0.37,"week52High":143.8,"week52Low":95.9,"avgVolume":"12.9M","nextEarnings":"2026-05-07","_fetchedAt":1776649959877,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":134},{"ticker":"00883.HK","name":"CNOOC","nameCN":"中海油","market":"HK","sector":"能源/石油","currency":"HKD","price":26.46,"change":0,"score":49.6,"subScores":{"fundamental":83.3,"technical":34.4,"growth":20},"isETF":false,"pe":8.97,"roe":15.7,"momentum":33.7,"rsi":25.9,"revenueGrowth":-9.3,"profitMargin":30.7,"ebitda":"246.1B","marketCap":"1.30T","revenue":"398.2B","eps":2.95,"beta":0.3,"week52High":30.98,"week52Low":16.24,"avgVolume":"160.8M","nextEarnings":"2026-03-26","_fetchedAt":1776649929522,"_dataQuality":{"score":98,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"},{"dim":"accuracy","severity":"medium","msg":"日涨跌幅异常: 57.31% (超过±50%)"}],"scores":{"completeness":95,"accuracy":90,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":135},{"ticker":"CWEB","name":"Direxion Daily CSI China Internet Bull 2X","market":"US","sector":"中国互联网/杠杆","currency":"USD","price":26.52,"change":0,"score":49.5,"subScores":{"cost":85,"liquidity":70,"momentum":11.8,"risk":85},"isETF":true,"etfType":"2倍杠杆ETF","leverage":"2x","expenseRatio":0.5,"premiumDiscount":0,"aum":"235M","adv":"480078","benchmark":"CSI Overseas China Internet Index 每日2倍","issuer":"Direxion","pe":null,"roe":null,"momentum":11.8,"rsi":48.6,"revenueGrowth":null,"profitMargin":null,"ebitda":null,"marketCap":"235M","revenue":null,"eps":null,"beta":1.74,"week52High":61.24,"week52Low":25.18,"avgVolume":"480078","nextEarnings":null,"rank":136},{"ticker":"00981.HK","name":"SMIC","nameCN":"中芯国际","market":"HK","sector":"半导体/晶圆代工","currency":"HKD","price":59.05,"change":0,"score":49,"subScores":{"fundamental":38.3,"technical":47.1,"growth":65},"isETF":false,"pe":83.17,"roe":3,"momentum":39.3,"rsi":65.2,"revenueGrowth":12.8,"profitMargin":7.3,"ebitda":"4.4B","marketCap":"597.5B","revenue":"9.3B","eps":0.71,"beta":0.15,"week52High":93.5,"week52Low":38.65,"avgVolume":"60.1M","nextEarnings":"2026-05-07","_fetchedAt":1776649933950,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":137},{"ticker":"RKLB","name":"Rocket Lab Corp","market":"US","sector":"航天/国防","currency":"USD","price":70.35,"change":0,"score":48.2,"subScores":{"fundamental":16.7,"technical":58.3,"growth":80},"isETF":false,"pe":null,"roe":-18.8,"momentum":46.6,"rsi":52.6,"revenueGrowth":35.7,"profitMargin":-32.9,"ebitda":"-186M","marketCap":"40.5B","revenue":"602M","eps":-0.37,"beta":2.21,"week52High":99.58,"week52Low":18.21,"avgVolume":"22M","nextEarnings":null,"rank":138},{"ticker":"02318.HK","name":"PING AN","nameCN":"中国平安","market":"HK","sector":"保险/综合金融","currency":"HKD","price":60.7,"change":0,"score":48.2,"subScores":{"fundamental":70,"technical":47.2,"growth":20},"isETF":false,"pe":7.11,"roe":11.6,"momentum":39.4,"rsi":60.5,"revenueGrowth":-11,"profitMargin":14.1,"ebitda":"226.3B","marketCap":"1.21T","revenue":"955.7B","eps":8.54,"beta":0.77,"week52High":74.7,"week52Low":43.5,"avgVolume":"41.4M","nextEarnings":"2026-04-28","_fetchedAt":1776649950108,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":139},{"ticker":"07299.HK","name":"南方两倍做多黄金","market":"HK","sector":"黄金/杠杆ETF","currency":"HKD","price":29.54,"change":0,"score":47.8,"subScores":{"cost":85,"liquidity":70,"momentum":5.1,"risk":85},"isETF":true,"etfType":"2倍杠杆ETF","leverage":"2x","expenseRatio":0.5,"premiumDiscount":0,"aum":"246M","adv":"4M","benchmark":"LBMA Gold Price AM 每日2倍","issuer":"CSOP Asset Management","pe":null,"roe":null,"momentum":5.1,"rsi":49.1,"revenueGrowth":null,"profitMargin":null,"ebitda":null,"marketCap":"246M","revenue":null,"eps":null,"beta":null,"week52High":43.4,"week52Low":15.07,"avgVolume":"4M","nextEarnings":null,"rank":140},{"ticker":"00066.HK","name":"MTR CORPORATION","nameCN":"港铁公司","market":"HK","sector":"公用事业/交通","currency":"HKD","price":34.12,"change":0,"score":47.8,"subScores":{"fundamental":70,"technical":46,"growth":20},"isETF":false,"pe":14.46,"roe":7.7,"momentum":57.1,"rsi":74.4,"revenueGrowth":-8.6,"profitMargin":27.6,"ebitda":"27.3B","marketCap":"212.1B","revenue":"55.5B","eps":2.36,"beta":0.63,"week52High":37.88,"week52Low":25.65,"avgVolume":"7.4M","nextEarnings":"2026-03-12","_fetchedAt":1776649924592,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":141},{"ticker":"EA","name":"Electronic Arts Inc.","nameCN":"艺电","market":"US","sector":"娱乐/游戏","currency":"USD","price":203.83,"change":0,"score":47.8,"subScores":{"fundamental":45,"technical":54.5,"growth":45},"isETF":false,"pe":76.34,"roe":10,"momentum":53.9,"rsi":63.5,"revenueGrowth":1,"profitMargin":9.3,"ebitda":"1.3B","marketCap":"51.0B","revenue":"7.3B","eps":2.67,"beta":0.72,"week52High":204.89,"week52Low":141.04,"avgVolume":"2.6M","nextEarnings":"2026-05-06","_fetchedAt":1776650057409,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":142},{"ticker":"00268.HK","name":"KINGDEE INT'L","nameCN":"金蝶国际","market":"HK","sector":"软件/企业服务","currency":"HKD","price":9.2,"change":0,"score":47.1,"subScores":{"fundamental":31.7,"technical":49.8,"growth":65},"isETF":false,"pe":306.67,"roe":0.9,"momentum":29.5,"rsi":55.6,"revenueGrowth":12.6,"profitMargin":1.3,"ebitda":"165.9M","marketCap":"32.3B","revenue":"7.0B","eps":0.03,"beta":1,"week52High":19,"week52Low":7.92,"avgVolume":"44.5M","nextEarnings":"2026-03-17","_fetchedAt":1776649930859,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":143},{"ticker":"PCAR","name":"PACCAR Inc.","nameCN":"帕卡","market":"US","sector":"工业/重卡","currency":"USD","price":126.25,"change":0,"score":46.5,"subScores":{"fundamental":58.3,"technical":57.4,"growth":20},"isETF":false,"pe":27.99,"roe":12.9,"momentum":79.7,"rsi":80.5,"revenueGrowth":-13.7,"profitMargin":8.4,"ebitda":"3.4B","marketCap":"66.4B","revenue":"28.4B","eps":4.51,"beta":1.06,"week52High":131.88,"week52Low":84.65,"avgVolume":"3.1M","nextEarnings":"2026-04-28","_fetchedAt":1776650128660,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":144},{"ticker":"BIIB","name":"Biogen Inc.","nameCN":"百健","market":"US","sector":"医疗/生物科技","currency":"USD","price":177.35,"change":0,"score":46.1,"subScores":{"fundamental":58.3,"technical":55.9,"growth":20},"isETF":false,"pe":20.15,"roe":7.4,"momentum":41.7,"rsi":43.2,"revenueGrowth":-7.1,"profitMargin":13.1,"ebitda":"3.6B","marketCap":"26.0B","revenue":"9.9B","eps":8.8,"beta":0.16,"week52High":202.41,"week52Low":115.25,"avgVolume":"1.2M","nextEarnings":"2026-04-29","_fetchedAt":1776650033526,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":145},{"ticker":"01211.HK","name":"BYD COMPANY","nameCN":"比亚迪","market":"HK","sector":"新能源车/电池","currency":"HKD","price":111.1,"change":0,"score":45.7,"subScores":{"fundamental":51.7,"technical":63.4,"growth":20},"isETF":false,"pe":27.03,"roe":14.8,"momentum":71.8,"rsi":62.4,"revenueGrowth":-13.5,"profitMargin":4.1,"ebitda":"109.7B","marketCap":"1.10T","revenue":"804.0B","eps":4.11,"beta":0.33,"week52High":158.86667,"week52Low":88.5,"avgVolume":"31.1M","nextEarnings":"2026-04-28","_fetchedAt":1776649938769,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":146},{"ticker":"09868.HK","name":"XPENG-W","nameCN":"小鹏汽车","market":"HK","sector":"新能源车","currency":"HKD","price":69.65,"change":0,"score":45.7,"subScores":{"fundamental":16.7,"technical":50.1,"growth":80},"isETF":false,"pe":null,"roe":-3.7,"momentum":30.2,"rsi":48.3,"revenueGrowth":38.2,"profitMargin":-1.5,"ebitda":"-269556992","marketCap":"133.1B","revenue":"76.7B","eps":-0.69,"beta":1.18,"week52High":110.8,"week52Low":60.35,"avgVolume":"16.4M","nextEarnings":"2026-05-13","_fetchedAt":1776649960169,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 58个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":147},{"ticker":"MDB","name":"MongoDB, Inc.","nameCN":"MongoDB","market":"US","sector":"软件/数据库","currency":"USD","price":263.38,"change":0,"score":45.5,"subScores":{"fundamental":16.7,"technical":49.4,"growth":80},"isETF":false,"pe":null,"roe":-2.5,"momentum":43.7,"rsi":65.2,"revenueGrowth":26.7,"profitMargin":-2.9,"ebitda":"-109100000","marketCap":"21.4B","revenue":"2.5B","eps":-0.87,"beta":1.6,"week52High":444.72,"week52Low":148.88,"avgVolume":"1.9M","nextEarnings":"2026-06-05","_fetchedAt":1776650087700,"_dataQuality":{"score":98,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"},{"dim":"accuracy","severity":"medium","msg":"日涨跌幅异常: 65.38% (超过±50%)"}],"scores":{"completeness":95,"accuracy":90,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":148},{"ticker":"BABX","name":"GraniteShares 2x Long BABA Daily ETF","market":"US","sector":"中国科技/杠杆","currency":"USD","price":24.7,"change":0,"score":45.4,"subScores":{"cost":85,"liquidity":50,"momentum":7.6,"risk":85},"isETF":true,"etfType":"2倍杠杆ETF","leverage":"2x","expenseRatio":0.5,"premiumDiscount":0,"aum":"99M","adv":"814630","benchmark":"Alibaba (BABA) 每日2倍","issuer":"GraniteShares","pe":null,"roe":null,"momentum":7.6,"rsi":48.6,"revenueGrowth":null,"profitMargin":null,"ebitda":null,"marketCap":"99M","revenue":null,"eps":null,"beta":1.06,"week52High":66,"week52Low":20.682,"avgVolume":"814630","nextEarnings":null,"rank":149},{"ticker":"07709.HK","name":"南方两倍做多海力士","market":"HK","sector":"存储/杠杆ETF","currency":"HKD","price":31.1,"change":0,"score":44.7,"subScores":{"cost":62.5,"liquidity":90,"momentum":72.8,"risk":15},"isETF":true,"etfType":"2倍杠杆ETF","leverage":"2x","expenseRatio":2,"premiumDiscount":0,"aum":"2.0B","adv":"71M","benchmark":"SK Hynix (KRX:000660) 每日2倍","issuer":"CSOP Asset Management","pe":null,"roe":null,"momentum":72.8,"rsi":48.6,"revenueGrowth":null,"profitMargin":null,"ebitda":null,"marketCap":"2.0B","revenue":null,"eps":null,"beta":null,"week52High":43.06,"week52Low":8.42,"avgVolume":"71M","nextEarnings":null,"nav":25.37,"topHoldings":[{"name":"SK Hynix 掉期合约","weight":100}],"concentrationTop3":100,"totalHoldings":1,"trackingError":"较高 (杠杆损耗)","rank":150},{"ticker":"EXC","name":"Exelon Corporation","nameCN":"爱克斯龙","market":"US","sector":"公用事业/电力","currency":"USD","price":47.02,"change":0,"score":44.3,"subScores":{"fundamental":58.3,"technical":49.9,"growth":20},"isETF":false,"pe":17.22,"roe":9.9,"momentum":44.8,"rsi":38.8,"revenueGrowth":-1.1,"profitMargin":11.4,"ebitda":"8.1B","marketCap":"48.1B","revenue":"24.3B","eps":2.73,"beta":0.51,"week52High":50.65,"week52Low":41.71,"avgVolume":"8.9M","nextEarnings":"2026-05-06","_fetchedAt":1776650059522,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":151},{"ticker":"06690.HK","name":"HAIER SMARTHOME","nameCN":"海尔智家","market":"HK","sector":"家电/智能制造","currency":"HKD","price":21.12,"change":0,"score":43.8,"subScores":{"fundamental":70,"technical":32.8,"growth":20},"isETF":false,"pe":8.77,"roe":16.5,"momentum":10.5,"rsi":32.4,"revenueGrowth":-6.7,"profitMargin":6.5,"ebitda":"26.5B","marketCap":"222.5B","revenue":"302.3B","eps":2.41,"beta":0.62,"week52High":28.2,"week52Low":20.32,"avgVolume":"16.3M","nextEarnings":"2026-04-27","_fetchedAt":1776649955078,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":152},{"ticker":"ZS","name":"Zscaler, Inc.","nameCN":"Zscaler","market":"US","sector":"软件/网络安全","currency":"USD","price":134.68,"change":0,"score":43.7,"subScores":{"fundamental":16.7,"technical":43.4,"growth":80},"isETF":false,"pe":null,"roe":-3.6,"momentum":16.7,"rsi":51.3,"revenueGrowth":25.9,"profitMargin":-2.3,"ebitda":"-68018000","marketCap":"21.7B","revenue":"3.0B","eps":-0.43,"beta":1.11,"week52High":336.99,"week52Low":114.625,"avgVolume":"3.0M","nextEarnings":"2026-05-29","_fetchedAt":1776650193721,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":153},{"ticker":"01347.HK","name":"HUA HONG SEMI","nameCN":"华虹半导体","market":"HK","sector":"半导体/晶圆代工","currency":"HKD","price":91.65,"change":0,"score":43.3,"subScores":{"fundamental":23.3,"technical":48.3,"growth":65},"isETF":false,"pe":366.6,"roe":-1.2,"momentum":41.6,"rsi":61.6,"revenueGrowth":22.4,"profitMargin":2.3,"ebitda":"584.5M","marketCap":"181.4B","revenue":"2.4B","eps":0.25,"beta":1.31,"week52High":124,"week52Low":29,"avgVolume":"20.5M","nextEarnings":"2026-05-07","_fetchedAt":1776649939516,"_dataQuality":{"score":98,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"},{"dim":"accuracy","severity":"medium","msg":"日涨跌幅异常: 153.53% (超过±50%)"}],"scores":{"completeness":95,"accuracy":90,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":154},{"ticker":"MCHP","name":"Microchip Technology Incorporat","nameCN":"微芯科技","market":"US","sector":"半导体","currency":"USD","price":78.76,"change":0,"score":42.9,"subScores":{"fundamental":26.7,"technical":67.5,"growth":40},"isETF":false,"pe":null,"roe":null,"momentum":100,"rsi":90.6,"revenueGrowth":null,"profitMargin":null,"ebitda":null,"marketCap":null,"revenue":null,"eps":null,"beta":null,"week52High":83.35,"week52Low":37.41,"avgVolume":null,"nextEarnings":null,"_fetchedAt":1776650103192,"_dataQuality":{"score":98,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"},{"dim":"accuracy","severity":"medium","msg":"日涨跌幅异常: 104.25% (超过±50%)"}],"scores":{"completeness":95,"accuracy":90,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":155},{"ticker":"COIN","name":"Coinbase Global, Inc.","nameCN":"Coinbase","market":"US","sector":"互联网/加密货币","currency":"USD","price":206.33,"change":0,"score":42.7,"subScores":{"fundamental":58.3,"technical":44.6,"growth":20},"isETF":false,"pe":46.26,"roe":10.1,"momentum":54.2,"rsi":83.8,"revenueGrowth":-22.2,"profitMargin":18.3,"ebitda":"1.7B","marketCap":"55.6B","revenue":"6.9B","eps":4.46,"beta":3.61,"week52High":444.65,"week52Low":139.36,"avgVolume":"12.7M","nextEarnings":"2026-05-08","_fetchedAt":1776650043463,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":156},{"ticker":"MSTR","name":"Strategy Inc","nameCN":"微策略","market":"US","sector":"软件/比特币","currency":"USD","price":166.52,"change":0,"score":42.4,"subScores":{"fundamental":21.7,"technical":67.5,"growth":45},"isETF":false,"pe":null,"roe":-11.1,"momentum":100,"rsi":79.8,"revenueGrowth":1.9,"profitMargin":null,"ebitda":"-5443467776","marketCap":"57.7B","revenue":"477.2M","eps":-15.24,"beta":3.56,"week52High":457.22,"week52Low":104.17,"avgVolume":"21.6M","nextEarnings":"2026-05-06","_fetchedAt":1776650119393,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":157},{"ticker":"09626.HK","name":"BILIBILI-W","nameCN":"哔哩哔哩","market":"HK","sector":"互联网/视频","currency":"HKD","price":195.1,"change":0,"score":42,"subScores":{"fundamental":38.3,"technical":44,"growth":45},"isETF":false,"pe":59.48,"roe":8,"momentum":32.9,"rsi":60.3,"revenueGrowth":7.6,"profitMargin":3.9,"ebitda":"3.2B","marketCap":"81.3B","revenue":"30.3B","eps":3.28,"beta":0.87,"week52High":285.6,"week52Low":127.5,"avgVolume":"4.2M","nextEarnings":null,"_fetchedAt":1776649958878,"_dataQuality":{"score":98,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"},{"dim":"accuracy","severity":"medium","msg":"日涨跌幅异常: 50.31% (超过±50%)"}],"scores":{"completeness":95,"accuracy":90,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":158},{"ticker":"CRWD","name":"CrowdStrike Holdings, Inc.","nameCN":"CrowdStrike","market":"US","sector":"软件/网络安全","currency":"USD","price":423.95,"change":0,"score":41.5,"subScores":{"fundamental":16.7,"technical":51.3,"growth":65},"isETF":false,"pe":null,"roe":-4.1,"momentum":47.5,"rsi":67.2,"revenueGrowth":23.3,"profitMargin":-3.4,"ebitda":"-46664000","marketCap":"107.5B","revenue":"4.8B","eps":-0.64,"beta":1.07,"week52High":566.9,"week52Low":342.72,"avgVolume":"4.1M","nextEarnings":"2026-06-10","_fetchedAt":1776650050166,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":159},{"ticker":"03690.HK","name":"MEITUAN-W","nameCN":"美团","market":"HK","sector":"互联网/本地生活","currency":"HKD","price":85.55,"change":0,"score":40.6,"subScores":{"fundamental":16.7,"technical":68.2,"growth":45},"isETF":false,"pe":null,"roe":-14.4,"momentum":66.3,"rsi":47.7,"revenueGrowth":4.1,"profitMargin":-6.4,"ebitda":"-20899678208","marketCap":"528.5B","revenue":"364.9B","eps":-4.51,"beta":0.2,"week52High":149.8,"week52Low":73.6,"avgVolume":"53.0M","nextEarnings":"2026-05-26","_fetchedAt":1776649956260,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":160},{"ticker":"TEAM","name":"Atlassian Corporation","nameCN":"Atlassian","market":"US","sector":"软件/协作","currency":"USD","price":66.94,"change":0,"score":40.3,"subScores":{"fundamental":16.7,"technical":47.1,"growth":65},"isETF":false,"pe":null,"roe":-13.5,"momentum":24.3,"rsi":52.8,"revenueGrowth":23.3,"profitMargin":-3.3,"ebitda":"-22988000","marketCap":"17.7B","revenue":"5.8B","eps":-0.72,"beta":0.99,"week52High":242,"week52Low":56.01,"avgVolume":"7.2M","nextEarnings":"2026-05-01","_fetchedAt":1776650183103,"_dataQuality":{"score":98,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"},{"dim":"accuracy","severity":"medium","msg":"日涨跌幅异常: -66.98% (超过±50%)"}],"scores":{"completeness":95,"accuracy":90,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":161},{"ticker":"SBUX","name":"Starbucks Corporation","nameCN":"星巴克","market":"US","sector":"餐饮/咖啡","currency":"USD","price":100,"change":0,"score":39.2,"subScores":{"fundamental":28.3,"technical":48,"growth":45},"isETF":false,"pe":83.33,"roe":null,"momentum":60.9,"rsi":94.1,"revenueGrowth":5.5,"profitMargin":3.6,"ebitda":"5.3B","marketCap":"113.9B","revenue":"37.7B","eps":1.2,"beta":0.94,"week52High":104.82,"week52Low":75.5,"avgVolume":"8.8M","nextEarnings":"2026-04-29","_fetchedAt":1776650155719,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":162},{"ticker":"02015.HK","name":"LI AUTO-W","nameCN":"理想汽车","market":"HK","sector":"新能源车","currency":"HKD","price":71.15,"change":0,"score":39.1,"subScores":{"fundamental":31.7,"technical":68,"growth":20},"isETF":false,"pe":114.76,"roe":1.6,"momentum":66.1,"rsi":56.3,"revenueGrowth":-35,"profitMargin":1,"ebitda":"4.0B","marketCap":"145.5B","revenue":"112.3B","eps":0.62,"beta":0.58,"week52High":128.1,"week52Low":61.15,"avgVolume":"12.2M","nextEarnings":"2026-05-12","_fetchedAt":1776649944750,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 57个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":163},{"ticker":"ADP","name":"Automatic Data Processing, Inc.","nameCN":"自动数据处理","market":"US","sector":"软件/人力资源","currency":"USD","price":200.47,"change":0,"score":38.9,"subScores":{"fundamental":26.7,"technical":54,"growth":40},"isETF":false,"pe":null,"roe":null,"momentum":37.9,"rsi":49,"revenueGrowth":null,"profitMargin":null,"ebitda":null,"marketCap":null,"revenue":null,"eps":null,"beta":null,"week52High":329.93,"week52Low":188.16,"avgVolume":null,"nextEarnings":null,"_fetchedAt":1776649976338,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":164},{"ticker":"ON","name":"ON Semiconductor Corporation","nameCN":"安森美","market":"US","sector":"半导体","currency":"USD","price":83.01,"change":0,"score":38.9,"subScores":{"fundamental":31.7,"technical":67.5,"growth":20},"isETF":false,"pe":286.24,"roe":1.5,"momentum":100,"rsi":91,"revenueGrowth":-11.2,"profitMargin":2,"ebitda":"1.8B","marketCap":"32.7B","revenue":"6.0B","eps":0.29,"beta":1.52,"week52High":83.52,"week52Low":33.2,"avgVolume":"8.7M","nextEarnings":"2026-05-05","_fetchedAt":1776650124897,"_dataQuality":{"score":98,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"},{"dim":"accuracy","severity":"medium","msg":"日涨跌幅异常: 139.64% (超过±50%)"}],"scores":{"completeness":95,"accuracy":90,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":165},{"ticker":"APP","name":"Applovin Corporation","nameCN":"AppLovin","market":"US","sector":"互联网/移动广告","currency":"USD","price":477.2,"change":0,"score":38.6,"subScores":{"fundamental":26.7,"technical":53.1,"growth":40},"isETF":false,"pe":null,"roe":null,"momentum":71.2,"rsi":73.5,"revenueGrowth":null,"profitMargin":null,"ebitda":null,"marketCap":null,"revenue":null,"eps":null,"beta":null,"week52High":745.61,"week52Low":222.02,"avgVolume":null,"nextEarnings":null,"_fetchedAt":1776650019031,"_dataQuality":{"score":98,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"},{"dim":"accuracy","severity":"medium","msg":"日涨跌幅异常: 100.32% (超过±50%)"}],"scores":{"completeness":95,"accuracy":90,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":166},{"ticker":"FANG","name":"Diamondback Energy, Inc.","nameCN":"钻石背能源","market":"US","sector":"能源/油气","currency":"USD","price":180.27,"change":0,"score":37.4,"subScores":{"fundamental":51.7,"technical":35.9,"growth":20},"isETF":false,"pe":31.46,"roe":3.7,"momentum":36.8,"rsi":22,"revenueGrowth":-9.4,"profitMargin":11.6,"ebitda":"10.2B","marketCap":"50.7B","revenue":"14.3B","eps":5.73,"beta":0.49,"week52High":204.91,"week52Low":127.75,"avgVolume":"3.2M","nextEarnings":"2026-05-05","_fetchedAt":1776650061741,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":167},{"ticker":"TSLA","name":"Tesla, Inc.","nameCN":"特斯拉","market":"US","sector":"汽车/新能源","currency":"USD","price":400.62,"change":0,"score":36.4,"subScores":{"fundamental":31.7,"technical":59.2,"growth":20},"isETF":false,"pe":370.94,"roe":4.9,"momentum":63.4,"rsi":64.5,"revenueGrowth":-3.1,"profitMargin":4,"ebitda":"10.5B","marketCap":"1.50T","revenue":"94.8B","eps":1.08,"beta":1.92,"week52High":498.83,"week52Low":222.79,"avgVolume":"63.2M","nextEarnings":"2026-04-23","_fetchedAt":1776650185510,"_dataQuality":{"score":98,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"},{"dim":"accuracy","severity":"medium","msg":"日涨跌幅异常: 65.98% (超过±50%)"}],"scores":{"completeness":95,"accuracy":90,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":168},{"ticker":"09888.HK","name":"BIDU-SW","nameCN":"百度","market":"HK","sector":"互联网/AI","currency":"HKD","price":123.8,"change":0,"score":34.7,"subScores":{"fundamental":38.3,"technical":44.5,"growth":20},"isETF":false,"pe":73.25,"roe":1.9,"momentum":54.1,"rsi":70.7,"revenueGrowth":-4.1,"profitMargin":4.3,"ebitda":"24.8B","marketCap":"337.0B","revenue":"129.1B","eps":1.69,"beta":0.43,"week52High":161.2,"week52Low":79.35,"avgVolume":"12.4M","nextEarnings":"2026-05-13","_fetchedAt":1776649964705,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":169},{"ticker":"WBD","name":"Warner Bros. Discovery, Inc. - ","nameCN":"华纳探索","market":"US","sector":"传媒/流媒体","currency":"USD","price":27.47,"change":0,"score":34.2,"subScores":{"fundamental":31.7,"technical":51.8,"growth":20},"isETF":false,"pe":94.72,"roe":2.1,"momentum":48.6,"rsi":63.2,"revenueGrowth":-5.7,"profitMargin":1.9,"ebitda":"7.4B","marketCap":"68.9B","revenue":"37.3B","eps":0.29,"beta":1.64,"week52High":30,"week52Low":7.75,"avgVolume":"25.2M","nextEarnings":"2026-05-07","_fetchedAt":1776650187908,"_dataQuality":{"score":98,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"},{"dim":"accuracy","severity":"medium","msg":"日涨跌幅异常: 238.72% (超过±50%)"}],"scores":{"completeness":95,"accuracy":90,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":170},{"ticker":"KHC","name":"The Kraft Heinz Company","nameCN":"卡夫亨氏","market":"US","sector":"消费/食品","currency":"USD","price":22.47,"change":0,"score":31.9,"subScores":{"fundamental":16.7,"technical":64.1,"growth":20},"isETF":false,"pe":null,"roe":-12.8,"momentum":58.2,"rsi":54.4,"revenueGrowth":-3.4,"profitMargin":-23.4,"ebitda":"5.7B","marketCap":"26.6B","revenue":"24.9B","eps":-4.93,"beta":0.05,"week52High":30.42,"week52Low":21.035,"avgVolume":"16.7M","nextEarnings":"2026-05-06","_fetchedAt":1776650077857,"_dataQuality":{"score":99,"grade":"A","issues":[{"dim":"completeness","severity":"medium","msg":"5Y 数据点不足: 61个 (预期≥100)"}],"scores":{"completeness":95,"accuracy":100,"consistency":100,"timeliness":100,"validity":100,"uniqueness":100}},"rank":171}];
+export const STOCKS = [
+  {
+    "ticker": "MARS",
+    "name": "Roundhill MARS ETF",
+    "market": "US",
+    "sector": "航天/太空",
+    "currency": "USD",
+    "price": 30.41,
+    "change": 0,
+    "score": 83,
+    "subScores": {
+      "cost": 85,
+      "liquidity": 50,
+      "momentum": 98,
+      "risk": 85
+    },
+    "isETF": true,
+    "etfType": "主题ETF",
+    "leverage": null,
+    "expenseRatio": 0.5,
+    "premiumDiscount": 0,
+    "aum": "12M",
+    "adv": "61342",
+    "benchmark": "主动管理",
+    "issuer": "Roundhill Investments",
+    "pe": null,
+    "roe": null,
+    "momentum": 98,
+    "rsi": 65,
+    "revenueGrowth": null,
+    "profitMargin": null,
+    "ebitda": null,
+    "marketCap": "12M",
+    "revenue": null,
+    "eps": null,
+    "beta": null,
+    "week52High": 31,
+    "week52Low": 23.59,
+    "avgVolume": "61342",
+    "nextEarnings": null,
+    "rank": 1
+  },
+  {
+    "ticker": "UFO",
+    "name": "Procure Space ETF",
+    "market": "US",
+    "sector": "航天/太空",
+    "currency": "USD",
+    "price": 51.1,
+    "change": 0,
+    "score": 81.4,
+    "subScores": {
+      "cost": 85,
+      "liquidity": 70,
+      "momentum": 79.6,
+      "risk": 85
+    },
+    "isETF": true,
+    "etfType": "主题ETF",
+    "leverage": null,
+    "expenseRatio": 0.5,
+    "premiumDiscount": 0,
+    "aum": "376M",
+    "adv": "575481",
+    "benchmark": "S-Network Space Index",
+    "issuer": "Procure ETFs",
+    "pe": null,
+    "roe": null,
+    "momentum": 79.6,
+    "rsi": 62,
+    "revenueGrowth": null,
+    "profitMargin": null,
+    "ebitda": null,
+    "marketCap": "376M",
+    "revenue": null,
+    "eps": null,
+    "beta": 1.58,
+    "week52High": 52,
+    "week52Low": 20.371,
+    "avgVolume": "575481",
+    "nextEarnings": null,
+    "rank": 2
+  },
+  {
+    "ticker": "MU",
+    "name": "Micron Technology",
+    "market": "US",
+    "sector": "半导体/存储",
+    "currency": "USD",
+    "price": 416.35,
+    "change": 0,
+    "score": 80.4,
+    "subScores": {
+      "fundamental": 90,
+      "technical": 52.9,
+      "growth": 95
+    },
+    "isETF": false,
+    "pe": 19.64,
+    "roe": 39.8,
+    "momentum": 35.7,
+    "rsi": 53.1,
+    "revenueGrowth": 196.3,
+    "profitMargin": 41.5,
+    "ebitda": "36.8B",
+    "marketCap": "469.5B",
+    "revenue": "58.1B",
+    "eps": 21.2,
+    "beta": 1.61,
+    "week52High": 471.34,
+    "week52Low": 65.65,
+    "avgVolume": "42M",
+    "nextEarnings": null,
+    "rank": 3
+  },
+  {
+    "ticker": "EWY",
+    "name": "iShares MSCI South Korea ETF",
+    "market": "US",
+    "sector": "韩国/综合",
+    "currency": "USD",
+    "price": 137.76,
+    "change": 0,
+    "score": 79.2,
+    "subScores": {
+      "cost": 85,
+      "liquidity": 90,
+      "momentum": 58.8,
+      "risk": 85
+    },
+    "isETF": true,
+    "etfType": "国家ETF",
+    "leverage": null,
+    "expenseRatio": 0.5,
+    "premiumDiscount": 0,
+    "aum": "15.7B",
+    "adv": "22M",
+    "benchmark": "MSCI Korea 25/50 Index",
+    "issuer": "iShares (BlackRock)",
+    "pe": null,
+    "roe": null,
+    "momentum": 58.8,
+    "rsi": 53.8,
+    "revenueGrowth": null,
+    "profitMargin": null,
+    "ebitda": null,
+    "marketCap": "15.7B",
+    "revenue": null,
+    "eps": null,
+    "beta": 1.95,
+    "week52High": 154.22,
+    "week52Low": 53.64,
+    "avgVolume": "22M",
+    "nextEarnings": null,
+    "rank": 4
+  },
+  {
+    "ticker": "NVDA",
+    "name": "NVIDIA Corp",
+    "market": "US",
+    "sector": "半导体/AI",
+    "currency": "USD",
+    "price": 188.99,
+    "change": 0,
+    "score": 78.8,
+    "subScores": {
+      "fundamental": 83.3,
+      "technical": 56.5,
+      "growth": 95
+    },
+    "isETF": false,
+    "pe": 38.57,
+    "roe": 101.5,
+    "momentum": 57.9,
+    "rsi": 66.2,
+    "revenueGrowth": 73.2,
+    "profitMargin": 55.6,
+    "ebitda": "133.2B",
+    "marketCap": "4.59T",
+    "revenue": "215.9B",
+    "eps": 4.9,
+    "beta": 2.33,
+    "week52High": 212.19,
+    "week52Low": 95.04,
+    "avgVolume": "180M",
+    "nextEarnings": null,
+    "rank": 5
+  },
+  {
+    "ticker": "00005.HK",
+    "name": "汇丰控股",
+    "market": "HK",
+    "sector": "银行/金融",
+    "currency": "HKD",
+    "price": 138.8,
+    "change": 0,
+    "score": 77.5,
+    "subScores": {
+      "fundamental": 83.3,
+      "technical": 52.1,
+      "growth": 95
+    },
+    "isETF": false,
+    "pe": 14.77,
+    "roe": 11.6,
+    "momentum": 69.2,
+    "rsi": 73.7,
+    "revenueGrowth": 58.4,
+    "profitMargin": 35.2,
+    "ebitda": null,
+    "marketCap": "2.39T",
+    "revenue": "63.2B",
+    "eps": 9.4,
+    "beta": 0.56,
+    "week52High": 148,
+    "week52Low": 77.1,
+    "avgVolume": "19M",
+    "nextEarnings": "2026-05-05",
+    "rank": 6
+  },
+  {
+    "ticker": "IYZ",
+    "name": "iShares U.S. Telecom ETF",
+    "market": "US",
+    "sector": "电信/通信",
+    "currency": "USD",
+    "price": 40.97,
+    "change": 0,
+    "score": 76.8,
+    "subScores": {
+      "cost": 85,
+      "liquidity": 70,
+      "momentum": 61,
+      "risk": 85
+    },
+    "isETF": true,
+    "etfType": "行业ETF",
+    "leverage": null,
+    "expenseRatio": 0.5,
+    "premiumDiscount": 0,
+    "aum": "798M",
+    "adv": "2M",
+    "benchmark": "Dow Jones U.S. Select Telecommunications",
+    "issuer": "iShares (BlackRock)",
+    "pe": null,
+    "roe": null,
+    "momentum": 61,
+    "rsi": 57.8,
+    "revenueGrowth": null,
+    "profitMargin": null,
+    "ebitda": null,
+    "marketCap": "798M",
+    "revenue": null,
+    "eps": null,
+    "beta": 0.69,
+    "week52High": 41.95,
+    "week52Low": 24.85,
+    "avgVolume": "2M",
+    "nextEarnings": null,
+    "rank": 7
+  },
+  {
+    "ticker": "000660.KS",
+    "name": "SK海力士",
+    "market": "KR",
+    "sector": "半导体/HBM",
+    "currency": "KRW",
+    "price": 1286000.0,
+    "change": -0.54,
+    "score": 76.8,
+    "subScores": {
+      "fundamental": 70.0,
+      "technical": 67.5,
+      "growth": 95.0
+    },
+    "isETF": false,
+    "pe": null,
+    "roe": 61.2,
+    "momentum": 100.0,
+    "rsi": 87.1,
+    "revenueGrowth": 198.1,
+    "profitMargin": 56.9,
+    "ebitda": "91.57T",
+    "marketCap": "911.38T",
+    "revenue": "132.08T",
+    "eps": null,
+    "beta": 1.75,
+    "week52High": 1328000.0,
+    "week52Low": 177500.0,
+    "avgVolume": "4M",
+    "nextEarnings": null,
+    "rank": 8
+  },
+  {
+    "ticker": "09633.HK",
+    "name": "NONGFU SPRING",
+    "nameCN": "农夫山泉",
+    "market": "HK",
+    "sector": "消费/饮料",
+    "currency": "HKD",
+    "price": 47.28,
+    "change": 0,
+    "score": 76.5,
+    "subScores": {
+      "fundamental": 83.3,
+      "technical": 64,
+      "growth": 80
+    },
+    "isETF": false,
+    "pe": 29.2,
+    "roe": 44.2,
+    "momentum": 73.1,
+    "rsi": 64.9,
+    "revenueGrowth": 30,
+    "profitMargin": 30.2,
+    "ebitda": "22.8B",
+    "marketCap": "532.0B",
+    "revenue": "52.6B",
+    "eps": 1.62,
+    "beta": 0.3,
+    "week52High": 56.25,
+    "week52Low": 34.85,
+    "avgVolume": "6.8M",
+    "nextEarnings": "2026-03-24",
+    "_fetchedAt": 1776649961164,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 9
+  },
+  {
+    "ticker": "AVGO",
+    "name": "Broadcom Inc.",
+    "nameCN": "博通",
+    "market": "US",
+    "sector": "半导体",
+    "currency": "USD",
+    "price": 406.54,
+    "change": 0,
+    "score": 74.9,
+    "subScores": {
+      "fundamental": 76.7,
+      "technical": 67.5,
+      "growth": 80
+    },
+    "isETF": false,
+    "pe": 79.4,
+    "roe": 33.4,
+    "momentum": 100,
+    "rsi": 93.9,
+    "revenueGrowth": 29.5,
+    "profitMargin": 36.6,
+    "ebitda": "37.2B",
+    "marketCap": "1.93T",
+    "revenue": "68.3B",
+    "eps": 5.12,
+    "beta": 1.25,
+    "week52High": 414.61,
+    "week52Low": 161.61,
+    "avgVolume": "26.5M",
+    "nextEarnings": "2026-06-04",
+    "_fetchedAt": 1776650032698,
+    "_dataQuality": {
+      "score": 98,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        },
+        {
+          "dim": "accuracy",
+          "severity": "medium",
+          "msg": "日涨跌幅异常: 137.76% (超过±50%)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 90,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 10
+  },
+  {
+    "ticker": "SOXL",
+    "name": "Direxion Daily Semiconductor Bull 3X",
+    "market": "US",
+    "sector": "半导体/杠杆",
+    "currency": "USD",
+    "price": 76.99,
+    "change": 0,
+    "score": 74.5,
+    "subScores": {
+      "cost": 85,
+      "liquidity": 90,
+      "momentum": 100,
+      "risk": 85
+    },
+    "isETF": true,
+    "etfType": "3倍杠杆ETF",
+    "leverage": "3x",
+    "expenseRatio": 0.5,
+    "premiumDiscount": 0,
+    "aum": "12.2B",
+    "adv": "88M",
+    "benchmark": "ICE Semiconductor Index 每日3倍",
+    "issuer": "Direxion",
+    "pe": null,
+    "roe": null,
+    "momentum": 100,
+    "rsi": 71.1,
+    "revenueGrowth": null,
+    "profitMargin": null,
+    "ebitda": null,
+    "marketCap": "12.2B",
+    "revenue": null,
+    "eps": null,
+    "beta": 5.13,
+    "week52High": 78.3,
+    "week52Low": 8.15,
+    "avgVolume": "88M",
+    "nextEarnings": null,
+    "rank": 11
+  },
+  {
+    "ticker": "RDDT",
+    "name": "Reddit, Inc.",
+    "nameCN": "Reddit",
+    "market": "US",
+    "sector": "互联网/社区",
+    "currency": "USD",
+    "price": 163.8,
+    "change": 0,
+    "score": 74.2,
+    "subScores": {
+      "fundamental": 65,
+      "technical": 65.8,
+      "growth": 95
+    },
+    "isETF": false,
+    "pe": 62.52,
+    "roe": 20.9,
+    "momentum": 96.5,
+    "rsi": 87.8,
+    "revenueGrowth": 69.7,
+    "profitMargin": 24.1,
+    "ebitda": "457.9M",
+    "marketCap": "31.3B",
+    "revenue": "2.2B",
+    "eps": 2.62,
+    "beta": 2.41,
+    "week52High": 282.95,
+    "week52Low": 90.78,
+    "avgVolume": "5.4M",
+    "nextEarnings": "2026-05-01",
+    "_fetchedAt": 1776650153049,
+    "_dataQuality": {
+      "score": 98,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 26个 (预期≥100)"
+        },
+        {
+          "dim": "accuracy",
+          "severity": "medium",
+          "msg": "日涨跌幅异常: 70.34% (超过±50%)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 90,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 12
+  },
+  {
+    "ticker": "HOOD",
+    "name": "Robinhood Markets, Inc.",
+    "nameCN": "Robinhood",
+    "market": "US",
+    "sector": "互联网/券商",
+    "currency": "USD",
+    "price": 90.75,
+    "change": 0,
+    "score": 72.9,
+    "subScores": {
+      "fundamental": 71.7,
+      "technical": 67.5,
+      "growth": 80
+    },
+    "isETF": false,
+    "pe": 44.27,
+    "roe": 22,
+    "momentum": 100,
+    "rsi": 85,
+    "revenueGrowth": 26.5,
+    "profitMargin": 42.1,
+    "ebitda": null,
+    "marketCap": "81.7B",
+    "revenue": "4.5B",
+    "eps": 2.05,
+    "beta": 2.46,
+    "week52High": 153.86,
+    "week52Low": 39.21,
+    "avgVolume": "31.9M",
+    "nextEarnings": "2026-04-29",
+    "_fetchedAt": 1776650073458,
+    "_dataQuality": {
+      "score": 98,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 58个 (预期≥100)"
+        },
+        {
+          "dim": "accuracy",
+          "severity": "medium",
+          "msg": "日涨跌幅异常: 120.37% (超过±50%)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 90,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 13
+  },
+  {
+    "ticker": "ADBE",
+    "name": "Adobe Inc.",
+    "nameCN": "Adobe",
+    "market": "US",
+    "sector": "软件/创意",
+    "currency": "USD",
+    "price": 244.45,
+    "change": 0,
+    "score": 72.6,
+    "subScores": {
+      "fundamental": 88.3,
+      "technical": 59.2,
+      "growth": 65
+    },
+    "isETF": false,
+    "pe": 14.25,
+    "roe": 58.8,
+    "momentum": 48.4,
+    "rsi": 57.1,
+    "revenueGrowth": 12,
+    "profitMargin": 29.5,
+    "ebitda": "9.5B",
+    "marketCap": "99.6B",
+    "revenue": "24.5B",
+    "eps": 17.16,
+    "beta": 1.52,
+    "week52High": 422.95,
+    "week52Low": 224.13,
+    "avgVolume": "5.9M",
+    "nextEarnings": "2026-06-12",
+    "_fetchedAt": 1776649968515,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 14
+  },
+  {
+    "ticker": "LITE",
+    "name": "Lumentum Holdings",
+    "market": "US",
+    "sector": "光通信/激光",
+    "currency": "USD",
+    "price": 873.09,
+    "change": 0,
+    "score": 72.4,
+    "subScores": {
+      "fundamental": 51.7,
+      "technical": 77.5,
+      "growth": 95
+    },
+    "isETF": false,
+    "pe": 256.04,
+    "roe": 29.3,
+    "momentum": 100,
+    "rsi": 61.5,
+    "revenueGrowth": 65.5,
+    "profitMargin": 12,
+    "ebitda": "268M",
+    "marketCap": "62.3B",
+    "revenue": "2.1B",
+    "eps": 3.41,
+    "beta": 1.39,
+    "week52High": 960,
+    "week52Low": 49.13,
+    "avgVolume": "6M",
+    "nextEarnings": null,
+    "rank": 15
+  },
+  {
+    "ticker": "09961.HK",
+    "name": "TRIP.COM-S",
+    "nameCN": "携程集团",
+    "market": "HK",
+    "sector": "互联网/旅游",
+    "currency": "HKD",
+    "price": 424.8,
+    "change": 0,
+    "score": 72.1,
+    "subScores": {
+      "fundamental": 90,
+      "technical": 55.3,
+      "growth": 65
+    },
+    "isETF": false,
+    "pe": 7.75,
+    "roe": 21.1,
+    "momentum": 55.5,
+    "rsi": 68,
+    "revenueGrowth": 20.8,
+    "profitMargin": 53.3,
+    "ebitda": "16.6B",
+    "marketCap": "277.7B",
+    "revenue": "62.4B",
+    "eps": 54.78,
+    "beta": -0.11,
+    "week52High": 613,
+    "week52Low": 376,
+    "avgVolume": "3.4M",
+    "nextEarnings": "2026-05-18",
+    "_fetchedAt": 1776649963728,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 16
+  },
+  {
+    "ticker": "IGV",
+    "name": "iShares Expanded Tech-Software ETF",
+    "market": "US",
+    "sector": "软件/科技",
+    "currency": "USD",
+    "price": 77.44,
+    "change": 0,
+    "score": 71.5,
+    "subScores": {
+      "cost": 85,
+      "liquidity": 90,
+      "momentum": 27.9,
+      "risk": 85
+    },
+    "isETF": true,
+    "etfType": "行业ETF",
+    "leverage": null,
+    "expenseRatio": 0.5,
+    "premiumDiscount": 0,
+    "aum": "10.4B",
+    "adv": "24M",
+    "benchmark": "S&P North American Expanded Technology Software",
+    "issuer": "iShares (BlackRock)",
+    "pe": null,
+    "roe": null,
+    "momentum": 27.9,
+    "rsi": 32.8,
+    "revenueGrowth": null,
+    "profitMargin": null,
+    "ebitda": null,
+    "marketCap": "10.4B",
+    "revenue": null,
+    "eps": null,
+    "beta": 1.02,
+    "week52High": 117.99,
+    "week52Low": 73.93,
+    "avgVolume": "24M",
+    "nextEarnings": null,
+    "rank": 17
+  },
+  {
+    "ticker": "SNXX",
+    "name": "GraniteShares 2x Long SNDK Daily ETF",
+    "market": "US",
+    "sector": "存储/杠杆",
+    "currency": "USD",
+    "price": 72.78,
+    "change": 0,
+    "score": 71.5,
+    "subScores": {
+      "cost": 85,
+      "liquidity": 70,
+      "momentum": 100,
+      "risk": 85
+    },
+    "isETF": true,
+    "etfType": "2倍杠杆ETF",
+    "leverage": "2x",
+    "expenseRatio": 0.5,
+    "premiumDiscount": 0,
+    "aum": "625M",
+    "adv": "10M",
+    "benchmark": "SanDisk Corp (SNDK) 每日2倍",
+    "issuer": "GraniteShares",
+    "pe": null,
+    "roe": null,
+    "momentum": 100,
+    "rsi": 70.1,
+    "revenueGrowth": null,
+    "profitMargin": null,
+    "ebitda": null,
+    "marketCap": "625M",
+    "revenue": null,
+    "eps": null,
+    "beta": null,
+    "week52High": 73.66,
+    "week52Low": 25.11,
+    "avgVolume": "10M",
+    "nextEarnings": null,
+    "rank": 18
+  },
+  {
+    "ticker": "MSFT",
+    "name": "Microsoft Corporation",
+    "market": "US",
+    "sector": "软件/云计算",
+    "currency": "USD",
+    "price": 378.87,
+    "change": 0,
+    "score": 71.5,
+    "subScores": {
+      "fundamental": 90,
+      "technical": 53.4,
+      "growth": 65
+    },
+    "isETF": false,
+    "pe": 23.71,
+    "roe": 34.4,
+    "momentum": 36.8,
+    "rsi": 46.5,
+    "revenueGrowth": 16.7,
+    "profitMargin": 39,
+    "ebitda": "175.3B",
+    "marketCap": "2.82T",
+    "revenue": "305.5B",
+    "eps": 15.98,
+    "beta": 1.11,
+    "week52High": 555.45,
+    "week52Low": 355.67,
+    "avgVolume": "37M",
+    "nextEarnings": null,
+    "rank": 19
+  },
+  {
+    "ticker": "03486.HK",
+    "name": "易方达亚洲科技ETF",
+    "market": "HK",
+    "sector": "亚洲科技",
+    "currency": "HKD",
+    "price": 15.36,
+    "change": 0,
+    "score": 71,
+    "subScores": {
+      "cost": 85,
+      "liquidity": 50,
+      "momentum": 50,
+      "risk": 85
+    },
+    "isETF": true,
+    "etfType": "主题ETF",
+    "leverage": null,
+    "expenseRatio": 0.5,
+    "premiumDiscount": 0,
+    "aum": "24M",
+    "adv": "193733",
+    "benchmark": "亚洲科技指数",
+    "issuer": "易方达资产管理",
+    "pe": null,
+    "roe": null,
+    "momentum": 50,
+    "rsi": 50,
+    "revenueGrowth": null,
+    "profitMargin": null,
+    "ebitda": null,
+    "marketCap": "24M",
+    "revenue": null,
+    "eps": null,
+    "beta": null,
+    "week52High": 15.5,
+    "week52Low": 13.39,
+    "avgVolume": "193733",
+    "nextEarnings": null,
+    "rank": 20
+  },
+  {
+    "ticker": "META",
+    "name": "Meta Platforms, Inc.",
+    "nameCN": "Meta",
+    "market": "US",
+    "sector": "互联网/社交",
+    "currency": "USD",
+    "price": 688.55,
+    "change": 0,
+    "score": 70.6,
+    "subScores": {
+      "fundamental": 83.3,
+      "technical": 59.4,
+      "growth": 65
+    },
+    "isETF": false,
+    "pe": 29.32,
+    "roe": 30.2,
+    "momentum": 83.7,
+    "rsi": 96.5,
+    "revenueGrowth": 23.8,
+    "profitMargin": 30.1,
+    "ebitda": "101.9B",
+    "marketCap": "1.75T",
+    "revenue": "201.0B",
+    "eps": 23.48,
+    "beta": 1.31,
+    "week52High": 796.25,
+    "week52Low": 479.8,
+    "avgVolume": "16.3M",
+    "nextEarnings": "2026-04-30",
+    "_fetchedAt": 1776650116968,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 21
+  },
+  {
+    "ticker": "NFLX",
+    "name": "Netflix, Inc.",
+    "nameCN": "奈飞",
+    "market": "US",
+    "sector": "互联网/流媒体",
+    "currency": "USD",
+    "price": 97.31,
+    "change": 0,
+    "score": 70.4,
+    "subScores": {
+      "fundamental": 76.7,
+      "technical": 67.6,
+      "growth": 65
+    },
+    "isETF": false,
+    "pe": 31.49,
+    "roe": 48.5,
+    "momentum": 65.2,
+    "rsi": 57.1,
+    "revenueGrowth": 16.2,
+    "profitMargin": 28.5,
+    "ebitda": "14.3B",
+    "marketCap": "410.9B",
+    "revenue": "46.9B",
+    "eps": 3.09,
+    "beta": 1.67,
+    "week52High": 134.115,
+    "week52Low": 75.01,
+    "avgVolume": "48.7M",
+    "nextEarnings": "2026-07-17",
+    "_fetchedAt": 1776650122626,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 22
+  },
+  {
+    "ticker": "PLTR",
+    "name": "Palantir Technologies Inc.",
+    "nameCN": "帕兰提尔",
+    "market": "US",
+    "sector": "软件/大数据",
+    "currency": "USD",
+    "price": 146.39,
+    "change": 0,
+    "score": 70.3,
+    "subScores": {
+      "fundamental": 65,
+      "technical": 52.5,
+      "growth": 95
+    },
+    "isETF": false,
+    "pe": 232.37,
+    "roe": 26,
+    "momentum": 35.1,
+    "rsi": 52.8,
+    "revenueGrowth": 70,
+    "profitMargin": 36.3,
+    "ebitda": "1.4B",
+    "marketCap": "350.1B",
+    "revenue": "4.5B",
+    "eps": 0.63,
+    "beta": 1.67,
+    "week52High": 207.52,
+    "week52Low": 89.31,
+    "avgVolume": "52.8M",
+    "nextEarnings": "2026-05-05",
+    "_fetchedAt": 1776650131622,
+    "_dataQuality": {
+      "score": 98,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        },
+        {
+          "dim": "accuracy",
+          "severity": "medium",
+          "msg": "日涨跌幅异常: 56.1% (超过±50%)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 90,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 23
+  },
+  {
+    "ticker": "GOOGL",
+    "name": "Alphabet Inc.",
+    "nameCN": "谷歌",
+    "market": "US",
+    "sector": "互联网/搜索",
+    "currency": "USD",
+    "price": 341.68,
+    "change": 0,
+    "score": 69.8,
+    "subScores": {
+      "fundamental": 83.3,
+      "technical": 56.5,
+      "growth": 65
+    },
+    "isETF": false,
+    "pe": 31.64,
+    "roe": 35.7,
+    "momentum": 78.1,
+    "rsi": 93.7,
+    "revenueGrowth": 18,
+    "profitMargin": 32.8,
+    "ebitda": "150.2B",
+    "marketCap": "4.13T",
+    "revenue": "402.8B",
+    "eps": 10.8,
+    "beta": 1.13,
+    "week52High": 349,
+    "week52Low": 146.1,
+    "avgVolume": "32.9M",
+    "nextEarnings": "2026-04-30",
+    "_fetchedAt": 1776650067483,
+    "_dataQuality": {
+      "score": 98,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        },
+        {
+          "dim": "accuracy",
+          "severity": "medium",
+          "msg": "日涨跌幅异常: 126.04% (超过±50%)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 90,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 24
+  },
+  {
+    "ticker": "GOOG",
+    "name": "Alphabet Inc.",
+    "nameCN": "谷歌",
+    "market": "US",
+    "sector": "互联网/搜索",
+    "currency": "USD",
+    "price": 339.4,
+    "change": 0,
+    "score": 69.7,
+    "subScores": {
+      "fundamental": 83.3,
+      "technical": 56.3,
+      "growth": 65
+    },
+    "isETF": false,
+    "pe": 31.34,
+    "roe": 35.7,
+    "momentum": 77.5,
+    "rsi": 95.3,
+    "revenueGrowth": 18,
+    "profitMargin": 32.8,
+    "ebitda": "150.2B",
+    "marketCap": "4.11T",
+    "revenue": "402.8B",
+    "eps": 10.83,
+    "beta": 1.13,
+    "week52High": 350.15,
+    "week52Low": 148.4,
+    "avgVolume": "21.3M",
+    "nextEarnings": "2026-04-30",
+    "_fetchedAt": 1776650066502,
+    "_dataQuality": {
+      "score": 98,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        },
+        {
+          "dim": "accuracy",
+          "severity": "medium",
+          "msg": "日涨跌幅异常: 121.31% (超过±50%)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 90,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 25
+  },
+  {
+    "ticker": "00175.HK",
+    "name": "GEELY AUTO",
+    "nameCN": "吉利汽车",
+    "market": "HK",
+    "sector": "汽车/整车",
+    "currency": "HKD",
+    "price": 24.46,
+    "change": 0,
+    "score": 69.6,
+    "subScores": {
+      "fundamental": 63.3,
+      "technical": 67.5,
+      "growth": 80
+    },
+    "isETF": false,
+    "pe": 13.08,
+    "roe": 17.9,
+    "momentum": 100,
+    "rsi": 79.4,
+    "revenueGrowth": 45.8,
+    "profitMargin": 4.9,
+    "ebitda": "16.1B",
+    "marketCap": "264.2B",
+    "revenue": "345.2B",
+    "eps": 1.87,
+    "beta": 0.45,
+    "week52High": 25.62,
+    "week52Low": 14.96,
+    "avgVolume": "76.5M",
+    "nextEarnings": "2026-03-18",
+    "_fetchedAt": 1776649923387,
+    "_dataQuality": {
+      "score": 98,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        },
+        {
+          "dim": "accuracy",
+          "severity": "medium",
+          "msg": "日涨跌幅异常: 57.81% (超过±50%)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 90,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 26
+  },
+  {
+    "ticker": "00388.HK",
+    "name": "HKEX",
+    "nameCN": "香港交易所",
+    "market": "HK",
+    "sector": "金融/交易所",
+    "currency": "HKD",
+    "price": 409.6,
+    "change": 0,
+    "score": 69.2,
+    "subScores": {
+      "fundamental": 83.3,
+      "technical": 54.6,
+      "growth": 65
+    },
+    "isETF": false,
+    "pe": 29.24,
+    "roe": 31.5,
+    "momentum": 54.2,
+    "rsi": 63.8,
+    "revenueGrowth": 13.8,
+    "profitMargin": 61.5,
+    "ebitda": "21.8B",
+    "marketCap": "517.7B",
+    "revenue": "28.9B",
+    "eps": 14.01,
+    "beta": 0.93,
+    "week52High": 466,
+    "week52Low": 328.2,
+    "avgVolume": "5.0M",
+    "nextEarnings": "2026-04-29",
+    "_fetchedAt": 1776649930566,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 27
+  },
+  {
+    "ticker": "AAPL",
+    "name": "Apple Inc.",
+    "market": "US",
+    "sector": "科技/消费电子",
+    "currency": "USD",
+    "price": 257.58,
+    "change": 0,
+    "score": 68.9,
+    "subScores": {
+      "fundamental": 76.7,
+      "technical": 62.4,
+      "growth": 65
+    },
+    "isETF": false,
+    "pe": 32.65,
+    "roe": 152,
+    "momentum": 54.7,
+    "rsi": 58.7,
+    "revenueGrowth": 15.7,
+    "profitMargin": 27,
+    "ebitda": "152.9B",
+    "marketCap": "3.79T",
+    "revenue": "435.6B",
+    "eps": 7.89,
+    "beta": 1.11,
+    "week52High": 288.62,
+    "week52Low": 189.81,
+    "avgVolume": "47M",
+    "nextEarnings": null,
+    "rank": 28
+  },
+  {
+    "ticker": "LRCX",
+    "name": "Lam Research Corporation",
+    "nameCN": "拉姆研究",
+    "market": "US",
+    "sector": "半导体",
+    "currency": "USD",
+    "price": 267.6,
+    "change": 0,
+    "score": 68.3,
+    "subScores": {
+      "fundamental": 76.7,
+      "technical": 60.5,
+      "growth": 65
+    },
+    "isETF": false,
+    "pe": 54.95,
+    "roe": 65.6,
+    "momentum": 85.9,
+    "rsi": 75.7,
+    "revenueGrowth": 22.1,
+    "profitMargin": 30.2,
+    "ebitda": "7.3B",
+    "marketCap": "336.1B",
+    "revenue": "20.6B",
+    "eps": 4.87,
+    "beta": 1.79,
+    "week52High": 273.5,
+    "week52Low": 61.14,
+    "avgVolume": "10.8M",
+    "nextEarnings": "2026-04-23",
+    "_fetchedAt": 1776650084278,
+    "_dataQuality": {
+      "score": 98,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        },
+        {
+          "dim": "accuracy",
+          "severity": "medium",
+          "msg": "日涨跌幅异常: 319.7% (超过±50%)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 90,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 29
+  },
+  {
+    "ticker": "ARM",
+    "name": "Arm Holdings plc",
+    "nameCN": "ARM控股",
+    "market": "US",
+    "sector": "半导体",
+    "currency": "USD",
+    "price": 166.73,
+    "change": 0,
+    "score": 67.9,
+    "subScores": {
+      "fundamental": 51.7,
+      "technical": 77.5,
+      "growth": 80
+    },
+    "isETF": false,
+    "pe": 222.31,
+    "roe": 11.3,
+    "momentum": 100,
+    "rsi": 67.4,
+    "revenueGrowth": 26.3,
+    "profitMargin": 17.1,
+    "ebitda": "1.1B",
+    "marketCap": "177.1B",
+    "revenue": "4.7B",
+    "eps": 0.75,
+    "beta": 3.34,
+    "week52High": 183.16,
+    "week52Low": 95.32,
+    "avgVolume": "6.9M",
+    "nextEarnings": "2026-05-07",
+    "_fetchedAt": 1776649995145,
+    "_dataQuality": {
+      "score": 98,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 32个 (预期≥100)"
+        },
+        {
+          "dim": "accuracy",
+          "severity": "medium",
+          "msg": "日涨跌幅异常: 65.52% (超过±50%)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 90,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 30
+  },
+  {
+    "ticker": "TXN",
+    "name": "Texas Instruments Incorporated",
+    "nameCN": "德州仪器",
+    "market": "US",
+    "sector": "半导体",
+    "currency": "USD",
+    "price": 229.82,
+    "change": 0,
+    "score": 67.8,
+    "subScores": {
+      "fundamental": 70,
+      "technical": 67.5,
+      "growth": 65
+    },
+    "isETF": false,
+    "pe": 42.17,
+    "roe": 30.1,
+    "momentum": 100,
+    "rsi": 85.4,
+    "revenueGrowth": 10.4,
+    "profitMargin": 28.3,
+    "ebitda": "8.0B",
+    "marketCap": "209.2B",
+    "revenue": "17.7B",
+    "eps": 5.45,
+    "beta": 0.99,
+    "week52High": 231.32,
+    "week52Low": 142.64,
+    "avgVolume": "7.4M",
+    "nextEarnings": "2026-04-23",
+    "_fetchedAt": 1776650190329,
+    "_dataQuality": {
+      "score": 98,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        },
+        {
+          "dim": "accuracy",
+          "severity": "medium",
+          "msg": "日涨跌幅异常: 54.82% (超过±50%)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 90,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 31
+  },
+  {
+    "ticker": "FTNT",
+    "name": "Fortinet, Inc.",
+    "nameCN": "飞塔网络",
+    "market": "US",
+    "sector": "软件/网络安全",
+    "currency": "USD",
+    "price": 81.84,
+    "change": 0,
+    "score": 67.6,
+    "subScores": {
+      "fundamental": 76.7,
+      "technical": 58.1,
+      "growth": 65
+    },
+    "isETF": false,
+    "pe": 33.82,
+    "roe": 135.7,
+    "momentum": 46.2,
+    "rsi": 58.9,
+    "revenueGrowth": 14.8,
+    "profitMargin": 27.3,
+    "ebitda": "2.2B",
+    "marketCap": "60.9B",
+    "revenue": "6.8B",
+    "eps": 2.42,
+    "beta": 1,
+    "week52High": 109.33,
+    "week52Low": 70.12,
+    "avgVolume": "6.7M",
+    "nextEarnings": "2026-05-07",
+    "_fetchedAt": 1776650064058,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 32
+  },
+  {
+    "ticker": "00016.HK",
+    "name": "SHK PPT",
+    "nameCN": "新鸿基地产",
+    "market": "HK",
+    "sector": "地产/开发",
+    "currency": "HKD",
+    "price": 134.5,
+    "change": 0,
+    "score": 67.1,
+    "subScores": {
+      "fundamental": 65,
+      "technical": 57,
+      "growth": 80
+    },
+    "isETF": false,
+    "pe": 17.72,
+    "roe": 3.7,
+    "momentum": 44,
+    "rsi": 55.9,
+    "revenueGrowth": 32,
+    "profitMargin": 23.8,
+    "ebitda": "29.4B",
+    "marketCap": "389.8B",
+    "revenue": "92.5B",
+    "eps": 7.59,
+    "beta": 0.83,
+    "week52High": 148.8,
+    "week52Low": 70.4,
+    "avgVolume": "7.4M",
+    "nextEarnings": "2026-02-26",
+    "_fetchedAt": 1776649924750,
+    "_dataQuality": {
+      "score": 98,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        },
+        {
+          "dim": "accuracy",
+          "severity": "medium",
+          "msg": "日涨跌幅异常: 89.7% (超过±50%)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 90,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 33
+  },
+  {
+    "ticker": "02020.HK",
+    "name": "ANTA SPORTS",
+    "nameCN": "安踏体育",
+    "market": "HK",
+    "sector": "消费/运动品牌",
+    "currency": "HKD",
+    "price": 85.95,
+    "change": 0,
+    "score": 67.1,
+    "subScores": {
+      "fundamental": 78.3,
+      "technical": 54.1,
+      "growth": 65
+    },
+    "isETF": false,
+    "pe": 15.61,
+    "roe": 22.5,
+    "momentum": 73.2,
+    "rsi": 81,
+    "revenueGrowth": 12.4,
+    "profitMargin": 16.9,
+    "ebitda": "20.5B",
+    "marketCap": "238.3B",
+    "revenue": "80.2B",
+    "eps": 5.51,
+    "beta": 0.64,
+    "week52High": 106.3,
+    "week52Low": 74.2,
+    "avgVolume": "10.9M",
+    "nextEarnings": "2026-03-25",
+    "_fetchedAt": 1776649946229,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 34
+  },
+  {
+    "ticker": "FAST",
+    "name": "Fastenal Company",
+    "nameCN": "快扣",
+    "market": "US",
+    "sector": "工业/紧固件",
+    "currency": "USD",
+    "price": 45.78,
+    "change": 0,
+    "score": 66.6,
+    "subScores": {
+      "fundamental": 70,
+      "technical": 63.6,
+      "growth": 65
+    },
+    "isETF": false,
+    "pe": 40.51,
+    "roe": 33.8,
+    "momentum": 57.2,
+    "rsi": 53.4,
+    "revenueGrowth": 12.4,
+    "profitMargin": 15.4,
+    "ebitda": "1.9B",
+    "marketCap": "52.6B",
+    "revenue": "8.4B",
+    "eps": 1.13,
+    "beta": 0.84,
+    "week52High": 50.63,
+    "week52Low": 38.97,
+    "avgVolume": "8.5M",
+    "nextEarnings": "2026-07-13",
+    "_fetchedAt": 1776650062615,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 35
+  },
+  {
+    "ticker": "DXCM",
+    "name": "DexCom, Inc.",
+    "nameCN": "德康医疗",
+    "market": "US",
+    "sector": "医疗/器械",
+    "currency": "USD",
+    "price": 63.98,
+    "change": 0,
+    "score": 66.3,
+    "subScores": {
+      "fundamental": 76.7,
+      "technical": 53.9,
+      "growth": 65
+    },
+    "isETF": false,
+    "pe": 30.61,
+    "roe": 34.5,
+    "momentum": 37.8,
+    "rsi": 56.7,
+    "revenueGrowth": 13.1,
+    "profitMargin": 17.9,
+    "ebitda": "1.2B",
+    "marketCap": "24.7B",
+    "revenue": "4.7B",
+    "eps": 2.09,
+    "beta": 1.56,
+    "week52High": 89.98,
+    "week52Low": 54.11,
+    "avgVolume": "4.7M",
+    "nextEarnings": "2026-05-01",
+    "_fetchedAt": 1776650058412,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 36
+  },
+  {
+    "ticker": "MELI",
+    "name": "MercadoLibre, Inc.",
+    "nameCN": "美客多",
+    "market": "US",
+    "sector": "电商/拉美",
+    "currency": "USD",
+    "price": 1855.83,
+    "change": 0,
+    "score": 66.3,
+    "subScores": {
+      "fundamental": 63.3,
+      "technical": 56.6,
+      "growth": 80
+    },
+    "isETF": false,
+    "pe": 47.17,
+    "roe": 36,
+    "momentum": 78.3,
+    "rsi": 79.7,
+    "revenueGrowth": 44.6,
+    "profitMargin": 6.9,
+    "ebitda": "4.0B",
+    "marketCap": "94.1B",
+    "revenue": "28.9B",
+    "eps": 39.34,
+    "beta": 1.49,
+    "week52High": 2645.22,
+    "week52Low": 1593.21,
+    "avgVolume": "568.6K",
+    "nextEarnings": "2026-05-08",
+    "_fetchedAt": 1776650088930,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 37
+  },
+  {
+    "ticker": "ROST",
+    "name": "Ross Stores, Inc.",
+    "nameCN": "罗斯百货",
+    "market": "US",
+    "sector": "零售/折扣",
+    "currency": "USD",
+    "price": 227.82,
+    "change": 0,
+    "score": 66.3,
+    "subScores": {
+      "fundamental": 70,
+      "technical": 62.7,
+      "growth": 65
+    },
+    "isETF": false,
+    "pe": 34.47,
+    "roe": 36.7,
+    "momentum": 70.4,
+    "rsi": 68.4,
+    "revenueGrowth": 12.2,
+    "profitMargin": 9.4,
+    "ebitda": "3.2B",
+    "marketCap": "73.7B",
+    "revenue": "22.8B",
+    "eps": 6.61,
+    "beta": 0.93,
+    "week52High": 228.71,
+    "week52Low": 124.49,
+    "avgVolume": "2.6M",
+    "nextEarnings": "2026-05-22",
+    "_fetchedAt": 1776650158372,
+    "_dataQuality": {
+      "score": 98,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        },
+        {
+          "dim": "accuracy",
+          "severity": "medium",
+          "msg": "日涨跌幅异常: 63.16% (超过±50%)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 90,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 38
+  },
+  {
+    "ticker": "00027.HK",
+    "name": "GALAXY ENT",
+    "nameCN": "银河娱乐",
+    "market": "HK",
+    "sector": "消费/博彩",
+    "currency": "HKD",
+    "price": 35.06,
+    "change": 0,
+    "score": 66.2,
+    "subScores": {
+      "fundamental": 76.7,
+      "technical": 53.4,
+      "growth": 65
+    },
+    "isETF": false,
+    "pe": 14.35,
+    "roe": 13.4,
+    "momentum": 36.8,
+    "rsi": 51.3,
+    "revenueGrowth": 18.3,
+    "profitMargin": 21.7,
+    "ebitda": "13.2B",
+    "marketCap": "153.4B",
+    "revenue": "49.3B",
+    "eps": 2.44,
+    "beta": 0.57,
+    "week52High": 44.22,
+    "week52Low": 26.7,
+    "avgVolume": "10.0M",
+    "nextEarnings": "2026-05-07",
+    "_fetchedAt": 1776649927305,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 39
+  },
+  {
+    "ticker": "ABNB",
+    "name": "Airbnb, Inc.",
+    "nameCN": "爱彼迎",
+    "market": "US",
+    "sector": "互联网/旅游",
+    "currency": "USD",
+    "price": 141.55,
+    "change": 0,
+    "score": 66,
+    "subScores": {
+      "fundamental": 76.7,
+      "technical": 52.8,
+      "growth": 65
+    },
+    "isETF": false,
+    "pe": 35.12,
+    "roe": 30.2,
+    "momentum": 70.6,
+    "rsi": 81.2,
+    "revenueGrowth": 12,
+    "profitMargin": 20.5,
+    "ebitda": "2.6B",
+    "marketCap": "84.9B",
+    "revenue": "12.2B",
+    "eps": 4.03,
+    "beta": 1.16,
+    "week52High": 143.88,
+    "week52Low": 109.79,
+    "avgVolume": "4.4M",
+    "nextEarnings": "2026-05-08",
+    "_fetchedAt": 1776649965901,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 40
+  },
+  {
+    "ticker": "AMZN",
+    "name": "Amazon.com, Inc.",
+    "nameCN": "亚马逊",
+    "market": "US",
+    "sector": "电商/云计算",
+    "currency": "USD",
+    "price": 250.56,
+    "change": 0,
+    "score": 65.8,
+    "subScores": {
+      "fundamental": 65,
+      "technical": 67.5,
+      "growth": 65
+    },
+    "isETF": false,
+    "pe": 34.95,
+    "roe": 22.3,
+    "momentum": 100,
+    "rsi": 97.5,
+    "revenueGrowth": 13.6,
+    "profitMargin": 10.8,
+    "ebitda": "145.7B",
+    "marketCap": "2.69T",
+    "revenue": "716.9B",
+    "eps": 7.17,
+    "beta": 1.38,
+    "week52High": 258.6,
+    "week52Low": 165.29,
+    "avgVolume": "51.6M",
+    "nextEarnings": "2026-04-30",
+    "_fetchedAt": 1776649989706,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 41
+  },
+  {
+    "ticker": "ASML",
+    "name": "ASML Holding N.V. - New York Re",
+    "nameCN": "阿斯麦",
+    "market": "US",
+    "sector": "半导体",
+    "currency": "USD",
+    "price": 1459.8,
+    "change": 0,
+    "score": 65.8,
+    "subScores": {
+      "fundamental": 70,
+      "technical": 61,
+      "growth": 65
+    },
+    "isETF": false,
+    "pe": 47.85,
+    "roe": 52.2,
+    "momentum": 67.1,
+    "rsi": 63.5,
+    "revenueGrowth": 13.2,
+    "profitMargin": 29.7,
+    "ebitda": "12.7B",
+    "marketCap": "573.2B",
+    "revenue": "33.7B",
+    "eps": 30.51,
+    "beta": 1.38,
+    "week52High": 1547.22,
+    "week52Low": 614.06,
+    "avgVolume": "1.8M",
+    "nextEarnings": "2026-07-15",
+    "_fetchedAt": 1776650034935,
+    "_dataQuality": {
+      "score": 98,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        },
+        {
+          "dim": "accuracy",
+          "severity": "medium",
+          "msg": "日涨跌幅异常: 128.04% (超过±50%)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 90,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 42
+  },
+  {
+    "ticker": "MRVL",
+    "name": "Marvell Technology, Inc.",
+    "nameCN": "美满电子",
+    "market": "US",
+    "sector": "半导体",
+    "currency": "USD",
+    "price": 139.69,
+    "change": 0,
+    "score": 65.8,
+    "subScores": {
+      "fundamental": 65,
+      "technical": 67.5,
+      "growth": 65
+    },
+    "isETF": false,
+    "pe": 45.5,
+    "roe": 19.3,
+    "momentum": 100,
+    "rsi": 86.3,
+    "revenueGrowth": 22.1,
+    "profitMargin": 32.6,
+    "ebitda": "2.6B",
+    "marketCap": "122.2B",
+    "revenue": "8.2B",
+    "eps": 3.07,
+    "beta": 1.82,
+    "week52High": 139.91,
+    "week52Low": 48.09,
+    "avgVolume": "20.4M",
+    "nextEarnings": "2026-05-29",
+    "_fetchedAt": 1776650119743,
+    "_dataQuality": {
+      "score": 98,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        },
+        {
+          "dim": "accuracy",
+          "severity": "medium",
+          "msg": "日涨跌幅异常: 170.19% (超过±50%)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 90,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 43
+  },
+  {
+    "ticker": "AEP",
+    "name": "American Electric Power Company",
+    "nameCN": "美国电力",
+    "market": "US",
+    "sector": "公用事业/电力",
+    "currency": "USD",
+    "price": 133.66,
+    "change": 0,
+    "score": 65.4,
+    "subScores": {
+      "fundamental": 71.7,
+      "technical": 57.3,
+      "growth": 65
+    },
+    "isETF": false,
+    "pe": 20.07,
+    "roe": 12.5,
+    "momentum": 59.6,
+    "rsi": 63.1,
+    "revenueGrowth": 13.2,
+    "profitMargin": 16.4,
+    "ebitda": "9.0B",
+    "marketCap": "72.7B",
+    "revenue": "21.9B",
+    "eps": 6.66,
+    "beta": 0.57,
+    "week52High": 137.74,
+    "week52Low": 97.46,
+    "avgVolume": "3.4M",
+    "nextEarnings": "2026-05-05",
+    "_fetchedAt": 1776649971074,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 44
+  },
+  {
+    "ticker": "AMGN",
+    "name": "Amgen Inc.",
+    "nameCN": "安进",
+    "market": "US",
+    "sector": "医疗/生物科技",
+    "currency": "USD",
+    "price": 355.3,
+    "change": 0,
+    "score": 65.4,
+    "subScores": {
+      "fundamental": 83.3,
+      "technical": 61.9,
+      "growth": 45
+    },
+    "isETF": false,
+    "pe": 24.93,
+    "roe": 106.1,
+    "momentum": 53.8,
+    "rsi": 56.5,
+    "revenueGrowth": 8.6,
+    "profitMargin": 21,
+    "ebitda": "16.6B",
+    "marketCap": "191.5B",
+    "revenue": "36.8B",
+    "eps": 14.25,
+    "beta": 0.47,
+    "week52High": 391.29,
+    "week52Low": 261.43,
+    "avgVolume": "2.8M",
+    "nextEarnings": "2026-05-01",
+    "_fetchedAt": 1776649991944,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 45
+  },
+  {
+    "ticker": "MNST",
+    "name": "Monster Beverage Corporation",
+    "nameCN": "怪物饮料",
+    "market": "US",
+    "sector": "消费/饮料",
+    "currency": "USD",
+    "price": 76.72,
+    "change": 0,
+    "score": 65.4,
+    "subScores": {
+      "fundamental": 71.7,
+      "technical": 57.5,
+      "growth": 65
+    },
+    "isETF": false,
+    "pe": 39.55,
+    "roe": 26.8,
+    "momentum": 60.1,
+    "rsi": 69.3,
+    "revenueGrowth": 17.6,
+    "profitMargin": 23,
+    "ebitda": "2.7B",
+    "marketCap": "75.1B",
+    "revenue": "8.3B",
+    "eps": 1.94,
+    "beta": 0.51,
+    "week52High": 87.38,
+    "week52Low": 57.01,
+    "avgVolume": "6.0M",
+    "nextEarnings": "2026-05-08",
+    "_fetchedAt": 1776650118271,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 46
+  },
+  {
+    "ticker": "SMH",
+    "name": "VanEck Semiconductor ETF",
+    "nameCN": "半导体ETF",
+    "market": "US",
+    "sector": "ETF/半导体",
+    "currency": "USD",
+    "price": 464.16,
+    "change": 0,
+    "score": 65.3,
+    "subScores": {
+      "cost": 50,
+      "liquidity": 50,
+      "momentum": 93.8,
+      "risk": 50
+    },
+    "isETF": true,
+    "pe": 45.55,
+    "roe": null,
+    "momentum": 93.8,
+    "rsi": 89.7,
+    "revenueGrowth": null,
+    "profitMargin": null,
+    "ebitda": null,
+    "marketCap": "5.4B",
+    "revenue": null,
+    "eps": null,
+    "beta": null,
+    "week52High": 464.58,
+    "week52Low": 184.4,
+    "avgVolume": "9.1M",
+    "nextEarnings": null,
+    "_fetchedAt": 1776650163342,
+    "_dataQuality": {
+      "score": 98,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        },
+        {
+          "dim": "accuracy",
+          "severity": "medium",
+          "msg": "日涨跌幅异常: 141.08% (超过±50%)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 90,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 47
+  },
+  {
+    "ticker": "07552.HK",
+    "name": "南方两倍做空纳指",
+    "market": "HK",
+    "sector": "纳指/反向ETF",
+    "currency": "HKD",
+    "price": 1.76,
+    "change": 0,
+    "score": 65.2,
+    "subScores": {
+      "cost": 85,
+      "liquidity": 90,
+      "momentum": 62.9,
+      "risk": 85
+    },
+    "isETF": true,
+    "etfType": "2倍反向ETF",
+    "leverage": "-2x",
+    "expenseRatio": 0.5,
+    "premiumDiscount": 0,
+    "aum": "3.2B",
+    "adv": "352M",
+    "benchmark": "NASDAQ-100 Index 每日-2倍",
+    "issuer": "南方东英",
+    "pe": null,
+    "roe": null,
+    "momentum": 62.9,
+    "rsi": 52.8,
+    "revenueGrowth": null,
+    "profitMargin": null,
+    "ebitda": null,
+    "marketCap": "3.2B",
+    "revenue": null,
+    "eps": null,
+    "beta": null,
+    "week52High": 2.256,
+    "week52Low": 1.018,
+    "avgVolume": "352M",
+    "nextEarnings": null,
+    "rank": 48
+  },
+  {
+    "ticker": "PYPL",
+    "name": "PayPal Holdings, Inc.",
+    "nameCN": "PayPal",
+    "market": "US",
+    "sector": "互联网/支付",
+    "currency": "USD",
+    "price": 50.81,
+    "change": 0,
+    "score": 65.2,
+    "subScores": {
+      "fundamental": 83.3,
+      "technical": 61.3,
+      "growth": 45
+    },
+    "isETF": false,
+    "pe": 9.39,
+    "roe": 25.7,
+    "momentum": 87.5,
+    "rsi": 82.5,
+    "revenueGrowth": 3.7,
+    "profitMargin": 15.8,
+    "ebitda": "6.6B",
+    "marketCap": "46.8B",
+    "revenue": "33.2B",
+    "eps": 5.41,
+    "beta": 1.41,
+    "week52High": 79.5,
+    "week52Low": 38.46,
+    "avgVolume": "23.6M",
+    "nextEarnings": "2026-05-05",
+    "_fetchedAt": 1776650136656,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 49
+  },
+  {
+    "ticker": "ADI",
+    "name": "Analog Devices, Inc.",
+    "nameCN": "亚德诺",
+    "market": "US",
+    "sector": "半导体",
+    "currency": "USD",
+    "price": 371.45,
+    "change": 0,
+    "score": 64.8,
+    "subScores": {
+      "fundamental": 51.7,
+      "technical": 67,
+      "growth": 80
+    },
+    "isETF": false,
+    "pe": 68.03,
+    "roe": 7.9,
+    "momentum": 99.1,
+    "rsi": 88.1,
+    "revenueGrowth": 30.4,
+    "profitMargin": 23,
+    "ebitda": "5.5B",
+    "marketCap": "181.3B",
+    "revenue": "11.8B",
+    "eps": 5.46,
+    "beta": 1.05,
+    "week52High": 372.45,
+    "week52Low": 171,
+    "avgVolume": "4.0M",
+    "nextEarnings": "2026-05-21",
+    "_fetchedAt": 1776649969890,
+    "_dataQuality": {
+      "score": 98,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        },
+        {
+          "dim": "accuracy",
+          "severity": "medium",
+          "msg": "日涨跌幅异常: 110.73% (超过±50%)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 90,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 50
+  },
+  {
+    "ticker": "TQQQ",
+    "name": "ProShares UltraPro QQQ",
+    "market": "US",
+    "sector": "纳指/杠杆",
+    "currency": "USD",
+    "price": 49.39,
+    "change": 0,
+    "score": 64.7,
+    "subScores": {
+      "cost": 85,
+      "liquidity": 90,
+      "momentum": 60.6,
+      "risk": 85
+    },
+    "isETF": true,
+    "etfType": "3倍杠杆ETF",
+    "leverage": "3x",
+    "expenseRatio": 0.5,
+    "premiumDiscount": 0,
+    "aum": "24.6B",
+    "adv": "107M",
+    "benchmark": "NASDAQ-100 Index 每日3倍",
+    "issuer": "ProShares",
+    "pe": null,
+    "roe": null,
+    "momentum": 60.6,
+    "rsi": 62.4,
+    "revenueGrowth": null,
+    "profitMargin": null,
+    "ebitda": null,
+    "marketCap": "24.6B",
+    "revenue": null,
+    "eps": null,
+    "beta": 3.46,
+    "week52High": 60.685,
+    "week52Low": 20.12,
+    "avgVolume": "107M",
+    "nextEarnings": null,
+    "rank": 51
+  },
+  {
+    "ticker": "TTD",
+    "name": "The Trade Desk, Inc.",
+    "nameCN": "交易柜台",
+    "market": "US",
+    "sector": "互联网/广告",
+    "currency": "USD",
+    "price": 22.47,
+    "change": 0,
+    "score": 64.5,
+    "subScores": {
+      "fundamental": 71.7,
+      "technical": 54.5,
+      "growth": 65
+    },
+    "isETF": false,
+    "pe": 24.97,
+    "roe": 16.3,
+    "momentum": 38.9,
+    "rsi": 57,
+    "revenueGrowth": 14.3,
+    "profitMargin": 15.3,
+    "ebitda": "690.1M",
+    "marketCap": "10.7B",
+    "revenue": "2.9B",
+    "eps": 0.9,
+    "beta": 1.17,
+    "week52High": 91.45,
+    "week52Low": 19.74,
+    "avgVolume": "19.4M",
+    "nextEarnings": "2026-05-08",
+    "_fetchedAt": 1776650184242,
+    "_dataQuality": {
+      "score": 98,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        },
+        {
+          "dim": "accuracy",
+          "severity": "medium",
+          "msg": "日涨跌幅异常: -55.29% (超过±50%)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 90,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 52
+  },
+  {
+    "ticker": "02382.HK",
+    "name": "SUNNY OPTICAL",
+    "nameCN": "舜宇光学",
+    "market": "HK",
+    "sector": "光学/精密制造",
+    "currency": "HKD",
+    "price": 65.6,
+    "change": 0,
+    "score": 64,
+    "subScores": {
+      "fundamental": 65,
+      "technical": 61.5,
+      "growth": 65
+    },
+    "isETF": false,
+    "pe": 19.07,
+    "roe": 17.5,
+    "momentum": 88,
+    "rsi": 83.8,
+    "revenueGrowth": 21.3,
+    "profitMargin": 10.7,
+    "ebitda": "5.6B",
+    "marketCap": "70.4B",
+    "revenue": "43.2B",
+    "eps": 3.44,
+    "beta": 0.96,
+    "week52High": 91.4,
+    "week52Low": 51.5,
+    "avgVolume": "12.1M",
+    "nextEarnings": "2026-03-30",
+    "_fetchedAt": 1776649949849,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 53
+  },
+  {
+    "ticker": "GILD",
+    "name": "Gilead Sciences, Inc.",
+    "nameCN": "吉利德",
+    "market": "US",
+    "sector": "医疗/生物科技",
+    "currency": "USD",
+    "price": 137.64,
+    "change": 0,
+    "score": 63.9,
+    "subScores": {
+      "fundamental": 83.3,
+      "technical": 57,
+      "growth": 45
+    },
+    "isETF": false,
+    "pe": 20.27,
+    "roe": 40.7,
+    "momentum": 43.9,
+    "rsi": 58.9,
+    "revenueGrowth": 4.7,
+    "profitMargin": 28.9,
+    "ebitda": "14.6B",
+    "marketCap": "170.8B",
+    "revenue": "29.4B",
+    "eps": 6.79,
+    "beta": 0.4,
+    "week52High": 157.29,
+    "week52Low": 93.37,
+    "avgVolume": "6.9M",
+    "nextEarnings": "2026-04-24",
+    "_fetchedAt": 1776650067958,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 54
+  },
+  {
+    "ticker": "IDXX",
+    "name": "IDEXX Laboratories, Inc.",
+    "nameCN": "爱德士",
+    "market": "US",
+    "sector": "医疗/诊断",
+    "currency": "USD",
+    "price": 589.25,
+    "change": 0,
+    "score": 63.9,
+    "subScores": {
+      "fundamental": 70,
+      "technical": 54.5,
+      "growth": 65
+    },
+    "isETF": false,
+    "pe": 45.05,
+    "roe": 66.2,
+    "momentum": 54.1,
+    "rsi": 62.4,
+    "revenueGrowth": 14.3,
+    "profitMargin": 24.6,
+    "ebitda": "1.5B",
+    "marketCap": "46.9B",
+    "revenue": "4.3B",
+    "eps": 13.08,
+    "beta": 1.72,
+    "week52High": 769.98,
+    "week52Low": 402.85,
+    "avgVolume": "520.5K",
+    "nextEarnings": "2026-05-05",
+    "_fetchedAt": 1776650071395,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 55
+  },
+  {
+    "ticker": "KLAC",
+    "name": "KLA Corporation",
+    "nameCN": "科磊",
+    "market": "US",
+    "sector": "半导体",
+    "currency": "USD",
+    "price": 1791.44,
+    "change": 0,
+    "score": 63.9,
+    "subScores": {
+      "fundamental": 76.7,
+      "technical": 65.7,
+      "growth": 45
+    },
+    "isETF": false,
+    "pe": 52.08,
+    "roe": 100.7,
+    "momentum": 96.3,
+    "rsi": 79.1,
+    "revenueGrowth": 7.2,
+    "profitMargin": 35.8,
+    "ebitda": "5.7B",
+    "marketCap": "235.4B",
+    "revenue": "12.7B",
+    "eps": 34.4,
+    "beta": 1.44,
+    "week52High": 1798,
+    "week52Low": 607.7,
+    "avgVolume": "1.1M",
+    "nextEarnings": "2026-04-30",
+    "_fetchedAt": 1776650080524,
+    "_dataQuality": {
+      "score": 98,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        },
+        {
+          "dim": "accuracy",
+          "severity": "medium",
+          "msg": "日涨跌幅异常: 182.37% (超过±50%)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 90,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 56
+  },
+  {
+    "ticker": "CRM",
+    "name": "Salesforce, Inc.",
+    "nameCN": "赛富时",
+    "market": "US",
+    "sector": "软件/CRM",
+    "currency": "USD",
+    "price": 182.14,
+    "change": 0,
+    "score": 63.7,
+    "subScores": {
+      "fundamental": 71.7,
+      "technical": 51.8,
+      "growth": 65
+    },
+    "isETF": false,
+    "pe": 23.35,
+    "roe": 12.4,
+    "momentum": 33.5,
+    "rsi": 52.8,
+    "revenueGrowth": 12.1,
+    "profitMargin": 18,
+    "ebitda": "12.5B",
+    "marketCap": "168.1B",
+    "revenue": "41.5B",
+    "eps": 7.8,
+    "beta": 1.29,
+    "week52High": 296.05,
+    "week52Low": 163.52,
+    "avgVolume": "13.9M",
+    "nextEarnings": "2026-05-28",
+    "_fetchedAt": 1776650049163,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 57
+  },
+  {
+    "ticker": "07747.HK",
+    "name": "南方两倍做多纳指",
+    "market": "HK",
+    "sector": "纳指/杠杆ETF",
+    "currency": "HKD",
+    "price": 77.48,
+    "change": 0,
+    "score": 63.6,
+    "subScores": {
+      "cost": 85,
+      "liquidity": 70,
+      "momentum": 68.4,
+      "risk": 85
+    },
+    "isETF": true,
+    "etfType": "2倍杠杆ETF",
+    "leverage": "2x",
+    "expenseRatio": 0.5,
+    "premiumDiscount": 0,
+    "aum": "728M",
+    "adv": "9M",
+    "benchmark": "NASDAQ-100 Index 每日2倍",
+    "issuer": "南方东英",
+    "pe": null,
+    "roe": null,
+    "momentum": 68.4,
+    "rsi": 48.4,
+    "revenueGrowth": null,
+    "profitMargin": null,
+    "ebitda": null,
+    "marketCap": "728M",
+    "revenue": null,
+    "eps": null,
+    "beta": null,
+    "week52High": 107.55,
+    "week52Low": 8.21,
+    "avgVolume": "9M",
+    "nextEarnings": null,
+    "rank": 58
+  },
+  {
+    "ticker": "REGN",
+    "name": "Regeneron Pharmaceuticals, Inc.",
+    "nameCN": "再生元",
+    "market": "US",
+    "sector": "医疗/生物科技",
+    "currency": "USD",
+    "price": 750.57,
+    "change": 0,
+    "score": 63.5,
+    "subScores": {
+      "fundamental": 78.3,
+      "technical": 62.2,
+      "growth": 45
+    },
+    "isETF": false,
+    "pe": 18.08,
+    "roe": 14.9,
+    "momentum": 54.4,
+    "rsi": 55.1,
+    "revenueGrowth": 2.5,
+    "profitMargin": 31.4,
+    "ebitda": "4.2B",
+    "marketCap": "79.4B",
+    "revenue": "14.3B",
+    "eps": 41.51,
+    "beta": 0.4,
+    "week52High": 821.11,
+    "week52Low": 476.49,
+    "avgVolume": "690.2K",
+    "nextEarnings": "2026-04-29",
+    "_fetchedAt": 1776650150516,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 59
+  },
+  {
+    "ticker": "PEP",
+    "name": "Pepsico, Inc.",
+    "nameCN": "百事可乐",
+    "market": "US",
+    "sector": "消费/饮料",
+    "currency": "USD",
+    "price": 157.67,
+    "change": 0,
+    "score": 63.4,
+    "subScores": {
+      "fundamental": 76.7,
+      "technical": 64,
+      "growth": 45
+    },
+    "isETF": false,
+    "pe": 24.75,
+    "roe": 43.9,
+    "momentum": 58.1,
+    "rsi": 59.9,
+    "revenueGrowth": 8.5,
+    "profitMargin": 9.1,
+    "ebitda": "18.7B",
+    "marketCap": "215.5B",
+    "revenue": "95.4B",
+    "eps": 6.37,
+    "beta": 0.41,
+    "week52High": 171.48,
+    "week52Low": 127.6,
+    "avgVolume": "7.5M",
+    "nextEarnings": "2026-07-16",
+    "_fetchedAt": 1776650133891,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 60
+  },
+  {
+    "ticker": "03986.HK",
+    "name": "兆易创新",
+    "market": "HK",
+    "sector": "半导体/MCU",
+    "currency": "HKD",
+    "price": 391.6,
+    "change": 0,
+    "score": 63.3,
+    "subScores": {
+      "fundamental": 45,
+      "technical": 71,
+      "growth": 80
+    },
+    "isETF": false,
+    "pe": 138.87,
+    "roe": 9.3,
+    "momentum": 71.9,
+    "rsi": 42.1,
+    "revenueGrowth": 39,
+    "profitMargin": 17.9,
+    "ebitda": "1.8B",
+    "marketCap": "274.6B",
+    "revenue": "9.2B",
+    "eps": 2.82,
+    "beta": 1.55,
+    "week52High": 463.6,
+    "week52Low": 220,
+    "avgVolume": "2M",
+    "nextEarnings": null,
+    "rank": 61
+  },
+  {
+    "ticker": "00700.HK",
+    "name": "腾讯控股",
+    "market": "HK",
+    "sector": "通信服务/Internet Content & Information",
+    "currency": "HKD",
+    "price": 490,
+    "change": 0,
+    "score": 62.3,
+    "subScores": {
+      "fundamental": 71.7,
+      "technical": 47.1,
+      "growth": 65
+    },
+    "isETF": false,
+    "pe": 17.69,
+    "roe": 20,
+    "momentum": 24.2,
+    "rsi": 40.6,
+    "revenueGrowth": 12.7,
+    "profitMargin": 29.9,
+    "ebitda": "273.4B",
+    "marketCap": "4.43T",
+    "revenue": "751.8B",
+    "eps": 27.7,
+    "beta": 0.8,
+    "week52High": 683,
+    "week52Low": 440.2,
+    "avgVolume": "29M",
+    "nextEarnings": null,
+    "rank": 62
+  },
+  {
+    "ticker": "DLTR",
+    "name": "Dollar Tree, Inc.",
+    "nameCN": "达乐树",
+    "market": "US",
+    "sector": "零售/折扣",
+    "currency": "USD",
+    "price": 105.93,
+    "change": 0,
+    "score": 62.3,
+    "subScores": {
+      "fundamental": 76.7,
+      "technical": 60.5,
+      "growth": 45
+    },
+    "isETF": false,
+    "pe": 17.83,
+    "roe": 31.7,
+    "momentum": 50.9,
+    "rsi": 48.3,
+    "revenueGrowth": 9,
+    "profitMargin": 6.6,
+    "ebitda": "2.3B",
+    "marketCap": "21.1B",
+    "revenue": "19.4B",
+    "eps": 5.94,
+    "beta": 0.74,
+    "week52High": 142.4,
+    "week52Low": 77.98,
+    "avgVolume": "3.2M",
+    "nextEarnings": "2026-06-03",
+    "_fetchedAt": 1776650058632,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 63
+  },
+  {
+    "ticker": "PAYX",
+    "name": "Paychex, Inc.",
+    "nameCN": "Paychex",
+    "market": "US",
+    "sector": "软件/人力资源",
+    "currency": "USD",
+    "price": 91.96,
+    "change": 0,
+    "score": 62.3,
+    "subScores": {
+      "fundamental": 61.7,
+      "technical": 60.4,
+      "growth": 65
+    },
+    "isETF": false,
+    "pe": 20.3,
+    "roe": null,
+    "momentum": 50.7,
+    "rsi": 50.8,
+    "revenueGrowth": 19.9,
+    "profitMargin": 26.6,
+    "ebitda": "1.6B",
+    "marketCap": "32.9B",
+    "revenue": "4.0B",
+    "eps": 4.53,
+    "beta": null,
+    "week52High": 161.24,
+    "week52Low": 85.45,
+    "avgVolume": "4.3M",
+    "nextEarnings": "2026-06-25",
+    "_fetchedAt": 1776650127231,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 64
+  },
+  {
+    "ticker": "KORU",
+    "name": "Direxion Daily South Korea Bull 3X",
+    "market": "US",
+    "sector": "韩国/杠杆",
+    "currency": "USD",
+    "price": 384.07,
+    "change": 0,
+    "score": 62.2,
+    "subScores": {
+      "cost": 85,
+      "liquidity": 90,
+      "momentum": 50.9,
+      "risk": 85
+    },
+    "isETF": true,
+    "etfType": "3倍杠杆ETF",
+    "leverage": "3x",
+    "expenseRatio": 0.5,
+    "premiumDiscount": 0,
+    "aum": "1.1B",
+    "adv": "927003",
+    "benchmark": "MSCI Korea 25/50 Index 每日3倍",
+    "issuer": "Direxion",
+    "pe": null,
+    "roe": null,
+    "momentum": 50.9,
+    "rsi": 50.9,
+    "revenueGrowth": null,
+    "profitMargin": null,
+    "ebitda": null,
+    "marketCap": "1.1B",
+    "revenue": null,
+    "eps": null,
+    "beta": 4,
+    "week52High": 665.4,
+    "week52Low": 35.7,
+    "avgVolume": "927003",
+    "nextEarnings": null,
+    "rank": 65
+  },
+  {
+    "ticker": "ILMN",
+    "name": "Illumina, Inc.",
+    "nameCN": "因美纳",
+    "market": "US",
+    "sector": "医疗/基因测序",
+    "currency": "USD",
+    "price": 134.5,
+    "change": 0,
+    "score": 61.9,
+    "subScores": {
+      "fundamental": 83.3,
+      "technical": 50.3,
+      "growth": 45
+    },
+    "isETF": false,
+    "pe": 24.68,
+    "roe": 33.4,
+    "momentum": 65.6,
+    "rsi": 75.1,
+    "revenueGrowth": 5,
+    "profitMargin": 19.6,
+    "ebitda": "1.1B",
+    "marketCap": "20.6B",
+    "revenue": "4.3B",
+    "eps": 5.45,
+    "beta": 1.49,
+    "week52High": 155.53,
+    "week52Low": 69.83,
+    "avgVolume": "1.9M",
+    "nextEarnings": "2026-05-01",
+    "_fetchedAt": 1776650072276,
+    "_dataQuality": {
+      "score": 98,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        },
+        {
+          "dim": "accuracy",
+          "severity": "medium",
+          "msg": "日涨跌幅异常: 88.9% (超过±50%)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 90,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 66
+  },
+  {
+    "ticker": "SMCI",
+    "name": "Super Micro Computer, Inc.",
+    "nameCN": "超微电脑",
+    "market": "US",
+    "sector": "半导体/服务器",
+    "currency": "USD",
+    "price": 28.56,
+    "change": 0,
+    "score": 61.9,
+    "subScores": {
+      "fundamental": 58.3,
+      "technical": 33.5,
+      "growth": 95
+    },
+    "isETF": false,
+    "pe": 20.85,
+    "roe": 13.2,
+    "momentum": 31.9,
+    "rsi": 78.5,
+    "revenueGrowth": 123.4,
+    "profitMargin": 3.1,
+    "ebitda": "1.1B",
+    "marketCap": "17.1B",
+    "revenue": "28.1B",
+    "eps": 1.37,
+    "beta": 1.63,
+    "week52High": 62.36,
+    "week52Low": 19.48,
+    "avgVolume": "36.6M",
+    "nextEarnings": "2026-05-06",
+    "_fetchedAt": 1776650157378,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 67
+  },
+  {
+    "ticker": "07234.HK",
+    "name": "XL二博时中创业",
+    "market": "HK",
+    "sector": "创业板/杠杆ETF",
+    "currency": "HKD",
+    "price": 9.73,
+    "change": 0,
+    "score": 61.7,
+    "subScores": {
+      "cost": 85,
+      "liquidity": 50,
+      "momentum": 72.7,
+      "risk": 85
+    },
+    "isETF": true,
+    "etfType": "2倍杠杆ETF",
+    "leverage": "2x",
+    "expenseRatio": 0.5,
+    "premiumDiscount": 0,
+    "aum": "38M",
+    "adv": "1M",
+    "benchmark": "创业板指数 每日2倍",
+    "issuer": "博时基金",
+    "pe": null,
+    "roe": null,
+    "momentum": 72.7,
+    "rsi": 61,
+    "revenueGrowth": null,
+    "profitMargin": null,
+    "ebitda": null,
+    "marketCap": "38M",
+    "revenue": null,
+    "eps": null,
+    "beta": null,
+    "week52High": 9.79,
+    "week52Low": 2.736,
+    "avgVolume": "1M",
+    "nextEarnings": null,
+    "rank": 68
+  },
+  {
+    "ticker": "02269.HK",
+    "name": "WUXI BIO",
+    "nameCN": "药明生物",
+    "market": "HK",
+    "sector": "医疗/生物科技",
+    "currency": "HKD",
+    "price": 35.9,
+    "change": 0,
+    "score": 61.7,
+    "subScores": {
+      "fundamental": 65,
+      "technical": 53.9,
+      "growth": 65
+    },
+    "isETF": false,
+    "pe": 26.99,
+    "roe": 11.6,
+    "momentum": 52.7,
+    "rsi": 69.9,
+    "revenueGrowth": 17.2,
+    "profitMargin": 22.5,
+    "ebitda": "7.9B",
+    "marketCap": "148.4B",
+    "revenue": "21.8B",
+    "eps": 1.33,
+    "beta": 0.62,
+    "week52High": 44,
+    "week52Low": 20.4,
+    "avgVolume": "31.0M",
+    "nextEarnings": "2026-03-24",
+    "_fetchedAt": 1776649946235,
+    "_dataQuality": {
+      "score": 98,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        },
+        {
+          "dim": "accuracy",
+          "severity": "medium",
+          "msg": "日涨跌幅异常: 75.12% (超过±50%)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 90,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 69
+  },
+  {
+    "ticker": "SOXS",
+    "name": "Direxion Daily Semiconductor Be",
+    "market": "US",
+    "sector": "Trading--Inverse Equity",
+    "currency": "USD",
+    "price": 23.44,
+    "change": 0,
+    "score": 61.5,
+    "subScores": {
+      "cost": 85,
+      "liquidity": 70,
+      "momentum": 0,
+      "risk": 85
+    },
+    "isETF": true,
+    "etfType": "主题ETF",
+    "leverage": null,
+    "expenseRatio": 0.5,
+    "premiumDiscount": 0,
+    "aum": "856M",
+    "adv": "45M",
+    "benchmark": "N/A",
+    "issuer": "Direxion Funds",
+    "pe": null,
+    "roe": null,
+    "momentum": 0,
+    "rsi": 31.1,
+    "revenueGrowth": null,
+    "profitMargin": null,
+    "ebitda": null,
+    "marketCap": "856M",
+    "revenue": null,
+    "eps": null,
+    "beta": -3.99,
+    "week52High": 585.6,
+    "week52Low": 23.01,
+    "avgVolume": "45M",
+    "nextEarnings": null,
+    "rank": 70
+  },
+  {
+    "ticker": "VRTX",
+    "name": "Vertex Pharmaceuticals Incorpor",
+    "nameCN": "福泰制药",
+    "market": "US",
+    "sector": "医疗/生物科技",
+    "currency": "USD",
+    "price": 441.2,
+    "change": 0,
+    "score": 61.5,
+    "subScores": {
+      "fundamental": 78.3,
+      "technical": 55.4,
+      "growth": 45
+    },
+    "isETF": false,
+    "pe": 28.82,
+    "roe": 22.5,
+    "momentum": 40.8,
+    "rsi": 55.3,
+    "revenueGrowth": 9.5,
+    "profitMargin": 32.9,
+    "ebitda": "4.9B",
+    "marketCap": "112.2B",
+    "revenue": "12.0B",
+    "eps": 15.31,
+    "beta": 0.37,
+    "week52High": 510.77,
+    "week52Low": 362.5,
+    "avgVolume": "1.4M",
+    "nextEarnings": "2026-05-05",
+    "_fetchedAt": 1776650188917,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 71
+  },
+  {
+    "ticker": "07200.HK",
+    "name": "南方两倍做多恒指",
+    "market": "HK",
+    "sector": "恒指/杠杆ETF",
+    "currency": "HKD",
+    "price": 5.77,
+    "change": 0,
+    "score": 61.3,
+    "subScores": {
+      "cost": 85,
+      "liquidity": 90,
+      "momentum": 47.4,
+      "risk": 85
+    },
+    "isETF": true,
+    "etfType": "2倍杠杆ETF",
+    "leverage": "2x",
+    "expenseRatio": 0.5,
+    "premiumDiscount": 0,
+    "aum": "2.9B",
+    "adv": "52M",
+    "benchmark": "恒生指数 (HSI) 每日2倍",
+    "issuer": "南方东英",
+    "pe": null,
+    "roe": null,
+    "momentum": 47.4,
+    "rsi": 51.4,
+    "revenueGrowth": null,
+    "profitMargin": null,
+    "ebitda": null,
+    "marketCap": "2.9B",
+    "revenue": null,
+    "eps": null,
+    "beta": null,
+    "week52High": 7,
+    "week52Low": 3.938,
+    "avgVolume": "52M",
+    "nextEarnings": null,
+    "rank": 72
+  },
+  {
+    "ticker": "INTU",
+    "name": "Intuit Inc.",
+    "nameCN": "财捷",
+    "market": "US",
+    "sector": "软件/财务",
+    "currency": "USD",
+    "price": 393.25,
+    "change": 0,
+    "score": 61.1,
+    "subScores": {
+      "fundamental": 71.7,
+      "technical": 43,
+      "growth": 65
+    },
+    "isETF": false,
+    "pe": 25.57,
+    "roe": 23.5,
+    "momentum": 16,
+    "rsi": 42.3,
+    "revenueGrowth": 17.4,
+    "profitMargin": 21.6,
+    "ebitda": "6.1B",
+    "marketCap": "109.4B",
+    "revenue": "20.1B",
+    "eps": 15.38,
+    "beta": 1.21,
+    "week52High": 813.7,
+    "week52Low": 342.11,
+    "avgVolume": "4.2M",
+    "nextEarnings": "2026-05-22",
+    "_fetchedAt": 1776650072589,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 73
+  },
+  {
+    "ticker": "SNPS",
+    "name": "Synopsys, Inc.",
+    "nameCN": "新思科技",
+    "market": "US",
+    "sector": "半导体/EDA",
+    "currency": "USD",
+    "price": 449.58,
+    "change": 0,
+    "score": 61.1,
+    "subScores": {
+      "fundamental": 45,
+      "technical": 48.8,
+      "growth": 95
+    },
+    "isETF": false,
+    "pe": 68.95,
+    "roe": 5.5,
+    "momentum": 62.5,
+    "rsi": 82.4,
+    "revenueGrowth": 65.5,
+    "profitMargin": 13.8,
+    "ebitda": "1.6B",
+    "marketCap": "86.1B",
+    "revenue": "8.0B",
+    "eps": 6.52,
+    "beta": 1.15,
+    "week52High": 651.73,
+    "week52Low": 376.18,
+    "avgVolume": "2.2M",
+    "nextEarnings": "2026-05-28",
+    "_fetchedAt": 1776650163197,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 74
+  },
+  {
+    "ticker": "01024.HK",
+    "name": "KUAISHOU-W",
+    "nameCN": "快手",
+    "market": "HK",
+    "sector": "互联网/短视频",
+    "currency": "HKD",
+    "price": 47.14,
+    "change": 0,
+    "score": 60.7,
+    "subScores": {
+      "fundamental": 76.7,
+      "technical": 35,
+      "growth": 65
+    },
+    "isETF": false,
+    "pe": 9.71,
+    "roe": 26.3,
+    "momentum": 0,
+    "rsi": 56.4,
+    "revenueGrowth": 11.8,
+    "profitMargin": 13,
+    "ebitda": "21.8B",
+    "marketCap": "204.5B",
+    "revenue": "142.8B",
+    "eps": 4.86,
+    "beta": 1.24,
+    "week52High": 92.6,
+    "week52Low": 44.2,
+    "avgVolume": "40.4M",
+    "nextEarnings": "2026-05-26",
+    "_fetchedAt": 1776649935111,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 75
+  },
+  {
+    "ticker": "DASH",
+    "name": "DoorDash, Inc.",
+    "nameCN": "DoorDash",
+    "market": "US",
+    "sector": "互联网/外卖",
+    "currency": "USD",
+    "price": 183.89,
+    "change": 0,
+    "score": 60.6,
+    "subScores": {
+      "fundamental": 45,
+      "technical": 61.9,
+      "growth": 80
+    },
+    "isETF": false,
+    "pe": 86.33,
+    "roe": 10.4,
+    "momentum": 88.7,
+    "rsi": 82.4,
+    "revenueGrowth": 37.7,
+    "profitMargin": 6.8,
+    "ebitda": "1.2B",
+    "marketCap": "79.9B",
+    "revenue": "13.7B",
+    "eps": 2.13,
+    "beta": 1.93,
+    "week52High": 285.5,
+    "week52Low": 143.3,
+    "avgVolume": "5.1M",
+    "nextEarnings": "2026-05-07",
+    "_fetchedAt": 1776650052348,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 76
+  },
+  {
+    "ticker": "03988.HK",
+    "name": "BANK OF CHINA",
+    "nameCN": "中国银行",
+    "market": "HK",
+    "sector": "银行/国有",
+    "currency": "HKD",
+    "price": 5.13,
+    "change": 0,
+    "score": 60.5,
+    "subScores": {
+      "fundamental": 76.7,
+      "technical": 54.5,
+      "growth": 45
+    },
+    "isETF": false,
+    "pe": 6.04,
+    "roe": 8.4,
+    "momentum": 74,
+    "rsi": 83.7,
+    "revenueGrowth": 6.3,
+    "profitMargin": 43.5,
+    "ebitda": null,
+    "marketCap": "2.18T",
+    "revenue": "559.1B",
+    "eps": 0.85,
+    "beta": 0.1,
+    "week52High": 5.15,
+    "week52Low": 4.11,
+    "avgVolume": "215.8M",
+    "nextEarnings": "2026-04-29",
+    "_fetchedAt": 1776649954880,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 77
+  },
+  {
+    "ticker": "GEHC",
+    "name": "GE HealthCare Technologies Inc.",
+    "nameCN": "通用医疗",
+    "market": "US",
+    "sector": "医疗/器械",
+    "currency": "USD",
+    "price": 74.66,
+    "change": 0,
+    "score": 60.2,
+    "subScores": {
+      "fundamental": 71.7,
+      "technical": 60.1,
+      "growth": 45
+    },
+    "isETF": false,
+    "pe": 16.41,
+    "roe": 22.4,
+    "momentum": 65.2,
+    "rsi": 67.4,
+    "revenueGrowth": 7.1,
+    "profitMargin": 10.1,
+    "ebitda": "3.6B",
+    "marketCap": "34.1B",
+    "revenue": "20.6B",
+    "eps": 4.55,
+    "beta": 1.3,
+    "week52High": 89.77,
+    "week52Low": 59.95,
+    "avgVolume": "3.6M",
+    "nextEarnings": "2026-04-29",
+    "_fetchedAt": 1776650062871,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 41个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 78
+  },
+  {
+    "ticker": "005930.KS",
+    "name": "三星电子",
+    "market": "KR",
+    "sector": "半导体/存储",
+    "currency": "KRW",
+    "price": 220500.0,
+    "change": -2.43,
+    "score": 60.2,
+    "subScores": {
+      "fundamental": 45.0,
+      "technical": 75.5,
+      "growth": 65.0
+    },
+    "isETF": false,
+    "pe": null,
+    "roe": 10.8,
+    "momentum": 96.1,
+    "rsi": 62.2,
+    "revenueGrowth": 23.8,
+    "profitMargin": 13.3,
+    "ebitda": "89.26T",
+    "marketCap": "1447.93T",
+    "revenue": "333.61T",
+    "eps": null,
+    "beta": 1.21,
+    "week52High": 230000.0,
+    "week52Low": 53700.0,
+    "avgVolume": "30M",
+    "nextEarnings": null,
+    "rank": 79
+  },
+  {
+    "ticker": "ARKK",
+    "name": "ARK Innovation ETF",
+    "nameCN": "方舟创新ETF",
+    "market": "US",
+    "sector": "ETF/创新",
+    "currency": "USD",
+    "price": 79.23,
+    "change": 0,
+    "score": 60,
+    "subScores": {
+      "cost": 50,
+      "liquidity": 50,
+      "momentum": 78.7,
+      "risk": 50
+    },
+    "isETF": true,
+    "pe": 52.17,
+    "roe": null,
+    "momentum": 78.7,
+    "rsi": 86.4,
+    "revenueGrowth": null,
+    "profitMargin": null,
+    "ebitda": null,
+    "marketCap": null,
+    "revenue": null,
+    "eps": null,
+    "beta": null,
+    "week52High": 92.65,
+    "week52Low": 43.68,
+    "avgVolume": "10.5M",
+    "nextEarnings": null,
+    "_fetchedAt": 1776649994077,
+    "_dataQuality": {
+      "score": 98,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        },
+        {
+          "dim": "accuracy",
+          "severity": "medium",
+          "msg": "日涨跌幅异常: 75.6% (超过±50%)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 90,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 80
+  },
+  {
+    "ticker": "ISRG",
+    "name": "Intuitive Surgical, Inc.",
+    "nameCN": "直觉外科",
+    "market": "US",
+    "sector": "医疗/器械",
+    "currency": "USD",
+    "price": 469.21,
+    "change": 0,
+    "score": 60,
+    "subScores": {
+      "fundamental": 58.3,
+      "technical": 57.2,
+      "growth": 65
+    },
+    "isETF": false,
+    "pe": 59.54,
+    "roe": 16.7,
+    "momentum": 44.4,
+    "rsi": 59.7,
+    "revenueGrowth": 18.8,
+    "profitMargin": 28.4,
+    "ebitda": "3.6B",
+    "marketCap": "166.6B",
+    "revenue": "10.1B",
+    "eps": 7.88,
+    "beta": 1.68,
+    "week52High": 603.88,
+    "week52Low": 427.84,
+    "avgVolume": "1.9M",
+    "nextEarnings": "2026-04-22",
+    "_fetchedAt": 1776650076673,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 81
+  },
+  {
+    "ticker": "09999.HK",
+    "name": "NTES-S",
+    "nameCN": "网易",
+    "market": "HK",
+    "sector": "互联网/游戏",
+    "currency": "HKD",
+    "price": 184.5,
+    "change": 0,
+    "score": 59.9,
+    "subScores": {
+      "fundamental": 78.3,
+      "technical": 50.3,
+      "growth": 45
+    },
+    "isETF": false,
+    "pe": 15.34,
+    "roe": 22.6,
+    "momentum": 45.6,
+    "rsi": 66.5,
+    "revenueGrowth": 3,
+    "profitMargin": 30,
+    "ebitda": "38.1B",
+    "marketCap": "588.7B",
+    "revenue": "112.6B",
+    "eps": 12.03,
+    "beta": 0.82,
+    "week52High": 248,
+    "week52Low": 155.9,
+    "avgVolume": "7.1M",
+    "nextEarnings": null,
+    "_fetchedAt": 1776649965993,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 82
+  },
+  {
+    "ticker": "IWM",
+    "name": "iShares Russell 2000 ETF",
+    "nameCN": "罗素2000ETF",
+    "market": "US",
+    "sector": "ETF/罗素2000",
+    "currency": "USD",
+    "price": 275.78,
+    "change": 0,
+    "score": 59.9,
+    "subScores": {
+      "cost": 50,
+      "liquidity": 50,
+      "momentum": 78.4,
+      "risk": 50
+    },
+    "isETF": true,
+    "pe": 19.97,
+    "roe": null,
+    "momentum": 78.4,
+    "rsi": 89.9,
+    "revenueGrowth": null,
+    "profitMargin": null,
+    "ebitda": null,
+    "marketCap": "77.5B",
+    "revenue": null,
+    "eps": null,
+    "beta": null,
+    "week52High": 277.63,
+    "week52Low": 180.77,
+    "avgVolume": "44.0M",
+    "nextEarnings": null,
+    "_fetchedAt": 1776650078198,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 83
+  },
+  {
+    "ticker": "AMD",
+    "name": "Advanced Micro Devices, Inc.",
+    "nameCN": "超威半导体",
+    "market": "US",
+    "sector": "半导体",
+    "currency": "USD",
+    "price": 278.39,
+    "change": 0,
+    "score": 59.6,
+    "subScores": {
+      "fundamental": 38.3,
+      "technical": 67.5,
+      "growth": 80
+    },
+    "isETF": false,
+    "pe": 106.26,
+    "roe": 7.1,
+    "momentum": 100,
+    "rsi": 93.3,
+    "revenueGrowth": 34.1,
+    "profitMargin": 12.5,
+    "ebitda": "6.7B",
+    "marketCap": "453.9B",
+    "revenue": "34.6B",
+    "eps": 2.62,
+    "beta": 1.96,
+    "week52High": 281.05,
+    "week52Low": 83.75,
+    "avgVolume": "37.4M",
+    "nextEarnings": "2026-05-06",
+    "_fetchedAt": 1776649990611,
+    "_dataQuality": {
+      "score": 98,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        },
+        {
+          "dim": "accuracy",
+          "severity": "medium",
+          "msg": "日涨跌幅异常: 218.16% (超过±50%)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 90,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 84
+  },
+  {
+    "ticker": "TMUS",
+    "name": "T-Mobile US, Inc.",
+    "nameCN": "T-Mobile美国",
+    "market": "US",
+    "sector": "通信/运营商",
+    "currency": "USD",
+    "price": 197.67,
+    "change": 0,
+    "score": 59.6,
+    "subScores": {
+      "fundamental": 65,
+      "technical": 47.1,
+      "growth": 65
+    },
+    "isETF": false,
+    "pe": 20.32,
+    "roe": 18.2,
+    "momentum": 39.2,
+    "rsi": 33,
+    "revenueGrowth": 11.3,
+    "profitMargin": 12.4,
+    "ebitda": "32.8B",
+    "marketCap": "221.1B",
+    "revenue": "88.3B",
+    "eps": 9.73,
+    "beta": 0.42,
+    "week52High": 263.79,
+    "week52Low": 181.36,
+    "avgVolume": "6.2M",
+    "nextEarnings": "2026-04-29",
+    "_fetchedAt": 1776650185466,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 85
+  },
+  {
+    "ticker": "DRAM",
+    "name": "Roundhill Memory ETF",
+    "market": "US",
+    "sector": "存储/ETF",
+    "currency": "USD",
+    "price": 32.52,
+    "change": 0,
+    "score": 59.5,
+    "subScores": {
+      "cost": 85,
+      "liquidity": 40,
+      "momentum": 50,
+      "risk": 35
+    },
+    "isETF": true,
+    "etfType": "主题ETF",
+    "leverage": null,
+    "expenseRatio": 0.65,
+    "premiumDiscount": 0,
+    "aum": "N/A",
+    "adv": "6M",
+    "benchmark": "主动管理 - 无跟踪指数",
+    "issuer": "Roundhill Investments",
+    "pe": null,
+    "roe": null,
+    "momentum": 50,
+    "rsi": 50,
+    "revenueGrowth": null,
+    "profitMargin": null,
+    "ebitda": null,
+    "marketCap": null,
+    "revenue": null,
+    "eps": null,
+    "beta": null,
+    "week52High": 33.39,
+    "week52Low": 26.14,
+    "avgVolume": "6M",
+    "nextEarnings": null,
+    "topHoldings": [
+      {
+        "name": "Samsung Electronics",
+        "weight": 25.02
+      },
+      {
+        "name": "Micron Technology",
+        "weight": 24.13
+      },
+      {
+        "name": "SK Hynix",
+        "weight": 23.61
+      },
+      {
+        "name": "Kioxia Holdings",
+        "weight": 4.98
+      },
+      {
+        "name": "SanDisk Corp",
+        "weight": 4.65
+      }
+    ],
+    "concentrationTop3": 72.76,
+    "totalHoldings": 9,
+    "rank": 86
+  },
+  {
+    "ticker": "NXPI",
+    "name": "NXP Semiconductors N.V.",
+    "nameCN": "恩智浦",
+    "market": "US",
+    "sector": "半导体",
+    "currency": "USD",
+    "price": 216.03,
+    "change": 0,
+    "score": 59.5,
+    "subScores": {
+      "fundamental": 71.7,
+      "technical": 57.9,
+      "growth": 45
+    },
+    "isETF": false,
+    "pe": 27.17,
+    "roe": 20.7,
+    "momentum": 80.8,
+    "rsi": 77,
+    "revenueGrowth": 7.2,
+    "profitMargin": 16.5,
+    "ebitda": "4.1B",
+    "marketCap": "54.6B",
+    "revenue": "12.3B",
+    "eps": 7.95,
+    "beta": 1.47,
+    "week52High": 256.36,
+    "week52Low": 166.6,
+    "avgVolume": "2.9M",
+    "nextEarnings": "2026-04-29",
+    "_fetchedAt": 1776650123560,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 87
+  },
+  {
+    "ticker": "00939.HK",
+    "name": "CCB",
+    "nameCN": "建设银行",
+    "market": "HK",
+    "sector": "银行/国有",
+    "currency": "HKD",
+    "price": 8.68,
+    "change": 0,
+    "score": 59.4,
+    "subScores": {
+      "fundamental": 76.7,
+      "technical": 50.8,
+      "growth": 45
+    },
+    "isETF": false,
+    "pe": 5.83,
+    "roe": 9.7,
+    "momentum": 66.6,
+    "rsi": 89.4,
+    "revenueGrowth": 2.4,
+    "profitMargin": 55.8,
+    "ebitda": null,
+    "marketCap": "2.33T",
+    "revenue": "607.6B",
+    "eps": 1.49,
+    "beta": 0.22,
+    "week52High": 8.69,
+    "week52Low": 6.26,
+    "avgVolume": "244.1M",
+    "nextEarnings": "2026-04-29",
+    "_fetchedAt": 1776649935005,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 88
+  },
+  {
+    "ticker": "CTSH",
+    "name": "Cognizant Technology Solutions ",
+    "nameCN": "高知特",
+    "market": "US",
+    "sector": "科技/IT服务",
+    "currency": "USD",
+    "price": 61.3,
+    "change": 0,
+    "score": 59.3,
+    "subScores": {
+      "fundamental": 70,
+      "technical": 59.5,
+      "growth": 45
+    },
+    "isETF": false,
+    "pe": 13.44,
+    "roe": 15.2,
+    "momentum": 49,
+    "rsi": 56.5,
+    "revenueGrowth": 4.9,
+    "profitMargin": 10.6,
+    "ebitda": "3.8B",
+    "marketCap": "29.6B",
+    "revenue": "21.1B",
+    "eps": 4.56,
+    "beta": 0.98,
+    "week52High": 87.03,
+    "week52Low": 57.39,
+    "avgVolume": "6.7M",
+    "nextEarnings": "2026-04-29",
+    "_fetchedAt": 1776650053367,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 89
+  },
+  {
+    "ticker": "LULU",
+    "name": "lululemon athletica inc.",
+    "nameCN": "露露柠檬",
+    "market": "US",
+    "sector": "零售/运动服饰",
+    "currency": "USD",
+    "price": 167.28,
+    "change": 0,
+    "score": 59.3,
+    "subScores": {
+      "fundamental": 81.7,
+      "technical": 43.8,
+      "growth": 45
+    },
+    "isETF": false,
+    "pe": 12.61,
+    "roe": 34,
+    "momentum": 52.6,
+    "rsi": 74.1,
+    "revenueGrowth": 0.8,
+    "profitMargin": 14.2,
+    "ebitda": "2.7B",
+    "marketCap": "19.6B",
+    "revenue": "11.1B",
+    "eps": 13.27,
+    "beta": 1.07,
+    "week52High": 340.25,
+    "week52Low": 143.96,
+    "avgVolume": "2.5M",
+    "nextEarnings": "2026-06-05",
+    "_fetchedAt": 1776650085283,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 90
+  },
+  {
+    "ticker": "XEL",
+    "name": "Xcel Energy Inc.",
+    "nameCN": "埃克塞尔能源",
+    "market": "US",
+    "sector": "公用事业/电力",
+    "currency": "USD",
+    "price": 81.08,
+    "change": 0,
+    "score": 59.3,
+    "subScores": {
+      "fundamental": 58.3,
+      "technical": 55,
+      "growth": 65
+    },
+    "isETF": false,
+    "pe": 23.71,
+    "roe": 9.4,
+    "momentum": 54.9,
+    "rsi": 62.5,
+    "revenueGrowth": 14.1,
+    "profitMargin": 13.8,
+    "ebitda": "6.0B",
+    "marketCap": "50.6B",
+    "revenue": "14.7B",
+    "eps": 3.42,
+    "beta": 0.44,
+    "week52High": 84.23,
+    "week52Low": 65.21,
+    "avgVolume": "4.8M",
+    "nextEarnings": "2026-04-30",
+    "_fetchedAt": 1776650194004,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 91
+  },
+  {
+    "ticker": "COST",
+    "name": "Costco Wholesale Corporation",
+    "nameCN": "好市多",
+    "market": "US",
+    "sector": "零售/会员仓储",
+    "currency": "USD",
+    "price": 999.89,
+    "change": 0,
+    "score": 59.1,
+    "subScores": {
+      "fundamental": 51.7,
+      "technical": 63.2,
+      "growth": 65
+    },
+    "isETF": false,
+    "pe": 52.08,
+    "roe": 29.7,
+    "momentum": 56.4,
+    "rsi": 55.7,
+    "revenueGrowth": 21.5,
+    "profitMargin": 3,
+    "ebitda": "13.5B",
+    "marketCap": "443.8B",
+    "revenue": "286.3B",
+    "eps": 19.2,
+    "beta": 0.98,
+    "week52High": 1067.08,
+    "week52Low": 844.06,
+    "avgVolume": "2.0M",
+    "nextEarnings": "2026-05-29",
+    "_fetchedAt": 1776650045037,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 92
+  },
+  {
+    "ticker": "BKNG",
+    "name": "Booking Holdings Inc. Common St",
+    "nameCN": "缤客",
+    "market": "US",
+    "sector": "互联网/旅游",
+    "currency": "USD",
+    "price": 192.01,
+    "change": 0,
+    "score": 58.7,
+    "subScores": {
+      "fundamental": 55,
+      "technical": 57.3,
+      "growth": 65
+    },
+    "isETF": false,
+    "pe": 29,
+    "roe": null,
+    "momentum": 79.5,
+    "rsi": 77.1,
+    "revenueGrowth": 16,
+    "profitMargin": 20.1,
+    "ebitda": "10.1B",
+    "marketCap": "152.0B",
+    "revenue": "26.9B",
+    "eps": 6.62,
+    "beta": 1.2,
+    "week52High": 233.5764,
+    "week52Low": 150.618,
+    "avgVolume": "10.5M",
+    "nextEarnings": "2026-04-29",
+    "_fetchedAt": 1776650038761,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 93
+  },
+  {
+    "ticker": "CDW",
+    "name": "CDW Corporation",
+    "nameCN": "CDW",
+    "market": "US",
+    "sector": "科技/IT分销",
+    "currency": "USD",
+    "price": 133.96,
+    "change": 0,
+    "score": 58.7,
+    "subScores": {
+      "fundamental": 70,
+      "technical": 57.5,
+      "growth": 45
+    },
+    "isETF": false,
+    "pe": 16.58,
+    "roe": 43,
+    "momentum": 79.9,
+    "rsi": 84.5,
+    "revenueGrowth": 6.3,
+    "profitMargin": 4.8,
+    "ebitda": "2.0B",
+    "marketCap": "17.3B",
+    "revenue": "22.4B",
+    "eps": 8.08,
+    "beta": 1.02,
+    "week52High": 192.3,
+    "week52Low": 112.98,
+    "avgVolume": "1.7M",
+    "nextEarnings": "2026-05-06",
+    "_fetchedAt": 1776650042501,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 94
+  },
+  {
+    "ticker": "CSCO",
+    "name": "Cisco Systems, Inc.",
+    "nameCN": "思科",
+    "market": "US",
+    "sector": "通信/网络设备",
+    "currency": "USD",
+    "price": 86.25,
+    "change": 0,
+    "score": 58.6,
+    "subScores": {
+      "fundamental": 71.7,
+      "technical": 54.8,
+      "growth": 45
+    },
+    "isETF": false,
+    "pe": 31.03,
+    "roe": 23.8,
+    "momentum": 74.6,
+    "rsi": 70.4,
+    "revenueGrowth": 9.7,
+    "profitMargin": 18.8,
+    "ebitda": "16.3B",
+    "marketCap": "340.8B",
+    "revenue": "59.1B",
+    "eps": 2.78,
+    "beta": 0.82,
+    "week52High": 88.19,
+    "week52Low": 53.83,
+    "avgVolume": "23.8M",
+    "nextEarnings": "2026-05-14",
+    "_fetchedAt": 1776650049250,
+    "_dataQuality": {
+      "score": 98,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        },
+        {
+          "dim": "accuracy",
+          "severity": "medium",
+          "msg": "日涨跌幅异常: 54.68% (超过±50%)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 90,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 95
+  },
+  {
+    "ticker": "SNDK",
+    "name": "Sandisk Corp",
+    "market": "US",
+    "sector": "存储/NAND",
+    "currency": "USD",
+    "price": 910.3,
+    "change": 0,
+    "score": 58.4,
+    "subScores": {
+      "fundamental": 16.7,
+      "technical": 77.5,
+      "growth": 95
+    },
+    "isETF": false,
+    "pe": null,
+    "roe": -9.4,
+    "momentum": 100,
+    "rsi": 70,
+    "revenueGrowth": 61.2,
+    "profitMargin": -11.7,
+    "ebitda": "1.4B",
+    "marketCap": "134.4B",
+    "revenue": "8.9B",
+    "eps": -7.5,
+    "beta": null,
+    "week52High": 917.56,
+    "week52Low": 28.94,
+    "avgVolume": "20M",
+    "nextEarnings": null,
+    "rank": 96
+  },
+  {
+    "ticker": "CEG",
+    "name": "Constellation Energy Corporatio",
+    "nameCN": "星座能源",
+    "market": "US",
+    "sector": "能源/核电",
+    "currency": "USD",
+    "price": 296.21,
+    "change": 0,
+    "score": 58.4,
+    "subScores": {
+      "fundamental": 58.3,
+      "technical": 52,
+      "growth": 65
+    },
+    "isETF": false,
+    "pe": 39.97,
+    "roe": 16.4,
+    "momentum": 34,
+    "rsi": 46.5,
+    "revenueGrowth": 12.9,
+    "profitMargin": 9.1,
+    "ebitda": "5.6B",
+    "marketCap": "107.3B",
+    "revenue": "25.5B",
+    "eps": 7.41,
+    "beta": 1.19,
+    "week52High": 412.7,
+    "week52Low": 188.006,
+    "avgVolume": "3.6M",
+    "nextEarnings": "2026-05-11",
+    "_fetchedAt": 1776650044033,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 52个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 97
+  },
+  {
+    "ticker": "QQQ",
+    "name": "Invesco QQQ Trust, Series 1",
+    "nameCN": "纳指100ETF",
+    "market": "US",
+    "sector": "ETF/纳指100",
+    "currency": "USD",
+    "price": 648.85,
+    "change": 0,
+    "score": 58.2,
+    "subScores": {
+      "cost": 50,
+      "liquidity": 50,
+      "momentum": 73.5,
+      "risk": 50
+    },
+    "isETF": true,
+    "pe": 34.28,
+    "roe": null,
+    "momentum": 73.5,
+    "rsi": 95.5,
+    "revenueGrowth": null,
+    "profitMargin": null,
+    "ebitda": null,
+    "marketCap": "255.1B",
+    "revenue": null,
+    "eps": null,
+    "beta": null,
+    "week52High": 650,
+    "week52Low": 427.93,
+    "avgVolume": "64.8M",
+    "nextEarnings": null,
+    "_fetchedAt": 1776650151239,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 98
+  },
+  {
+    "ticker": "AZN",
+    "name": "AstraZeneca PLC",
+    "nameCN": "阿斯利康",
+    "market": "US",
+    "sector": "医疗/制药",
+    "currency": "USD",
+    "price": 204.8,
+    "change": 0,
+    "score": 58.1,
+    "subScores": {
+      "fundamental": 71.7,
+      "technical": 53,
+      "growth": 45
+    },
+    "isETF": false,
+    "pe": 31.36,
+    "roe": 22.8,
+    "momentum": 71,
+    "rsi": 73.4,
+    "revenueGrowth": 4.1,
+    "profitMargin": 17.4,
+    "ebitda": "19.3B",
+    "marketCap": "317.5B",
+    "revenue": "58.7B",
+    "eps": 6.53,
+    "beta": 0.28,
+    "week52High": 212.71,
+    "week52Low": 132.32,
+    "avgVolume": "2.3M",
+    "nextEarnings": "2026-04-30",
+    "_fetchedAt": 1776650034877,
+    "_dataQuality": {
+      "score": 98,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        },
+        {
+          "dim": "accuracy",
+          "severity": "medium",
+          "msg": "日涨跌幅异常: 51.5% (超过±50%)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 90,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 99
+  },
+  {
+    "ticker": "00241.HK",
+    "name": "ALI HEALTH",
+    "nameCN": "阿里健康",
+    "market": "HK",
+    "sector": "医疗/互联网",
+    "currency": "HKD",
+    "price": 4.73,
+    "change": 0,
+    "score": 57.8,
+    "subScores": {
+      "fundamental": 58.3,
+      "technical": 49.8,
+      "growth": 65
+    },
+    "isETF": false,
+    "pe": 33.86,
+    "roe": 11.8,
+    "momentum": 29.6,
+    "rsi": 51,
+    "revenueGrowth": 17,
+    "profitMargin": 5.8,
+    "ebitda": "1.8B",
+    "marketCap": "76.4B",
+    "revenue": "33.0B",
+    "eps": 0.14,
+    "beta": 1.69,
+    "week52High": 7.91,
+    "week52Low": 4.12,
+    "avgVolume": "96.1M",
+    "nextEarnings": null,
+    "_fetchedAt": 1776649931756,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 100
+  },
+  {
+    "ticker": "LIN",
+    "name": "Linde plc",
+    "nameCN": "林德",
+    "market": "US",
+    "sector": "基础材料/工业气体",
+    "currency": "USD",
+    "price": 492.23,
+    "change": 0,
+    "score": 57.7,
+    "subScores": {
+      "fundamental": 65,
+      "technical": 60.6,
+      "growth": 45
+    },
+    "isETF": false,
+    "pe": 33.67,
+    "roe": 17.8,
+    "momentum": 51.2,
+    "rsi": 50.9,
+    "revenueGrowth": 5.8,
+    "profitMargin": 20.3,
+    "ebitda": "13.3B",
+    "marketCap": "228.1B",
+    "revenue": "34.0B",
+    "eps": 14.62,
+    "beta": 0.79,
+    "week52High": 510.65,
+    "week52Low": 387.78,
+    "avgVolume": "2.6M",
+    "nextEarnings": "2026-05-01",
+    "_fetchedAt": 1776650082999,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 101
+  },
+  {
+    "ticker": "02388.HK",
+    "name": "BOC HONG KONG",
+    "nameCN": "中银香港",
+    "market": "HK",
+    "sector": "银行/零售",
+    "currency": "HKD",
+    "price": 43.98,
+    "change": 0,
+    "score": 57.4,
+    "subScores": {
+      "fundamental": 83.3,
+      "technical": 60.3,
+      "growth": 20
+    },
+    "isETF": false,
+    "pe": 11.6,
+    "roe": 11.7,
+    "momentum": 65.6,
+    "rsi": 65.8,
+    "revenueGrowth": -2.7,
+    "profitMargin": 58.4,
+    "ebitda": null,
+    "marketCap": "465.0B",
+    "revenue": "68.7B",
+    "eps": 3.79,
+    "beta": 0.21,
+    "week52High": 44.9,
+    "week52Low": 29.1,
+    "avgVolume": "12.4M",
+    "nextEarnings": "2026-04-29",
+    "_fetchedAt": 1776649951312,
+    "_dataQuality": {
+      "score": 98,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        },
+        {
+          "dim": "accuracy",
+          "severity": "medium",
+          "msg": "日涨跌幅异常: 50.36% (超过±50%)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 90,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 102
+  },
+  {
+    "ticker": "01299.HK",
+    "name": "AIA",
+    "nameCN": "友邦保险",
+    "market": "HK",
+    "sector": "保险/寿险",
+    "currency": "HKD",
+    "price": 83.1,
+    "change": 0,
+    "score": 57.3,
+    "subScores": {
+      "fundamental": 71.7,
+      "technical": 50.4,
+      "growth": 45
+    },
+    "isETF": false,
+    "pe": 18,
+    "roe": 14.8,
+    "momentum": 45.7,
+    "rsi": 39.7,
+    "revenueGrowth": 6,
+    "profitMargin": 23.8,
+    "ebitda": "10.0B",
+    "marketCap": "867.7B",
+    "revenue": "26.2B",
+    "eps": 4.62,
+    "beta": 0.67,
+    "week52High": 92.15,
+    "week52Low": 53.6,
+    "avgVolume": "29.8M",
+    "nextEarnings": "2026-03-18",
+    "_fetchedAt": 1776649939888,
+    "_dataQuality": {
+      "score": 98,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        },
+        {
+          "dim": "accuracy",
+          "severity": "medium",
+          "msg": "日涨跌幅异常: 53.18% (超过±50%)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 90,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 103
+  },
+  {
+    "ticker": "MAR",
+    "name": "Marriott International",
+    "nameCN": "万豪国际",
+    "market": "US",
+    "sector": "酒店/旅游",
+    "currency": "USD",
+    "price": 377.93,
+    "change": 0,
+    "score": 57,
+    "subScores": {
+      "fundamental": 61.7,
+      "technical": 62.9,
+      "growth": 45
+    },
+    "isETF": false,
+    "pe": 39.7,
+    "roe": null,
+    "momentum": 90.8,
+    "rsi": 85,
+    "revenueGrowth": 6.3,
+    "profitMargin": 37.3,
+    "ebitda": "4.6B",
+    "marketCap": "100.1B",
+    "revenue": "7.0B",
+    "eps": 9.52,
+    "beta": 1.1,
+    "week52High": 379.56,
+    "week52Low": 212.53,
+    "avgVolume": "1.6M",
+    "nextEarnings": "2026-05-06",
+    "_fetchedAt": 1776650083977,
+    "_dataQuality": {
+      "score": 98,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        },
+        {
+          "dim": "accuracy",
+          "severity": "medium",
+          "msg": "日涨跌幅异常: 71.47% (超过±50%)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 90,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 104
+  },
+  {
+    "ticker": "SIRI",
+    "name": "SiriusXM Holdings Inc.",
+    "nameCN": "SiriusXM",
+    "market": "US",
+    "sector": "传媒/广播",
+    "currency": "USD",
+    "price": 25.48,
+    "change": 0,
+    "score": 56.7,
+    "subScores": {
+      "fundamental": 63.3,
+      "technical": 59.7,
+      "growth": 45
+    },
+    "isETF": false,
+    "pe": 11.43,
+    "roe": 7.1,
+    "momentum": 84.4,
+    "rsi": 79.3,
+    "revenueGrowth": 0.2,
+    "profitMargin": 9.4,
+    "ebitda": "2.4B",
+    "marketCap": "8.6B",
+    "revenue": "8.6B",
+    "eps": 2.23,
+    "beta": 0.86,
+    "week52High": 25.91,
+    "week52Low": 19.41,
+    "avgVolume": "4.7M",
+    "nextEarnings": "2026-04-30",
+    "_fetchedAt": 1776650157061,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 105
+  },
+  {
+    "ticker": "SPY",
+    "name": "State Street SPDR S&P 500 ETF T",
+    "nameCN": "标普500ETF",
+    "market": "US",
+    "sector": "ETF/标普500",
+    "currency": "USD",
+    "price": 710.14,
+    "change": 0,
+    "score": 56.7,
+    "subScores": {
+      "cost": 50,
+      "liquidity": 50,
+      "momentum": 69.1,
+      "risk": 50
+    },
+    "isETF": true,
+    "pe": 28.16,
+    "roe": null,
+    "momentum": 69.1,
+    "rsi": 96.8,
+    "revenueGrowth": null,
+    "profitMargin": null,
+    "ebitda": null,
+    "marketCap": "651.8B",
+    "revenue": null,
+    "eps": null,
+    "beta": null,
+    "week52High": 712.39,
+    "week52Low": 508.46,
+    "avgVolume": "86.3M",
+    "nextEarnings": null,
+    "_fetchedAt": 1776650161076,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 106
+  },
+  {
+    "ticker": "CCEP",
+    "name": "Coca-Cola Europacific Partners ",
+    "nameCN": "可口可乐欧洲",
+    "market": "US",
+    "sector": "消费/饮料分销",
+    "currency": "USD",
+    "price": 98.8,
+    "change": 0,
+    "score": 56.5,
+    "subScores": {
+      "fundamental": 71.7,
+      "technical": 47.9,
+      "growth": 45
+    },
+    "isETF": false,
+    "pe": 19.64,
+    "roe": 22.9,
+    "momentum": 60.8,
+    "rsi": 77.8,
+    "revenueGrowth": 0.2,
+    "profitMargin": 9.3,
+    "ebitda": "3.4B",
+    "marketCap": "44.0B",
+    "revenue": "20.9B",
+    "eps": 5.03,
+    "beta": 0.51,
+    "week52High": 110.9,
+    "week52Low": 84.66,
+    "avgVolume": "1.9M",
+    "nextEarnings": "2026-02-17",
+    "_fetchedAt": 1776650038300,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 107
+  },
+  {
+    "ticker": "CTAS",
+    "name": "Cintas Corporation",
+    "nameCN": "信达思",
+    "market": "US",
+    "sector": "工业/制服租赁",
+    "currency": "USD",
+    "price": 179.17,
+    "change": 0,
+    "score": 56.4,
+    "subScores": {
+      "fundamental": 76.7,
+      "technical": 40.6,
+      "growth": 45
+    },
+    "isETF": false,
+    "pe": 37.72,
+    "roe": 41.3,
+    "momentum": 46.3,
+    "rsi": 80,
+    "revenueGrowth": 8.9,
+    "profitMargin": 17.6,
+    "ebitda": "2.9B",
+    "marketCap": "71.7B",
+    "revenue": "11.0B",
+    "eps": 4.75,
+    "beta": 1.01,
+    "week52High": 229.24,
+    "week52Low": 165.6,
+    "avgVolume": "2.2M",
+    "nextEarnings": "2026-03-25",
+    "_fetchedAt": 1776650054858,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 108
+  },
+  {
+    "ticker": "VRSK",
+    "name": "Verisk Analytics, Inc.",
+    "nameCN": "韦里斯克",
+    "market": "US",
+    "sector": "软件/数据分析",
+    "currency": "USD",
+    "price": 178.07,
+    "change": 0,
+    "score": 56.3,
+    "subScores": {
+      "fundamental": 76.7,
+      "technical": 45.4,
+      "growth": 40
+    },
+    "isETF": false,
+    "pe": 27.48,
+    "roe": 437.9,
+    "momentum": 20.7,
+    "rsi": 45.3,
+    "revenueGrowth": null,
+    "profitMargin": 29.6,
+    "ebitda": "1.5B",
+    "marketCap": "24.6B",
+    "revenue": "3.1B",
+    "eps": 6.48,
+    "beta": 0.82,
+    "week52High": 322.92,
+    "week52Low": 161.7,
+    "avgVolume": "2.1M",
+    "nextEarnings": "2026-04-29",
+    "_fetchedAt": 1776650189443,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 109
+  },
+  {
+    "ticker": "03968.HK",
+    "name": "CM BANK",
+    "nameCN": "招商银行",
+    "market": "HK",
+    "sector": "银行/零售",
+    "currency": "HKD",
+    "price": 50.5,
+    "change": 0,
+    "score": 56,
+    "subScores": {
+      "fundamental": 83.3,
+      "technical": 55.6,
+      "growth": 20
+    },
+    "isETF": false,
+    "pe": 7.72,
+    "roe": 12,
+    "momentum": 56.2,
+    "rsi": 66.4,
+    "revenueGrowth": -5.1,
+    "profitMargin": 51.4,
+    "ebitda": null,
+    "marketCap": "1.27T",
+    "revenue": "292.2B",
+    "eps": 6.55,
+    "beta": 0.69,
+    "week52High": 56.75,
+    "week52Low": 41.9,
+    "avgVolume": "15.9M",
+    "nextEarnings": "2026-04-28",
+    "_fetchedAt": 1776649953994,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 110
+  },
+  {
+    "ticker": "CDNS",
+    "name": "Cadence Design Systems, Inc.",
+    "nameCN": "楷登电子",
+    "market": "US",
+    "sector": "半导体/EDA",
+    "currency": "USD",
+    "price": 311.03,
+    "change": 0,
+    "score": 55.3,
+    "subScores": {
+      "fundamental": 65,
+      "technical": 52.8,
+      "growth": 45
+    },
+    "isETF": false,
+    "pe": 76.42,
+    "roe": 21.9,
+    "momentum": 70.6,
+    "rsi": 71.4,
+    "revenueGrowth": 6.2,
+    "profitMargin": 20.9,
+    "ebitda": "1.9B",
+    "marketCap": "85.9B",
+    "revenue": "5.3B",
+    "eps": 4.07,
+    "beta": 1.04,
+    "week52High": 376.45,
+    "week52Low": 247.7,
+    "avgVolume": "2.6M",
+    "nextEarnings": "2026-04-28",
+    "_fetchedAt": 1776650037206,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 111
+  },
+  {
+    "ticker": "01810.HK",
+    "name": "XIAOMI-W",
+    "nameCN": "小米集团",
+    "market": "HK",
+    "sector": "消费电子/IoT",
+    "currency": "HKD",
+    "price": 32.58,
+    "change": 0,
+    "score": 54.8,
+    "subScores": {
+      "fundamental": 65,
+      "technical": 50.9,
+      "growth": 45
+    },
+    "isETF": false,
+    "pe": 18.21,
+    "roe": 18.3,
+    "momentum": 31.8,
+    "rsi": 50.8,
+    "revenueGrowth": 7.3,
+    "profitMargin": 9.1,
+    "ebitda": "43.0B",
+    "marketCap": "842.4B",
+    "revenue": "457.3B",
+    "eps": 1.79,
+    "beta": 0.79,
+    "week52High": 61.45,
+    "week52Low": 30.26,
+    "avgVolume": "171.5M",
+    "nextEarnings": "2026-06-02",
+    "_fetchedAt": 1776649944011,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 112
+  },
+  {
+    "ticker": "BKR",
+    "name": "Baker Hughes Company",
+    "nameCN": "贝克休斯",
+    "market": "US",
+    "sector": "能源/油服",
+    "currency": "USD",
+    "price": 59.78,
+    "change": 0,
+    "score": 54.7,
+    "subScores": {
+      "fundamental": 65,
+      "technical": 50.6,
+      "growth": 45
+    },
+    "isETF": false,
+    "pe": 22.99,
+    "roe": 14.6,
+    "momentum": 46.2,
+    "rsi": 34.9,
+    "revenueGrowth": 0.3,
+    "profitMargin": 9.3,
+    "ebitda": "4.7B",
+    "marketCap": "59.3B",
+    "revenue": "27.7B",
+    "eps": 2.6,
+    "beta": 0.9,
+    "week52High": 67,
+    "week52Low": 34.56,
+    "avgVolume": "10.0M",
+    "nextEarnings": "2026-04-24",
+    "_fetchedAt": 1776650039920,
+    "_dataQuality": {
+      "score": 98,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        },
+        {
+          "dim": "accuracy",
+          "severity": "medium",
+          "msg": "日涨跌幅异常: 53.64% (超过±50%)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 90,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 113
+  },
+  {
+    "ticker": "01276.HK",
+    "name": "恒瑞医药",
+    "market": "HK",
+    "sector": "医疗健康/Drug Manufacturers - Specialty & Generic",
+    "currency": "HKD",
+    "price": 64.7,
+    "change": 0,
+    "score": 54.5,
+    "subScores": {
+      "fundamental": 58.3,
+      "technical": 59,
+      "growth": 45
+    },
+    "isETF": false,
+    "pe": 47.93,
+    "roe": 14.3,
+    "momentum": 48.1,
+    "rsi": 48.6,
+    "revenueGrowth": 8.3,
+    "profitMargin": 24.4,
+    "ebitda": "8.9B",
+    "marketCap": "429.4B",
+    "revenue": "31.6B",
+    "eps": 1.35,
+    "beta": 0.21,
+    "week52High": 95.2,
+    "week52Low": 52.5,
+    "avgVolume": "3M",
+    "nextEarnings": null,
+    "rank": 114
+  },
+  {
+    "ticker": "YINN",
+    "name": "Direxion Daily FTSE China Bull 3X",
+    "market": "US",
+    "sector": "中国/杠杆",
+    "currency": "USD",
+    "price": 33.33,
+    "change": 0,
+    "score": 54.2,
+    "subScores": {
+      "cost": 85,
+      "liquidity": 70,
+      "momentum": 30.9,
+      "risk": 85
+    },
+    "isETF": true,
+    "etfType": "3倍杠杆ETF",
+    "leverage": "3x",
+    "expenseRatio": 0.5,
+    "premiumDiscount": 0,
+    "aum": "729M",
+    "adv": "2M",
+    "benchmark": "FTSE China 50 Index 每日3倍",
+    "issuer": "Direxion",
+    "pe": null,
+    "roe": null,
+    "momentum": 30.9,
+    "rsi": 56.8,
+    "revenueGrowth": null,
+    "profitMargin": null,
+    "ebitda": null,
+    "marketCap": "729M",
+    "revenue": null,
+    "eps": null,
+    "beta": 1.27,
+    "week52High": 57.71,
+    "week52Low": 27.73,
+    "avgVolume": "2M",
+    "nextEarnings": null,
+    "rank": 115
+  },
+  {
+    "ticker": "CPRT",
+    "name": "Copart, Inc.",
+    "nameCN": "科帕特",
+    "market": "US",
+    "sector": "软件/拍卖",
+    "currency": "USD",
+    "price": 33.45,
+    "change": 0,
+    "score": 54.1,
+    "subScores": {
+      "fundamental": 78.3,
+      "technical": 56,
+      "growth": 20
+    },
+    "isETF": false,
+    "pe": 21.04,
+    "roe": 17.1,
+    "momentum": 57.1,
+    "rsi": 64.6,
+    "revenueGrowth": -3.6,
+    "profitMargin": 33.8,
+    "ebitda": "1.9B",
+    "marketCap": "32.4B",
+    "revenue": "4.6B",
+    "eps": 1.59,
+    "beta": 1.14,
+    "week52High": 63.85,
+    "week52Low": 32.2,
+    "avgVolume": "9.2M",
+    "nextEarnings": "2026-05-22",
+    "_fetchedAt": 1776650047775,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 116
+  },
+  {
+    "ticker": "QCOM",
+    "name": "QUALCOMM Incorporated",
+    "nameCN": "高通",
+    "market": "US",
+    "sector": "半导体",
+    "currency": "USD",
+    "price": 136.2,
+    "change": 0,
+    "score": 53.7,
+    "subScores": {
+      "fundamental": 65,
+      "technical": 47.2,
+      "growth": 45
+    },
+    "isETF": false,
+    "pe": 27.46,
+    "roe": 21.5,
+    "momentum": 59.4,
+    "rsi": 74.4,
+    "revenueGrowth": 5,
+    "profitMargin": 12,
+    "ebitda": "13.8B",
+    "marketCap": "145.5B",
+    "revenue": "44.9B",
+    "eps": 4.96,
+    "beta": 1.28,
+    "week52High": 205.95,
+    "week52Low": 121.99,
+    "avgVolume": "11.3M",
+    "nextEarnings": "2026-04-30",
+    "_fetchedAt": 1776650132881,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 117
+  },
+  {
+    "ticker": "UGL",
+    "name": "ProShares Ultra Gold",
+    "market": "US",
+    "sector": "黄金/杠杆",
+    "currency": "USD",
+    "price": 61.79,
+    "change": 0,
+    "score": 53.6,
+    "subScores": {
+      "cost": 85,
+      "liquidity": 90,
+      "momentum": 16.3,
+      "risk": 85
+    },
+    "isETF": true,
+    "etfType": "2倍杠杆ETF",
+    "leverage": "2x",
+    "expenseRatio": 0.5,
+    "premiumDiscount": 0,
+    "aum": "1.1B",
+    "adv": "6M",
+    "benchmark": "Bloomberg Gold Subindex 每日2倍",
+    "issuer": "ProShares",
+    "pe": null,
+    "roe": null,
+    "momentum": 16.3,
+    "rsi": 64.5,
+    "revenueGrowth": null,
+    "profitMargin": null,
+    "ebitda": null,
+    "marketCap": "1.1B",
+    "revenue": null,
+    "eps": null,
+    "beta": 0.13,
+    "week52High": 90.4,
+    "week52Low": 32.1125,
+    "avgVolume": "6M",
+    "nextEarnings": null,
+    "rank": 118
+  },
+  {
+    "ticker": "ROP",
+    "name": "Roper Technologies, Inc.",
+    "nameCN": "罗珀科技",
+    "market": "US",
+    "sector": "软件/工业",
+    "currency": "USD",
+    "price": 362.44,
+    "change": 0,
+    "score": 53.6,
+    "subScores": {
+      "fundamental": 58.3,
+      "technical": 55.8,
+      "growth": 45
+    },
+    "isETF": false,
+    "pe": 25.51,
+    "roe": 7.9,
+    "momentum": 56.5,
+    "rsi": 65.9,
+    "revenueGrowth": 9.7,
+    "profitMargin": 19.4,
+    "ebitda": "3.1B",
+    "marketCap": "37.3B",
+    "revenue": "7.9B",
+    "eps": 14.21,
+    "beta": 0.89,
+    "week52High": 584.03,
+    "week52Low": 313.07,
+    "avgVolume": "1.7M",
+    "nextEarnings": "2026-04-23",
+    "_fetchedAt": 1776650151923,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 119
+  },
+  {
+    "ticker": "02628.HK",
+    "name": "CHINA LIFE",
+    "nameCN": "中国人寿",
+    "market": "HK",
+    "sector": "保险/寿险",
+    "currency": "HKD",
+    "price": 27.72,
+    "change": 0,
+    "score": 53,
+    "subScores": {
+      "fundamental": 90,
+      "technical": 36.6,
+      "growth": 20
+    },
+    "isETF": false,
+    "pe": 4.43,
+    "roe": 27.7,
+    "momentum": 38.3,
+    "rsi": 74.6,
+    "revenueGrowth": -33.6,
+    "profitMargin": 43.8,
+    "ebitda": "193.8B",
+    "marketCap": "1.27T",
+    "revenue": "351.9B",
+    "eps": 6.26,
+    "beta": 0.82,
+    "week52High": 36.16,
+    "week52Low": 13.58,
+    "avgVolume": "64.9M",
+    "nextEarnings": "2026-04-29",
+    "_fetchedAt": 1776649948722,
+    "_dataQuality": {
+      "score": 98,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        },
+        {
+          "dim": "accuracy",
+          "severity": "medium",
+          "msg": "日涨跌幅异常: 102.63% (超过±50%)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 90,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 120
+  },
+  {
+    "ticker": "GFS",
+    "name": "GlobalFoundries Inc.",
+    "nameCN": "格芯",
+    "market": "US",
+    "sector": "半导体",
+    "currency": "USD",
+    "price": 54.75,
+    "change": 0,
+    "score": 52.9,
+    "subScores": {
+      "fundamental": 51.7,
+      "technical": 67.5,
+      "growth": 40
+    },
+    "isETF": false,
+    "pe": 34.43,
+    "roe": 7.8,
+    "momentum": 100,
+    "rsi": 82.6,
+    "revenueGrowth": null,
+    "profitMargin": 13,
+    "ebitda": "2.0B",
+    "marketCap": "30.1B",
+    "revenue": "6.8B",
+    "eps": 1.59,
+    "beta": 1.46,
+    "week52High": 54.98,
+    "week52Low": 30.73,
+    "avgVolume": "3.9M",
+    "nextEarnings": "2026-05-05",
+    "_fetchedAt": 1776650069041,
+    "_dataQuality": {
+      "score": 98,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 55个 (预期≥100)"
+        },
+        {
+          "dim": "accuracy",
+          "severity": "medium",
+          "msg": "日涨跌幅异常: 72.71% (超过±50%)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 90,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 121
+  },
+  {
+    "ticker": "PANW",
+    "name": "Palo Alto Networks, Inc.",
+    "nameCN": "派拓网络",
+    "market": "US",
+    "sector": "软件/网络安全",
+    "currency": "USD",
+    "price": 167.85,
+    "change": 0,
+    "score": 52.8,
+    "subScores": {
+      "fundamental": 45,
+      "technical": 51.1,
+      "growth": 65
+    },
+    "isETF": false,
+    "pe": 93.25,
+    "roe": 16.3,
+    "momentum": 47.2,
+    "rsi": 67,
+    "revenueGrowth": 14.9,
+    "profitMargin": 13,
+    "ebitda": "1.5B",
+    "marketCap": "137.0B",
+    "revenue": "9.9B",
+    "eps": 1.8,
+    "beta": 0.77,
+    "week52High": 223.61,
+    "week52Low": 139.57,
+    "avgVolume": "11.0M",
+    "nextEarnings": "2026-05-21",
+    "_fetchedAt": 1776650129524,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 122
+  },
+  {
+    "ticker": "WDAY",
+    "name": "Workday, Inc.",
+    "nameCN": "Workday",
+    "market": "US",
+    "sector": "软件/HR",
+    "currency": "USD",
+    "price": 123.83,
+    "change": 0,
+    "score": 52.8,
+    "subScores": {
+      "fundamental": 45,
+      "technical": 51,
+      "growth": 65
+    },
+    "isETF": false,
+    "pe": 47.81,
+    "roe": 8.2,
+    "momentum": 32.1,
+    "rsi": 49.6,
+    "revenueGrowth": 14.5,
+    "profitMargin": 7.3,
+    "ebitda": "1.4B",
+    "marketCap": "32.6B",
+    "revenue": "9.6B",
+    "eps": 2.59,
+    "beta": 1.14,
+    "week52High": 276,
+    "week52Low": 110.36,
+    "avgVolume": "5.5M",
+    "nextEarnings": "2026-05-22",
+    "_fetchedAt": 1776650192580,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 123
+  },
+  {
+    "ticker": "MDLZ",
+    "name": "Mondelez International, Inc.",
+    "nameCN": "亿滋国际",
+    "market": "US",
+    "sector": "消费/食品",
+    "currency": "USD",
+    "price": 57.25,
+    "change": 0,
+    "score": 52.7,
+    "subScores": {
+      "fundamental": 51.7,
+      "technical": 61.7,
+      "growth": 45
+    },
+    "isETF": false,
+    "pe": 30.29,
+    "roe": 9.3,
+    "momentum": 53.4,
+    "rsi": 44,
+    "revenueGrowth": 9.3,
+    "profitMargin": 6.4,
+    "ebitda": "5.0B",
+    "marketCap": "73.5B",
+    "revenue": "38.5B",
+    "eps": 1.89,
+    "beta": 0.39,
+    "week52High": 71.15,
+    "week52Low": 51.2,
+    "avgVolume": "10.5M",
+    "nextEarnings": "2026-04-29",
+    "_fetchedAt": 1776650089999,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 124
+  },
+  {
+    "ticker": "09988.HK",
+    "name": "阿里巴巴-W",
+    "market": "HK",
+    "sector": "电商/科技",
+    "currency": "HKD",
+    "price": 123.2,
+    "change": 0,
+    "score": 52.4,
+    "subScores": {
+      "fundamental": 58.3,
+      "technical": 52,
+      "growth": 45
+    },
+    "isETF": false,
+    "pe": 22.2,
+    "roe": 8.2,
+    "momentum": 34,
+    "rsi": 42.1,
+    "revenueGrowth": 1.7,
+    "profitMargin": 8.9,
+    "ebitda": "138.7B",
+    "marketCap": "2.36T",
+    "revenue": "1.02T",
+    "eps": 5.55,
+    "beta": 0.49,
+    "week52High": 186.2,
+    "week52Low": 101.8,
+    "avgVolume": "89M",
+    "nextEarnings": null,
+    "rank": 125
+  },
+  {
+    "ticker": "00941.HK",
+    "name": "CHINA MOBILE",
+    "nameCN": "中国移动",
+    "market": "HK",
+    "sector": "电信/运营商",
+    "currency": "HKD",
+    "price": 81.55,
+    "change": 0,
+    "score": 52.3,
+    "subScores": {
+      "fundamental": 63.3,
+      "technical": 45,
+      "growth": 45
+    },
+    "isETF": false,
+    "pe": 11.26,
+    "roe": 10,
+    "momentum": 55,
+    "rsi": 89.3,
+    "revenueGrowth": 2.5,
+    "profitMargin": 13.1,
+    "ebitda": "295.2B",
+    "marketCap": "1.79T",
+    "revenue": "1.05T",
+    "eps": 7.24,
+    "beta": 0.21,
+    "week52High": 90.6,
+    "week52Low": 75.85,
+    "avgVolume": "24.5M",
+    "nextEarnings": "2026-04-22",
+    "_fetchedAt": 1776649936383,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 126
+  },
+  {
+    "ticker": "01398.HK",
+    "name": "ICBC",
+    "nameCN": "工商银行",
+    "market": "HK",
+    "sector": "银行/国有",
+    "currency": "HKD",
+    "price": 7.06,
+    "change": 0,
+    "score": 52.2,
+    "subScores": {
+      "fundamental": 76.7,
+      "technical": 51.8,
+      "growth": 20
+    },
+    "isETF": false,
+    "pe": 6.14,
+    "roe": 9,
+    "momentum": 68.6,
+    "rsi": 81.2,
+    "revenueGrowth": -3.5,
+    "profitMargin": 55.1,
+    "ebitda": null,
+    "marketCap": "3.30T",
+    "revenue": "668.4B",
+    "eps": 1.15,
+    "beta": 0.13,
+    "week52High": 7.09,
+    "week52Low": 5.15,
+    "avgVolume": "208.1M",
+    "nextEarnings": "2026-03-27",
+    "_fetchedAt": 1776649941030,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 127
+  },
+  {
+    "ticker": "WMT",
+    "name": "Walmart Inc.",
+    "market": "US",
+    "sector": "消费/必需品/Discount Stores",
+    "currency": "USD",
+    "price": 125.15,
+    "change": 0,
+    "score": 52,
+    "subScores": {
+      "fundamental": 51.7,
+      "technical": 59.4,
+      "growth": 45
+    },
+    "isETF": false,
+    "pe": 45.84,
+    "roe": 21.8,
+    "momentum": 48.8,
+    "rsi": 59.7,
+    "revenueGrowth": 5.6,
+    "profitMargin": 3.1,
+    "ebitda": "44.0B",
+    "marketCap": "997.7B",
+    "revenue": "713.2B",
+    "eps": 2.73,
+    "beta": 0.66,
+    "week52High": 134.69,
+    "week52Low": 90.61,
+    "avgVolume": "30M",
+    "nextEarnings": null,
+    "rank": 128
+  },
+  {
+    "ticker": "ODFL",
+    "name": "Old Dominion Freight Line, Inc.",
+    "nameCN": "欧德物流",
+    "market": "US",
+    "sector": "工业/物流",
+    "currency": "USD",
+    "price": 217.76,
+    "change": 0,
+    "score": 52,
+    "subScores": {
+      "fundamental": 65,
+      "technical": 66.8,
+      "growth": 20
+    },
+    "isETF": false,
+    "pe": 45.08,
+    "roe": 23.9,
+    "momentum": 98.5,
+    "rsi": 77.6,
+    "revenueGrowth": -5.7,
+    "profitMargin": 18.6,
+    "ebitda": "1.7B",
+    "marketCap": "45.5B",
+    "revenue": "5.5B",
+    "eps": 4.83,
+    "beta": 1.21,
+    "week52High": 221.63,
+    "week52Low": 126.01,
+    "avgVolume": "2.3M",
+    "nextEarnings": "2026-04-29",
+    "_fetchedAt": 1776650123997,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 129
+  },
+  {
+    "ticker": "RKLX",
+    "name": "GraniteShares 2x Long RKLB Daily ETF",
+    "market": "US",
+    "sector": "航天/杠杆",
+    "currency": "USD",
+    "price": 30.36,
+    "change": 0,
+    "score": 51.5,
+    "subScores": {
+      "cost": 85,
+      "liquidity": 70,
+      "momentum": 20,
+      "risk": 85
+    },
+    "isETF": true,
+    "etfType": "2倍杠杆ETF",
+    "leverage": "2x",
+    "expenseRatio": 0.5,
+    "premiumDiscount": 0,
+    "aum": "162M",
+    "adv": "2M",
+    "benchmark": "Rocket Lab (RKLB) 每日2倍",
+    "issuer": "GraniteShares",
+    "pe": null,
+    "roe": null,
+    "momentum": 20,
+    "rsi": 50.1,
+    "revenueGrowth": null,
+    "profitMargin": null,
+    "ebitda": null,
+    "marketCap": "162M",
+    "revenue": null,
+    "eps": null,
+    "beta": null,
+    "week52High": 78,
+    "week52Low": 5.781667,
+    "avgVolume": "2M",
+    "nextEarnings": null,
+    "rank": 130
+  },
+  {
+    "ticker": "DDOG",
+    "name": "Datadog, Inc.",
+    "nameCN": "Datadog",
+    "market": "US",
+    "sector": "软件/可观测性",
+    "currency": "USD",
+    "price": 126.61,
+    "change": 0,
+    "score": 51.5,
+    "subScores": {
+      "fundamental": 31.7,
+      "technical": 49.3,
+      "growth": 80
+    },
+    "isETF": false,
+    "pe": 422.03,
+    "roe": 3.3,
+    "momentum": 43.6,
+    "rsi": 64.4,
+    "revenueGrowth": 29.2,
+    "profitMargin": 3.1,
+    "ebitda": "7.5M",
+    "marketCap": "44.8B",
+    "revenue": "3.4B",
+    "eps": 0.3,
+    "beta": 1.29,
+    "week52High": 201.69,
+    "week52Low": 87.695,
+    "avgVolume": "5.8M",
+    "nextEarnings": "2026-05-07",
+    "_fetchedAt": 1776650053865,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 131
+  },
+  {
+    "ticker": "ORLY",
+    "name": "O'Reilly Automotive, Inc.",
+    "nameCN": "奥莱利汽配",
+    "market": "US",
+    "sector": "零售/汽配",
+    "currency": "USD",
+    "price": 93.71,
+    "change": 0,
+    "score": 51.1,
+    "subScores": {
+      "fundamental": 48.3,
+      "technical": 60.8,
+      "growth": 45
+    },
+    "isETF": false,
+    "pe": 31.55,
+    "roe": null,
+    "momentum": 66.5,
+    "rsi": 64.4,
+    "revenueGrowth": 7.8,
+    "profitMargin": 14.3,
+    "ebitda": "4.0B",
+    "marketCap": "78.6B",
+    "revenue": "17.8B",
+    "eps": 2.97,
+    "beta": 0.6,
+    "week52High": 108.72,
+    "week52Low": 86.77,
+    "avgVolume": "5.9M",
+    "nextEarnings": "2026-04-30",
+    "_fetchedAt": 1776650128292,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 132
+  },
+  {
+    "ticker": "AAOI",
+    "name": "Applied Optoelectronics, Inc.",
+    "market": "US",
+    "sector": "光通信/激光",
+    "currency": "USD",
+    "price": 150,
+    "change": 0,
+    "score": 50.9,
+    "subScores": {
+      "fundamental": 16.7,
+      "technical": 67.5,
+      "growth": 80
+    },
+    "isETF": false,
+    "pe": null,
+    "roe": -7.9,
+    "momentum": 100,
+    "rsi": 73.2,
+    "revenueGrowth": 33.9,
+    "profitMargin": -8.4,
+    "ebitda": "-27M",
+    "marketCap": "11.7B",
+    "revenue": "456M",
+    "eps": -0.63,
+    "beta": 3.22,
+    "week52High": 155,
+    "week52Low": 9.711,
+    "avgVolume": "10M",
+    "nextEarnings": null,
+    "rank": 133
+  },
+  {
+    "ticker": "AMAT",
+    "name": "Applied Materials, Inc.",
+    "nameCN": "应用材料",
+    "market": "US",
+    "sector": "半导体",
+    "currency": "USD",
+    "price": 396.94,
+    "change": 0,
+    "score": 50.9,
+    "subScores": {
+      "fundamental": 70,
+      "technical": 56.4,
+      "growth": 20
+    },
+    "isETF": false,
+    "pe": 40.67,
+    "roe": 38.9,
+    "momentum": 77.8,
+    "rsi": 75.4,
+    "revenueGrowth": -2.1,
+    "profitMargin": 27.8,
+    "ebitda": "8.9B",
+    "marketCap": "315.0B",
+    "revenue": "28.2B",
+    "eps": 9.76,
+    "beta": 1.64,
+    "week52High": 407.29,
+    "week52Low": 132.8,
+    "avgVolume": "7.2M",
+    "nextEarnings": "2026-05-15",
+    "_fetchedAt": 1776649990918,
+    "_dataQuality": {
+      "score": 98,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        },
+        {
+          "dim": "accuracy",
+          "severity": "medium",
+          "msg": "日涨跌幅异常: 188.77% (超过±50%)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 90,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 134
+  },
+  {
+    "ticker": "SCO",
+    "name": "ProShares UltraShort Crude Oil",
+    "market": "US",
+    "sector": "原油/反向",
+    "currency": "USD",
+    "price": 7.53,
+    "change": 0,
+    "score": 50.2,
+    "subScores": {
+      "cost": 85,
+      "liquidity": 70,
+      "momentum": 15,
+      "risk": 85
+    },
+    "isETF": true,
+    "etfType": "2倍反向ETF",
+    "leverage": "-2x",
+    "expenseRatio": 0.5,
+    "premiumDiscount": 0,
+    "aum": "970M",
+    "adv": "23M",
+    "benchmark": "Bloomberg WTI Crude Oil Subindex 每日-2倍",
+    "issuer": "ProShares",
+    "pe": null,
+    "roe": null,
+    "momentum": 15,
+    "rsi": 35.1,
+    "revenueGrowth": null,
+    "profitMargin": null,
+    "ebitda": null,
+    "marketCap": "970M",
+    "revenue": null,
+    "eps": null,
+    "beta": -2.32,
+    "week52High": 23.33,
+    "week52Low": 7.46,
+    "avgVolume": "23M",
+    "nextEarnings": null,
+    "rank": 135
+  },
+  {
+    "ticker": "09618.HK",
+    "name": "JD-SW",
+    "nameCN": "京东集团",
+    "market": "HK",
+    "sector": "电商/物流",
+    "currency": "HKD",
+    "price": 122.2,
+    "change": 0,
+    "score": 50,
+    "subScores": {
+      "fundamental": 51.7,
+      "technical": 52.9,
+      "growth": 45
+    },
+    "isETF": false,
+    "pe": 16.49,
+    "roe": 7.6,
+    "momentum": 70.8,
+    "rsi": 75.6,
+    "revenueGrowth": 1.5,
+    "profitMargin": 1.5,
+    "ebitda": "13.4B",
+    "marketCap": "354.4B",
+    "revenue": "1.31T",
+    "eps": 7.41,
+    "beta": 0.37,
+    "week52High": 143.8,
+    "week52Low": 95.9,
+    "avgVolume": "12.9M",
+    "nextEarnings": "2026-05-07",
+    "_fetchedAt": 1776649959877,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 136
+  },
+  {
+    "ticker": "00883.HK",
+    "name": "CNOOC",
+    "nameCN": "中海油",
+    "market": "HK",
+    "sector": "能源/石油",
+    "currency": "HKD",
+    "price": 26.46,
+    "change": 0,
+    "score": 49.6,
+    "subScores": {
+      "fundamental": 83.3,
+      "technical": 34.4,
+      "growth": 20
+    },
+    "isETF": false,
+    "pe": 8.97,
+    "roe": 15.7,
+    "momentum": 33.7,
+    "rsi": 25.9,
+    "revenueGrowth": -9.3,
+    "profitMargin": 30.7,
+    "ebitda": "246.1B",
+    "marketCap": "1.30T",
+    "revenue": "398.2B",
+    "eps": 2.95,
+    "beta": 0.3,
+    "week52High": 30.98,
+    "week52Low": 16.24,
+    "avgVolume": "160.8M",
+    "nextEarnings": "2026-03-26",
+    "_fetchedAt": 1776649929522,
+    "_dataQuality": {
+      "score": 98,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        },
+        {
+          "dim": "accuracy",
+          "severity": "medium",
+          "msg": "日涨跌幅异常: 57.31% (超过±50%)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 90,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 137
+  },
+  {
+    "ticker": "CWEB",
+    "name": "Direxion Daily CSI China Internet Bull 2X",
+    "market": "US",
+    "sector": "中国互联网/杠杆",
+    "currency": "USD",
+    "price": 26.52,
+    "change": 0,
+    "score": 49.5,
+    "subScores": {
+      "cost": 85,
+      "liquidity": 70,
+      "momentum": 11.8,
+      "risk": 85
+    },
+    "isETF": true,
+    "etfType": "2倍杠杆ETF",
+    "leverage": "2x",
+    "expenseRatio": 0.5,
+    "premiumDiscount": 0,
+    "aum": "235M",
+    "adv": "480078",
+    "benchmark": "CSI Overseas China Internet Index 每日2倍",
+    "issuer": "Direxion",
+    "pe": null,
+    "roe": null,
+    "momentum": 11.8,
+    "rsi": 48.6,
+    "revenueGrowth": null,
+    "profitMargin": null,
+    "ebitda": null,
+    "marketCap": "235M",
+    "revenue": null,
+    "eps": null,
+    "beta": 1.74,
+    "week52High": 61.24,
+    "week52Low": 25.18,
+    "avgVolume": "480078",
+    "nextEarnings": null,
+    "rank": 138
+  },
+  {
+    "ticker": "00981.HK",
+    "name": "SMIC",
+    "nameCN": "中芯国际",
+    "market": "HK",
+    "sector": "半导体/晶圆代工",
+    "currency": "HKD",
+    "price": 59.05,
+    "change": 0,
+    "score": 49,
+    "subScores": {
+      "fundamental": 38.3,
+      "technical": 47.1,
+      "growth": 65
+    },
+    "isETF": false,
+    "pe": 83.17,
+    "roe": 3,
+    "momentum": 39.3,
+    "rsi": 65.2,
+    "revenueGrowth": 12.8,
+    "profitMargin": 7.3,
+    "ebitda": "4.4B",
+    "marketCap": "597.5B",
+    "revenue": "9.3B",
+    "eps": 0.71,
+    "beta": 0.15,
+    "week52High": 93.5,
+    "week52Low": 38.65,
+    "avgVolume": "60.1M",
+    "nextEarnings": "2026-05-07",
+    "_fetchedAt": 1776649933950,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 139
+  },
+  {
+    "ticker": "RKLB",
+    "name": "Rocket Lab Corp",
+    "market": "US",
+    "sector": "航天/国防",
+    "currency": "USD",
+    "price": 70.35,
+    "change": 0,
+    "score": 48.2,
+    "subScores": {
+      "fundamental": 16.7,
+      "technical": 58.3,
+      "growth": 80
+    },
+    "isETF": false,
+    "pe": null,
+    "roe": -18.8,
+    "momentum": 46.6,
+    "rsi": 52.6,
+    "revenueGrowth": 35.7,
+    "profitMargin": -32.9,
+    "ebitda": "-186M",
+    "marketCap": "40.5B",
+    "revenue": "602M",
+    "eps": -0.37,
+    "beta": 2.21,
+    "week52High": 99.58,
+    "week52Low": 18.21,
+    "avgVolume": "22M",
+    "nextEarnings": null,
+    "rank": 140
+  },
+  {
+    "ticker": "02318.HK",
+    "name": "PING AN",
+    "nameCN": "中国平安",
+    "market": "HK",
+    "sector": "保险/综合金融",
+    "currency": "HKD",
+    "price": 60.7,
+    "change": 0,
+    "score": 48.2,
+    "subScores": {
+      "fundamental": 70,
+      "technical": 47.2,
+      "growth": 20
+    },
+    "isETF": false,
+    "pe": 7.11,
+    "roe": 11.6,
+    "momentum": 39.4,
+    "rsi": 60.5,
+    "revenueGrowth": -11,
+    "profitMargin": 14.1,
+    "ebitda": "226.3B",
+    "marketCap": "1.21T",
+    "revenue": "955.7B",
+    "eps": 8.54,
+    "beta": 0.77,
+    "week52High": 74.7,
+    "week52Low": 43.5,
+    "avgVolume": "41.4M",
+    "nextEarnings": "2026-04-28",
+    "_fetchedAt": 1776649950108,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 141
+  },
+  {
+    "ticker": "07299.HK",
+    "name": "南方两倍做多黄金",
+    "market": "HK",
+    "sector": "黄金/杠杆ETF",
+    "currency": "HKD",
+    "price": 29.54,
+    "change": 0,
+    "score": 47.8,
+    "subScores": {
+      "cost": 85,
+      "liquidity": 70,
+      "momentum": 5.1,
+      "risk": 85
+    },
+    "isETF": true,
+    "etfType": "2倍杠杆ETF",
+    "leverage": "2x",
+    "expenseRatio": 0.5,
+    "premiumDiscount": 0,
+    "aum": "246M",
+    "adv": "4M",
+    "benchmark": "LBMA Gold Price AM 每日2倍",
+    "issuer": "CSOP Asset Management",
+    "pe": null,
+    "roe": null,
+    "momentum": 5.1,
+    "rsi": 49.1,
+    "revenueGrowth": null,
+    "profitMargin": null,
+    "ebitda": null,
+    "marketCap": "246M",
+    "revenue": null,
+    "eps": null,
+    "beta": null,
+    "week52High": 43.4,
+    "week52Low": 15.07,
+    "avgVolume": "4M",
+    "nextEarnings": null,
+    "rank": 142
+  },
+  {
+    "ticker": "00066.HK",
+    "name": "MTR CORPORATION",
+    "nameCN": "港铁公司",
+    "market": "HK",
+    "sector": "公用事业/交通",
+    "currency": "HKD",
+    "price": 34.12,
+    "change": 0,
+    "score": 47.8,
+    "subScores": {
+      "fundamental": 70,
+      "technical": 46,
+      "growth": 20
+    },
+    "isETF": false,
+    "pe": 14.46,
+    "roe": 7.7,
+    "momentum": 57.1,
+    "rsi": 74.4,
+    "revenueGrowth": -8.6,
+    "profitMargin": 27.6,
+    "ebitda": "27.3B",
+    "marketCap": "212.1B",
+    "revenue": "55.5B",
+    "eps": 2.36,
+    "beta": 0.63,
+    "week52High": 37.88,
+    "week52Low": 25.65,
+    "avgVolume": "7.4M",
+    "nextEarnings": "2026-03-12",
+    "_fetchedAt": 1776649924592,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 143
+  },
+  {
+    "ticker": "EA",
+    "name": "Electronic Arts Inc.",
+    "nameCN": "艺电",
+    "market": "US",
+    "sector": "娱乐/游戏",
+    "currency": "USD",
+    "price": 203.83,
+    "change": 0,
+    "score": 47.8,
+    "subScores": {
+      "fundamental": 45,
+      "technical": 54.5,
+      "growth": 45
+    },
+    "isETF": false,
+    "pe": 76.34,
+    "roe": 10,
+    "momentum": 53.9,
+    "rsi": 63.5,
+    "revenueGrowth": 1,
+    "profitMargin": 9.3,
+    "ebitda": "1.3B",
+    "marketCap": "51.0B",
+    "revenue": "7.3B",
+    "eps": 2.67,
+    "beta": 0.72,
+    "week52High": 204.89,
+    "week52Low": 141.04,
+    "avgVolume": "2.6M",
+    "nextEarnings": "2026-05-06",
+    "_fetchedAt": 1776650057409,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 144
+  },
+  {
+    "ticker": "00268.HK",
+    "name": "KINGDEE INT'L",
+    "nameCN": "金蝶国际",
+    "market": "HK",
+    "sector": "软件/企业服务",
+    "currency": "HKD",
+    "price": 9.2,
+    "change": 0,
+    "score": 47.1,
+    "subScores": {
+      "fundamental": 31.7,
+      "technical": 49.8,
+      "growth": 65
+    },
+    "isETF": false,
+    "pe": 306.67,
+    "roe": 0.9,
+    "momentum": 29.5,
+    "rsi": 55.6,
+    "revenueGrowth": 12.6,
+    "profitMargin": 1.3,
+    "ebitda": "165.9M",
+    "marketCap": "32.3B",
+    "revenue": "7.0B",
+    "eps": 0.03,
+    "beta": 1,
+    "week52High": 19,
+    "week52Low": 7.92,
+    "avgVolume": "44.5M",
+    "nextEarnings": "2026-03-17",
+    "_fetchedAt": 1776649930859,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 145
+  },
+  {
+    "ticker": "PCAR",
+    "name": "PACCAR Inc.",
+    "nameCN": "帕卡",
+    "market": "US",
+    "sector": "工业/重卡",
+    "currency": "USD",
+    "price": 126.25,
+    "change": 0,
+    "score": 46.5,
+    "subScores": {
+      "fundamental": 58.3,
+      "technical": 57.4,
+      "growth": 20
+    },
+    "isETF": false,
+    "pe": 27.99,
+    "roe": 12.9,
+    "momentum": 79.7,
+    "rsi": 80.5,
+    "revenueGrowth": -13.7,
+    "profitMargin": 8.4,
+    "ebitda": "3.4B",
+    "marketCap": "66.4B",
+    "revenue": "28.4B",
+    "eps": 4.51,
+    "beta": 1.06,
+    "week52High": 131.88,
+    "week52Low": 84.65,
+    "avgVolume": "3.1M",
+    "nextEarnings": "2026-04-28",
+    "_fetchedAt": 1776650128660,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 146
+  },
+  {
+    "ticker": "BIIB",
+    "name": "Biogen Inc.",
+    "nameCN": "百健",
+    "market": "US",
+    "sector": "医疗/生物科技",
+    "currency": "USD",
+    "price": 177.35,
+    "change": 0,
+    "score": 46.1,
+    "subScores": {
+      "fundamental": 58.3,
+      "technical": 55.9,
+      "growth": 20
+    },
+    "isETF": false,
+    "pe": 20.15,
+    "roe": 7.4,
+    "momentum": 41.7,
+    "rsi": 43.2,
+    "revenueGrowth": -7.1,
+    "profitMargin": 13.1,
+    "ebitda": "3.6B",
+    "marketCap": "26.0B",
+    "revenue": "9.9B",
+    "eps": 8.8,
+    "beta": 0.16,
+    "week52High": 202.41,
+    "week52Low": 115.25,
+    "avgVolume": "1.2M",
+    "nextEarnings": "2026-04-29",
+    "_fetchedAt": 1776650033526,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 147
+  },
+  {
+    "ticker": "01211.HK",
+    "name": "BYD COMPANY",
+    "nameCN": "比亚迪",
+    "market": "HK",
+    "sector": "新能源车/电池",
+    "currency": "HKD",
+    "price": 111.1,
+    "change": 0,
+    "score": 45.7,
+    "subScores": {
+      "fundamental": 51.7,
+      "technical": 63.4,
+      "growth": 20
+    },
+    "isETF": false,
+    "pe": 27.03,
+    "roe": 14.8,
+    "momentum": 71.8,
+    "rsi": 62.4,
+    "revenueGrowth": -13.5,
+    "profitMargin": 4.1,
+    "ebitda": "109.7B",
+    "marketCap": "1.10T",
+    "revenue": "804.0B",
+    "eps": 4.11,
+    "beta": 0.33,
+    "week52High": 158.86667,
+    "week52Low": 88.5,
+    "avgVolume": "31.1M",
+    "nextEarnings": "2026-04-28",
+    "_fetchedAt": 1776649938769,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 148
+  },
+  {
+    "ticker": "09868.HK",
+    "name": "XPENG-W",
+    "nameCN": "小鹏汽车",
+    "market": "HK",
+    "sector": "新能源车",
+    "currency": "HKD",
+    "price": 69.65,
+    "change": 0,
+    "score": 45.7,
+    "subScores": {
+      "fundamental": 16.7,
+      "technical": 50.1,
+      "growth": 80
+    },
+    "isETF": false,
+    "pe": null,
+    "roe": -3.7,
+    "momentum": 30.2,
+    "rsi": 48.3,
+    "revenueGrowth": 38.2,
+    "profitMargin": -1.5,
+    "ebitda": "-269556992",
+    "marketCap": "133.1B",
+    "revenue": "76.7B",
+    "eps": -0.69,
+    "beta": 1.18,
+    "week52High": 110.8,
+    "week52Low": 60.35,
+    "avgVolume": "16.4M",
+    "nextEarnings": "2026-05-13",
+    "_fetchedAt": 1776649960169,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 58个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 149
+  },
+  {
+    "ticker": "MDB",
+    "name": "MongoDB, Inc.",
+    "nameCN": "MongoDB",
+    "market": "US",
+    "sector": "软件/数据库",
+    "currency": "USD",
+    "price": 263.38,
+    "change": 0,
+    "score": 45.5,
+    "subScores": {
+      "fundamental": 16.7,
+      "technical": 49.4,
+      "growth": 80
+    },
+    "isETF": false,
+    "pe": null,
+    "roe": -2.5,
+    "momentum": 43.7,
+    "rsi": 65.2,
+    "revenueGrowth": 26.7,
+    "profitMargin": -2.9,
+    "ebitda": "-109100000",
+    "marketCap": "21.4B",
+    "revenue": "2.5B",
+    "eps": -0.87,
+    "beta": 1.6,
+    "week52High": 444.72,
+    "week52Low": 148.88,
+    "avgVolume": "1.9M",
+    "nextEarnings": "2026-06-05",
+    "_fetchedAt": 1776650087700,
+    "_dataQuality": {
+      "score": 98,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        },
+        {
+          "dim": "accuracy",
+          "severity": "medium",
+          "msg": "日涨跌幅异常: 65.38% (超过±50%)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 90,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 150
+  },
+  {
+    "ticker": "BABX",
+    "name": "GraniteShares 2x Long BABA Daily ETF",
+    "market": "US",
+    "sector": "中国科技/杠杆",
+    "currency": "USD",
+    "price": 24.7,
+    "change": 0,
+    "score": 45.4,
+    "subScores": {
+      "cost": 85,
+      "liquidity": 50,
+      "momentum": 7.6,
+      "risk": 85
+    },
+    "isETF": true,
+    "etfType": "2倍杠杆ETF",
+    "leverage": "2x",
+    "expenseRatio": 0.5,
+    "premiumDiscount": 0,
+    "aum": "99M",
+    "adv": "814630",
+    "benchmark": "Alibaba (BABA) 每日2倍",
+    "issuer": "GraniteShares",
+    "pe": null,
+    "roe": null,
+    "momentum": 7.6,
+    "rsi": 48.6,
+    "revenueGrowth": null,
+    "profitMargin": null,
+    "ebitda": null,
+    "marketCap": "99M",
+    "revenue": null,
+    "eps": null,
+    "beta": 1.06,
+    "week52High": 66,
+    "week52Low": 20.682,
+    "avgVolume": "814630",
+    "nextEarnings": null,
+    "rank": 151
+  },
+  {
+    "ticker": "07709.HK",
+    "name": "南方两倍做多海力士",
+    "market": "HK",
+    "sector": "存储/杠杆ETF",
+    "currency": "HKD",
+    "price": 31.1,
+    "change": 0,
+    "score": 44.7,
+    "subScores": {
+      "cost": 62.5,
+      "liquidity": 90,
+      "momentum": 72.8,
+      "risk": 15
+    },
+    "isETF": true,
+    "etfType": "2倍杠杆ETF",
+    "leverage": "2x",
+    "expenseRatio": 2,
+    "premiumDiscount": 0,
+    "aum": "2.0B",
+    "adv": "71M",
+    "benchmark": "SK Hynix (KRX:000660) 每日2倍",
+    "issuer": "CSOP Asset Management",
+    "pe": null,
+    "roe": null,
+    "momentum": 72.8,
+    "rsi": 48.6,
+    "revenueGrowth": null,
+    "profitMargin": null,
+    "ebitda": null,
+    "marketCap": "2.0B",
+    "revenue": null,
+    "eps": null,
+    "beta": null,
+    "week52High": 43.06,
+    "week52Low": 8.42,
+    "avgVolume": "71M",
+    "nextEarnings": null,
+    "nav": 25.37,
+    "topHoldings": [
+      {
+        "name": "SK Hynix 掉期合约",
+        "weight": 100
+      }
+    ],
+    "concentrationTop3": 100,
+    "totalHoldings": 1,
+    "trackingError": "较高 (杠杆损耗)",
+    "rank": 152
+  },
+  {
+    "ticker": "EXC",
+    "name": "Exelon Corporation",
+    "nameCN": "爱克斯龙",
+    "market": "US",
+    "sector": "公用事业/电力",
+    "currency": "USD",
+    "price": 47.02,
+    "change": 0,
+    "score": 44.3,
+    "subScores": {
+      "fundamental": 58.3,
+      "technical": 49.9,
+      "growth": 20
+    },
+    "isETF": false,
+    "pe": 17.22,
+    "roe": 9.9,
+    "momentum": 44.8,
+    "rsi": 38.8,
+    "revenueGrowth": -1.1,
+    "profitMargin": 11.4,
+    "ebitda": "8.1B",
+    "marketCap": "48.1B",
+    "revenue": "24.3B",
+    "eps": 2.73,
+    "beta": 0.51,
+    "week52High": 50.65,
+    "week52Low": 41.71,
+    "avgVolume": "8.9M",
+    "nextEarnings": "2026-05-06",
+    "_fetchedAt": 1776650059522,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 153
+  },
+  {
+    "ticker": "06690.HK",
+    "name": "HAIER SMARTHOME",
+    "nameCN": "海尔智家",
+    "market": "HK",
+    "sector": "家电/智能制造",
+    "currency": "HKD",
+    "price": 21.12,
+    "change": 0,
+    "score": 43.8,
+    "subScores": {
+      "fundamental": 70,
+      "technical": 32.8,
+      "growth": 20
+    },
+    "isETF": false,
+    "pe": 8.77,
+    "roe": 16.5,
+    "momentum": 10.5,
+    "rsi": 32.4,
+    "revenueGrowth": -6.7,
+    "profitMargin": 6.5,
+    "ebitda": "26.5B",
+    "marketCap": "222.5B",
+    "revenue": "302.3B",
+    "eps": 2.41,
+    "beta": 0.62,
+    "week52High": 28.2,
+    "week52Low": 20.32,
+    "avgVolume": "16.3M",
+    "nextEarnings": "2026-04-27",
+    "_fetchedAt": 1776649955078,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 154
+  },
+  {
+    "ticker": "ZS",
+    "name": "Zscaler, Inc.",
+    "nameCN": "Zscaler",
+    "market": "US",
+    "sector": "软件/网络安全",
+    "currency": "USD",
+    "price": 134.68,
+    "change": 0,
+    "score": 43.7,
+    "subScores": {
+      "fundamental": 16.7,
+      "technical": 43.4,
+      "growth": 80
+    },
+    "isETF": false,
+    "pe": null,
+    "roe": -3.6,
+    "momentum": 16.7,
+    "rsi": 51.3,
+    "revenueGrowth": 25.9,
+    "profitMargin": -2.3,
+    "ebitda": "-68018000",
+    "marketCap": "21.7B",
+    "revenue": "3.0B",
+    "eps": -0.43,
+    "beta": 1.11,
+    "week52High": 336.99,
+    "week52Low": 114.625,
+    "avgVolume": "3.0M",
+    "nextEarnings": "2026-05-29",
+    "_fetchedAt": 1776650193721,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 155
+  },
+  {
+    "ticker": "01347.HK",
+    "name": "HUA HONG SEMI",
+    "nameCN": "华虹半导体",
+    "market": "HK",
+    "sector": "半导体/晶圆代工",
+    "currency": "HKD",
+    "price": 91.65,
+    "change": 0,
+    "score": 43.3,
+    "subScores": {
+      "fundamental": 23.3,
+      "technical": 48.3,
+      "growth": 65
+    },
+    "isETF": false,
+    "pe": 366.6,
+    "roe": -1.2,
+    "momentum": 41.6,
+    "rsi": 61.6,
+    "revenueGrowth": 22.4,
+    "profitMargin": 2.3,
+    "ebitda": "584.5M",
+    "marketCap": "181.4B",
+    "revenue": "2.4B",
+    "eps": 0.25,
+    "beta": 1.31,
+    "week52High": 124,
+    "week52Low": 29,
+    "avgVolume": "20.5M",
+    "nextEarnings": "2026-05-07",
+    "_fetchedAt": 1776649939516,
+    "_dataQuality": {
+      "score": 98,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        },
+        {
+          "dim": "accuracy",
+          "severity": "medium",
+          "msg": "日涨跌幅异常: 153.53% (超过±50%)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 90,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 156
+  },
+  {
+    "ticker": "MCHP",
+    "name": "Microchip Technology Incorporat",
+    "nameCN": "微芯科技",
+    "market": "US",
+    "sector": "半导体",
+    "currency": "USD",
+    "price": 78.76,
+    "change": 0,
+    "score": 42.9,
+    "subScores": {
+      "fundamental": 26.7,
+      "technical": 67.5,
+      "growth": 40
+    },
+    "isETF": false,
+    "pe": null,
+    "roe": null,
+    "momentum": 100,
+    "rsi": 90.6,
+    "revenueGrowth": null,
+    "profitMargin": null,
+    "ebitda": null,
+    "marketCap": null,
+    "revenue": null,
+    "eps": null,
+    "beta": null,
+    "week52High": 83.35,
+    "week52Low": 37.41,
+    "avgVolume": null,
+    "nextEarnings": null,
+    "_fetchedAt": 1776650103192,
+    "_dataQuality": {
+      "score": 98,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        },
+        {
+          "dim": "accuracy",
+          "severity": "medium",
+          "msg": "日涨跌幅异常: 104.25% (超过±50%)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 90,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 157
+  },
+  {
+    "ticker": "COIN",
+    "name": "Coinbase Global, Inc.",
+    "nameCN": "Coinbase",
+    "market": "US",
+    "sector": "互联网/加密货币",
+    "currency": "USD",
+    "price": 206.33,
+    "change": 0,
+    "score": 42.7,
+    "subScores": {
+      "fundamental": 58.3,
+      "technical": 44.6,
+      "growth": 20
+    },
+    "isETF": false,
+    "pe": 46.26,
+    "roe": 10.1,
+    "momentum": 54.2,
+    "rsi": 83.8,
+    "revenueGrowth": -22.2,
+    "profitMargin": 18.3,
+    "ebitda": "1.7B",
+    "marketCap": "55.6B",
+    "revenue": "6.9B",
+    "eps": 4.46,
+    "beta": 3.61,
+    "week52High": 444.65,
+    "week52Low": 139.36,
+    "avgVolume": "12.7M",
+    "nextEarnings": "2026-05-08",
+    "_fetchedAt": 1776650043463,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 158
+  },
+  {
+    "ticker": "MSTR",
+    "name": "Strategy Inc",
+    "nameCN": "微策略",
+    "market": "US",
+    "sector": "软件/比特币",
+    "currency": "USD",
+    "price": 166.52,
+    "change": 0,
+    "score": 42.4,
+    "subScores": {
+      "fundamental": 21.7,
+      "technical": 67.5,
+      "growth": 45
+    },
+    "isETF": false,
+    "pe": null,
+    "roe": -11.1,
+    "momentum": 100,
+    "rsi": 79.8,
+    "revenueGrowth": 1.9,
+    "profitMargin": null,
+    "ebitda": "-5443467776",
+    "marketCap": "57.7B",
+    "revenue": "477.2M",
+    "eps": -15.24,
+    "beta": 3.56,
+    "week52High": 457.22,
+    "week52Low": 104.17,
+    "avgVolume": "21.6M",
+    "nextEarnings": "2026-05-06",
+    "_fetchedAt": 1776650119393,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 159
+  },
+  {
+    "ticker": "09626.HK",
+    "name": "BILIBILI-W",
+    "nameCN": "哔哩哔哩",
+    "market": "HK",
+    "sector": "互联网/视频",
+    "currency": "HKD",
+    "price": 195.1,
+    "change": 0,
+    "score": 42,
+    "subScores": {
+      "fundamental": 38.3,
+      "technical": 44,
+      "growth": 45
+    },
+    "isETF": false,
+    "pe": 59.48,
+    "roe": 8,
+    "momentum": 32.9,
+    "rsi": 60.3,
+    "revenueGrowth": 7.6,
+    "profitMargin": 3.9,
+    "ebitda": "3.2B",
+    "marketCap": "81.3B",
+    "revenue": "30.3B",
+    "eps": 3.28,
+    "beta": 0.87,
+    "week52High": 285.6,
+    "week52Low": 127.5,
+    "avgVolume": "4.2M",
+    "nextEarnings": null,
+    "_fetchedAt": 1776649958878,
+    "_dataQuality": {
+      "score": 98,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        },
+        {
+          "dim": "accuracy",
+          "severity": "medium",
+          "msg": "日涨跌幅异常: 50.31% (超过±50%)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 90,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 160
+  },
+  {
+    "ticker": "CRWD",
+    "name": "CrowdStrike Holdings, Inc.",
+    "nameCN": "CrowdStrike",
+    "market": "US",
+    "sector": "软件/网络安全",
+    "currency": "USD",
+    "price": 423.95,
+    "change": 0,
+    "score": 41.5,
+    "subScores": {
+      "fundamental": 16.7,
+      "technical": 51.3,
+      "growth": 65
+    },
+    "isETF": false,
+    "pe": null,
+    "roe": -4.1,
+    "momentum": 47.5,
+    "rsi": 67.2,
+    "revenueGrowth": 23.3,
+    "profitMargin": -3.4,
+    "ebitda": "-46664000",
+    "marketCap": "107.5B",
+    "revenue": "4.8B",
+    "eps": -0.64,
+    "beta": 1.07,
+    "week52High": 566.9,
+    "week52Low": 342.72,
+    "avgVolume": "4.1M",
+    "nextEarnings": "2026-06-10",
+    "_fetchedAt": 1776650050166,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 161
+  },
+  {
+    "ticker": "03690.HK",
+    "name": "MEITUAN-W",
+    "nameCN": "美团",
+    "market": "HK",
+    "sector": "互联网/本地生活",
+    "currency": "HKD",
+    "price": 85.55,
+    "change": 0,
+    "score": 40.6,
+    "subScores": {
+      "fundamental": 16.7,
+      "technical": 68.2,
+      "growth": 45
+    },
+    "isETF": false,
+    "pe": null,
+    "roe": -14.4,
+    "momentum": 66.3,
+    "rsi": 47.7,
+    "revenueGrowth": 4.1,
+    "profitMargin": -6.4,
+    "ebitda": "-20899678208",
+    "marketCap": "528.5B",
+    "revenue": "364.9B",
+    "eps": -4.51,
+    "beta": 0.2,
+    "week52High": 149.8,
+    "week52Low": 73.6,
+    "avgVolume": "53.0M",
+    "nextEarnings": "2026-05-26",
+    "_fetchedAt": 1776649956260,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 162
+  },
+  {
+    "ticker": "TEAM",
+    "name": "Atlassian Corporation",
+    "nameCN": "Atlassian",
+    "market": "US",
+    "sector": "软件/协作",
+    "currency": "USD",
+    "price": 66.94,
+    "change": 0,
+    "score": 40.3,
+    "subScores": {
+      "fundamental": 16.7,
+      "technical": 47.1,
+      "growth": 65
+    },
+    "isETF": false,
+    "pe": null,
+    "roe": -13.5,
+    "momentum": 24.3,
+    "rsi": 52.8,
+    "revenueGrowth": 23.3,
+    "profitMargin": -3.3,
+    "ebitda": "-22988000",
+    "marketCap": "17.7B",
+    "revenue": "5.8B",
+    "eps": -0.72,
+    "beta": 0.99,
+    "week52High": 242,
+    "week52Low": 56.01,
+    "avgVolume": "7.2M",
+    "nextEarnings": "2026-05-01",
+    "_fetchedAt": 1776650183103,
+    "_dataQuality": {
+      "score": 98,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        },
+        {
+          "dim": "accuracy",
+          "severity": "medium",
+          "msg": "日涨跌幅异常: -66.98% (超过±50%)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 90,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 163
+  },
+  {
+    "ticker": "SBUX",
+    "name": "Starbucks Corporation",
+    "nameCN": "星巴克",
+    "market": "US",
+    "sector": "餐饮/咖啡",
+    "currency": "USD",
+    "price": 100,
+    "change": 0,
+    "score": 39.2,
+    "subScores": {
+      "fundamental": 28.3,
+      "technical": 48,
+      "growth": 45
+    },
+    "isETF": false,
+    "pe": 83.33,
+    "roe": null,
+    "momentum": 60.9,
+    "rsi": 94.1,
+    "revenueGrowth": 5.5,
+    "profitMargin": 3.6,
+    "ebitda": "5.3B",
+    "marketCap": "113.9B",
+    "revenue": "37.7B",
+    "eps": 1.2,
+    "beta": 0.94,
+    "week52High": 104.82,
+    "week52Low": 75.5,
+    "avgVolume": "8.8M",
+    "nextEarnings": "2026-04-29",
+    "_fetchedAt": 1776650155719,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 164
+  },
+  {
+    "ticker": "02015.HK",
+    "name": "LI AUTO-W",
+    "nameCN": "理想汽车",
+    "market": "HK",
+    "sector": "新能源车",
+    "currency": "HKD",
+    "price": 71.15,
+    "change": 0,
+    "score": 39.1,
+    "subScores": {
+      "fundamental": 31.7,
+      "technical": 68,
+      "growth": 20
+    },
+    "isETF": false,
+    "pe": 114.76,
+    "roe": 1.6,
+    "momentum": 66.1,
+    "rsi": 56.3,
+    "revenueGrowth": -35,
+    "profitMargin": 1,
+    "ebitda": "4.0B",
+    "marketCap": "145.5B",
+    "revenue": "112.3B",
+    "eps": 0.62,
+    "beta": 0.58,
+    "week52High": 128.1,
+    "week52Low": 61.15,
+    "avgVolume": "12.2M",
+    "nextEarnings": "2026-05-12",
+    "_fetchedAt": 1776649944750,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 57个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 165
+  },
+  {
+    "ticker": "ADP",
+    "name": "Automatic Data Processing, Inc.",
+    "nameCN": "自动数据处理",
+    "market": "US",
+    "sector": "软件/人力资源",
+    "currency": "USD",
+    "price": 200.47,
+    "change": 0,
+    "score": 38.9,
+    "subScores": {
+      "fundamental": 26.7,
+      "technical": 54,
+      "growth": 40
+    },
+    "isETF": false,
+    "pe": null,
+    "roe": null,
+    "momentum": 37.9,
+    "rsi": 49,
+    "revenueGrowth": null,
+    "profitMargin": null,
+    "ebitda": null,
+    "marketCap": null,
+    "revenue": null,
+    "eps": null,
+    "beta": null,
+    "week52High": 329.93,
+    "week52Low": 188.16,
+    "avgVolume": null,
+    "nextEarnings": null,
+    "_fetchedAt": 1776649976338,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 166
+  },
+  {
+    "ticker": "ON",
+    "name": "ON Semiconductor Corporation",
+    "nameCN": "安森美",
+    "market": "US",
+    "sector": "半导体",
+    "currency": "USD",
+    "price": 83.01,
+    "change": 0,
+    "score": 38.9,
+    "subScores": {
+      "fundamental": 31.7,
+      "technical": 67.5,
+      "growth": 20
+    },
+    "isETF": false,
+    "pe": 286.24,
+    "roe": 1.5,
+    "momentum": 100,
+    "rsi": 91,
+    "revenueGrowth": -11.2,
+    "profitMargin": 2,
+    "ebitda": "1.8B",
+    "marketCap": "32.7B",
+    "revenue": "6.0B",
+    "eps": 0.29,
+    "beta": 1.52,
+    "week52High": 83.52,
+    "week52Low": 33.2,
+    "avgVolume": "8.7M",
+    "nextEarnings": "2026-05-05",
+    "_fetchedAt": 1776650124897,
+    "_dataQuality": {
+      "score": 98,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        },
+        {
+          "dim": "accuracy",
+          "severity": "medium",
+          "msg": "日涨跌幅异常: 139.64% (超过±50%)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 90,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 167
+  },
+  {
+    "ticker": "APP",
+    "name": "Applovin Corporation",
+    "nameCN": "AppLovin",
+    "market": "US",
+    "sector": "互联网/移动广告",
+    "currency": "USD",
+    "price": 477.2,
+    "change": 0,
+    "score": 38.6,
+    "subScores": {
+      "fundamental": 26.7,
+      "technical": 53.1,
+      "growth": 40
+    },
+    "isETF": false,
+    "pe": null,
+    "roe": null,
+    "momentum": 71.2,
+    "rsi": 73.5,
+    "revenueGrowth": null,
+    "profitMargin": null,
+    "ebitda": null,
+    "marketCap": null,
+    "revenue": null,
+    "eps": null,
+    "beta": null,
+    "week52High": 745.61,
+    "week52Low": 222.02,
+    "avgVolume": null,
+    "nextEarnings": null,
+    "_fetchedAt": 1776650019031,
+    "_dataQuality": {
+      "score": 98,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        },
+        {
+          "dim": "accuracy",
+          "severity": "medium",
+          "msg": "日涨跌幅异常: 100.32% (超过±50%)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 90,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 168
+  },
+  {
+    "ticker": "FANG",
+    "name": "Diamondback Energy, Inc.",
+    "nameCN": "钻石背能源",
+    "market": "US",
+    "sector": "能源/油气",
+    "currency": "USD",
+    "price": 180.27,
+    "change": 0,
+    "score": 37.4,
+    "subScores": {
+      "fundamental": 51.7,
+      "technical": 35.9,
+      "growth": 20
+    },
+    "isETF": false,
+    "pe": 31.46,
+    "roe": 3.7,
+    "momentum": 36.8,
+    "rsi": 22,
+    "revenueGrowth": -9.4,
+    "profitMargin": 11.6,
+    "ebitda": "10.2B",
+    "marketCap": "50.7B",
+    "revenue": "14.3B",
+    "eps": 5.73,
+    "beta": 0.49,
+    "week52High": 204.91,
+    "week52Low": 127.75,
+    "avgVolume": "3.2M",
+    "nextEarnings": "2026-05-05",
+    "_fetchedAt": 1776650061741,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 169
+  },
+  {
+    "ticker": "TSLA",
+    "name": "Tesla, Inc.",
+    "nameCN": "特斯拉",
+    "market": "US",
+    "sector": "汽车/新能源",
+    "currency": "USD",
+    "price": 400.62,
+    "change": 0,
+    "score": 36.4,
+    "subScores": {
+      "fundamental": 31.7,
+      "technical": 59.2,
+      "growth": 20
+    },
+    "isETF": false,
+    "pe": 370.94,
+    "roe": 4.9,
+    "momentum": 63.4,
+    "rsi": 64.5,
+    "revenueGrowth": -3.1,
+    "profitMargin": 4,
+    "ebitda": "10.5B",
+    "marketCap": "1.50T",
+    "revenue": "94.8B",
+    "eps": 1.08,
+    "beta": 1.92,
+    "week52High": 498.83,
+    "week52Low": 222.79,
+    "avgVolume": "63.2M",
+    "nextEarnings": "2026-04-23",
+    "_fetchedAt": 1776650185510,
+    "_dataQuality": {
+      "score": 98,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        },
+        {
+          "dim": "accuracy",
+          "severity": "medium",
+          "msg": "日涨跌幅异常: 65.98% (超过±50%)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 90,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 170
+  },
+  {
+    "ticker": "09888.HK",
+    "name": "BIDU-SW",
+    "nameCN": "百度",
+    "market": "HK",
+    "sector": "互联网/AI",
+    "currency": "HKD",
+    "price": 123.8,
+    "change": 0,
+    "score": 34.7,
+    "subScores": {
+      "fundamental": 38.3,
+      "technical": 44.5,
+      "growth": 20
+    },
+    "isETF": false,
+    "pe": 73.25,
+    "roe": 1.9,
+    "momentum": 54.1,
+    "rsi": 70.7,
+    "revenueGrowth": -4.1,
+    "profitMargin": 4.3,
+    "ebitda": "24.8B",
+    "marketCap": "337.0B",
+    "revenue": "129.1B",
+    "eps": 1.69,
+    "beta": 0.43,
+    "week52High": 161.2,
+    "week52Low": 79.35,
+    "avgVolume": "12.4M",
+    "nextEarnings": "2026-05-13",
+    "_fetchedAt": 1776649964705,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 171
+  },
+  {
+    "ticker": "WBD",
+    "name": "Warner Bros. Discovery, Inc. - ",
+    "nameCN": "华纳探索",
+    "market": "US",
+    "sector": "传媒/流媒体",
+    "currency": "USD",
+    "price": 27.47,
+    "change": 0,
+    "score": 34.2,
+    "subScores": {
+      "fundamental": 31.7,
+      "technical": 51.8,
+      "growth": 20
+    },
+    "isETF": false,
+    "pe": 94.72,
+    "roe": 2.1,
+    "momentum": 48.6,
+    "rsi": 63.2,
+    "revenueGrowth": -5.7,
+    "profitMargin": 1.9,
+    "ebitda": "7.4B",
+    "marketCap": "68.9B",
+    "revenue": "37.3B",
+    "eps": 0.29,
+    "beta": 1.64,
+    "week52High": 30,
+    "week52Low": 7.75,
+    "avgVolume": "25.2M",
+    "nextEarnings": "2026-05-07",
+    "_fetchedAt": 1776650187908,
+    "_dataQuality": {
+      "score": 98,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        },
+        {
+          "dim": "accuracy",
+          "severity": "medium",
+          "msg": "日涨跌幅异常: 238.72% (超过±50%)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 90,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 172
+  },
+  {
+    "ticker": "KHC",
+    "name": "The Kraft Heinz Company",
+    "nameCN": "卡夫亨氏",
+    "market": "US",
+    "sector": "消费/食品",
+    "currency": "USD",
+    "price": 22.47,
+    "change": 0,
+    "score": 31.9,
+    "subScores": {
+      "fundamental": 16.7,
+      "technical": 64.1,
+      "growth": 20
+    },
+    "isETF": false,
+    "pe": null,
+    "roe": -12.8,
+    "momentum": 58.2,
+    "rsi": 54.4,
+    "revenueGrowth": -3.4,
+    "profitMargin": -23.4,
+    "ebitda": "5.7B",
+    "marketCap": "26.6B",
+    "revenue": "24.9B",
+    "eps": -4.93,
+    "beta": 0.05,
+    "week52High": 30.42,
+    "week52Low": 21.035,
+    "avgVolume": "16.7M",
+    "nextEarnings": "2026-05-06",
+    "_fetchedAt": 1776650077857,
+    "_dataQuality": {
+      "score": 99,
+      "grade": "A",
+      "issues": [
+        {
+          "dim": "completeness",
+          "severity": "medium",
+          "msg": "5Y 数据点不足: 61个 (预期≥100)"
+        }
+      ],
+      "scores": {
+        "completeness": 95,
+        "accuracy": 100,
+        "consistency": 100,
+        "timeliness": 100,
+        "validity": 100,
+        "uniqueness": 100
+      }
+    },
+    "rank": 173
+  }
+];
 
 export const ALERTS = [];
