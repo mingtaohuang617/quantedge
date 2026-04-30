@@ -59,12 +59,20 @@ def _get(path: str, params: dict) -> dict:
 
 # ── 辅助: config → iTick region + code ───────────────────
 def _to_itick_params(cfg: dict) -> dict:
-    """将 config.py 的标的配置转换为 iTick 的 region + code。"""
+    """将 config.py 的标的配置转换为 iTick 的 region + code。
+
+    yf_symbol 约定（与 yfinance 一致）：
+      US:  AAPL / NVDA           → region=US
+      HK:  0005.HK / 9988.HK     → region=HK,  code 去前导零
+      SH:  600519.SS / .SH       → region=SH,  code=纯数字
+      SZ:  000333.SZ             → region=SZ,  code=纯数字
+      KR:  005930.KS / .KQ       → region=KR,  code=纯数字（保留前导零）
+      JP:  7203.T                → region=JP,  code=纯数字
+    """
     market = (cfg.get("market") or "").upper()
     yf_sym = cfg.get("yf_symbol", "")
 
     if market == "HK":
-        # yf_symbol: "0005.HK" / "9988.HK" / "7709.HK"
         code = yf_sym.split(".")[0].lstrip("0") or "0"
         return {"region": "HK", "code": code}
     if market in ("SH", "CN"):
@@ -73,6 +81,14 @@ def _to_itick_params(cfg: dict) -> dict:
     if market == "SZ":
         code = yf_sym.split(".")[0]
         return {"region": "SZ", "code": code}
+    if market == "KR":
+        # yfinance: "005930.KS" / "035720.KQ" → 都用 region=KR
+        code = yf_sym.split(".")[0]
+        return {"region": "KR", "code": code}
+    if market == "JP":
+        # yfinance: "7203.T" → region=JP
+        code = yf_sym.split(".")[0]
+        return {"region": "JP", "code": code}
     # 默认美股
     return {"region": "US", "code": yf_sym}
 

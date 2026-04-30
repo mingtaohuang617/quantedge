@@ -82,6 +82,63 @@ TICKERS = {
         "description": "国产NOR Flash及MCU龙头，存储+微控制器双轮驱动",
     },
 
+    # ─── A股个股 ──────────────────────────────────────────────
+    "600519.SH": {
+        "name": "贵州茅台",
+        "yf_symbol": "600519.SS",
+        "futu_symbol": "SH.600519",
+        "type": "stock", "market": "SH", "sector": "白酒/消费", "currency": "CNY",
+        "description": "中国高端白酒龙头，市值长期位居A股前列",
+    },
+    "000333.SZ": {
+        "name": "美的集团",
+        "yf_symbol": "000333.SZ",
+        "futu_symbol": "SZ.000333",
+        "type": "stock", "market": "SZ", "sector": "家电/智能制造", "currency": "CNY",
+        "description": "全球家电龙头，业务延伸至工业机器人和楼宇科技",
+    },
+    "300750.SZ": {
+        "name": "宁德时代",
+        "yf_symbol": "300750.SZ",
+        "futu_symbol": "SZ.300750",
+        "type": "stock", "market": "SZ", "sector": "新能源/动力电池", "currency": "CNY",
+        "description": "全球最大动力电池制造商，市占率长期领先",
+    },
+
+    # ─── 韩股个股 ─────────────────────────────────────────────
+    "005930.KS": {
+        "name": "三星电子",
+        "yf_symbol": "005930.KS",
+        "type": "stock", "market": "KR", "sector": "半导体/存储", "currency": "KRW",
+        "description": "全球最大存储芯片厂商，DRAM/NAND双料龙头，兼营智能手机/显示面板",
+    },
+    "000660.KS": {
+        "name": "SK海力士",
+        "yf_symbol": "000660.KS",
+        "type": "stock", "market": "KR", "sector": "半导体/HBM", "currency": "KRW",
+        "description": "全球第二大DRAM厂商，HBM高带宽存储核心供应商，AI算力受益标的",
+    },
+
+    # ─── 日股个股 ─────────────────────────────────────────────
+    "7203.T": {
+        "name": "丰田汽车",
+        "yf_symbol": "7203.T",
+        "type": "stock", "market": "JP", "sector": "汽车/混动", "currency": "JPY",
+        "description": "全球最大汽车制造商，混动技术领跑，纯电转型加速",
+    },
+    "6758.T": {
+        "name": "索尼集团",
+        "yf_symbol": "6758.T",
+        "type": "stock", "market": "JP", "sector": "电子/娱乐", "currency": "JPY",
+        "description": "全球图像传感器龙头，PlayStation/影视/音乐多元业务",
+    },
+    "8035.T": {
+        "name": "东京电子",
+        "yf_symbol": "8035.T",
+        "type": "stock", "market": "JP", "sector": "半导体/设备", "currency": "JPY",
+        "description": "全球前三大半导体设备厂商，刻蚀/涂胶显影核心供应商",
+    },
+
     # ═══════════════════════════════════════════════════════════
     #  ETF — 非杠杆
     # ═══════════════════════════════════════════════════════════

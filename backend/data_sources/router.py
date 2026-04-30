@@ -4,12 +4,22 @@
 优先级链: iTick → Futu → yfinance
 每一层失败后自动降级到下一层。
 
-行情数据 (K线/报价): iTick → Futu(港股) → yfinance
+行情数据 (K线/报价): iTick → Futu(港股/A股) → yfinance
 财务数据:           iTick info + AKShare(港股) + yfinance info
+
+市场支持:
+  US (美股)       — iTick → yfinance
+  HK (港股)       — iTick → Futu → yfinance
+  SH/SZ/CN (A股)  — iTick → Futu → yfinance
+  KR (韩股)       — iTick → yfinance     (Futu 不支持)
+  JP (日股)       — iTick → yfinance     (Futu 不支持)
 """
 import pandas as pd
 
 from . import itick_source, futu_source, yfinance_source, akshare_source
+
+# Futu 支持的市场（其他市场跳过 Futu 这一层）
+_FUTU_MARKETS = {"HK", "SH", "SZ", "CN"}
 
 
 # ── 行情数据 (K线) ────────────────────────────────────────
@@ -20,6 +30,7 @@ def fetch_history(cfg: dict, days: int = 120) -> tuple[pd.DataFrame, str]:
     返回 (DataFrame, source_name)。
     """
     errors = []
+    market = (cfg.get("market") or "").upper()
 
     # 1) iTick — 全市场主力
     try:
@@ -29,9 +40,8 @@ def fetch_history(cfg: dict, days: int = 120) -> tuple[pd.DataFrame, str]:
     except Exception as e:
         errors.append(f"iTick: {e}")
 
-    # 2) Futu — 港股/A股备选
-    market = (cfg.get("market") or "").upper()
-    if market in ("HK", "SH", "SZ", "CN"):
+    # 2) Futu — 仅港股/A股
+    if market in _FUTU_MARKETS:
         try:
             df = futu_source.fetch_history(cfg, days=days)
             if df is not None and len(df) >= 5:
@@ -39,7 +49,7 @@ def fetch_history(cfg: dict, days: int = 120) -> tuple[pd.DataFrame, str]:
         except Exception as e:
             errors.append(f"Futu: {e}")
 
-    # 3) yfinance — 最终兜底
+    # 3) yfinance — 最终兜底（覆盖所有市场，韩日 A股都能拉）
     try:
         df = yfinance_source.fetch_history(cfg, days=days)
         if df is not None and len(df) >= 5:
