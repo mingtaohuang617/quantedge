@@ -2,7 +2,7 @@
 // Journal — 投资论点日志 / 持仓追踪
 // 从 quant-platform.jsx 抽出（C1 重构第一步），通过 React.lazy 懒加载
 // ─────────────────────────────────────────────────────────────
-import React, { useState, useEffect, useMemo, useCallback, useContext } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useContext, useRef } from "react";
 import { BarChart, Bar, XAxis, YAxis, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import { Plus, Search, Loader, Check, Briefcase, Activity, BookOpen, Trash2, Eye, Layers, Globe, ChevronRight, Zap, Database, X, Upload } from "lucide-react";
 import { searchTickers as standaloneSearch, fetchStockData, STOCK_CN_NAMES } from "../standalone.js";

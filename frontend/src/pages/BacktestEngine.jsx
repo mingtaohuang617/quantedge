@@ -4,8 +4,8 @@
 // ─────────────────────────────────────────────────────────────
 import React, { useState, useEffect, useMemo, useCallback, useRef, useContext } from "react";
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, ComposedChart, ReferenceLine, ReferenceArea } from "recharts";
-import { Activity, AlertCircle, AlertTriangle, BookOpen, Briefcase, Check, ChevronDown, Database, Layers, Loader, Plus, RefreshCw, Search, Target, Trash2, TrendingDown, X, Zap } from "lucide-react";
-import { searchTickers as standaloneSearch, fetchStockData, fetchBenchmarkPrices, fetchRangePrices, STOCK_CN_NAMES } from "../standalone.js";
+import { Activity, AlertCircle, AlertTriangle, BarChart3, BookOpen, Briefcase, Check, ChevronDown, Database, Layers, Loader, Plus, RefreshCw, Search, Share2, Target, Trash2, TrendingDown, X, Zap } from "lucide-react";
+import { searchTickers as standaloneSearch, fetchStockData, fetchBenchmarkPrices, fetchRangePrices, fetchRangePricesEx, STOCK_CN_NAMES } from "../standalone.js";
 import { useLang } from "../i18n.jsx";
 import { monteCarlo as mcSimulate, navToReturns as mcNavToReturns, hhi as hhiCalc, effectiveN as effN } from "../math/stats.ts";
 import { STOCKS } from "../data.js";
@@ -210,16 +210,22 @@ const BacktestEngine = () => {
   const [btResult, setBtResult] = useState(null);
   const [builderOpen, setBuilderOpen] = useState(true); // 组合构建器折叠状态
   const [resultsOpen, setResultsOpen] = useState(true); // 回测结果折叠状态
-  // C11: PNG 报告导出
+  // C11: PNG 报告导出 — ref + 状态先声明，回调函数延后到 portfolio/btRange 就位后再 useCallback
   const reportRef = useRef(null);
   const [exporting, setExporting] = useState(false);
+  const [highlightRange, setHighlightRange] = useState(null); // {startDate, endDate, ret} 高亮回测曲线区间
+  const [zoomRange, setZoomRange] = useState(null); // {startDate, endDate, label} 点击缩放区间
+  const [btRange, setBtRange] = useState("1Y"); // 回测时间维度: 1M|6M|YTD|1Y|5Y|ALL|CUSTOM
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd, setCustomEnd] = useState(() => new Date().toISOString().slice(0, 10));
+  const [rebalance, setRebalance] = useState("none"); // none|quarterly|yearly
+  // C11: exportPNG 必须放在 portfolio + btRange 都已声明之后 — 否则 prod minify 后 dep 数组触发 TDZ
   const exportPNG = useCallback(async () => {
     if (!reportRef.current) return;
     setExporting(true);
     try {
       const { toPng } = await import('html-to-image');
       const node = reportRef.current;
-      // 临时确保所有内容展开
       const dataUrl = await toPng(node, {
         backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--bg-base').trim() || '#0B0B15',
         pixelRatio: 2,
@@ -238,12 +244,6 @@ const BacktestEngine = () => {
       setExporting(false);
     }
   }, [portfolio, btRange, t]);
-  const [highlightRange, setHighlightRange] = useState(null); // {startDate, endDate, ret} 高亮回测曲线区间
-  const [zoomRange, setZoomRange] = useState(null); // {startDate, endDate, label} 点击缩放区间
-  const [btRange, setBtRange] = useState("1Y"); // 回测时间维度: 1M|6M|YTD|1Y|5Y|ALL|CUSTOM
-  const [customStart, setCustomStart] = useState("");
-  const [customEnd, setCustomEnd] = useState(() => new Date().toISOString().slice(0, 10));
-  const [rebalance, setRebalance] = useState("none"); // none|quarterly|yearly
   const benchCacheRef = useRef({}); // 缓存已获取的基准数据 { ticker: stockData }
   const autoRan = useRef(false);
   // 策略模板 — 保存 / 加载
@@ -267,6 +267,8 @@ const BacktestEngine = () => {
   const [mcHorizon, setMcHorizon] = useState(252); // 默认预测 1 年 (252 交易日)
   // S7: 回测过程中无法取得价格数据的标的（用于"剔除并重跑"提示卡）
   const [missingDataTickers, setMissingDataTickers] = useState([]); // [{ticker, reason}]
+  // 用了 stale 缓存的标的（远程拉失败但 IDB 有旧数据可兜底）
+  const [staleList, setStaleList] = useState([]); // [{ticker, error}]
 
   // ── 配置分享链接（URL hash 编码/解码）────────────────────
   const encodeConfig = useCallback(() => {
@@ -611,13 +613,14 @@ const BacktestEngine = () => {
         ...p,
         ph: getPriceData(p.stk),
       }));
-      const entries = allEntries.filter(p => p.ph.length >= 2);
-      // S7: 收集"缺数据"标的，供 UI 一键剔除
+      // 门槛降到 ≥1 — 单点视为常数序列，仍可参与组合（避免某只标的数据缺失导致整个回测白屏）
+      const entries = allEntries.filter(p => p.ph.length >= 1);
+      // S7: 收集"缺数据"标的（完全无数据），供 UI 一键剔除
       const missing = allEntries
-        .filter(p => p.ph.length < 2)
+        .filter(p => p.ph.length < 1)
         .map(p => ({
           ticker: p.ticker,
-          reason: p.ph.length === 0 ? t('无价格数据') : t('数据点不足({n})', { n: p.ph.length }),
+          reason: t('无价格数据'),
         }));
       setMissingDataTickers(missing);
       if (entries.length === 0) { setRunning(false); return; }
@@ -1179,17 +1182,27 @@ const BacktestEngine = () => {
     setDataLoadMsg(t('正在加载 {n} 个标的的价格数据...', {n: missing.length}));
     (async () => {
       const updates = {};
+      const newStales = [];        // [{ticker, error}] — 用了 stale 缓存
       await Promise.all(missing.map(async (p) => {
         try {
           let yfSym = p.ticker;
           if (p.ticker.endsWith(".HK")) {
             yfSym = p.ticker.replace(".HK", "").replace(/^0+/, "").padStart(4, "0") + ".HK";
           }
-          const data = await fetchRangePrices(yfSym, targetRange);
-          if (data && data.length >= 2) updates[p.ticker] = { [targetRange]: data };
-        } catch { /* 跳过失败的标的 */ }
+          const { points, source, error } = await fetchRangePricesEx(yfSym, targetRange);
+          if (points && points.length >= 1) {
+            updates[p.ticker] = { [targetRange]: points };
+            if (source === "stale-idb") {
+              newStales.push({ ticker: p.ticker, error: error || "网络失败" });
+            }
+          }
+        } catch (err) {
+          // 完全失败（无网络且 IDB 也没缓存）— 留给 missingDataTickers 卡片处理
+          console.warn(`[Backtest] 加载 ${p.ticker} 失败:`, err?.message || err);
+        }
       }));
       if (cancelled) return;
+      setStaleList(newStales);
       const tickersUpdated = Object.keys(updates);
       if (tickersUpdated.length > 0 && ctxSetStocks2) {
         ctxSetStocks2(prev => prev.map(s => {
@@ -1559,6 +1572,31 @@ const BacktestEngine = () => {
                     {t('忽略')}
                   </button>
                 </div>
+              </div>
+            )}
+            {/* Stale 缓存提示卡 — 远程拉失败但 IDB 有旧数据可兜底 */}
+            {staleList.length > 0 && !running && !dataLoading && (
+              <div className="glass-card p-3 w-full max-w-md border border-cyan-500/30 bg-cyan-500/5">
+                <div className="flex items-center gap-2 mb-2">
+                  <Database size={14} className="text-cyan-400" />
+                  <span className="text-xs font-medium text-cyan-300">
+                    {t('{n} 个标的使用了缓存数据（远程源不可达）', { n: staleList.length })}
+                  </span>
+                </div>
+                <div className="space-y-1 mb-2 max-h-32 overflow-auto">
+                  {staleList.map(s => (
+                    <div key={s.ticker} className="flex items-center justify-between text-[10px] tabular-nums gap-2">
+                      <span className="font-mono text-cyan-200 shrink-0">{s.ticker}</span>
+                      <span className="text-cyan-300/60 truncate" title={s.error}>{s.error}</span>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  onClick={() => setStaleList([])}
+                  className="px-2 py-1 text-[10px] text-cyan-300/70 hover:text-cyan-200 transition"
+                >
+                  {t('知道了')}
+                </button>
               </div>
             )}
             {/* 相关性矩阵占位框 */}

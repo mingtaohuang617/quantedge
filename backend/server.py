@@ -17,11 +17,21 @@ QuantEdge API Server
 
 import json
 import math
+import os
 import sys
 import time
 import threading
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, date, timedelta
+
+# ── 加载 .env（必须在任何读环境变量的 import 之前）──
+# itick_source 等模块在 import 时就会读 os.environ["ITICK_API_KEY"]，
+# 错过这步就读不到。
+try:
+    from dotenv import load_dotenv
+    load_dotenv(Path(__file__).resolve().parent / ".env")
+except ImportError:
+    pass  # python-dotenv 未装时静默跳过；用户可改用 PowerShell setx
 
 import numpy as np
 import yfinance as yf
@@ -70,7 +80,10 @@ from factors import calc_rsi, calc_momentum, calc_stock_score, calc_etf_score, p
 try:
     from data_sources import fetch_history, health_check
     HAS_DATA_SOURCES = True
-except ImportError:
+except Exception as _e:
+    # except Exception (而非仅 ImportError): 兼容 futu 库的 protobuf
+    # TypeError 之类的非 ImportError 失败
+    print(f"[WARN] data_sources unavailable, falling back to yfinance-direct: {_e}")
     HAS_DATA_SOURCES = False
     def fetch_history(cfg, days=120):
         """Fallback: use yfinance directly."""
@@ -78,6 +91,17 @@ except ImportError:
         tk = yf.Ticker(symbol)
         hist = tk.history(period=f"{days}d")
         return hist, "yfinance-direct"
+    def health_check():
+        return {"data_sources": (False, str(_e))}
+
+# 本地数据库 — SQLite 事实库（C17）
+try:
+    import db as _db_mod
+    HAS_DB = True
+except Exception as _e:
+    HAS_DB = False
+    _db_mod = None
+    print(f"[WARN] db module not available: {_e}")
     def health_check():
         return {"yfinance": (True, "OK"), "futu": (False, "not installed")}
 
@@ -557,9 +581,86 @@ class AddTickerRequest(BaseModel):
 
 @app.on_event("startup")
 def startup():
-    """Load cached data on startup."""
+    """Init DB, load cached data, kick off incremental sync (C17)."""
+    if HAS_DB and _db_mod is not None:
+        try:
+            _db_mod.init_db()
+            print("[OK] SQLite db initialized")
+        except Exception as e:
+            print(f"[WARN] db.init_db failed: {e}")
     cache.load_from_file()
     print(f"[OK] loaded {len(cache.stocks)} stocks on startup")
+
+    # 后台增量同步（不阻塞 API server 起来）
+    if HAS_DB:
+        threading.Thread(target=_bg_run_incremental_sync, daemon=True).start()
+
+
+def _bg_run_incremental_sync():
+    """Wrapped for thread target — swallow exceptions so server stays up."""
+    try:
+        run_incremental_sync()
+    except Exception as e:
+        print(f"[WARN] startup sync failed: {e}")
+
+
+def run_incremental_sync(tickers: dict | None = None) -> dict:
+    """
+    增量同步：对每个 ticker，把库里缺失的 K 线从远程源补齐。
+      冷启动 (last_bar=None): 拉 365 天
+      热启动: 仅拉 last_bar 之后的部分（+7 天余量覆盖周末）
+    路由器 fetch_history 会自动写库（_persist_to_db）。
+    """
+    if not HAS_DB or _db_mod is None:
+        return {"ok": 0, "skip": 0, "fail": 0, "details": ["db module not loaded"]}
+
+    from data_sources import router as _router
+
+    if tickers is None:
+        tickers = get_all_tickers()
+
+    today = date.today()
+    stats: dict = {"ok": 0, "skip": 0, "fail": 0, "details": []}
+
+    for key, cfg in tickers.items():
+        cfg2 = dict(cfg)
+        cfg2["ticker"] = key  # 让 router/db 用这个作主键
+
+        try:
+            internal_ticker = _db_mod.normalize_ticker(cfg2)
+            last_bar = _db_mod.get_latest_bar_date(internal_ticker)
+        except Exception:
+            last_bar = None
+            internal_ticker = key
+
+        # 决定本次拉多少天
+        if last_bar is None:
+            days = 365
+        else:
+            try:
+                last_dt = datetime.strptime(last_bar, "%Y-%m-%d").date()
+            except Exception:
+                last_dt = today - timedelta(days=365)
+            if last_dt >= today - timedelta(days=1):
+                stats["skip"] += 1
+                continue
+            days = max(7, (today - last_dt).days + 7)
+
+        # 走 router（prefer_db=False 强制远程）
+        try:
+            df, src = _router.fetch_history(cfg2, days=days, prefer_db=False)
+            stats["ok"] += 1
+            stats["details"].append(f"{key}: {len(df)} bars from {src}")
+        except Exception as e:
+            try:
+                _db_mod.mark_sync_failure(internal_ticker, "router", str(e))
+            except Exception:
+                pass
+            stats["fail"] += 1
+            stats["details"].append(f"{key}: {e}")
+
+    print(f"[SYNC] ok={stats['ok']} skip={stats['skip']} fail={stats['fail']}")
+    return stats
 
 
 def _hk_yf_symbol(code_5digit: str) -> str:
@@ -925,6 +1026,36 @@ def refresh_data():
         "success": True,
         "message": f"开始刷新 {len(get_all_tickers())} 个标的，请稍候...",
     }
+
+
+# ── 本地数据库端点 (C17) ─────────────────────────────────
+@app.post("/api/sync")
+def manual_sync():
+    """手动触发增量同步（异步线程）。"""
+    if not HAS_DB:
+        return {"success": False, "message": "db 模块未加载"}
+    threading.Thread(target=_bg_run_incremental_sync, daemon=True).start()
+    return {"success": True, "message": "增量同步已在后台启动"}
+
+
+@app.get("/api/db/stats")
+def db_stats_endpoint():
+    """库状态：行数 / 来源分布 / 最近同步 / 每个 ticker 的覆盖范围。"""
+    if not HAS_DB or _db_mod is None:
+        raise HTTPException(503, "db 模块未加载")
+    return sanitize(_db_mod.db_stats())
+
+
+@app.get("/api/db/bars/{ticker:path}")
+def db_bars_endpoint(ticker: str, start: str | None = None, end: str | None = None):
+    """
+    直接读库里的 K 线（前端 stale 兜底路径用）。
+    ticker 用 :path 转换器以支持港股 '00700.HK' 中的点号。
+    """
+    if not HAS_DB or _db_mod is None:
+        raise HTTPException(503, "db 模块未加载")
+    rows = _db_mod.get_bars(ticker, start=start, end=end)
+    return sanitize({"ticker": ticker, "count": len(rows), "bars": rows})
 
 
 @app.get("/api/status")

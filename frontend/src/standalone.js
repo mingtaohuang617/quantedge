@@ -4,6 +4,8 @@
  * 无需后端服务器，适用于 GitHub Pages 部署
  */
 
+import { withCache, withStockDataCache } from "./lib/priceCache.js";
+
 // 多代理链：Vercel 自建代理（同源/不被墙）→ 第三方代理（备选）
 // 顺序按实测可靠性 + 中国大陆可用性排列
 const CORS_PROXIES = [
@@ -625,8 +627,8 @@ function _sliceFrom1Y(history1Y, targetRange) {
   return history1Y.slice(startIdx);
 }
 
-// ─── 获取单个范围的价格数据（带短周期空数据兜底）──────────
-export async function fetchRangePrices(yfSym, rangeKey) {
+// ─── 获取单个范围的价格数据（内部实现，不经过缓存）──────────
+async function _fetchRangePricesNoCache(yfSym, rangeKey) {
   const direct = await _fetchOneRange(yfSym, rangeKey);
   // 短周期（YTD/1M/6M）若 Yahoo 直接返回空 → 兜底拉 1Y 切片
   // Yahoo 对小盘 ETF 的 range=ytd 经常返回 []，但 range=1y 几乎全有
@@ -644,6 +646,27 @@ export async function fetchRangePrices(yfSym, rangeKey) {
     } catch (e) { /* 兜底失败也只能返回原 direct（空） */ }
   }
   return direct;
+}
+
+// ─── 带 IndexedDB 缓存的范围价格（向后兼容签名：返回 array）──
+// 三段式：fresh-idb → network → stale-idb 兜底
+// 调用方不需要关心 source 时直接用本函数。需要诊断 stale 时用 fetchRangePricesEx。
+export async function fetchRangePrices(yfSym, rangeKey) {
+  const { points, source, error } = await withCache(yfSym, rangeKey, () =>
+    _fetchRangePricesNoCache(yfSym, rangeKey)
+  );
+  if (source === "stale-idb") {
+    console.warn(`[Cache] ${yfSym} ${rangeKey} 用了 stale 缓存数据 (${error})`);
+  }
+  return points;
+}
+
+// ─── 暴露缓存来源信息的 Ex 版本（BacktestEngine 用） ────────
+// 返回: { points, source: 'fresh-idb'|'network'|'stale-idb'|'empty', error? }
+export async function fetchRangePricesEx(yfSym, rangeKey) {
+  return await withCache(yfSym, rangeKey, () =>
+    _fetchRangePricesNoCache(yfSym, rangeKey)
+  );
 }
 
 // ─── 搜索标的 ──────────────────────────────────────────
@@ -712,7 +735,20 @@ export async function searchTickers(query) {
 }
 
 // ─── 获取单个标的完整数据（多时间范围）──────────────────
+// 外层包 IndexedDB 缓存（withStockDataCache），TTL 1h；网络挂时返回 stale。
 export async function fetchStockData(ticker) {
+  const { data, source, error } = await withStockDataCache(ticker, () =>
+    _fetchStockDataNoCache(ticker)
+  );
+  if (source === "stale-idb") {
+    console.warn(`[Cache] ${ticker} stockData 用了 stale 缓存 (${error})`);
+  }
+  if (!data) throw new Error(`No data for ${ticker}`);
+  return data;
+}
+
+// 内部：实际拉取 Yahoo + 解析 + 算分（不经过缓存）
+async function _fetchStockDataNoCache(ticker) {
   // Determine Yahoo symbol
   let yfSym = ticker;
   if (ticker.endsWith(".HK")) {

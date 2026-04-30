@@ -1986,6 +1986,13 @@ function QuantPlatformInner() {
   // 未登录显示认证页面
   if (!user) return <AuthPage />;
 
+  // footer 共享：市场计数（IIFE 外也要用，所以提到组件顶层）
+  const usCount = stocks.filter(s => s.market === "US").length;
+  const hkCount = stocks.filter(s => s.market === "HK").length;
+  const cnCount = stocks.filter(s => ["SH", "SZ", "CN"].includes(s.market)).length;
+  const krCount = stocks.filter(s => s.market === "KR").length;
+  const jpCount = stocks.filter(s => s.market === "JP").length;
+
   return (
     <div className={`w-full h-screen flex flex-col overflow-hidden density-${density} ${theme === "light" ? "light" : ""} ${useSidebar ? 'md:pl-12' : ''}`} style={{
       background: "var(--bg-gradient)",
@@ -2140,16 +2147,11 @@ function QuantPlatformInner() {
         <div className="flex items-center gap-2 md:gap-3 text-[9px] md:text-[10px] text-[#a0aec0] flex-wrap">
           {(() => {
             // S15: 数据源面板 — 鼠标悬停展示完整诊断信息
+            // usCount/hkCount/cnCount/krCount/jpCount 由组件顶层的常量提供
             const online = stocks.length > 0;
             const source = apiOnline ? "API" : t("Vercel 代理");
             const ageMs = priceUpdatedAt ? Date.now() - priceUpdatedAt : null;
             const fresh = ageMs != null && ageMs < 2 * 60 * 1000; // 2 分钟内算新鲜
-            // 市场计数：US/HK 单列，A股(SH/SZ/CN)合并，KR/JP 单列
-            const usCount = stocks.filter(s=>s.market==="US").length;
-            const hkCount = stocks.filter(s=>s.market==="HK").length;
-            const cnCount = stocks.filter(s=>["SH","SZ","CN"].includes(s.market)).length;
-            const krCount = stocks.filter(s=>s.market==="KR").length;
-            const jpCount = stocks.filter(s=>s.market==="JP").length;
             return (
               <div className="relative group">
                 <button className="hidden sm:flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-white/5 transition cursor-help">

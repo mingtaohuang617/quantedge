@@ -46,6 +46,8 @@ jobs:
         # （@esbuild/netbsd-arm64 等）未标记 optional=true，npm ci 在 Linux 会
         # 报 EBADPLATFORM。npm install 会自动跳过不适配的可选平台依赖。
         run: npm install --no-audit --no-fund
+      - name: Audit imports (lucide / react / recharts — 拦截漏 import 上线)
+        run: npm run audit:imports
       - name: Vitest
         run: npm test
       - name: Vite build

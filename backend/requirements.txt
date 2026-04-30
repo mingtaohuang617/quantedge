@@ -7,3 +7,5 @@ uvicorn[standard]
 akshare
 python-dotenv
 futu-api
+tushare
+duckdb

@@ -20,3 +20,4 @@ backend/tickers_custom.json
 # Legacy migration archives
 files.zip
 quant-pipeline.tar.gz
+backend/data/

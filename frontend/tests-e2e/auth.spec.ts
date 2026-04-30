@@ -29,8 +29,11 @@ test.describe('AuthPage', () => {
 
     // 进入后应至少有一个 tab 角色按钮存在
     await expect(page.locator('[role="tab"]').first()).toBeVisible({ timeout: 15000 });
+    await page.waitForTimeout(500); // 让 footer + 异步 useEffect 全部跑完
 
-    // 严格检查无 JS 报错 — Maximize2 这类未定义的 ReferenceError 必须被捕获
+    // 严格检查无 JS 报错 — pageerror + React 渲染期错误（ErrorBoundary 捕获的）双保险
     expect(errors, `pageerror caught: ${errors.join(' | ')}`).toHaveLength(0);
+    const renderError = await page.evaluate(() => (window as any).__QUANTEDGE_LAST_ERROR__);
+    expect(renderError, `ErrorBoundary triggered: ${JSON.stringify(renderError)}`).toBeFalsy();
   });
 });
