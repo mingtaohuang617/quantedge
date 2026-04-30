@@ -1288,7 +1288,7 @@ const BacktestEngine = () => {
                 ><X size={9} /></button>
                 {/* Ticker / Name & Market */}
                 <div className="flex items-center gap-1 mb-0.5">
-                  <span className="text-[11px] font-bold truncate max-w-[80px]" style={{ color: "var(--text-heading)" }}>{stk.market === "HK" ? stk.name : ticker}</span>
+                  <span className="text-[11px] font-bold truncate max-w-[80px]" style={{ color: "var(--text-heading)" }}>{stk.market !== "US" ? stk.name : ticker}</span>
                   <Badge variant={stk.market === "US" ? "info" : "warning"}>{stk.market}</Badge>
                 </div>
                 {/* Rotary Knob */}

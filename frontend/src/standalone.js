@@ -571,24 +571,20 @@ function formatDateKey(timestamp, rangeKey) {
   }
 }
 
-// ─── 获取单个范围的价格数据 ──────────────────────────────
-export async function fetchRangePrices(yfSym, rangeKey) {
+// ─── 内部：单次 Yahoo 拉取 + 解析 ──────────────────────────
+async function _fetchOneRange(yfSym, rangeKey) {
   const cfg = RANGE_CONFIG[rangeKey];
   if (!cfg) return [];
-
   const path = `/v8/finance/chart/${yfSym}?interval=${cfg.interval}&range=${cfg.range}`;
   const data = await yahooChartFetch(path, 15000);
   const result = data?.chart?.result?.[0];
   if (!result) return [];
-
   const timestamps = result.timestamp || [];
   const closes = result.indicators?.quote?.[0]?.close || [];
-
   const history = [];
   for (let i = 0; i < timestamps.length; i++) {
     if (closes[i] == null) continue;
     const m = formatDateKey(timestamps[i], rangeKey);
-    // 同日期/时间去重（保留最新值）
     if (history.length > 0 && history[history.length - 1].m === m) {
       history[history.length - 1].p = +(closes[i].toFixed(2));
     } else {
@@ -596,6 +592,58 @@ export async function fetchRangePrices(yfSym, rangeKey) {
     }
   }
   return history;
+}
+
+// ─── 从 1Y 数据本地切片到短周期（YTD/6M/1M）─────────────
+// 用于：Yahoo 对小盘 ETF 直接 range=ytd 经常返回空，但 range=1y 几乎都有
+function _sliceFrom1Y(history1Y, targetRange) {
+  if (!history1Y || history1Y.length === 0) return [];
+  const today = new Date();
+  let cutoff;
+  if (targetRange === 'YTD') {
+    cutoff = new Date(today.getFullYear(), 0, 1); // 当年 1 月 1 日
+  } else if (targetRange === '6M') {
+    cutoff = new Date(today.getTime() - 183 * 86400000);
+  } else if (targetRange === '1M') {
+    cutoff = new Date(today.getTime() - 31 * 86400000);
+  } else {
+    return [...history1Y];
+  }
+  // history 元素是 {m: "MM/DD", p: ...}，1Y 取的就是 MM/DD 格式
+  // 需要根据当前年份判断 — 1Y 跨年，cutoff 之前的全删
+  // 简化策略：1Y 数据是按时间排序的，找到第一个 MM/DD >= cutoff 的位置
+  const cutMonth = cutoff.getMonth() + 1;
+  const cutDay = cutoff.getDate();
+  // 因为 1Y 数据跨越前一年到今年，"MM/DD" 字符串排序不稳定
+  // 兜底：直接按比例切。targetRange=YTD 大约取后 N 天，N 估算
+  const dayOfYear = Math.floor((today - new Date(today.getFullYear(), 0, 1)) / 86400000);
+  const days1Y = 365;
+  const ratio = targetRange === '1M' ? 31 / days1Y
+              : targetRange === '6M' ? 183 / days1Y
+              : dayOfYear / days1Y; // YTD
+  const startIdx = Math.max(0, Math.floor(history1Y.length * (1 - ratio)));
+  return history1Y.slice(startIdx);
+}
+
+// ─── 获取单个范围的价格数据（带短周期空数据兜底）──────────
+export async function fetchRangePrices(yfSym, rangeKey) {
+  const direct = await _fetchOneRange(yfSym, rangeKey);
+  // 短周期（YTD/1M/6M）若 Yahoo 直接返回空 → 兜底拉 1Y 切片
+  // Yahoo 对小盘 ETF 的 range=ytd 经常返回 []，但 range=1y 几乎全有
+  if (direct.length >= 2) return direct;
+  if (rangeKey === 'YTD' || rangeKey === '1M' || rangeKey === '6M') {
+    try {
+      const oneYear = await _fetchOneRange(yfSym, '1Y');
+      if (oneYear.length >= 2) {
+        const sliced = _sliceFrom1Y(oneYear, rangeKey);
+        if (sliced.length >= 2) {
+          console.info(`[Yahoo Fallback] ${yfSym} ${rangeKey} 直拉空 → 切自 1Y (${sliced.length} 点)`);
+          return sliced;
+        }
+      }
+    } catch (e) { /* 兜底失败也只能返回原 direct（空） */ }
+  }
+  return direct;
 }
 
 // ─── 搜索标的 ──────────────────────────────────────────
@@ -611,13 +659,19 @@ export async function searchTickers(query) {
     );
     for (const quote of (data?.quotes || [])) {
       const symbol = quote.symbol || "";
+      // Yahoo 后缀 → 内部 market 代码
       const market = symbol.endsWith(".HK") ? "HK"
-        : (symbol.endsWith(".SS") || symbol.endsWith(".SZ")) ? "CN" : "US";
+        : symbol.endsWith(".SS") ? "SH"
+        : symbol.endsWith(".SZ") ? "SZ"
+        : (symbol.endsWith(".KS") || symbol.endsWith(".KQ")) ? "KR"
+        : symbol.endsWith(".T") ? "JP"
+        : "US";
+      const currency = { HK:"HKD", SH:"CNY", SZ:"CNY", KR:"KRW", JP:"JPY", US:"USD" }[market] || "USD";
       results.push({
         symbol: symbol.endsWith(".HK") ? symbol.replace(".HK", "").padStart(5, "0") + ".HK" : symbol,
         name: quote.shortname || quote.longname || symbol,
         market,
-        currency: market === "HK" ? "HKD" : market === "CN" ? "CNY" : "USD",
+        currency,
         type: quote.quoteType === "ETF" ? "etf" : "stock",
         exchange: quote.exchange || "",
       });

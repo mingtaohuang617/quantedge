@@ -2144,8 +2144,12 @@ function QuantPlatformInner() {
             const source = apiOnline ? "API" : t("Vercel 代理");
             const ageMs = priceUpdatedAt ? Date.now() - priceUpdatedAt : null;
             const fresh = ageMs != null && ageMs < 2 * 60 * 1000; // 2 分钟内算新鲜
+            // 市场计数：US/HK 单列，A股(SH/SZ/CN)合并，KR/JP 单列
             const usCount = stocks.filter(s=>s.market==="US").length;
             const hkCount = stocks.filter(s=>s.market==="HK").length;
+            const cnCount = stocks.filter(s=>["SH","SZ","CN"].includes(s.market)).length;
+            const krCount = stocks.filter(s=>s.market==="KR").length;
+            const jpCount = stocks.filter(s=>s.market==="JP").length;
             return (
               <div className="relative group">
                 <button className="hidden sm:flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-white/5 transition cursor-help">
@@ -2190,6 +2194,12 @@ function QuantPlatformInner() {
                         <span className="text-[#778]">{t('美股 / 港股')}</span>
                         <span className="font-mono text-[#a0aec0]">{usCount} / {hkCount}</span>
                       </div>
+                      {(cnCount + krCount + jpCount) > 0 && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-[#778]">{t('A股 / 韩股 / 日股')}</span>
+                          <span className="font-mono text-[#a0aec0]">{cnCount} / {krCount} / {jpCount}</span>
+                        </div>
+                      )}
                       <div className="flex items-center justify-between">
                         <span className="text-[#778]">{t('总标的')}</span>
                         <span className="font-mono text-cyan-300">{stocks.length}</span>
@@ -2217,7 +2227,13 @@ function QuantPlatformInner() {
             {priceUpdatedAt ? formatCacheAge(priceUpdatedAt) : "—"}
           </span>
           <span className="hidden md:inline text-white/10">|</span>
-          <span className="hidden md:inline">{t('美股')} {stocks.filter(s=>s.market==="US").length} · {t('港股')} {stocks.filter(s=>s.market==="HK").length} · {t('共')} {stocks.length} {t('标的')}</span>
+          <span className="hidden md:inline">
+            {t('美股')} {usCount} · {t('港股')} {hkCount}
+            {cnCount > 0 && <> · {t('A股')} {cnCount}</>}
+            {krCount > 0 && <> · {t('韩股')} {krCount}</>}
+            {jpCount > 0 && <> · {t('日股')} {jpCount}</>}
+            {' '}· {t('共')} {stocks.length} {t('标的')}
+          </span>
           <button
             onClick={quickPriceRefresh}
             disabled={priceRefreshing}
