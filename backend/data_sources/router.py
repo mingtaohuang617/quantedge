@@ -46,10 +46,12 @@ akshare_source,  HAS_AKSHARE,  _AKSHARE_ERR  = _try_import("akshare_source")
 tushare_source,  HAS_TUSHARE,  _TUSHARE_ERR  = _try_import("tushare_source")
 
 # 延迟导入 db（启动顺序敏感）
+# backend/ 不是 package（没 __init__.py），用绝对导入。调用方需保证
+# sys.path 包含 backend 目录（server.py 启动时已是这样）。
 try:
-    from .. import db as _db  # type: ignore
+    import db as _db  # type: ignore
     HAS_DB = True
-except Exception:
+except Exception as _db_err:
     HAS_DB = False
     _db = None  # type: ignore
 

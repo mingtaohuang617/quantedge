@@ -102,7 +102,7 @@ vercel inspect <deployment-url>
 
 ## 四、邀请码 / 权限
 
-当前邀请码：`MintoInvest`（在 `frontend/src/quant-platform.jsx` `INVITE_CODE` 常量中）
+当前邀请码：`MtQuant2026_X9k7P`（在 `frontend/src/quant-platform.jsx` `INVITE_CODE` 常量中）
 
 修改后需要重新部署。后续考虑改成 ENV var 或后端验证。
 
