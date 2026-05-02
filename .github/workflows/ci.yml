@@ -117,14 +117,17 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        # 不再 continue-on-error — secrets 已配，pull 失败就该让 deploy 红
         run: vercel pull --yes --environment=production --token=$VERCEL_TOKEN
-        # Skip deploy step if any of the required secrets is missing — graceful no-op until user configures them
-        continue-on-error: true
       - name: Build with Vercel CLI
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: vercel build --prod --token=$VERCEL_TOKEN
       - name: Deploy prebuilt artifact
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN

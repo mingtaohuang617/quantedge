@@ -754,7 +754,7 @@ function AuthProvider({ children }) {
 }
 
 // ─── AuthPage（邀请码登录） ───────────────────────────────
-const INVITE_CODE = "MintoInvest";
+const INVITE_CODE = "MtQuant2026_X9k7P";
 
 const AuthPage = () => {
   const { login } = useAuth();

@@ -8,10 +8,16 @@
 // 未配置时自动降级到无缓存（行为与之前完全一致）
 
 // ── 同源/白名单校验：避免 endpoint 被第三方滥用消耗 Vercel 配额 ──
+// VERCEL_URL                    = 当前 deployment 的随机 URL（每次部署变）
+// VERCEL_PROJECT_PRODUCTION_URL = production alias 域名（恒定，如 quantedge-chi.vercel.app）
+// VERCEL_BRANCH_URL             = 分支 alias（preview 部署）
+// 三者都加进白名单，覆盖 production + preview + 本地 dev 全场景
 const ALLOWED_HOSTS = new Set([
   'localhost',
   '127.0.0.1',
   ...(process.env.VERCEL_URL ? [process.env.VERCEL_URL] : []),
+  ...(process.env.VERCEL_PROJECT_PRODUCTION_URL ? [process.env.VERCEL_PROJECT_PRODUCTION_URL] : []),
+  ...(process.env.VERCEL_BRANCH_URL ? [process.env.VERCEL_BRANCH_URL] : []),
   ...(process.env.QUANTEDGE_ALLOWED_HOSTS || '').split(',').map(s => s.trim()).filter(Boolean),
 ]);
 
