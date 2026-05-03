@@ -8,6 +8,8 @@ import { Activity, ArrowDownRight, ArrowUpRight, Briefcase, Calendar, Check, Che
 import { searchTickers as standaloneSearch, fetchRangePrices, STOCK_CN_NAMES, STOCK_CN_DESCS } from "../standalone.js";
 import { useLang } from "../i18n.jsx";
 import { STOCKS } from "../data.js";
+import AIStockSummaryCard from "../components/AIStockSummaryCard.jsx";
+import ScoreExplainCard from "../components/ScoreExplainCard.jsx";
 import {
   DataContext,
   useData,
@@ -25,6 +27,8 @@ import {
   MiniSparkline,
   get5DSparkData,
   useContainerSize,
+  currencySymbol,
+  fmtPrice,
 } from "../quant-platform.jsx";
 
 // 多标的对比模态框
@@ -102,7 +106,7 @@ const CompareModal = ({ open, onClose, stocks }) => {
               <tbody className="font-mono tabular-nums">
                 {[
                   [t("名称"), s => lang === 'zh' ? (s.nameCN || STOCK_CN_NAMES[s.ticker] || s.name) : s.name, "font-sans text-[10px] text-[#a0aec0]"],
-                  [t("现价"), s => `${s.currency === "HKD" ? "HK$" : "$"}${s.price}`, "text-white"],
+                  [t("现价"), s => `${currencySymbol(s.currency)}${s.price}`, "text-white"],
                   [t("涨跌"), s => `${safeChange(s.change) >= 0 ? "+" : ""}${fmtChange(s.change)}%`, s => safeChange(s.change) >= 0 ? "text-up" : "text-down"],
                   [t("评分"), s => s.score?.toFixed(1), "text-indigo-300 font-semibold"],
                   ["PE", s => s.pe?.toFixed(1) ?? "—", "text-white"],
@@ -149,8 +153,29 @@ const ScoringDashboard = () => {
   }, [mktOpen, typeOpen]);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("score"); // score | change | name
-  const [weights, setWeights] = useState({ fundamental: 40, technical: 30, growth: 30 });
+  // A2: 评分权重 — 从 localStorage 读取（按 workspace 隔离），失败回退默认
+  const [weights, setWeights] = useState(() => {
+    try {
+      const wsId = localStorage.getItem('quantedge_active_workspace') || 'default';
+      const raw = localStorage.getItem(`quantedge_weights_${wsId}`);
+      if (raw) {
+        const w = JSON.parse(raw);
+        // 校验必要字段 + 都是数字
+        if (typeof w?.fundamental === 'number' && typeof w?.technical === 'number' && typeof w?.growth === 'number') {
+          return w;
+        }
+      }
+    } catch { /* 静默回退 */ }
+    return { fundamental: 40, technical: 30, growth: 30 };
+  });
   const [showW, setShowW] = useState(false);
+  // A2: weights 改动时持久化到 localStorage（按当前 workspace）
+  useEffect(() => {
+    try {
+      const wsId = localStorage.getItem('quantedge_active_workspace') || 'default';
+      localStorage.setItem(`quantedge_weights_${wsId}`, JSON.stringify(weights));
+    } catch { /* 私密模式可能 setItem 失败，忽略 */ }
+  }, [weights]);
   const [chartRange, setChartRange] = useState("YTD"); // 1D|5D|1M|6M|YTD|1Y|5Y|ALL
   const [loading, setLoading] = useState(false);
   const [mobileShowDetail, setMobileShowDetail] = useState(false); // mobile: toggle list vs detail
@@ -1131,7 +1156,7 @@ const ScoringDashboard = () => {
                 </div>
                 <div className="sm:text-right flex sm:block items-center gap-2">
                   <div className="text-xl sm:text-2xl font-bold font-mono tabular-nums text-white">
-                    <CountUp value={parseFloat(sel.price) || 0} decimals={2} duration={600} prefix={sel.currency === "HKD" ? "HK$" : "$"} />
+                    <CountUp value={parseFloat(sel.price) || 0} decimals={(sel.currency === "KRW" || sel.currency === "JPY") ? 0 : 2} duration={600} prefix={currencySymbol(sel.currency)} thousands />
                   </div>
                   <div className={`text-sm font-bold tabular-nums ${safeChange(sel.change) >= 0 ? "text-up" : "text-down"}`}>
                     <span>{safeChange(sel.change) >= 0 ? "▲" : "▼"} </span>
@@ -1215,7 +1240,13 @@ const ScoringDashboard = () => {
                       </linearGradient>
                     </defs>
                     <XAxis dataKey="m" tick={{ fontSize: 9, fill: "#667" }} axisLine={false} tickLine={false} minTickGap={28} />
-                    <YAxis yAxisId="price" tick={{ fontSize: 10, fill: "#667" }} axisLine={false} tickLine={false} domain={["auto", "auto"]} width={45} />
+                    <YAxis yAxisId="price" tick={{ fontSize: 10, fill: "#667" }} axisLine={false} tickLine={false} domain={["auto", "auto"]} width={(sel.currency === "KRW" || sel.currency === "JPY") ? 64 : 45}
+                      tickFormatter={(v) => {
+                        // KRW/JPY 用千分位整数；其他保持原样
+                        if (sel.currency === "KRW" || sel.currency === "JPY") return Math.round(v).toLocaleString();
+                        return v;
+                      }}
+                    />
                     <YAxis yAxisId="pct" orientation="right" tick={{ fontSize: 9, fill: "#778" }} axisLine={false} tickLine={false} domain={["auto", "auto"]} width={52} tickFormatter={(v) => `${v > 0 ? "+" : ""}${v.toFixed(1)}%`} />
                     <ReferenceLine yAxisId="pct" y={0} stroke="rgba(255,255,255,0.08)" strokeDasharray="4 3" />
                     {/* C3: 自定义 Bloomberg 风 Tooltip + 激光十字光标 */}
@@ -1224,7 +1255,7 @@ const ScoringDashboard = () => {
                       content={({ active, payload, label }) => {
                         if (!active || !payload?.length) return null;
                         const d = payload[0].payload;
-                        const cur = sel.currency === "HKD" ? "HK$" : "$";
+                        const cur = currencySymbol(sel.currency);
                         const sign = (n) => (n >= 0 ? '+' : '');
                         return (
                           <div className="glass-card border border-indigo-500/40 shadow-2xl px-2.5 py-2 tabular-nums" style={{ minWidth: 180 }}>
@@ -1288,7 +1319,7 @@ const ScoringDashboard = () => {
                 const curValue = totalShares * curPrice;
                 const gain = curValue - totalCost;
                 const gainPct = totalCost > 0 ? (gain / totalCost * 100) : 0;
-                const cur = sel.currency === "HKD" ? "HK$" : "$";
+                const cur = currencySymbol(sel.currency);
                 return (
                   <div id="detail-myposition" className="glass-card border border-cyan-500/25 bg-cyan-500/[0.03] px-3 py-2 flex items-center gap-3 flex-wrap scroll-mt-12">
                     <div className="flex items-center gap-1.5 shrink-0">
@@ -1433,6 +1464,12 @@ const ScoringDashboard = () => {
               )}
             </div>
 
+            {/* AI 解读卡组（B1+B2 - DeepSeek 集成）— 个股显示完整两卡，ETF 仅显示评分解读 */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {!sel.isETF && <AIStockSummaryCard stock={sel} />}
+              {sel.subScores && <ScoreExplainCard stock={sel} weights={weights} />}
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:flex-1 md:min-h-0">
               <div className="flex flex-col gap-3 md:overflow-auto md:min-h-0 pr-0 md:pr-1">
                 {/* ── 多因子雷达图 ── */}
@@ -1490,7 +1527,7 @@ const ScoringDashboard = () => {
                     const lo = sel.week52Low, hi = sel.week52High;
                     const range = hi - lo || 1;
                     const pct = Math.max(0, Math.min(100, ((sel.price - lo) / range) * 100));
-                    const currSymbol = sel.currency === "HKD" ? "HK$" : "$";
+                    const currSymbol = currencySymbol(sel.currency);
                     return (
                       <div>
                         <div className="flex items-center justify-between text-[10px] mb-1.5">
@@ -1744,7 +1781,7 @@ const ScoringDashboard = () => {
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-xs text-[#a0aec0]">{t('52周区间')}</span>
-                        <Badge variant="info">{sel.currency === "HKD" ? "HK$" : "$"}{sel.week52Low} - {sel.week52High}</Badge>
+                        <Badge variant="info">{currencySymbol(sel.currency)}{sel.week52Low} - {sel.week52High}</Badge>
                       </div>
                       {/* 持仓明细 */}
                       {sel.topHoldings && (
@@ -1778,7 +1815,7 @@ const ScoringDashboard = () => {
                     <div className="space-y-0">
                       {[
                         ["PE (TTM)", sel.pe ? Number(sel.pe).toFixed(1) : "N/A", sel.pe && sel.pe > 0 && sel.pe < 25 ? "success" : sel.pe && sel.pe > 0 && sel.pe < 50 ? "warning" : "danger"],
-                        [t("52周区间"), `${sel.currency === "HKD" ? "HK$" : "$"}${sel.week52Low} – ${sel.week52High}`, "info"],
+                        [t("52周区间"), `${currencySymbol(sel.currency)}${sel.week52Low} – ${sel.week52High}`, "info"],
                         [t("营收增长"), sel.revenueGrowth ? `${sel.revenueGrowth}%` : "N/A", sel.revenueGrowth && sel.revenueGrowth > 20 ? "success" : sel.revenueGrowth && sel.revenueGrowth > 5 ? "warning" : "default"],
                         [t("利润率"), sel.profitMargin ? `${sel.profitMargin}%` : "N/A", sel.profitMargin && sel.profitMargin > 20 ? "success" : sel.profitMargin && sel.profitMargin > 0 ? "warning" : "danger"],
                         [t("年营收"), sel.revenue || "N/A", "info"],
@@ -1976,11 +2013,16 @@ const ScoringDashboard = () => {
                   </linearGradient>
                 </defs>
                 <XAxis dataKey="m" tick={{ fontSize: 11, fill: "#a0aec0" }} axisLine={false} tickLine={false} minTickGap={40} />
-                <YAxis yAxisId="price" tick={{ fontSize: 11, fill: "#a0aec0" }} axisLine={false} tickLine={false} domain={["auto", "auto"]} width={60} />
+                <YAxis yAxisId="price" tick={{ fontSize: 11, fill: "#a0aec0" }} axisLine={false} tickLine={false} domain={["auto", "auto"]} width={(sel.currency === "KRW" || sel.currency === "JPY") ? 80 : 60}
+                  tickFormatter={(v) => {
+                    if (sel.currency === "KRW" || sel.currency === "JPY") return Math.round(v).toLocaleString();
+                    return v;
+                  }}
+                />
                 <YAxis yAxisId="pct" orientation="right" tick={{ fontSize: 10, fill: "#a0aec0" }} axisLine={false} tickLine={false} domain={["auto", "auto"]} width={60} tickFormatter={(v) => `${v > 0 ? "+" : ""}${v.toFixed(1)}%`} />
                 <ReferenceLine yAxisId="pct" y={0} stroke="rgba(255,255,255,0.1)" strokeDasharray="4 3" />
                 <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v, name) => {
-                  if (name === "p") return [`${sel.currency === "HKD" ? "HK$" : "$"}${v}`, t("价格")];
+                  if (name === "p") return [`${currencySymbol(sel.currency)}${v}`, t("价格")];
                   if (name === "pct") return [`${v >= 0 ? "+" : ""}${v}%`, t("收益率")];
                   if (name === "bpct") return [`${v >= 0 ? "+" : ""}${v}%`, `${benchmarkLabel} ${t('基准')}`];
                   return [v, name];

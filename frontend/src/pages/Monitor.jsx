@@ -15,6 +15,7 @@ import {
   MobileAccordion,
   MiniSparkline,
   get5DSparkData,
+  currencySymbol,
 } from "../quant-platform.jsx";
 
 const ALERT_RULES_KEY = "quantedge_alert_rules";
@@ -450,7 +451,7 @@ const Monitor = () => {
                 <span className={`text-xs text-white truncate min-w-0 ${isHK ? "" : "font-mono"}`} title={s.ticker}>{label}</span>
                 <div className="flex items-center gap-2 shrink-0">
                   <MiniSparkline data={get5DSparkData(s)} w={40} h={12} />
-                  <span className="text-xs font-mono tabular-nums text-[#a0aec0]">{s.currency === "HKD" ? "HK$" : "$"}{s.price}</span>
+                  <span className="text-xs font-mono tabular-nums text-[#a0aec0]">{currencySymbol(s.currency)}{s.price}</span>
                   <span className={`text-[10px] font-mono tabular-nums ${safeChange(s.change) >= 0 ? "text-up" : "text-down"}`}>
                     {safeChange(s.change) >= 0 ? "+" : ""}{fmtChange(s.change)}%
                   </span>

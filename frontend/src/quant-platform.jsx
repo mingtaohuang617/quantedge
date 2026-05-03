@@ -11,6 +11,7 @@ const Journal = lazy(() => import("./pages/Journal.jsx"));
 const Monitor = lazy(() => import("./pages/Monitor.jsx"));
 const BacktestEngine = lazy(() => import("./pages/BacktestEngine.jsx"));
 const ScoringDashboard = lazy(() => import("./pages/ScoringDashboard.jsx"));
+const MacroDashboard = lazy(() => import("./pages/MacroDashboard.jsx"));
 
 let STATIC_STOCKS = [];
 let STATIC_ALERTS = [];
@@ -693,6 +694,30 @@ export const fmtChange = (v) => {
   return n.toFixed(2);
 };
 
+// ─── 多币种显示助手 — 替代散落各处的 `currency === "HKD" ? "HK$" : "$"` ─────
+// 用法：const sym = currencySymbol(stk?.currency); fmtPrice(price, currency)
+const CURRENCY_SYMBOLS = {
+  USD: "$", HKD: "HK$", CNY: "¥", JPY: "¥", KRW: "₩", EUR: "€", GBP: "£",
+};
+// 不需要小数位的货币（KRW、JPY 单位本身已是整数）
+const CURRENCY_NO_DECIMALS = new Set(["KRW", "JPY"]);
+
+export const currencySymbol = (currency) => CURRENCY_SYMBOLS[currency] || "$";
+
+/** 价格格式化：统一加货币符号 + 千分位 + 自适应小数位
+ *  - KRW / JPY 整数（韩元、日元单位本身大）
+ *  - 其他默认 2 位小数
+ *  - 大于 1000 加千分位逗号 */
+export const fmtPrice = (price, currency = "USD", opts = {}) => {
+  const n = Number(price);
+  if (!isFinite(n)) return `${currencySymbol(currency)}—`;
+  const noDec = CURRENCY_NO_DECIMALS.has(currency);
+  const decimals = opts.decimals != null ? opts.decimals : (noDec ? 0 : 2);
+  return `${currencySymbol(currency)}${n.toLocaleString(undefined, {
+    minimumFractionDigits: decimals, maximumFractionDigits: decimals,
+  })}`;
+};
+
 // ─── 港股显示名称（优先 中文名/英文名），非港股保持 ticker ─────────
 // 用于"近期财报、实时监控、投资日志"三处：港股以名称示人，更易识别。
 export const displayTicker = (ticker, stock, lang) => {
@@ -1149,7 +1174,7 @@ export const Highlight = ({ text, query }) => {
 };
 
 // 数字滚动动画 — 平滑过渡到新值
-export const CountUp = ({ value, duration = 600, decimals = 2, prefix = "", suffix = "", className = "" }) => {
+export const CountUp = ({ value, duration = 600, decimals = 2, prefix = "", suffix = "", className = "", thousands = false }) => {
   const [display, setDisplay] = useState(value ?? 0);
   const prevRef = useRef(value ?? 0);
   useEffect(() => {
@@ -1168,7 +1193,11 @@ export const CountUp = ({ value, duration = 600, decimals = 2, prefix = "", suff
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
   }, [value, duration]);
-  return <span className={className}>{prefix}{Number(display).toFixed(decimals)}{suffix}</span>;
+  // thousands=true 时用 toLocaleString 加千分位（韩元/日元等大数好读）
+  const text = thousands
+    ? Number(display).toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
+    : Number(display).toFixed(decimals);
+  return <span className={className}>{prefix}{text}{suffix}</span>;
 };
 
 export const ScoreBar = ({ score, max = 100 }) => {
@@ -1190,6 +1219,7 @@ const TAB_CFG = [
   { id: "backtest", label: "组合回测", icon: Activity },
   { id: "monitor", label: "实时监控", icon: Bell },
   { id: "journal", label: "投资日志", icon: BookOpen },
+  { id: "macro", label: "宏观看板", icon: Globe },
 ];
 
 // ─── Scoring ──────────────────────────────────────────────
@@ -2140,6 +2170,7 @@ function QuantPlatformInner() {
           {tab === "backtest" && <BacktestEngine />}
           {tab === "monitor" && <Monitor />}
           {tab === "journal" && <Journal />}
+          {tab === "macro" && <MacroDashboard />}
         </Suspense>
       </main>
 

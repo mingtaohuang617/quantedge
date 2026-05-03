@@ -6,6 +6,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef, useContext } 
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, ComposedChart, ReferenceLine, ReferenceArea } from "recharts";
 import { Activity, AlertCircle, AlertTriangle, BarChart3, BookOpen, Briefcase, Check, ChevronDown, Database, Layers, Loader, Plus, RefreshCw, Search, Share2, Target, Trash2, TrendingDown, X, Zap } from "lucide-react";
 import { searchTickers as standaloneSearch, fetchStockData, fetchBenchmarkPrices, fetchRangePrices, fetchRangePricesEx, STOCK_CN_NAMES } from "../standalone.js";
+import BacktestNarrationCard from "../components/BacktestNarrationCard.jsx";
 import { useLang } from "../i18n.jsx";
 import { monteCarlo as mcSimulate, navToReturns as mcNavToReturns, hhi as hhiCalc, effectiveN as effN } from "../math/stats.ts";
 import { STOCKS } from "../data.js";
@@ -1693,6 +1694,9 @@ const BacktestEngine = () => {
                 </div>
               ))}
             </div>
+
+            {/* B4: 回测 AI 总结卡（DeepSeek） */}
+            <BacktestNarrationCard btResult={btResult} portfolio={portfolio} benchMetrics={null} />
 
             {/* 净值曲线 */}
             {(() => {

@@ -76,6 +76,14 @@ FRONTEND_DATA_PATH = BASE_DIR.parent / "frontend" / "src" / "data.js"
 from config import TICKERS as BUILTIN_TICKERS, SECTOR_ETF_MAP
 from factors import calc_rsi, calc_momentum, calc_stock_score, calc_etf_score, parse_leverage
 
+# 宏观因子库（Phase 1）— 副作用：导入子模块时装饰器把因子注册进 _REGISTRY
+import db as _macro_db
+import factors_lib as _fl
+import factors_lib.liquidity  # noqa: F401
+import factors_lib.sentiment  # noqa: F401
+import factors_lib.breadth    # noqa: F401
+import factors_lib.valuation  # noqa: F401
+
 # Data sources import — optional (Futu may not be installed)
 try:
     from data_sources import fetch_history, health_check
@@ -102,6 +110,15 @@ except Exception as _e:
     HAS_DB = False
     _db_mod = None
     print(f"[WARN] db module not available: {_e}")
+
+# LLM (DeepSeek) — 可选（B1）
+try:
+    import llm as _llm_mod
+    HAS_LLM = True
+except Exception as _e:
+    HAS_LLM = False
+    _llm_mod = None
+    print(f"[WARN] llm module not available: {_e}")
     def health_check():
         return {"yfinance": (True, "OK"), "futu": (False, "not installed")}
 
@@ -557,7 +574,31 @@ cache = DataCache()
 
 
 # ─── FastAPI App ───────────────────────────────────────
-app = FastAPI(title="QuantEdge API", version="0.3.0")
+# A7: lifespan 替代已废弃的 @app.on_event("startup") / ("shutdown")
+from contextlib import asynccontextmanager
+
+
+@asynccontextmanager
+async def lifespan(_app):
+    """Init DB, load cached data, kick off incremental sync (C17)."""
+    if HAS_DB and _db_mod is not None:
+        try:
+            _db_mod.init_db()
+            print("[OK] SQLite db initialized")
+        except Exception as e:
+            print(f"[WARN] db.init_db failed: {e}")
+    cache.load_from_file()
+    print(f"[OK] loaded {len(cache.stocks)} stocks on startup")
+
+    # 后台增量同步（不阻塞 API server 启动）
+    if HAS_DB:
+        threading.Thread(target=_bg_run_incremental_sync, daemon=True).start()
+
+    yield  # ── 此前 = startup, 此后 = shutdown ──
+    # （目前没有需要 shutdown 清理的资源；如果未来加，写在 yield 之后）
+
+
+app = FastAPI(title="QuantEdge API", version="0.3.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -577,23 +618,6 @@ class AddTickerRequest(BaseModel):
     description: str = ""
     etf_type: str | None = None
     leverage: str | None = None
-
-
-@app.on_event("startup")
-def startup():
-    """Init DB, load cached data, kick off incremental sync (C17)."""
-    if HAS_DB and _db_mod is not None:
-        try:
-            _db_mod.init_db()
-            print("[OK] SQLite db initialized")
-        except Exception as e:
-            print(f"[WARN] db.init_db failed: {e}")
-    cache.load_from_file()
-    print(f"[OK] loaded {len(cache.stocks)} stocks on startup")
-
-    # 后台增量同步（不阻塞 API server 起来）
-    if HAS_DB:
-        threading.Thread(target=_bg_run_incremental_sync, daemon=True).start()
 
 
 def _bg_run_incremental_sync():
@@ -649,6 +673,12 @@ def run_incremental_sync(tickers: dict | None = None) -> dict:
         # 走 router（prefer_db=False 强制远程）
         try:
             df, src = _router.fetch_history(cfg2, days=days, prefer_db=False)
+            # A1: 顺手写元数据（router 只写 daily_bars + sync_state，元数据要单独 upsert）
+            try:
+                _db_mod.upsert_ticker_meta(internal_ticker, cfg2,
+                                            is_builtin=(key in BUILTIN_TICKERS))
+            except Exception as me:
+                print(f"[SYNC] {key}: upsert_ticker_meta failed: {me}")
             stats["ok"] += 1
             stats["details"].append(f"{key}: {len(df)} bars from {src}")
         except Exception as e:
@@ -960,11 +990,22 @@ def add_ticker(req: AddTickerRequest):
     save_custom_tickers(custom)
 
     # Fetch data immediately (this enriches cfg with sector/description from yfinance)
+    # router.fetch_history 内部已通过 _persist_to_db 自动写 daily_bars + sync_state
     result = cache.add_single(ticker_key, cfg)
 
     # Re-save custom tickers with enriched data (sector, description, name)
     custom[ticker_key] = cfg
     save_custom_tickers(custom)
+
+    # 写 SQLite tickers 元数据表（与 sync 路径一致，闭环三表都写）
+    if HAS_DB and _db_mod is not None:
+        try:
+            cfg_with_ticker = dict(cfg)
+            cfg_with_ticker["ticker"] = ticker_key
+            internal_ticker = _db_mod.normalize_ticker(cfg_with_ticker)
+            _db_mod.upsert_ticker_meta(internal_ticker, cfg_with_ticker, is_builtin=False)
+        except Exception as me:
+            print(f"[add_ticker] upsert_ticker_meta failed: {me}")
 
     if result:
         return {
@@ -1058,6 +1099,106 @@ def db_bars_endpoint(ticker: str, start: str | None = None, end: str | None = No
     return sanitize({"ticker": ticker, "count": len(rows), "bars": rows})
 
 
+# ── LLM (DeepSeek) 端点 (B1 / B5) ────────────────────────
+class LLMSummaryReq(BaseModel):
+    """B1: 个股 AI 摘要请求体。所有字段可选，能给多少给多少。"""
+    ticker: str
+    name: str | None = None
+    sector: str | None = None
+    pe: float | None = None
+    roe: float | None = None
+    momentum: float | None = None
+    rsi: float | None = None
+    revenueGrowth: float | None = None
+    profitMargin: float | None = None
+    descriptionCN: str | None = None
+    week52High: float | None = None
+    week52Low: float | None = None
+
+
+class LLMJournalReq(BaseModel):
+    """B5: 一句话日志结构化请求体。"""
+    text: str
+    watchlist: list[str] = []
+
+
+@app.post("/api/llm/summary")
+def llm_summary(req: LLMSummaryReq):
+    """B1: 个股 AI 摘要（看点 / 风险 / 估值）。命中缓存时 <50ms。"""
+    if not HAS_LLM or _llm_mod is None:
+        raise HTTPException(503, "llm 模块未加载（DEEPSEEK_API_KEY 未设？）")
+    return sanitize(_llm_mod.summary(req.dict()))
+
+
+@app.post("/api/llm/journal-structure")
+def llm_journal_structure(req: LLMJournalReq):
+    """B5: 一句话投资日志 → 结构化字段。"""
+    if not HAS_LLM or _llm_mod is None:
+        raise HTTPException(503, "llm 模块未加载（DEEPSEEK_API_KEY 未设？）")
+    return sanitize(_llm_mod.journal_structure(req.text, req.watchlist))
+
+
+class LLMExplainScoreReq(BaseModel):
+    """B2: 评分解读请求。"""
+    ticker: str
+    score: float | None = None
+    isETF: bool = False
+    subScores: dict = {}
+    weights: dict = {"fundamental": 40, "technical": 30, "growth": 30}
+
+
+@app.post("/api/llm/explain-score")
+def llm_explain_score(req: LLMExplainScoreReq):
+    """B2: 解读综合评分（为什么 78.8 分）。"""
+    if not HAS_LLM or _llm_mod is None:
+        raise HTTPException(503, "llm 模块未加载（DEEPSEEK_API_KEY 未设？）")
+    stock = {
+        "ticker": req.ticker,
+        "score": req.score,
+        "isETF": req.isETF,
+        "subScores": req.subScores,
+    }
+    return sanitize(_llm_mod.explain_score(stock, req.weights))
+
+
+class LLMBacktestNarrateReq(BaseModel):
+    """B4: 回测 AI 总结请求。"""
+    tickers: list[str] = []
+    weights: dict = {}            # ticker → weight (0-1)
+    annualReturn: float | None = None
+    sharpe: float | None = None
+    maxDD: float | None = None
+    vol: float | None = None
+    worstMonth: str | None = None
+    worstMonthReturn: float | None = None
+    benchAnnualReturn: float | None = None
+
+
+@app.post("/api/llm/backtest-narrate")
+def llm_backtest_narrate(req: LLMBacktestNarrateReq):
+    """B4: 回测结果自然语言总结。"""
+    if not HAS_LLM or _llm_mod is None:
+        raise HTTPException(503, "llm 模块未加载（DEEPSEEK_API_KEY 未设？）")
+    return sanitize(_llm_mod.backtest_narrate(req.dict()))
+
+
+@app.get("/api/llm/stats")
+def llm_stats():
+    """LLM 缓存命中 / token 累计统计。"""
+    if not HAS_DB or _db_mod is None:
+        raise HTTPException(503, "db 模块未加载")
+    return sanitize(_db_mod.llm_cache_stats())
+
+
+@app.get("/api/llm/health")
+def llm_health():
+    """探测 DeepSeek 是否可用（消耗 1 token）。"""
+    if not HAS_LLM or _llm_mod is None:
+        return {"ok": False, "message": "llm 模块未加载"}
+    ok, msg = _llm_mod.health_check()
+    return {"ok": ok, "message": msg}
+
+
 @app.get("/api/status")
 def get_status():
     """服务状态。"""
@@ -1085,24 +1226,95 @@ def get_status():
     }
 
 
-if __name__ == "__main__":
-    # Check Futu OpenD on startup
-    futu_info = ""
-    if HAS_DATA_SOURCES:
-        try:
-            hc = health_check()
-            futu_ok, futu_msg = hc.get("futu", (False, "unknown"))
-            futu_info = f"  Futu OpenD: {'[OK] ' + str(futu_ok) if futu_ok else '[X] ' + str(futu_msg)}"
-        except Exception as e:
-            futu_info = f"  Futu OpenD: [X] {e}"
-    else:
-        futu_info = "  Futu OpenD: [X] (futu-api not installed)"
+# ── 宏观因子 API（Phase 1）────────────────────────────────
+@app.get("/api/macro/factors")
+def list_macro_factors(sparkline: int = 0, market: str | None = None):
+    """
+    返回所有已注册市场层面因子的最新值与分位（每市场一行）。
 
+    Query:
+      sparkline: 返回最近 N 个原始值用于 mini chart（0 关闭，建议 60–180）
+      market:    仅返回指定市场（'US'/'CN'/...），不传返回全部
+    """
+    conn = _macro_db._get_conn()
+    out = []
+    for spec in _fl.list_factors():
+        for mkt in spec.markets:
+            if market and mkt != market:
+                continue
+            row = conn.execute(
+                "SELECT value_date, raw_value, percentile FROM factor_values "
+                "WHERE factor_id=? AND market=? "
+                "ORDER BY value_date DESC LIMIT 1",
+                (spec.factor_id, mkt),
+            ).fetchone()
+            entry = {
+                "factor_id": spec.factor_id,
+                "name": spec.name,
+                "category": spec.category,
+                "market": mkt,
+                "freq": spec.freq,
+                "description": spec.description,
+                "rolling_window_days": spec.rolling_window_days,
+                "latest": dict(row) if row else None,
+            }
+            if sparkline > 0:
+                try:
+                    hist = spec.func()
+                    if not hist.empty:
+                        last_n = hist.iloc[-sparkline:]
+                        entry["sparkline"] = {
+                            "dates": [str(i) for i in last_n.index],
+                            "values": [float(v) for v in last_n.values],
+                        }
+                    else:
+                        entry["sparkline"] = None
+                except Exception as e:
+                    entry["sparkline"] = None
+                    entry["sparkline_error"] = str(e)
+            out.append(entry)
+    return sanitize(out)
+
+
+@app.get("/api/macro/factors/{factor_id}/history")
+def get_macro_factor_history(factor_id: str, market: str = "US", limit: int = 0):
+    """
+    完整因子历史曲线（实时由因子函数计算，PIT 默认 = 当前时刻）。
+    limit=0 全量；>0 取最近 N 个点。
+    """
+    spec = _fl.get_factor(factor_id)
+    if not spec:
+        return {"error": f"factor not found: {factor_id}"}
+    hist = spec.func()
+    if hist.empty:
+        return {"factor_id": factor_id, "market": market, "history": []}
+    if limit > 0:
+        hist = hist.iloc[-limit:]
+    return sanitize({
+        "factor_id": factor_id,
+        "market": market,
+        "rolling_window_days": spec.rolling_window_days,
+        "history": [
+            {"value_date": str(idx), "value": float(val)}
+            for idx, val in hist.items()
+        ],
+    })
+
+
+@app.get("/api/macro/series/{series_id}")
+def get_macro_series(series_id: str, as_of: str | None = None):
+    """PIT 单点查询：series_id 在 as_of 时刻的最新可见值（无 as_of 时取当前最新）。"""
+    val = _fl.read_series(series_id, as_of)
+    return {"series_id": series_id, "as_of": as_of, "value": val}
+
+
+if __name__ == "__main__":
+    # 不在启动时调 health_check —— 它会同步连 Futu OpenD，OpenD 没开会卡住启动。
+    # 各源健康状态由 /api/status 端点按需查询（前端拉到才探活）。
     print("=" * 50)
     print("  QuantEdge API Server")
     print("  http://localhost:8001")
     print("  http://localhost:8001/docs (Swagger UI)")
-    print(futu_info)
-    print("  yfinance:   [OK] ready")
+    print("  数据源健康: GET /api/status (lazy probe)")
     print("=" * 50)
     uvicorn.run(app, host="0.0.0.0", port=8001)

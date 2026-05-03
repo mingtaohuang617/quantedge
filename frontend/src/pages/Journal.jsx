@@ -4,7 +4,7 @@
 // ─────────────────────────────────────────────────────────────
 import React, { useState, useEffect, useMemo, useCallback, useContext, useRef } from "react";
 import { BarChart, Bar, XAxis, YAxis, Cell, Tooltip, ResponsiveContainer } from "recharts";
-import { Plus, Search, Loader, Check, Briefcase, Activity, BookOpen, Trash2, Eye, Layers, Globe, ChevronRight, Zap, Database, X, Upload } from "lucide-react";
+import { Plus, Search, Loader, Check, Briefcase, Activity, BookOpen, Trash2, Eye, Layers, Globe, ChevronRight, Zap, Database, X, Upload, Sparkles } from "lucide-react";
 import { searchTickers as standaloneSearch, fetchStockData, STOCK_CN_NAMES } from "../standalone.js";
 import { useLang } from "../i18n.jsx";
 import {
@@ -17,6 +17,7 @@ import {
   Badge,
   useWorkspace,
   wsKey,
+  currencySymbol,
 } from "../quant-platform.jsx";
 
 // C16: 工作区命名空间
@@ -236,8 +237,50 @@ const Journal = () => {
   const [selectedStock, setSelectedStock] = useState(null);
   const [addingEntry, setAddingEntry] = useState(false);
   const [mobileShowDetail, setMobileShowDetail] = useState(false);
+  // B5: AI 整理一句话日志 → 结构化字段
+  const [aiOrganizing, setAiOrganizing] = useState(false);
+  const [aiHint, setAiHint] = useState("");  // 解析提示文本
 
   useEffect(() => { if (!sel && entries.length > 0) setSel(entries[0]); }, [entries]);
+
+  // B5: 调 /api/llm/journal-structure 把 thesis 一句话拆成 ticker/qty/price/sentiment/reason/tags
+  const handleAIOrganize = useCallback(async () => {
+    const text = (addThesis || "").trim();
+    if (!text) {
+      setAiHint("先在投资论点框里写一句话，再点 AI 整理");
+      return;
+    }
+    setAiOrganizing(true);
+    setAiHint("");
+    try {
+      // 把当前 watchlist 喂给 LLM 作为 ticker 候选池
+      const watchlist = (liveStocks || []).map(s => s.ticker).filter(Boolean);
+      // apiFetch 已 parse JSON 并在网络失败时返回 null（且 path 不需要 /api 前缀）
+      const json = await apiFetch("/llm/journal-structure", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, watchlist }),
+      });
+      if (!json) throw new Error("后端无响应（检查 backend 是否启动）");
+      if (!json.ok) throw new Error(json.error || json.detail || "AI 服务异常");
+      const s = json.structured || {};
+      // 回填字段
+      if (s.reason) setAddThesis(s.reason);
+      if (Array.isArray(s.tags) && s.tags.length > 0) setAddTags(s.tags.join(", "));
+      // 提示用户 LLM 识别出的 ticker / sentiment 等（让用户自己手动选 selectedStock）
+      const hints = [];
+      if (s.ticker) hints.push(`识别到标的 ${s.ticker}（请用搜索框选中）`);
+      if (s.action) hints.push(`方向: ${s.action}`);
+      if (s.qty) hints.push(`数量: ${s.qty}`);
+      if (s.price) hints.push(`价格: ${s.price}`);
+      if (s.sentiment) hints.push(`情绪: ${s.sentiment}`);
+      setAiHint(hints.length > 0 ? hints.join(" · ") : "已整理 thesis 和 tags");
+    } catch (e) {
+      setAiHint(`AI 整理失败: ${String(e?.message || e)}`);
+    } finally {
+      setAiOrganizing(false);
+    }
+  }, [addThesis, liveStocks]);
 
   useEffect(() => {
     setEntries(prev => {
@@ -371,7 +414,7 @@ const Journal = () => {
   const generatePrompt = useCallback(() => {
     if (!sel) return "";
     const stk = liveStocks.find(s => s.ticker === sel.ticker);
-    const cur = stk?.currency === "HKD" ? "HK$" : "$";
+    const cur = currencySymbol(stk?.currency);
     const days = Math.floor((Date.now() - new Date(sel.anchorDate).getTime()) / 86400000);
     const ret = sel.anchorPrice > 0 ? ((sel.currentPrice - sel.anchorPrice) / sel.anchorPrice * 100).toFixed(2) : "0";
     const angleQuestion = {
@@ -579,14 +622,32 @@ ${angleQuestion}
                 </div>
               )}
             </div>
-            <textarea
-              value={addThesis}
-              onChange={e => setAddThesis(e.target.value)}
-              placeholder={t("投资论点 (为什么看好这个标的？)...")}
-              rows={3}
-              className="w-full rounded-lg px-3 py-2 text-xs outline-none resize-none"
-              style={{ background: "var(--bg-input)", border: "1px solid var(--border-default)", color: "var(--text-primary)" }}
-            />
+            <div className="relative">
+              <textarea
+                value={addThesis}
+                onChange={e => setAddThesis(e.target.value)}
+                placeholder={t("投资论点 (为什么看好这个标的？) 也可写成一句话日记，再点右上角 AI 整理")}
+                rows={3}
+                className="w-full rounded-lg px-3 py-2 text-xs outline-none resize-none"
+                style={{ background: "var(--bg-input)", border: "1px solid var(--border-default)", color: "var(--text-primary)" }}
+              />
+              {/* B5: AI 整理按钮（DeepSeek） */}
+              <button
+                type="button"
+                onClick={handleAIOrganize}
+                disabled={aiOrganizing || !addThesis.trim()}
+                title="DeepSeek 把一句话拆成结构化字段"
+                className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded-md text-[10px] flex items-center gap-1 bg-violet-500/15 hover:bg-violet-500/25 text-violet-200 border border-violet-500/30 transition disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {aiOrganizing ? <Loader size={10} className="animate-spin" /> : <Sparkles size={10} />}
+                {aiOrganizing ? "整理中" : "AI 整理"}
+              </button>
+            </div>
+            {aiHint && (
+              <div className="text-[10px] px-2 py-1 rounded-md bg-violet-500/10 text-violet-200/90 border border-violet-500/20">
+                {aiHint}
+              </div>
+            )}
             <input
               value={addTags}
               onChange={e => setAddTags(e.target.value)}
@@ -684,7 +745,7 @@ ${angleQuestion}
           {entries.map(e => {
             const ret = calcRet(e.anchorPrice, e.currentPrice);
             const stk = liveStocks.find(s => s.ticker === e.ticker);
-            const currency = stk?.currency === "HKD" ? "HK$" : "$";
+            const currency = currencySymbol(stk?.currency);
             const hasPos = (e.shares || 0) > 0;
             const isHK = e.ticker?.endsWith(".HK");
             const mainLabel = isHK
@@ -750,7 +811,7 @@ ${angleQuestion}
         {sel && (() => {
           const stk = liveStocks.find(s => s.ticker === sel.ticker);
           const ret = calcRet(sel.anchorPrice, sel.currentPrice);
-          const currency = stk?.currency === "HKD" ? "HK$" : "$";
+          const currency = currencySymbol(stk?.currency);
           return (
             <div className="flex flex-col gap-3">
               <button onClick={() => setMobileShowDetail(false)} className="md:hidden flex items-center gap-1.5 text-xs text-indigo-400 py-2 px-3 rounded-lg bg-indigo-500/[0.06] border border-indigo-500/15 w-fit active:scale-95 transition-all">
