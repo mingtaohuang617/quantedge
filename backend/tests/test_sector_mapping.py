@@ -74,14 +74,37 @@ def test_unknown_returns_empty():
     assert classify_sector("Real Estate") == set()
 
 
-# ── conservative：避免误伤 ────────────────────────────────
-def test_telecom_equipment_does_not_match_optical():
-    """tushare "通信设备" 是上层概念（含中兴/烽火），不应自动归 optical"""
-    assert "optical" not in classify_sector("通信设备")
+# ── 富途/tushare 实际板块名（v2 加宽关键词后）────────────
+def test_telecom_equipment_matches_optical():
+    """富途 "通讯设备" / tushare "通信设备" 是含光通信的上层板块。
+    v2 加宽关键词后纳入 optical（接受一定噪音 — 用户可在 watchlist 编辑时手动校准）。
+    """
+    assert "optical" in classify_sector("通讯设备")
+    assert "optical" in classify_sector("通信设备")
+    assert "optical" in classify_sector("Communication Equipment")
 
 
-def test_communication_services_not_optical():
-    """yfinance "Communication Services" 是大类，不应误判"""
+def test_application_software_matches_ai_compute():
+    """富途 "应用软件" / "软件基础设施" — AI 公司常被归到此板块"""
+    assert "ai_compute" in classify_sector("应用软件")
+    assert "ai_compute" in classify_sector("软件基础设施")
+    assert "ai_compute" in classify_sector("Software - Application")
+    assert "ai_compute" in classify_sector("Software - Infrastructure")
+
+
+def test_digital_solutions_matches_ai_compute():
+    """富途 HK 板块 "数码解决方案服务" — 含腾讯/美团/京东等 AI 应用公司"""
+    assert "ai_compute" in classify_sector("数码解决方案服务")
+
+
+def test_it_services_matches_ai_compute():
+    assert "ai_compute" in classify_sector("信息技术服务")
+    assert "ai_compute" in classify_sector("Information Technology Services")
+
+
+def test_communication_services_still_not_optical():
+    """yfinance "Communication Services" 是 broader 大类（不含 Equipment），仍不应误判到 optical"""
+    assert "optical" not in classify_sector("Communication Services")
     assert classify_sector("Communication Services") == set()
 
 

@@ -25,33 +25,60 @@ from __future__ import annotations
 
 
 # 超级赛道定义（id → 元数据 + 命中关键词）
+#
+# 关键词覆盖三类来源：
+#   1. 富途 OpenD owner_plate 中文板块名（"半导体"、"通讯设备"、"应用软件"、"数码解决方案服务" 等）
+#   2. yfinance 英文 sector / industry（"Semiconductors"、"Software - Application" 等）
+#   3. tushare 中文行业（"半导体"、"通信设备"、"软件服务"、"新型电力" 等）
+#
+# 注意：富途 / yfinance 没有"光通信" / "AI" / "数据中心" 这种细分板块，
+# 所以 ai_compute / optical 命中的会比较宽（含一些非纯赛道公司），
+# 需要用户在 watchlist item 编辑时手动校准 supertrend_id 与 thesis。
 SUPERTRENDS: dict[str, dict] = {
     "ai_compute": {
         "name": "AI 算力",
-        "note": "AI 训练/推理 GPU、HBM、加速器",
-        "keywords_zh": ["AI", "HBM", "算力", "智能计算", "人工智能"],
-        "keywords_en": ["Artificial Intelligence"],
+        "note": "AI 软硬件 / 加速器 / HBM / AI 应用",
+        # 直接关键词 + 软件/IT 服务（AI 公司常被归到这些板块）
+        "keywords_zh": [
+            "AI", "HBM", "算力", "智能计算", "人工智能",
+            "应用软件", "软件基础设施", "软件服务",
+            "数码解决方案服务",
+            "信息技术服务",
+            "互联网内容与信息",
+        ],
+        "keywords_en": [
+            "Artificial Intelligence",
+            "Software - Application",
+            "Software - Infrastructure",
+            "Information Technology Services",
+            "Internet Content",
+        ],
     },
     "semi": {
         "name": "半导体",
         "note": "设计、制造、设备、材料、存储",
-        "keywords_zh": ["半导体", "存储", "MCU", "元器件", "NAND", "DRAM", "晶圆"],
-        "keywords_en": [
-            "Semiconductor",
-            "Semiconductors",
-            "Memory",
+        "keywords_zh": [
+            "半导体", "存储", "MCU", "元器件", "NAND", "DRAM", "晶圆", "集成电路",
+            "电子元件",  # tushare 类
         ],
+        "keywords_en": ["Semiconductor", "Semiconductors", "Memory"],
     },
     "optical": {
         "name": "光通信",
-        "note": "光模块、硅光、CPO、激光器、光纤",
-        "keywords_zh": ["光通信", "光模块", "硅光", "光纤", "激光"],
-        "keywords_en": ["Optical", "Photonic", "Laser"],
+        "note": "光模块、硅光、CPO、激光器、光纤、通讯设备",
+        "keywords_zh": [
+            "光通信", "光模块", "硅光", "光纤", "激光",
+            "通讯设备", "通信设备",  # 富途/tushare 板块名（含光通信公司，但也含其他通信设备）
+        ],
+        "keywords_en": ["Optical", "Photonic", "Laser", "Communication Equipment"],
     },
     "datacenter": {
         "name": "算力中心",
-        "note": "数据中心电力 / 冷却 / 网络基础设施",
-        "keywords_zh": ["数据中心", "新型电力", "火力发电", "水力发电"],
+        "note": "数据中心 / 电力 / 公共事业",
+        "keywords_zh": [
+            "数据中心", "新型电力", "火力发电", "水力发电",
+            "公共事业",  # 富途板块
+        ],
         "keywords_en": [
             "Data Center",
             "Power Producers",
