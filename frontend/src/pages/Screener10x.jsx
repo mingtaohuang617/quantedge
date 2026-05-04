@@ -44,7 +44,7 @@ export default function Screener10x() {
   const [selectedTrends, setSelectedTrends] = useState([]); // string[]
   const [maxMcapB, setMaxMcapB] = useState(50);             // 单位 B
   const [includeETF, setIncludeETF] = useState(false);
-  const [markets, setMarkets] = useState(["US", "CN"]);
+  const [markets, setMarkets] = useState(["US", "HK", "CN"]);
   const [search, setSearch] = useState("");
   // 候选 + loading
   const [candidates, setCandidates] = useState([]);
@@ -170,7 +170,7 @@ export default function Screener10x() {
         <div className="flex items-center gap-3 text-[10px] text-[#a0aec0]">
           {universeStats && (
             <span className="flex items-center gap-1">
-              <Database size={11} /> US {universeStats.US?.count || 0} · CN {universeStats.CN?.count || 0}
+              <Database size={11} /> US {universeStats.US?.count || 0} · HK {universeStats.HK?.count || 0} · CN {universeStats.CN?.count || 0}
             </span>
           )}
           <button
@@ -270,7 +270,7 @@ export default function Screener10x() {
 
             {/* 市场切换 */}
             <div className="flex items-center gap-1">
-              {["US", "CN"].map((m) => {
+              {["US", "HK", "CN"].map((m) => {
                 const on = markets.includes(m);
                 return (
                   <button

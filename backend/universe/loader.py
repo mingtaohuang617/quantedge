@@ -11,10 +11,12 @@ OUTPUT_DIR = Path(__file__).resolve().parent.parent / "output"
 
 US_PATH = OUTPUT_DIR / "universe_us.json"
 CN_PATH = OUTPUT_DIR / "universe_cn.json"
+HK_PATH = OUTPUT_DIR / "universe_hk.json"
 
 _PATH_BY_MARKET = {
     "US": US_PATH,
     "CN": CN_PATH,
+    "HK": HK_PATH,
 }
 
 
@@ -29,7 +31,7 @@ def _load_one(path: Path) -> dict:
         return {"meta": {"market": path.stem.split("_")[-1].upper(), "synced_at": None, "count": 0, "error": "parse failed"}, "items": []}
 
 
-def load_universe(markets: Iterable[str] = ("US", "CN")) -> list[dict]:
+def load_universe(markets: Iterable[str] = ("US", "HK", "CN")) -> list[dict]:
     """
     合并加载多市场 universe，返回 item 列表。
 

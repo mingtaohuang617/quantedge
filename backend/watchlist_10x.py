@@ -192,7 +192,7 @@ def list_items() -> list[dict]:
 def screen_candidates(
     supertrend_ids: Iterable[str],
     *,
-    markets: Iterable[str] = ("US", "CN"),
+    markets: Iterable[str] = ("US", "HK", "CN"),
     max_market_cap_b: float | None = None,   # billion (USD/RMB 视市场)
     min_market_cap_b: float | None = None,
     include_etf: bool = False,

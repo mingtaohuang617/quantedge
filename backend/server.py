@@ -1397,7 +1397,7 @@ def delete_watchlist_10x(ticker: str):
 
 class ScreenReq(BaseModel):
     supertrend_ids: list[str] = []
-    markets: list[str] = ["US", "CN"]
+    markets: list[str] = ["US", "HK", "CN"]
     max_market_cap_b: float | None = None
     min_market_cap_b: float | None = None
     include_etf: bool = False
