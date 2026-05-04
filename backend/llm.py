@@ -370,6 +370,82 @@ def backtest_narrate(payload: dict, ttl_seconds: int = 1800) -> dict:
         return {"ok": False, "error": str(e)}
 
 
+def tenx_thesis(stock: dict, supertrend: dict, ttl_seconds: int = 86400) -> dict:
+    """
+    10x 猎手 — 卡位分析草稿生成。
+    按"成长型十倍股"策略框架给出 5 段结构化输出，作为用户编辑 thesis 的起草。
+
+    输入:
+      stock: {ticker, name, sector?, industry?, marketCap?, descriptionCN?}
+      supertrend: {id, name, note}（来自 list_supertrends()）
+    返回 {ok, ticker, thesis: {超级趋势, 瓶颈层, 卡位逻辑, 风险, 推演结论}, cached}
+    """
+    ticker = stock.get("ticker", "?")
+    name = stock.get("name", "")
+    sector = stock.get("sector") or stock.get("industry") or ""
+    mc = stock.get("marketCap")
+    desc = (stock.get("descriptionCN") or stock.get("description") or "")[:300]
+
+    if mc is None:
+        mc_str = "未知"
+    elif mc >= 1e9:
+        mc_str = f"{mc/1e9:.1f}B"
+    else:
+        mc_str = f"{mc/1e6:.0f}M"
+
+    st_id = supertrend.get("id", "")
+    st_name = supertrend.get("name", st_id)
+    st_note = supertrend.get("note", "")
+
+    prompt = (
+        "你是产业研究助手，按 '成长型十倍股' 策略给出客观分析。\n"
+        "策略框架：超级趋势 → 双层瓶颈（共识层 / 深度认知层）→ "
+        "关键卡位公司（小市值 + 不可替代 + 未被完全理解）→ 第一性原理推演（订单概率 / 产能 / 管理层 / 瓶颈依赖度）。\n\n"
+        f"标的: {ticker} ({name})\n"
+        f"行业/分类: {sector}\n"
+        f"市值: {mc_str}\n"
+        f"所属超级趋势: {st_name}（{st_note}）\n"
+        f"业务描述: {desc or '（缺失）'}\n\n"
+        "请严格输出 JSON，5 个字段都要有：\n"
+        '{\n'
+        '  "超级趋势": "<这只票为什么属于这条超级趋势，≤30 字>",\n'
+        '  "瓶颈层": "<判断它卡在共识层(1)还是深度认知层(2)，简述理由，≤40 字>",\n'
+        '  "卡位逻辑": "<它在产业链什么位置、为什么不可替代，≤60 字>",\n'
+        '  "风险": "<最大风险点，≤30 字>",\n'
+        '  "推演结论": "<基于第一性原理的概率性判断，不给买卖建议，≤60 字>"\n'
+        '}\n'
+        "要求：客观、不夸张；不知道就承认不确定。"
+    )
+
+    cache_key = _db.llm_cache_key("10x-thesis", DEFAULT_MODEL, prompt)
+
+    cached = _db.llm_cache_get(cache_key)
+    if cached:
+        return {"ok": True, "ticker": ticker, "thesis": cached["response"], "cached": True}
+
+    try:
+        content, p_tok, c_tok = _chat(
+            [{"role": "user", "content": prompt}],
+            json_mode=True,
+            max_tokens=600,
+            temperature=0.3,
+        )
+        parsed = _safe_json_parse(content)
+        for k in ("超级趋势", "瓶颈层", "卡位逻辑", "风险", "推演结论"):
+            if k not in parsed:
+                parsed[k] = ""
+        _db.llm_cache_put(
+            cache_key, "10x-thesis", DEFAULT_MODEL, parsed,
+            ticker=ticker, prompt_tokens=p_tok, completion_tokens=c_tok,
+            ttl_seconds=ttl_seconds,
+        )
+        return {"ok": True, "ticker": ticker, "thesis": parsed, "cached": False}
+    except LLMError as e:
+        return {"ok": False, "ticker": ticker, "error": str(e)}
+    except json.JSONDecodeError as e:
+        return {"ok": False, "ticker": ticker, "error": f"LLM 返回非合法 JSON: {e}"}
+
+
 def health_check() -> tuple[bool, str]:
     """轻量探活，不消耗有意义的 token。"""
     if not HAS_OPENAI:

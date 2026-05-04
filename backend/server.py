@@ -1308,6 +1308,167 @@ def get_macro_series(series_id: str, as_of: str | None = None):
     return {"series_id": series_id, "as_of": as_of, "value": val}
 
 
+# ── 10x 猎手：Universe + Watchlist + LLM ───────────────────
+import watchlist_10x as _wl  # noqa: E402
+from universe import universe_stats as _universe_stats  # noqa: E402
+
+
+@app.get("/api/universe/stats")
+def get_universe_stats():
+    """报告候选股池的加载情况（每个市场的标的数 + 上次同步时间）。"""
+    return sanitize(_universe_stats())
+
+
+@app.get("/api/watchlist/10x")
+def list_watchlist_10x():
+    """列出全部观察项 + 可用赛道。"""
+    return sanitize({
+        "items": _wl.list_items(),
+        "supertrends": _wl.list_supertrends(),
+    })
+
+
+class WatchlistAddReq(BaseModel):
+    ticker: str
+    strategy: str = "growth"
+    supertrend_id: str | None = None
+    bottleneck_layer: int | None = None
+    bottleneck_tag: str = ""
+    moat_score: int | None = None
+    thesis: str = ""
+    target_price: float | None = None
+    stop_loss: float | None = None
+    tags: list[str] = []
+
+
+class WatchlistUpdateReq(BaseModel):
+    strategy: str | None = None
+    supertrend_id: str | None = None
+    bottleneck_layer: int | None = None
+    bottleneck_tag: str | None = None
+    moat_score: int | None = None
+    thesis: str | None = None
+    target_price: float | None = None
+    stop_loss: float | None = None
+    tags: list[str] | None = None
+
+
+@app.post("/api/watchlist/10x")
+def add_watchlist_10x(req: WatchlistAddReq):
+    """添加观察项。"""
+    try:
+        item = _wl.add_item(
+            req.ticker,
+            strategy=req.strategy,
+            supertrend_id=req.supertrend_id,
+            bottleneck_layer=req.bottleneck_layer,
+            bottleneck_tag=req.bottleneck_tag,
+            moat_score=req.moat_score,
+            thesis=req.thesis,
+            target_price=req.target_price,
+            stop_loss=req.stop_loss,
+            tags=req.tags,
+        )
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return sanitize({"ok": True, "item": item})
+
+
+@app.put("/api/watchlist/10x/{ticker}")
+def update_watchlist_10x(ticker: str, req: WatchlistUpdateReq):
+    """编辑观察项（仅传非 None 的字段会被更新）。"""
+    fields = {k: v for k, v in req.dict().items() if v is not None}
+    try:
+        item = _wl.update_item(ticker, **fields)
+    except KeyError:
+        raise HTTPException(404, f"{ticker} not in watchlist")
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return sanitize({"ok": True, "item": item})
+
+
+@app.delete("/api/watchlist/10x/{ticker}")
+def delete_watchlist_10x(ticker: str):
+    """删除观察项。"""
+    if _wl.remove_item(ticker):
+        return {"ok": True, "ticker": ticker.upper()}
+    raise HTTPException(404, f"{ticker} not in watchlist")
+
+
+class ScreenReq(BaseModel):
+    supertrend_ids: list[str] = []
+    markets: list[str] = ["US", "CN"]
+    max_market_cap_b: float | None = None
+    min_market_cap_b: float | None = None
+    include_etf: bool = False
+    exclude_in_watchlist: bool = True
+    limit: int = 200
+
+
+@app.post("/api/watchlist/10x/screen")
+def screen_watchlist_10x(req: ScreenReq):
+    """从 universe 池里按赛道 + 市值筛选候选个股。"""
+    candidates = _wl.screen_candidates(
+        req.supertrend_ids,
+        markets=req.markets,
+        max_market_cap_b=req.max_market_cap_b,
+        min_market_cap_b=req.min_market_cap_b,
+        include_etf=req.include_etf,
+        exclude_in_watchlist=req.exclude_in_watchlist,
+        limit=req.limit,
+    )
+    return sanitize({"count": len(candidates), "items": candidates})
+
+
+@app.get("/api/watchlist/10x/supertrends")
+def list_supertrends_10x():
+    """列出可用的赛道（内置 + 用户自定义）。"""
+    return sanitize(_wl.list_supertrends())
+
+
+class SupertrendAddReq(BaseModel):
+    id: str
+    name: str
+    note: str = ""
+
+
+@app.post("/api/watchlist/10x/supertrends")
+def add_supertrend_10x(req: SupertrendAddReq):
+    """新增用户自定义赛道。"""
+    try:
+        item = _wl.add_supertrend(req.id, req.name, req.note)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return sanitize({"ok": True, "item": item})
+
+
+class TenxThesisReq(BaseModel):
+    ticker: str
+    name: str | None = None
+    sector: str | None = None
+    industry: str | None = None
+    marketCap: float | None = None
+    descriptionCN: str | None = None
+    description: str | None = None
+    supertrend_id: str
+
+
+@app.post("/api/llm/10x-thesis")
+def llm_tenx_thesis(req: TenxThesisReq):
+    """LLM 生成卡位分析草稿（5 段：超级趋势 / 瓶颈层 / 卡位逻辑 / 风险 / 推演结论）。"""
+    if not HAS_LLM or _llm_mod is None:
+        raise HTTPException(503, "llm 模块未加载（DEEPSEEK_API_KEY 未设？）")
+    # 找到对应 supertrend 的元数据
+    supertrend = next(
+        (s for s in _wl.list_supertrends() if s["id"] == req.supertrend_id),
+        None,
+    )
+    if not supertrend:
+        raise HTTPException(400, f"unknown supertrend_id: {req.supertrend_id}")
+    stock = req.dict(exclude={"supertrend_id"})
+    return sanitize(_llm_mod.tenx_thesis(stock, supertrend))
+
+
 if __name__ == "__main__":
     # 不在启动时调 health_check —— 它会同步连 Futu OpenD，OpenD 没开会卡住启动。
     # 各源健康状态由 /api/status 端点按需查询（前端拉到才探活）。

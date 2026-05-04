@@ -105,14 +105,17 @@ def filter_by_supertrends(
 ) -> list[dict]:
     """
     给定一批 universe item，按 supertrend ids 过滤（OR 关系）。
-    优先用 sector 字段，其次 industry。
+    sector 和 industry 字段都参与匹配（OR），任一命中即算命中。
     """
     wanted = set(supertrend_ids)
     if not wanted:
         return list(items)
     out = []
     for it in items:
-        raw = it.get(sector_field) or it.get(industry_field)
-        if classify_sector(raw) & wanted:
+        matched = (
+            classify_sector(it.get(sector_field))
+            | classify_sector(it.get(industry_field))
+        )
+        if matched & wanted:
             out.append(it)
     return out
