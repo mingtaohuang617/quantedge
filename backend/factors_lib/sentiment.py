@@ -18,9 +18,12 @@ from . import read_series_history, register_factor
     category="sentiment",
     markets=["US"],
     freq="daily",
+    direction="lower_bullish",
+    contrarian_at_extremes=True,
     description="CBOE 标普 500 30 天隐含波动率指数。"
                 "高位（>30）=恐慌、潜在底部；低位（<15）=贪婪/复杂感、潜在顶部信号。"
-                "对比分位比绝对值更稳定。原始来源：yfinance ^VIX。",
+                "对比分位比绝对值更稳定。原始来源：yfinance ^VIX。"
+                "极端区（pct<10 或 >90）反向：恐慌底=反向看牛，复杂感顶=反向看熊。",
 )
 def calc_us_vix(as_of: Date | str | None = None) -> pd.Series:
     return read_series_history("US_VIX_RAW", as_of)
@@ -32,10 +35,12 @@ def calc_us_vix(as_of: Date | str | None = None) -> pd.Series:
     category="sentiment",
     markets=["US"],
     freq="daily",
+    direction="lower_bullish",
+    contrarian_at_extremes=True,
     description="CBOE SKEW 指数，反映标普 500 期权深度虚值看跌（OTM put）的相对定价，"
                 "代表机构对尾部风险的对冲成本。一般在 100-150 区间。"
                 "高位（>140）=机构对尾部担忧加重，比 VIX 更敏锐的领先指标。"
-                "原始来源：yfinance ^SKEW。",
+                "原始来源：yfinance ^SKEW。极端区反向。",
 )
 def calc_us_skew(as_of: Date | str | None = None) -> pd.Series:
     return read_series_history("US_SKEW_RAW", as_of)

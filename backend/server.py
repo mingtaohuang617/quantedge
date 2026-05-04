@@ -1256,6 +1256,8 @@ def list_macro_factors(sparkline: int = 0, market: str | None = None):
                 "freq": spec.freq,
                 "description": spec.description,
                 "rolling_window_days": spec.rolling_window_days,
+                "direction": spec.direction,
+                "contrarian_at_extremes": spec.contrarian_at_extremes,
                 "latest": dict(row) if row else None,
             }
             if sparkline > 0:
@@ -1306,6 +1308,22 @@ def get_macro_series(series_id: str, as_of: str | None = None):
     """PIT 单点查询：series_id 在 as_of 时刻的最新可见值（无 as_of 时取当前最新）。"""
     val = _fl.read_series(series_id, as_of)
     return {"series_id": series_id, "as_of": as_of, "value": val}
+
+
+@app.get("/api/macro/composite")
+def get_macro_composite(market: str = "US"):
+    """L3 子分 + L5 顶层"市场温度"（0-100，0=熊 / 100=牛）。"""
+    return sanitize(_fl.compute_composite(market))
+
+
+@app.get("/api/macro/composite/history")
+def get_macro_composite_history(
+    market: str = "US",
+    start: str = "2010-01-01",
+    end: str | None = None,
+):
+    """市场温度历史曲线 + 4 子分历史 + 基准（^W5000）走势。"""
+    return sanitize(_fl.compute_composite_history(market, start=start, end=end))
 
 
 # ── 10x 猎手：Universe + Watchlist + LLM ───────────────────

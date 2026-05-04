@@ -37,6 +37,7 @@ def _read_breadth_column(column: str, market: str = "US") -> pd.Series:
     category="breadth",
     markets=["US"],
     freq="daily",
+    direction="higher_bullish",
     description="SP500 成分股中收盘价高于 200 日均线的比例（%）。"
                 "经典宽度指标：>70% 强势/接近顶部，<30% 弱势/接近底部。"
                 "高分位=多数股票仍在上升趋势；低分位=多数已跌破长期均线。",
@@ -51,6 +52,7 @@ def calc_us_breadth_200ma(as_of: Date | str | None = None) -> pd.Series:
     category="breadth",
     markets=["US"],
     freq="daily",
+    direction="higher_bullish",
     description="SP500 成分股中收盘价高于 50 日均线的比例（%）。比 200MA 更短期、更敏感。"
                 "与 200MA 背离时常预警趋势转折。",
 )
@@ -64,6 +66,7 @@ def calc_us_breadth_50ma(as_of: Date | str | None = None) -> pd.Series:
     category="breadth",
     markets=["US"],
     freq="daily",
+    direction="higher_bullish",
     description="(52周新高家数 - 52周新低家数) / universe_size × 100。"
                 "正值=多数股票创新高（健康趋势）；持续负值=熊市基础。"
                 "顶部背离信号：指数创新高但本因子下降。",
@@ -90,6 +93,7 @@ def calc_us_new_high_low_ratio(as_of: Date | str | None = None) -> pd.Series:
     category="breadth",
     markets=["US"],
     freq="daily",
+    direction="higher_bullish",
     description="过去 5 个交易日累计 advancing / (advancing+declining) × 100。"
                 "短期资金扩散度；>60% 持续=强势加宽，<40% 持续=弱势收敛。",
 )

@@ -23,6 +23,7 @@ from . import read_series_history, register_factor
     category="valuation",
     markets=["US"],
     freq="monthly",
+    direction="lower_bullish",
     description="标普 500 trailing 12 个月 PE。月度数据 (multpl.com)。"
                 "高分位=贵；低分位=便宜。历史均值 ~16，>25 偏高，<12 偏低。",
 )
@@ -37,6 +38,7 @@ def calc_us_spx_pe(as_of: Date | str | None = None) -> pd.Series:
     markets=["US"],
     freq="monthly",
     rolling_window_days=10000,  # 40Y 窗口（CAPE 长历史）
+    direction="lower_bullish",
     description="Robert Shiller 周期调整 PE = 价格 / 10年通胀调整后平均盈利。"
                 "比 trailing PE 抗周期。历史均值 ~17，>30 极端高估（如 1929/2000/2021）。",
 )
@@ -51,23 +53,25 @@ def calc_us_cape(as_of: Date | str | None = None) -> pd.Series:
     markets=["US"],
     freq="monthly",
     rolling_window_days=10000,  # 40Y
+    direction="lower_bullish",
     description="Wilshire 5000 全市值指数 / 名义 GDP（按 1pt≈1B 惯例 ~市值/GDP %）。"
                 "巴菲特称为'最佳估值指标'。>150% 偏贵，>200% 极度高估。",
 )
 def calc_us_buffett(as_of: Date | str | None = None) -> pd.Series:
-    wil = read_series_history("US_WILL5000", as_of)
+    wil = read_series_history("US_W5000_RAW", as_of)
     gdp = read_series_history("US_GDP", as_of)
     if wil.empty or gdp.empty:
         return pd.Series(dtype=float)
-    # GDP 季频 → forward-fill 到 wil 的日频
-    df = pd.DataFrame({"wil": wil})
-    gdp_s = gdp.reindex(df.index, method=None)  # 先空
-    df["gdp"] = gdp.reindex(df.index, method="ffill")
-    # 对齐：先取 wil 与 gdp 都有 publish 的日子（gdp 第一次发布前 ratio 没意义）
-    df = df.dropna()
+    wil.index = pd.to_datetime(wil.index)
+    gdp.index = pd.to_datetime(gdp.index)
+    # GDP 季频 → 在 wil 的日频时间轴上 forward-fill
+    gdp_daily = gdp.reindex(wil.index, method="ffill")
+    df = pd.DataFrame({"wil": wil, "gdp": gdp_daily}).dropna()
     if df.empty:
         return pd.Series(dtype=float)
-    return (df["wil"] / df["gdp"] * 100).astype(float)
+    ratio = (df["wil"] / df["gdp"] * 100).astype(float)
+    ratio.index = ratio.index.strftime("%Y-%m-%d")
+    return ratio
 
 
 @register_factor(
@@ -76,6 +80,7 @@ def calc_us_buffett(as_of: Date | str | None = None) -> pd.Series:
     category="valuation",
     markets=["US"],
     freq="monthly",
+    direction="higher_bullish",
     description="ERP = 1/PE - 10Y Treasury（百分点）。月度对齐月末。"
                 "正=股票相对债券有溢价；负或低=股票相对昂贵（'TINA' 反转）。"
                 "1999/2007 年顶部时 ERP 极低甚至为负。",
@@ -85,11 +90,12 @@ def calc_us_erp(as_of: Date | str | None = None) -> pd.Series:
     y10 = read_series_history("US_DGS10", as_of)
     if pe.empty or y10.empty:
         return pd.Series(dtype=float)
-    # PE 月度，DGS10 日频 → 把 DGS10 重采样到月末
-    y10.index = pd.to_datetime(y10.index)
     pe.index = pd.to_datetime(pe.index)
+    y10.index = pd.to_datetime(y10.index)
+    # 两边都重采样到月末，避免 multpl 月初 vs FRED 月中的日期错位
+    pe_m = pe.resample("ME").last()
     y10_m = y10.resample("ME").last()
-    df = pd.DataFrame({"pe": pe, "y10": y10_m}).dropna()
+    df = pd.DataFrame({"pe": pe_m, "y10": y10_m}).dropna()
     if df.empty:
         return pd.Series(dtype=float)
     erp = 100.0 / df["pe"] - df["y10"]

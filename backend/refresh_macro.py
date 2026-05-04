@@ -58,15 +58,16 @@ FRED_SERIES: list[tuple[str, str, str, str]] = [
     ("US_CPI",        "CPIAUCSL",      "US", "1947-01-01"),  # CPI（月）
     ("US_DXY_TWB",    "DTWEXBGS",      "US", "2006-01-04"),  # 贸易加权美元（日）
     # W2: 估值（Buffett 指标分母 + ERP 备用）
-    ("US_WILL5000",   "WILL5000IND",   "US", "1971-01-01"),  # Wilshire 5000 全市值指数（日）
+    # WILL5000IND 在 2024 年从 FRED 下架（许可纠纷）；改走 yfinance ^W5000
     ("US_GDP",        "GDP",           "US", "1947-01-01"),  # 名义 GDP（季）
 ]
 
 # ── yfinance 上游序列清单（W5 情绪 + 后续指数）────────────
 # 字段：local_id, yfinance symbol, name, market, start
 YFINANCE_SERIES: list[tuple[str, str, str, str, str]] = [
-    ("US_VIX_RAW",  "^VIX",  "CBOE VIX 隐含波动率指数",  "US", "1990-01-02"),
-    ("US_SKEW_RAW", "^SKEW", "CBOE SKEW 期权偏斜指数",   "US", "1990-01-02"),
+    ("US_VIX_RAW",   "^VIX",   "CBOE VIX 隐含波动率指数",     "US", "1990-01-02"),
+    ("US_SKEW_RAW",  "^SKEW",  "CBOE SKEW 期权偏斜指数",      "US", "1990-01-02"),
+    ("US_W5000_RAW", "^W5000", "Wilshire 5000 全市值指数",     "US", "1990-01-02"),
 ]
 
 # ── multpl.com 上游序列（W2 估值）─────────────────────────

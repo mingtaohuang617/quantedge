@@ -46,6 +46,14 @@ class FactorSpec:
     description: str = ""
     rolling_window_days: int = 2520            # 10Y
     formula_ref: str = ""
+    # 分位方向解读（决定 L3 子分聚合时的方向标准化）
+    #   "higher_bullish": 高分位=利好（如 ERP、Fed 扩表、200MA 占比高）
+    #   "lower_bullish":  低分位=利好（如 PE、CAPE、HY 利差、VIX）
+    #   "neutral":        无明确方向（如美元、货币供应同比 — 视情形）
+    direction: str = "neutral"
+    # 极端区（<10% 或 >90%）反向：用于 VIX/SKEW/信用利差等
+    # 恐慌/贪婪指标。中间区按 direction 处理，极端区做 contrarian 翻转。
+    contrarian_at_extremes: bool = False
 
 
 _REGISTRY: dict[str, FactorSpec] = {}
@@ -60,16 +68,10 @@ def register_factor(
     name: str | None = None,
     description: str = "",
     rolling_window_days: int = 2520,
+    direction: str = "neutral",
+    contrarian_at_extremes: bool = False,
 ):
-    """
-    因子注册装饰器。导入时填充内存 _REGISTRY；DB 落库由 sync_factor_meta() 触发。
-
-    用法:
-        @register_factor("US_ERP", category="valuation", markets=["US"],
-                         freq="daily", description="股权风险溢价")
-        def calc_us_erp(as_of: Date) -> float | None:
-            ...
-    """
+    """因子注册装饰器。direction ∈ {'higher_bullish','lower_bullish','neutral'}。"""
     def deco(func: Callable[[Date], float | None]) -> Callable[[Date], float | None]:
         _REGISTRY[factor_id] = FactorSpec(
             factor_id=factor_id,
@@ -81,6 +83,8 @@ def register_factor(
             description=description,
             rolling_window_days=rolling_window_days,
             formula_ref=f"{func.__module__}.{func.__name__}",
+            direction=direction,
+            contrarian_at_extremes=contrarian_at_extremes,
         )
         return func
     return deco
@@ -328,6 +332,207 @@ def upsert_factor_value(
             """,
             (factor_id, market, value_date, raw_value, percentile, calc_version, now_ms),
         )
+
+
+# ── L3/L5 综合评分 ───────────────────────────────────────
+# 类别权重（"周期判断"用途；短期择时另设一套权重 — Phase 2 加）
+COMPOSITE_WEIGHTS: dict[str, float] = {
+    "valuation": 0.30,
+    "liquidity": 0.30,
+    "sentiment": 0.20,
+    "breadth":   0.20,
+}
+
+
+def directional_score(
+    percentile: float | None,
+    direction: str,
+    contrarian_at_extremes: bool = False,
+) -> float | None:
+    """
+    把 0-100 分位映射为方向化的牛熊分（0=极端熊, 100=极端牛）。
+
+    基础映射:
+      "lower_bullish"  → 100 - p（PE/CAPE/Buffett 这类单调因子）
+      "higher_bullish" → p     （ERP/200MA 占比这类）
+      "neutral"        → p
+    contrarian_at_extremes:
+      若 True，且 p < 10 或 p > 90，再做一次 100-x 翻转。
+      用于 VIX/SKEW/信用利差等恐慌/贪婪指标——
+      正常区跟趋势（lower_bullish），极端区反向（panic=买点 / complacency=卖点）。
+    """
+    if percentile is None:
+        return None
+    p = float(percentile)
+    if direction == "lower_bullish":
+        base = 100.0 - p
+    else:
+        base = p
+    if contrarian_at_extremes and (p < 10 or p > 90):
+        base = 100.0 - base
+    return base
+
+
+def to_percentile_series(
+    series: pd.Series,
+    window: int | None = None,
+    min_periods: int = 252,
+) -> pd.Series:
+    """每个时点对应的滚动历史分位（0-100）。空值/样本不足处为 NaN。"""
+    if series is None or series.empty:
+        return pd.Series(dtype=float)
+    s = series.dropna().astype(float)
+    if len(s) < min_periods:
+        return pd.Series(dtype=float)
+    if window is None:
+        # 全样本扩张分位
+        return s.expanding(min_periods=min_periods).rank(pct=True) * 100
+    return s.rolling(window=window, min_periods=min_periods).rank(pct=True) * 100
+
+
+def compute_composite_history(
+    market: str = "US",
+    start: str = "2020-01-01",
+    end: str | None = None,
+) -> dict:
+    """
+    每个交易日计算 composite —— 对所有 17 因子做向量化 rolling percentile，
+    再做方向化 + 类内平均 + 顶层加权。
+
+    返回 {dates, market_temperature, by_category, benchmark}。
+    monthly/quarterly 因子在日轴上 forward-fill。
+    """
+    end_dt = pd.Timestamp(end) if end else pd.Timestamp.now().normalize()
+    target = pd.bdate_range(start=start, end=end_dt)
+
+    # 1. 收集每个因子的方向化 rolling percentile（统一对齐到 target 业务日轴）
+    cat_panels: dict[str, list[pd.Series]] = {}
+    for spec in _REGISTRY.values():
+        if market not in spec.markets:
+            continue
+        hist = spec.func()
+        if hist.empty:
+            continue
+        hist.index = pd.to_datetime(hist.index)
+        hist = hist[~hist.index.duplicated(keep="last")].sort_index()
+        pct_s = to_percentile_series(hist, window=spec.rolling_window_days)
+        if pct_s.empty:
+            continue
+        # 方向化：lower_bullish 翻转
+        if spec.direction == "lower_bullish":
+            base = 100.0 - pct_s
+        else:
+            base = pct_s.copy()
+        # 极端区反向（VIX/SKEW/信用利差）：<10 或 >90 时再翻
+        if spec.contrarian_at_extremes:
+            extreme = (pct_s < 10) | (pct_s > 90)
+            base = base.where(~extreme, 100.0 - base)
+        # 对齐到 target 日轴：先 union 排序，再 ffill，再 reindex
+        merged = base.reindex(base.index.union(target)).sort_index().ffill()
+        pct_aligned = merged.reindex(target)
+        cat_panels.setdefault(spec.category, []).append(pct_aligned.rename(spec.factor_id))
+
+    # 2. 类内平均 → 子分时间序列
+    sub_scores: dict[str, pd.Series] = {}
+    for cat, lst in cat_panels.items():
+        df = pd.concat(lst, axis=1)
+        sub_scores[cat] = df.mean(axis=1, skipna=True)
+
+    # 3. 顶层加权（按出现的类的权重归一化）
+    composite_df = pd.DataFrame(sub_scores)
+    weighted = pd.Series(0.0, index=composite_df.index)
+    weight_sum = pd.Series(0.0, index=composite_df.index)
+    for cat, w in COMPOSITE_WEIGHTS.items():
+        if cat in composite_df.columns:
+            col = composite_df[cat]
+            mask = col.notna()
+            weighted = weighted + col.where(mask, 0.0) * w
+            weight_sum = weight_sum + mask.astype(float) * w
+    market_temp = (weighted / weight_sum.where(weight_sum > 0)).round(2)
+
+    # 4. 基准走势：用 ^W5000 收盘做参照（用户已 sync）
+    bench = pd.Series(dtype=float)
+    try:
+        wil = read_series_history("US_W5000_RAW", as_of=None)
+        if not wil.empty:
+            wil.index = pd.to_datetime(wil.index)
+            wil = wil[~wil.index.duplicated(keep="last")].sort_index()
+            bench = wil.reindex(wil.index.union(target)).sort_index().ffill().reindex(target)
+    except Exception:
+        pass
+
+    # 序列化
+    dates = [d.strftime("%Y-%m-%d") for d in composite_df.index]
+    out_cats = {cat: [None if pd.isna(v) else round(float(v), 2) for v in s.tolist()]
+                for cat, s in sub_scores.items()}
+
+    return {
+        "market": market,
+        "start": start,
+        "end": end_dt.strftime("%Y-%m-%d"),
+        "weights": dict(COMPOSITE_WEIGHTS),
+        "dates": dates,
+        "market_temperature": [None if pd.isna(v) else round(float(v), 2)
+                               for v in market_temp.tolist()],
+        "by_category": out_cats,
+        "benchmark": {
+            "series_id": "US_W5000_RAW",
+            "values": [None if pd.isna(v) else round(float(v), 2)
+                       for v in bench.tolist()] if not bench.empty else [],
+        },
+    }
+
+
+def compute_composite(market: str = "US") -> dict:
+    """
+    L3 + L5：基于已注册因子和最近 factor_values 计算每类子分 + 顶层"市场温度"。
+    """
+    conn = _db._get_conn()
+    by_cat: dict[str, dict] = {}
+
+    for spec in _REGISTRY.values():
+        if market not in spec.markets:
+            continue
+        row = conn.execute(
+            "SELECT value_date, raw_value, percentile FROM factor_values "
+            "WHERE factor_id=? AND market=? ORDER BY value_date DESC LIMIT 1",
+            (spec.factor_id, market),
+        ).fetchone()
+        pct = row["percentile"] if row else None
+        ds = directional_score(pct, spec.direction, spec.contrarian_at_extremes)
+        cat_info = by_cat.setdefault(spec.category, {"factors": []})
+        cat_info["factors"].append({
+            "factor_id": spec.factor_id,
+            "name": spec.name,
+            "direction": spec.direction,
+            "contrarian_at_extremes": spec.contrarian_at_extremes,
+            "percentile": pct,
+            "directional_score": ds,
+            "raw_value": row["raw_value"] if row else None,
+            "value_date": row["value_date"] if row else None,
+        })
+
+    # 类内平均（去 None）→ 子分
+    for cat, info in by_cat.items():
+        scores = [f["directional_score"] for f in info["factors"] if f["directional_score"] is not None]
+        info["score"] = round(sum(scores) / len(scores), 1) if scores else None
+        info["factor_count"] = len(info["factors"])
+
+    # 顶层加权（用归一化权重，避免缺失类被低估）
+    ws, ss = 0.0, 0.0
+    for cat, w in COMPOSITE_WEIGHTS.items():
+        info = by_cat.get(cat)
+        if info and info["score"] is not None:
+            ss += info["score"] * w
+            ws += w
+    market_temp = round(ss / ws, 1) if ws > 0 else None
+
+    return {
+        "market": market,
+        "market_temperature": market_temp,
+        "weights": dict(COMPOSITE_WEIGHTS),
+        "by_category": by_cat,
+    }
 
 
 # ── 分位数标准化 ─────────────────────────────────────────
