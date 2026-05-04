@@ -61,6 +61,17 @@ export default {
           '15%, 45%, 75%': { transform: 'translateX(-6px)' },
           '30%, 60%, 90%': { transform: 'translateX(6px)' },
         },
+        // ── ticker tape 滚动 (PDF2 主壳层抛光)
+        // 数据需要双份拼接 ([...stocks, ...stocks])，translateX(-50%) 完成一轮无缝衔接
+        'marquee': {
+          '0%':   { transform: 'translateX(0)' },
+          '100%': { transform: 'translateX(-50%)' },
+        },
+        // ── 主 CTA shine 扫光 (Phase E)
+        'shine': {
+          '0%':   { backgroundPosition: '-200% 0' },
+          '100%': { backgroundPosition: '200% 0' },
+        },
       },
       animation: {
         skeleton: 'skeleton-flow 1.5s ease-in-out infinite',
@@ -72,6 +83,8 @@ export default {
         'glow-line': 'glow-line 3s ease-in-out infinite',
         'slide-in-right': 'slide-in-right 0.25s cubic-bezier(0.4,0,0.2,1) both',
         'shake': 'shake 0.4s ease-in-out',
+        'marquee': 'marquee 60s linear infinite',
+        'shine': 'shine 3.6s linear infinite',
       },
     },
   },

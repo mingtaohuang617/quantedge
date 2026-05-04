@@ -198,11 +198,26 @@ const ScoringDashboard = () => {
   const [density, setDensity] = useState(() => localStorage.getItem("quantedge_density") || "standard"); // "standard" | "compact"
   useEffect(() => { localStorage.setItem("quantedge_density", density); }, [density]);
   // 详情面板左列卡片顺序 — 支持拖拽排序
-  const DEFAULT_CARD_ORDER = ['radar', 'range52w', 'scoreBreakdown'];
+  // PDF1 P0：归因卡（scoreBreakdown）默认置顶，雷达图作为可切换备选
+  const DEFAULT_CARD_ORDER = ['scoreBreakdown', 'range52w', 'radar'];
   const [cardOrder, setCardOrder] = useState(() => {
     try {
       const saved = JSON.parse(localStorage.getItem("quantedge_card_order") || 'null');
-      if (Array.isArray(saved) && saved.length === DEFAULT_CARD_ORDER.length && DEFAULT_CARD_ORDER.every(k => saved.includes(k))) return saved;
+      if (Array.isArray(saved) && saved.length === DEFAULT_CARD_ORDER.length && DEFAULT_CARD_ORDER.every(k => saved.includes(k))) {
+        // v0.7 一次性迁移：旧用户的 radar 若排在 scoreBreakdown 之前则交换（仅一次）
+        const migrationFlag = localStorage.getItem("quantedge_card_order_v07_migrated");
+        if (!migrationFlag) {
+          try { localStorage.setItem("quantedge_card_order_v07_migrated", "1"); } catch {}
+          const radarIdx = saved.indexOf('radar');
+          const breakdownIdx = saved.indexOf('scoreBreakdown');
+          if (radarIdx >= 0 && breakdownIdx >= 0 && radarIdx < breakdownIdx) {
+            const next = [...saved];
+            [next[radarIdx], next[breakdownIdx]] = [next[breakdownIdx], next[radarIdx]];
+            return next;
+          }
+        }
+        return saved;
+      }
     } catch {}
     return DEFAULT_CARD_ORDER;
   });
@@ -274,7 +289,28 @@ const ScoringDashboard = () => {
     const iv = setInterval(fetchIndices, 60_000);
     return () => clearInterval(iv);
   }, [fetchIndices]);
-  const { stocks: ctxStocks, setStocks: ctxSetStocks, addTicker, removeTicker, apiOnline, standalone } = useData() || {};
+  const { stocks: ctxStocks, setStocks: ctxSetStocks, addTicker, removeTicker, apiOnline, standalone, quickPriceRefresh } = useData() || {};
+  // F3 移动端 pull-to-refresh — 列表容器顶部下拉超过 60px 触发刷新
+  const [pullDist, setPullDist] = useState(0);
+  const pullRef = useRef({ startY: 0, active: false, container: null });
+  const onListTouchStart = useCallback((e) => {
+    const el = e.currentTarget;
+    if (el.scrollTop > 4) return;  // 仅当滚到顶才允许下拉
+    pullRef.current = { startY: e.touches[0].clientY, active: true, container: el };
+  }, []);
+  const onListTouchMove = useCallback((e) => {
+    if (!pullRef.current.active) return;
+    const dy = e.touches[0].clientY - pullRef.current.startY;
+    if (dy > 0) setPullDist(Math.min(dy * 0.5, 70));
+  }, []);
+  const onListTouchEnd = useCallback(async () => {
+    if (!pullRef.current.active) return;
+    pullRef.current.active = false;
+    if (pullDist > 50 && quickPriceRefresh) {
+      try { await quickPriceRefresh(); } catch {}
+    }
+    setPullDist(0);
+  }, [pullDist, quickPriceRefresh]);
   // 使用 context 中的 stocks（响应式），而非模块级 STOCKS（可能过时）
   const liveStocks = ctxStocks || STOCKS;
   // 保持 sel 与 liveStocks 同步：初始化 + 数据更新时刷新 sel 对象
@@ -519,6 +555,7 @@ const ScoringDashboard = () => {
         liquidity: median(peers.map(s => s.subScores?.liquidity)),
         momentum: median(peers.map(s => s.subScores?.momentum)),
         risk: median(peers.map(s => s.subScores?.risk)),
+        score: median(peers.map(s => s.score)),
         peerCount: peers.length,
       };
     }
@@ -526,6 +563,7 @@ const ScoringDashboard = () => {
       fundamental: median(peers.map(s => s.subScores?.fundamental)),
       technical: median(peers.map(s => s.subScores?.technical)),
       growth: median(peers.map(s => s.subScores?.growth)),
+      score: median(peers.map(s => s.score)),    // PDF1 评分锚点：详情头部 vs 行业中位
       peerCount: peers.length,
     };
   }, [sel, liveStocks]);
@@ -985,13 +1023,29 @@ const ScoringDashboard = () => {
                 }
                 setShowW(false);
               }}
-              className="w-full py-2 rounded-lg text-[11px] font-semibold bg-gradient-to-r from-indigo-500 to-violet-500 text-white flex items-center justify-center gap-1.5 shadow-glow-indigo btn-tactile mt-1"
+              className="w-full py-2 rounded-lg text-[11px] font-semibold bg-gradient-to-r from-indigo-500 to-cyan-500 text-white flex items-center justify-center gap-1.5 shadow-glow-indigo btn-tactile btn-shine mt-1"
             >
               <Zap size={12} /> {t('应用权重并重新评分')}
             </button>
           </div>
         )}
-        <div className="space-y-0.5 pr-1 md:flex-1 md:overflow-auto">
+        <div
+          className="space-y-0.5 pr-1 md:flex-1 md:overflow-auto relative"
+          onTouchStart={onListTouchStart}
+          onTouchMove={onListTouchMove}
+          onTouchEnd={onListTouchEnd}
+          style={pullDist > 0 ? { transform: `translateY(${pullDist}px)`, transition: pullDist === 0 ? 'transform 0.25s ease-out' : 'none' } : undefined}
+        >
+          {/* F3: pull-to-refresh hint（仅移动端 + 下拉中可见） */}
+          {pullDist > 0 && (
+            <div
+              className="md:hidden absolute left-0 right-0 -top-7 flex items-center justify-center gap-1.5 text-[10px] font-mono pointer-events-none"
+              style={{ color: pullDist > 50 ? 'var(--sem-up)' : 'var(--text-muted)' }}
+            >
+              <RefreshCw size={11} className={pullDist > 50 ? 'animate-spin' : ''} />
+              {pullDist > 50 ? t('松开刷新') : t('下拉刷新行情')}
+            </div>
+          )}
           {/* List header — visible only in list view with results */}
           {viewMode === "list" && filtered.length > 0 && (
             density === "compact" ? (
@@ -1089,7 +1143,8 @@ const ScoringDashboard = () => {
                 <div className="flex items-center gap-1.5 min-w-0">
                   <span className={`rank-badge ${i < 3 ? "rank-top" : "rank-mid"}`}>{i + 1}</span>
                   <span className="font-semibold text-xs text-white shrink-0"><Highlight text={stk.ticker} query={searchTerm} /></span>
-                  <Badge variant={stk.market === "US" ? "info" : "warning"} size="sm">{stk.market}</Badge>
+                  {/* PDF1 P0 收敛：市场标签从彩色 Badge 改 neutral mono 文字。ETF/leverage 是功能性识别，保留 Badge */}
+                  <span className="text-[9px] font-mono uppercase tracking-wide" style={{ color: 'var(--sem-neutral)' }}>{stk.market}</span>
                   {stk.isETF && !stk.leverage && <Badge variant="accent" size="sm">ETF</Badge>}
                   {stk.isETF && stk.leverage && <Badge variant="danger" size="sm">{stk.leverage}</Badge>}
                 </div>
@@ -1119,7 +1174,7 @@ const ScoringDashboard = () => {
         </div>
       </div>
 
-      <div className={`md:col-span-7 md:min-h-0 md:overflow-auto pr-0 md:pr-1 ${mobileShowDetail ? "flex flex-col" : "hidden md:block"}`}>
+      <div className={`detail-ambient md:col-span-7 md:min-h-0 md:overflow-auto pr-0 md:pr-1 pb-16 md:pb-0 ${mobileShowDetail ? "flex flex-col" : "hidden md:block"}`}>
         {/* Mobile back button */}
         <button onClick={() => setMobileShowDetail(false)} className="md:hidden flex items-center gap-1.5 text-xs text-indigo-400 mb-2 py-2 px-3 rounded-lg bg-indigo-500/[0.06] border border-indigo-500/15 w-fit active:scale-95 transition-all">
           <ChevronRight size={14} className="rotate-180" /> {t('返回列表')}
@@ -1146,11 +1201,46 @@ const ScoringDashboard = () => {
                 <div>
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <h3 className="text-base sm:text-lg font-bold text-white tracking-tight">{sel.ticker}</h3>
-                    <Badge variant="accent" size="sm">{sel.sector}</Badge>
+                    {/* PDF1 收敛：sector 从 accent Badge 改 neutral 文字（信息性，无需视觉权重） */}
+                    <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>{sel.market} · {sel.sector}</span>
                     {sel.isETF && <Badge variant={sel.leverage ? "danger" : "warning"} size="sm">{sel.etfType}</Badge>}
-                    <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded-md ${sel.score >= 80 ? "bg-up/10 text-up border border-up/20" : sel.score >= 60 ? "bg-amber-500/10 text-amber-400 border border-amber-500/20" : "bg-down/10 text-down border border-down/20"}`}>
-                      <CountUp value={sel.score} decimals={1} duration={500} />/100
+                    {/* PDF2 抛光：28px 评分环 stroke 描边动画（1.1s）+ 双色品牌渐变 */}
+                    {sel.score != null && (() => {
+                      const C = 69.12;  // 2π × r=11
+                      const s = Math.min(100, Math.max(0, sel.score));
+                      const gradId = `score-ring-grad-${sel.ticker || 'sel'}`;
+                      return (
+                        <svg width="28" height="28" viewBox="0 0 28 28" className="shrink-0" aria-hidden="true">
+                          <defs>
+                            <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
+                              <stop offset="0%" stopColor="var(--accent-indigo)" />
+                              <stop offset="100%" stopColor="var(--accent-cyan)" />
+                            </linearGradient>
+                          </defs>
+                          <circle cx="14" cy="14" r="11" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="2.5" />
+                          <circle cx="14" cy="14" r="11" fill="none"
+                            stroke={`url(#${gradId})`} strokeWidth="2.5" strokeLinecap="round"
+                            strokeDasharray={C}
+                            strokeDashoffset={C * (1 - s / 100)}
+                            transform="rotate(-90 14 14)"
+                            style={{ transition: 'stroke-dashoffset 1.1s cubic-bezier(0.2,0.7,0.1,1)' }}
+                          />
+                        </svg>
+                      );
+                    })()}
+                    {/* PDF1 P0：评分数字 + vs 行业中位 ▲▼ delta（chip 与环并排） */}
+                    <span className="inline-flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-white/5 border border-white/10 text-white">
+                      <CountUp value={sel.score} decimals={1} duration={500} />
+                      <span className="text-[#778] font-normal">/100</span>
                     </span>
+                    {sectorMedians?.score != null && (
+                      <span
+                        className={`text-[9px] font-mono ${(sel.score - sectorMedians.score) >= 0 ? 'text-up' : 'text-down'}`}
+                        title={t('vs 行业中位 {n}（{p} 同行）', { n: sectorMedians.score.toFixed(1), p: sectorMedians.peerCount })}
+                      >
+                        {(sel.score - sectorMedians.score) >= 0 ? '▲' : '▼'} {Math.abs(sel.score - sectorMedians.score).toFixed(1)}
+                      </span>
+                    )}
                   </div>
                   <div className="text-xs text-[#a0aec0]">{lang === 'zh' ? (sel.nameCN || STOCK_CN_NAMES[sel.ticker] || sel.name) : sel.name}</div>
                 </div>
@@ -1165,6 +1255,12 @@ const ScoringDashboard = () => {
                 </div>
               </div>
               <p className="text-xs text-[#a0aec0] leading-relaxed mb-2 border-l-2 border-indigo-500/30 pl-2">{lang === 'zh' ? (STOCK_CN_DESCS[sel.ticker] || sel.descriptionCN || sel.description) : sel.description}</p>
+              {/* PDF2 抛光：AI 评分解读卡前置 — 紧贴评分块，回答「为什么是这个分」（默认折叠） */}
+              {sel.subScores && (
+                <div className="mb-2">
+                  <ScoreExplainCard stock={sel} weights={weights} />
+                </div>
+              )}
               {/* 图表标题 */}
               <div className="flex items-center gap-1.5 mb-1.5">
                 <Activity size={11} className="text-indigo-400" />
@@ -1464,17 +1560,19 @@ const ScoringDashboard = () => {
               )}
             </div>
 
-            {/* AI 解读卡组（B1+B2 - DeepSeek 集成）— 个股显示完整两卡，ETF 仅显示评分解读 */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {!sel.isETF && <AIStockSummaryCard stock={sel} />}
-              {sel.subScores && <ScoreExplainCard stock={sel} weights={weights} />}
-            </div>
+            {/* AI 解读卡（B1 - DeepSeek 集成）— ScoreExplainCard 已前置到详情头部紧贴评分块 */}
+            {!sel.isETF && (
+              <div>
+                <AIStockSummaryCard stock={sel} />
+              </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:flex-1 md:min-h-0">
               <div className="flex flex-col gap-3 md:overflow-auto md:min-h-0 pr-0 md:pr-1">
                 {/* ── 多因子雷达图 ── */}
                 <div
-                  className={`glass-card p-3 relative group/drag cursor-move transition-all ${draggingCard === 'radar' ? 'opacity-40 scale-95' : ''}`}
+                  id="detail-radar"
+                  className={`glass-card p-3 relative group/drag cursor-move transition-all scroll-mt-12 ${draggingCard === 'radar' ? 'opacity-40 scale-95' : ''}`}
                   style={{ order: cardOrder.indexOf('radar') }}
                   draggable
                   onDragStart={() => setDraggingCard('radar')}
@@ -1656,10 +1754,23 @@ const ScoringDashboard = () => {
                           ].filter(Boolean)],
                       ]).map(([label, value, colorKey, peerMed, subInds]) => {
                         const delta = peerMed != null && Number.isFinite(value) ? +(value - peerMed).toFixed(1) : null;
+                        // PDF1 评分归因：每维度贡献 = 分值 × 权重（仅非 ETF；ETF 用等权平均）
+                        const weightKey = sel.isETF ? null
+                          : (colorKey === 'indigo' ? 'fundamental'
+                          : colorKey === 'cyan' ? 'technical'
+                          : colorKey === 'up' ? 'growth' : null);
+                        const wPct = weightKey ? (weights[weightKey] || 0) : 0;
+                        const totalW = (weights.fundamental || 0) + (weights.technical || 0) + (weights.growth || 0);
+                        const contribution = !sel.isETF && weightKey && Number.isFinite(value) && totalW > 0
+                          ? (value * wPct / totalW)
+                          : null;
                         return (
                           <div key={label}>
                             <div className="flex items-center justify-between mb-0.5">
-                              <span className="text-[10px] text-[#a0aec0]">{label}</span>
+                              <span className="text-[10px] text-[#a0aec0]">
+                                {label}
+                                {weightKey && <span className="ml-1 text-[9px] text-[#556] font-mono">{wPct}%</span>}
+                              </span>
                               <div className="flex items-center gap-1.5">
                                 {delta != null && (
                                   <span className={`text-[9px] font-mono ${delta >= 0 ? 'text-up' : 'text-down'}`} title={t('vs 行业中位')}>
@@ -1667,6 +1778,11 @@ const ScoringDashboard = () => {
                                   </span>
                                 )}
                                 <span className="text-[10px] font-mono text-white">{value}</span>
+                                {contribution != null && (
+                                  <span className="text-[9px] font-mono text-indigo-300/90" title={t('贡献 = 分值 × 权重')}>
+                                    +{contribution.toFixed(1)}
+                                  </span>
+                                )}
                               </div>
                             </div>
                             <div className="w-full h-1.5 rounded-full bg-white/5 overflow-hidden relative">
@@ -1691,8 +1807,15 @@ const ScoringDashboard = () => {
                     </div>
                     {sectorMedians && (
                       <div className="mt-2.5 pt-2 border-t border-white/5 flex items-center justify-between text-[9px] text-[#778]">
-                        <span>{t('vs 行业中位')}</span>
-                        <span className="font-mono">{sel.sector} · {sectorMedians.peerCount} {t('对比')}</span>
+                        <span>{t('vs 行业中位')} · <span className="font-mono">{sel.sector} · {sectorMedians.peerCount} {t('对比')}</span></span>
+                        {/* PDF1 推荐：归因卡为主，雷达保留为可切换备选视图 */}
+                        <button
+                          onClick={() => document.getElementById('detail-radar')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                          className="text-indigo-300/80 hover:text-indigo-200 transition-colors"
+                          title={t('滚动到雷达图卡')}
+                        >
+                          {t('切换到雷达视图')} →
+                        </button>
                       </div>
                     )}
                   </div>
@@ -2021,12 +2144,14 @@ const ScoringDashboard = () => {
                 />
                 <YAxis yAxisId="pct" orientation="right" tick={{ fontSize: 10, fill: "#a0aec0" }} axisLine={false} tickLine={false} domain={["auto", "auto"]} width={60} tickFormatter={(v) => `${v > 0 ? "+" : ""}${v.toFixed(1)}%`} />
                 <ReferenceLine yAxisId="pct" y={0} stroke="rgba(255,255,255,0.1)" strokeDasharray="4 3" />
-                <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v, name) => {
-                  if (name === "p") return [`${currencySymbol(sel.currency)}${v}`, t("价格")];
-                  if (name === "pct") return [`${v >= 0 ? "+" : ""}${v}%`, t("收益率")];
-                  if (name === "bpct") return [`${v >= 0 ? "+" : ""}${v}%`, `${benchmarkLabel} ${t('基准')}`];
-                  return [v, name];
-                }} />
+                <Tooltip contentStyle={TOOLTIP_STYLE}
+                  cursor={{ stroke: 'rgba(255,255,255,0.25)', strokeWidth: 1, strokeDasharray: '3 3' }}
+                  formatter={(v, name) => {
+                    if (name === "p") return [`${currencySymbol(sel.currency)}${v}`, t("价格")];
+                    if (name === "pct") return [`${v >= 0 ? "+" : ""}${v}%`, t("收益率")];
+                    if (name === "bpct") return [`${v >= 0 ? "+" : ""}${v}%`, `${benchmarkLabel} ${t('基准')}`];
+                    return [v, name];
+                  }} />
                 <Area yAxisId="price" type="monotone" dataKey="p" stroke={chartData.length >= 2 && chartData[chartData.length-1].p >= chartData[0].p ? "url(#strokeGradFull)" : "#FF6B6B"} strokeWidth={2.5} fill="url(#pgFull)" dot={false} activeDot={{ r: 5, fill: "#fff", stroke: "#8A2BE2", strokeWidth: 2 }} />
                 <Line yAxisId="pct" type="monotone" dataKey="pct" stroke="transparent" dot={false} activeDot={false} />
                 {showBenchmark && <Line yAxisId="pct" type="monotone" dataKey="bpct" stroke="#94a3b8" strokeWidth={2} strokeDasharray="5 4" dot={false} activeDot={{ r: 4, fill: "#cbd5e1", stroke: "#94a3b8", strokeWidth: 2 }} />}
@@ -2040,6 +2165,50 @@ const ScoringDashboard = () => {
             )}
           </div>
         </div>
+      </div>
+    )}
+    {/* F2: 移动端详情页底部固定操作栏（仅 mobileShowDetail + sel 时） */}
+    {mobileShowDetail && sel && (
+      <div
+        className="md:hidden fixed left-0 right-0 z-40 flex items-stretch border-t border-white/10 backdrop-blur-md"
+        style={{
+          bottom: 0,
+          paddingBottom: 'env(safe-area-inset-bottom)',
+          background: 'rgba(11, 11, 21, 0.92)',
+        }}
+        role="toolbar"
+        aria-label={t('详情快捷操作')}
+      >
+        <button
+          onClick={() => toggleFav(sel.ticker)}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-3 text-[12px] font-medium transition-colors active:scale-[0.97] ${favorites.has(sel.ticker) ? 'text-amber-400' : 'text-[#a0aec0]'}`}
+        >
+          <Star size={14} className={favorites.has(sel.ticker) ? 'fill-amber-400' : ''} />
+          {favorites.has(sel.ticker) ? t('已关注') : t('关注')}
+        </button>
+        <div className="w-px bg-white/10 my-1.5" />
+        <button
+          onClick={() => {
+            setCompareSet(prev => {
+              const next = new Set(prev);
+              if (next.has(sel.ticker)) next.delete(sel.ticker);
+              else if (next.size < 4) next.add(sel.ticker);
+              return next;
+            });
+          }}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-3 text-[12px] font-medium transition-colors active:scale-[0.97] ${compareSet.has(sel.ticker) ? 'text-indigo-300' : 'text-[#a0aec0]'}`}
+        >
+          <Layers size={14} />
+          {compareSet.has(sel.ticker) ? t('已加入对比') : t('加入对比')}
+        </button>
+        <div className="w-px bg-white/10 my-1.5" />
+        <button
+          onClick={() => setMobileShowDetail(false)}
+          className="flex-1 flex items-center justify-center gap-1.5 py-3 text-[12px] font-medium text-[#a0aec0] transition-colors active:scale-[0.97]"
+        >
+          <ChevronRight size={14} className="rotate-180" />
+          {t('返回')}
+        </button>
       </div>
     )}
   </div>

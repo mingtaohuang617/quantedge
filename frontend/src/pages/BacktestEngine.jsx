@@ -1468,7 +1468,7 @@ const BacktestEngine = () => {
               {rebalance === "quarterly" ? t("每季度初自动调回初始比例 (1月/4月/7月/10月)") : rebalance === "yearly" ? t("每年1月初自动调回初始比例") : t("持有不动，权重随市场漂移")}
             </div>
           </div>
-          <button onClick={runBacktest} disabled={running || portfolioStocks.length < 1 || totalWeight === 0} className={`w-full py-2.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-indigo-500 via-violet-500 to-indigo-500 text-white disabled:opacity-40 flex items-center justify-center gap-1.5 shadow-glow-indigo mt-1 btn-ripple btn-tactile ${!running && totalWeight === 100 ? "animate-pulse-ring" : ""}`}>
+          <button onClick={runBacktest} disabled={running || portfolioStocks.length < 1 || totalWeight === 0} className={`w-full py-2.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-indigo-500 via-cyan-500 to-indigo-500 text-white disabled:opacity-40 flex items-center justify-center gap-1.5 shadow-glow-indigo mt-1 btn-ripple btn-tactile btn-shine ${!running && totalWeight === 100 ? "animate-pulse-ring" : ""}`}>
             {running ? <><RefreshCw size={12} className="animate-spin" /> {t('计算中...')}</> : <><Zap size={12} /> {t('运行回测')}</>}
           </button>
         </div>
@@ -1675,22 +1675,31 @@ const BacktestEngine = () => {
               </div>
             </div>
             {resultsOpen && (<>
-            {/* KPI 卡片 — 核心指标 */}
+            {/* KPI 卡片 — 核心指标（PDF1：每张卡加 vs.基准 副行，让数字有参照） */}
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-1.5">
               {[
-                [t("总收益"), `${m.totalReturn >= 0 ? "+" : ""}${m.totalReturn}%`, m.totalReturn >= 0 ? "text-up" : "text-down", m.totalReturn >= 0 ? "positive" : "negative"],
-                [t("年化收益"), `${m.annReturn >= 0 ? "+" : ""}${m.annReturn}%`, m.annReturn >= 0 ? "text-up" : "text-down", m.annReturn >= 0 ? "positive" : "negative"],
-                [t("超额 α"), `${m.alpha >= 0 ? "+" : ""}${m.alpha}%`, m.alpha >= 0 ? "text-up" : "text-down", m.alpha >= 0 ? "positive" : "negative"],
-                [t("终值"), `$${btResult.finalValue.toLocaleString()}`, "text-white", null],
-                [t("夏普"), m.sharpe.toFixed(2), m.sharpe > 1 ? "text-up" : m.sharpe > 0.5 ? "text-amber-400" : "text-down", m.sharpe > 1 ? "positive" : "negative"],
-                [t("最大回撤"), `${m.maxDD.toFixed(1)}%`, m.maxDD > -10 ? "text-amber-400" : "text-down", "negative"],
-              ].map(([l, v, c, delta], idx) => (
+                [t("总收益"), `${m.totalReturn >= 0 ? "+" : ""}${m.totalReturn}%`, m.totalReturn >= 0 ? "text-up" : "text-down", m.totalReturn >= 0 ? "positive" : "negative",
+                  m.benchReturn != null ? `${benchTicker} ${m.benchReturn >= 0 ? '+' : ''}${m.benchReturn}%` : null],
+                [t("年化收益"), `${m.annReturn >= 0 ? "+" : ""}${m.annReturn}%`, m.annReturn >= 0 ? "text-up" : "text-down", m.annReturn >= 0 ? "positive" : "negative", null],
+                [t("超额 α"), `${m.alpha >= 0 ? "+" : ""}${m.alpha}%`, m.alpha >= 0 ? "text-up" : "text-down", m.alpha >= 0 ? "positive" : "negative",
+                  t('= 总收益 − 基准')],
+                [t("终值"), `$${btResult.finalValue.toLocaleString()}`, "text-white", null, null],
+                [t("夏普"), m.sharpe.toFixed(2), m.sharpe > 1 ? "text-up" : m.sharpe > 0.5 ? "text-amber-400" : "text-down", m.sharpe > 1 ? "positive" : "negative",
+                  m.sharpe > 1 ? t('优秀') : m.sharpe > 0.5 ? t('合格') : t('偏弱')],
+                [t("最大回撤"), `${m.maxDD.toFixed(1)}%`, m.maxDD > -10 ? "text-amber-400" : "text-down", "negative",
+                  m.benchMaxDD != null ? `${benchTicker} ${m.benchMaxDD}%` : null],
+              ].map(([l, v, c, delta, vsBench], idx) => (
                 <div key={l} className="kpi-card animate-stagger" style={{ animationDelay: `${idx * 0.05}s` }}>
                   <div className="kpi-label">{l}</div>
                   <div className="flex items-center gap-1.5">
                     <span className={`text-sm md:text-base font-bold font-mono tabular-nums leading-tight ${c}`}>{v}</span>
                     {delta && <span className={`delta-chip ${delta}`}>{delta === "positive" ? "▲" : "▼"}</span>}
                   </div>
+                  {vsBench && (
+                    <div className="text-[9px] mt-0.5 tabular-nums truncate" style={{ color: 'var(--text-muted)' }} title={vsBench}>
+                      {vsBench}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -1785,7 +1794,7 @@ const BacktestEngine = () => {
                   </div>
                 </div>
                 <ResponsiveContainer width="100%" height={190}>
-                  <ComposedChart data={navData} className="chart-glow">
+                  <ComposedChart data={navData} syncId="bt-main" className="chart-glow">
                     <defs>
                       <linearGradient id="navGrad" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#8A2BE2" stopOpacity={0.2} />
@@ -1888,10 +1897,26 @@ const BacktestEngine = () => {
               );
             })()}
 
-            {/* C5: 策略对比指标横评表（仅 savedRuns >= 1 时显示） */}
-            {savedRuns.length > 0 && btResult.metrics && (() => {
+            {/* C5: 策略横评表（PDF1 P0：始终显示，savedRuns=0 时至少有「当前 vs 基准」两列做对照） */}
+            {btResult.metrics && (() => {
               const current = { id: 'current', label: t('当前'), color: '#6366f1', metrics: btResult.metrics };
-              const all = [current, ...savedRuns];
+              // 基准行：用现有 benchReturn / benchMaxDD，其余字段没数据显示为 null（fmt 会处理）
+              const baseline = (m.benchReturn != null || m.benchMaxDD != null) ? {
+                id: 'bench',
+                label: `${benchTicker} ${t('基准')}`,
+                color: '#94a3b8',
+                metrics: {
+                  totalReturn: m.benchReturn,
+                  annReturn: null, alpha: null,
+                  sharpe: null, sortino: null, calmar: null,
+                  maxDD: m.benchMaxDD,
+                  vol: null, winRate: null, var95: null,
+                },
+              } : null;
+              const all = savedRuns.length > 0
+                ? [current, ...savedRuns]
+                : (baseline ? [current, baseline] : [current]);
+              if (all.length < 2) return null;  // 单列没意义
               const rows = [
                 { key: 'totalReturn', label: t('总收益'), fmt: (v) => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`, good: v => v > 0 },
                 { key: 'annReturn',   label: t('年化'),   fmt: (v) => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`, good: v => v > 0 },
@@ -1904,15 +1929,15 @@ const BacktestEngine = () => {
                 { key: 'winRate',     label: t('胜率'),    fmt: (v) => `${v.toFixed(1)}%`,                   good: v => v > 50 },
                 { key: 'var95',       label: 'VaR 95',    fmt: (v) => `${v.toFixed(2)}%`,                   good: v => v > -3 },
               ];
-              // 找出每行的胜者（最大值或最小值，看指标方向）
+              // 找出每行的胜者（最大值或最小值，看指标方向）—— null 视为不参赛
               const winners = {};
               rows.forEach(r => {
-                const vals = all.map(run => Number(run.metrics[r.key]) || 0);
-                // 回撤、波动、VaR 越大越好（接近 0），其他越大越好
-                const isLowerBetter = ['maxDD', 'vol', 'var95', 'var99'].includes(r.key);
-                const target = isLowerBetter ? Math.max(...vals) : Math.max(...vals);
-                // 对于回撤等，max 已经是最优（因为是负数，越接近 0 越大）
-                winners[r.key] = vals.indexOf(target);
+                const vals = all.map(run => run.metrics[r.key] == null ? null : Number(run.metrics[r.key]));
+                const valid = vals.map((v, i) => v == null ? null : { v, i }).filter(Boolean);
+                if (valid.length < 2) { winners[r.key] = -1; return; }
+                // 回撤、波动、VaR 都是负数（越接近 0 越好），所以一律取 max
+                const target = Math.max(...valid.map(x => x.v));
+                winners[r.key] = valid.find(x => x.v === target).i;
               });
               return (
                 <div className="glass-card p-3 mt-2 overflow-x-auto">
@@ -1940,7 +1965,11 @@ const BacktestEngine = () => {
                         <tr key={r.key} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
                           <td className="text-[#a0aec0] py-1 pr-3">{r.label}</td>
                           {all.map((run, idx) => {
-                            const v = Number(run.metrics[r.key]) || 0;
+                            const raw = run.metrics[r.key];
+                            if (raw == null) {
+                              return <td key={run.id} className="text-right font-mono py-1 px-2 text-[#556]">—</td>;
+                            }
+                            const v = Number(raw);
                             const isWinner = winners[r.key] === idx && all.length > 1;
                             const goodColor = r.good(v) ? 'text-up' : 'text-down';
                             return (
@@ -2290,7 +2319,8 @@ const BacktestEngine = () => {
                   </span>
                 </div>
                 <ResponsiveContainer width="100%" height={150}>
-                  <AreaChart data={btResult.drawdownCurve}>
+                  {/* PDF1：syncId 与净值卡联动，hover crosshair + tooltip 同步显示对应日期 */}
+                  <AreaChart data={btResult.drawdownCurve} syncId="bt-main">
                     <defs>
                       <linearGradient id="underwaterGrad" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#FF6B6B" stopOpacity={0.25} />
@@ -2304,7 +2334,9 @@ const BacktestEngine = () => {
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" />
                     <XAxis dataKey="date" tick={{ fontSize: 8, fill: "#667" }} axisLine={false} tickLine={false} interval={Math.max(1, Math.floor(btResult.drawdownCurve.length / 8))} />
                     <YAxis tick={{ fontSize: 9, fill: "#667" }} axisLine={false} tickLine={false} width={35} domain={['dataMin', 0]} />
-                    <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v, name) => [`${v}%`, name === "drawdown" ? t("组合回撤") : `${benchTicker} ${t("回撤")}`]} />
+                    <Tooltip contentStyle={TOOLTIP_STYLE}
+                      cursor={{ stroke: 'rgba(255,255,255,0.25)', strokeWidth: 1, strokeDasharray: '3 3' }}
+                      formatter={(v, name) => [`${v}%`, name === "drawdown" ? t("组合回撤") : `${benchTicker} ${t("回撤")}`]} />
                     <ReferenceLine y={0} stroke="rgba(255,255,255,0.08)" />
                     <Area type="linear" dataKey="benchDD" stroke="#f59e0b" fill="url(#benchDDGrad)" strokeWidth={1} dot={false} strokeOpacity={0.6} name="benchDD" />
                     <Area type="linear" dataKey="drawdown" stroke="#FF6B6B" fill="url(#underwaterGrad)" strokeWidth={1.5} dot={false} name="drawdown" />
