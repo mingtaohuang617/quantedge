@@ -44,6 +44,7 @@ export default function Screener10x() {
   const [selectedTrends, setSelectedTrends] = useState([]); // string[]
   const [maxMcapB, setMaxMcapB] = useState(50);             // 单位 B
   const [includeETF, setIncludeETF] = useState(false);
+  const [precise, setPrecise] = useState(false);    // 精严模式：仅核心赛道关键词
   const [markets, setMarkets] = useState(["US", "HK", "CN"]);
   const [search, setSearch] = useState("");
   // 候选 + loading
@@ -89,6 +90,7 @@ export default function Screener10x() {
           include_etf: includeETF,
           exclude_in_watchlist: true,
           limit: 200,
+          precise,
         }),
       });
       if (!json) throw new Error("后端无响应");
@@ -99,9 +101,9 @@ export default function Screener10x() {
     } finally {
       setLoadingCands(false);
     }
-  }, [selectedTrends, markets, maxMcapB, includeETF]);
+  }, [selectedTrends, markets, maxMcapB, includeETF, precise]);
 
-  // 自动 re-screen
+  // 自动 re-screen（赛道 / 市场 / 市值上限 / ETF / 精严切换都会触发）
   useEffect(() => {
     if (selectedTrends.length > 0) runScreen();
     else setCandidates([]);
@@ -266,6 +268,20 @@ export default function Screener10x() {
                 className="accent-indigo-500"
               />
               ETF
+            </label>
+
+            {/* 精严 toggle */}
+            <label
+              className="flex items-center gap-1 text-[10px] text-[#a0aec0] cursor-pointer"
+              title="精严：仅匹配明确赛道关键词（光通信/硅光/AI/HBM）。宽泛（默认）：扩展到通讯设备/应用软件等大池，覆盖广但有噪音。"
+            >
+              <input
+                type="checkbox"
+                checked={precise}
+                onChange={(e) => setPrecise(e.target.checked)}
+                className="accent-amber-400"
+              />
+              <span className={precise ? "text-amber-300 font-medium" : ""}>精严</span>
             </label>
 
             {/* 市场切换 */}

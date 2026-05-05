@@ -1421,6 +1421,7 @@ class ScreenReq(BaseModel):
     include_etf: bool = False
     exclude_in_watchlist: bool = True
     limit: int = 200
+    precise: bool = False        # True = strict mode（仅核心关键词，精度高）
 
 
 @app.post("/api/watchlist/10x/screen")
@@ -1434,6 +1435,7 @@ def screen_watchlist_10x(req: ScreenReq):
         include_etf=req.include_etf,
         exclude_in_watchlist=req.exclude_in_watchlist,
         limit=req.limit,
+        precise=req.precise,
     )
     return sanitize({"count": len(candidates), "items": candidates})
 

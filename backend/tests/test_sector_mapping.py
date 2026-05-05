@@ -159,3 +159,81 @@ def test_list_supertrends_meta_contract():
     for m in meta:
         assert "id" in m and "name" in m
         assert m["id"] in SUPERTRENDS
+
+
+# ── strict / broad 模式差异 ───────────────────────────────
+def test_strict_mode_excludes_telecom_equipment():
+    """strict 模式下 "通讯设备" 不命中 optical（仅核心光通信关键词命中）"""
+    assert classify_sector("通讯设备", mode="strict") == set()
+    assert classify_sector("通信设备", mode="strict") == set()
+    assert classify_sector("Communication Equipment", mode="strict") == set()
+
+
+def test_broad_mode_includes_telecom_equipment():
+    """broad 模式下 "通讯设备" 命中 optical（v1 行为）"""
+    assert "optical" in classify_sector("通讯设备", mode="broad")
+    assert "optical" in classify_sector("通信设备", mode="broad")
+    assert "optical" in classify_sector("Communication Equipment", mode="broad")
+
+
+def test_strict_mode_excludes_application_software():
+    """strict 模式下纯软件公司不命中 ai_compute"""
+    assert classify_sector("应用软件", mode="strict") == set()
+    assert classify_sector("软件基础设施", mode="strict") == set()
+    assert classify_sector("Software - Application", mode="strict") == set()
+    assert classify_sector("数码解决方案服务", mode="strict") == set()
+
+
+def test_broad_mode_includes_application_software():
+    """broad 模式下软件类命中 ai_compute（v1 行为）"""
+    assert "ai_compute" in classify_sector("应用软件", mode="broad")
+    assert "ai_compute" in classify_sector("数码解决方案服务", mode="broad")
+
+
+def test_strict_mode_keeps_pure_optical():
+    """strict 模式下纯光通信关键词仍能命中"""
+    assert "optical" in classify_sector("光通信", mode="strict")
+    assert "optical" in classify_sector("光通信/激光", mode="strict")
+    assert "optical" in classify_sector("Optical Networks", mode="strict")
+
+
+def test_strict_mode_keeps_pure_ai():
+    """strict 模式下明确 AI 关键词仍命中 ai_compute"""
+    assert "ai_compute" in classify_sector("半导体/AI", mode="strict")
+    assert "ai_compute" in classify_sector("半导体/HBM", mode="strict")
+
+
+def test_strict_mode_keeps_semi_intact():
+    """semi 自带就精准，strict 与 broad 行为一致（命中相同）"""
+    cases = ["半导体", "Semiconductors", "Memory", "集成电路", "电子元件"]
+    for c in cases:
+        assert classify_sector(c, mode="strict") == classify_sector(c, mode="broad"), c
+
+
+def test_strict_mode_excludes_loose_utilities():
+    """strict 模式下 "公共事业" 不命中 datacenter（避免泛公用事业入池）"""
+    assert classify_sector("公共事业", mode="strict") == set()
+    assert "datacenter" in classify_sector("公共事业", mode="broad")
+
+
+def test_invalid_mode_raises():
+    import pytest
+    with pytest.raises(ValueError):
+        classify_sector("Semiconductors", mode="loose")
+
+
+def test_default_mode_is_broad():
+    """无 mode 参数时默认 broad（向后兼容）"""
+    assert classify_sector("通讯设备") == classify_sector("通讯设备", mode="broad")
+
+
+def test_filter_by_supertrends_strict_mode():
+    """filter_by_supertrends 透传 mode 参数"""
+    items = [
+        {"ticker": "AAOI", "sector": "通讯设备"},          # broad 命中 optical
+        {"ticker": "LITE", "sector": "光通信/激光"},       # strict + broad 都命中
+    ]
+    out_strict = filter_by_supertrends(items, ["optical"], mode="strict")
+    out_broad = filter_by_supertrends(items, ["optical"], mode="broad")
+    assert sorted(it["ticker"] for it in out_strict) == ["LITE"]
+    assert sorted(it["ticker"] for it in out_broad) == ["AAOI", "LITE"]

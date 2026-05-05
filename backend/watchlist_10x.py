@@ -198,9 +198,14 @@ def screen_candidates(
     include_etf: bool = False,
     exclude_in_watchlist: bool = True,
     limit: int = 200,
+    precise: bool = False,
 ) -> list[dict]:
     """
     从 universe 池里按赛道 + 市值过滤，返回候选股列表。
+
+    precise=True 时使用 sector_mapping 的 strict 模式（仅核心关键词），
+    候选范围窄但精度高；precise=False 默认 broad 模式（含扩展词），
+    候选范围广但有噪音。
 
     返回 item: 包含 universe 原字段 + matched_supertrends（命中的赛道集合，list 形式）
     排序：market cap 升序（小市值优先 — 策略中"小市值卡位公司"原则）；缺市值的排最后。
@@ -208,18 +213,34 @@ def screen_candidates(
     wanted = set(supertrend_ids or [])
     universe = load_universe(markets)
 
-    # 1) 行业过滤（sector 和 industry 字段 OR 关系）
+    # 1) 行业过滤
+    # broad 模式：sector/industry 命中赛道（含扩展词如"通讯设备"）
+    # precise 模式：sector/industry strict 命中 OR 公司名含 strict 关键词
+    #               — universe 里 sector 多是大类（"通讯设备"）没有"光通信"细分，
+    #                 靠名称匹配捞出 IPGP / 长飞光纤 / Optical Cable 等纯种
     if wanted:
         filtered = []
         for it in universe:
-            matched = (
-                _sm.classify_sector(it.get("sector"))
-                | _sm.classify_sector(it.get("industry"))
-            ) & wanted
-            if matched:
-                it_out = dict(it)
-                it_out["matched_supertrends"] = sorted(matched)
-                filtered.append(it_out)
+            if precise:
+                sec_strict_match = (
+                    _sm.classify_sector(it.get("sector"), mode="strict")
+                    | _sm.classify_sector(it.get("industry"), mode="strict")
+                ) & wanted
+                name_match = _sm.name_matches_strict(it.get("name"), wanted)
+                if not sec_strict_match and not name_match:
+                    continue
+                matched = sec_strict_match if sec_strict_match else set(wanted)
+            else:
+                matched = (
+                    _sm.classify_sector(it.get("sector"), mode="broad")
+                    | _sm.classify_sector(it.get("industry"), mode="broad")
+                ) & wanted
+                if not matched:
+                    continue
+
+            it_out = dict(it)
+            it_out["matched_supertrends"] = sorted(matched)
+            filtered.append(it_out)
     else:
         filtered = [dict(it, matched_supertrends=[]) for it in universe]
 
