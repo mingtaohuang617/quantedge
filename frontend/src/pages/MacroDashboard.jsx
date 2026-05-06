@@ -11,6 +11,12 @@ import {
 } from "recharts";
 import { apiFetch, MiniSparkline } from "../quant-platform.jsx";
 
+// 线上快照（production 只能读它，因为 Vercel 上没跑 backend；本地 dev 走实时 API）
+// 主动刷新：本地 `cd backend && python export_macro_snapshot.py` → commit → push
+import macroSnapshot from "../macroSnapshot.json";
+
+const USE_SNAPSHOT = import.meta.env.PROD;
+
 const CATEGORY_LABEL = {
   valuation: "估值",
   liquidity: "流动性",
@@ -355,6 +361,15 @@ export default function MacroDashboard() {
   const load = async () => {
     setLoading(true);
     setError(null);
+    if (USE_SNAPSHOT) {
+      // 线上：直接吃打包进来的静态 snapshot
+      setFactors(macroSnapshot.factors || []);
+      setComposite(macroSnapshot.composite || null);
+      setHistory(macroSnapshot.composite_history || null);
+      setLoading(false);
+      return;
+    }
+    // 本地 dev：走实时 API
     const [data, comp] = await Promise.all([
       apiFetch("/macro/factors?sparkline=120"),
       apiFetch("/macro/composite"),
@@ -391,12 +406,20 @@ export default function MacroDashboard() {
   return (
     <div className="space-y-4 flex-1 min-h-0 overflow-y-auto pr-1 -mr-1">
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Globe className="w-5 h-5 text-indigo-400" />
           <h2 className="text-lg font-semibold text-white">宏观因子看板</h2>
           <span className="text-xs text-white/50">
             {factors ? `${filtered.length} / ${factors.length} 因子` : ""}
           </span>
+          {USE_SNAPSHOT && macroSnapshot.generated_at && (
+            <span
+              className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-400/30 text-amber-300 font-mono"
+              title="线上为静态 snapshot；本地跑 backend/export_macro_snapshot.py 重新打包后 commit + push 才会更新"
+            >
+              snapshot · {macroSnapshot.generated_at.slice(0, 10)}
+            </span>
+          )}
         </div>
         <button
           onClick={load}
