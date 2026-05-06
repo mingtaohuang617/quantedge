@@ -1766,6 +1766,56 @@ def llm_value_explain_endpoint(req: LLMValueExplainReq):
     return sanitize(_llm_mod.value_explain(stock, req.score_result))
 
 
+# ── V5：巴菲特白名单 + 历史回测 ────────────────────────────
+@app.get("/api/value/whitelist")
+def get_value_whitelist():
+    """巴菲特持仓白名单（含 thesis 简介）。"""
+    return {"items": _value.get_whitelist()}
+
+
+class BacktestReq(BaseModel):
+    tickers: list[str] = []           # 留空则用 whitelist + 当前 watchlist value items
+    lookback_years: int = 5
+    top_n: int = 30
+    weights_preset: str = "user_default"
+    benchmark: str = "SPY"
+    include_whitelist: bool = True
+    include_watchlist: bool = True
+
+
+@app.post("/api/value/backtest")
+def value_backtest(req: BacktestReq):
+    """跑近似历史回测：给定 tickers → 当下评分 → 拉过去 N 年价格 →
+    返回 top_n 表 + 等权净值 vs 基准 + quintile 表现差 + 维度归因。
+    """
+    weights = _value.WEIGHT_PRESETS.get(req.weights_preset, _value.DEFAULT_WEIGHTS)
+    tickers = list(req.tickers)
+    if req.include_whitelist:
+        tickers += [it["ticker"] for it in _value.get_whitelist()]
+    if req.include_watchlist:
+        tickers += [it["ticker"] for it in _wl.list_items() if it.get("strategy") == "value"]
+    # 去重保序
+    seen = set()
+    unique = []
+    for t in tickers:
+        u = t.strip().upper()
+        if u and u not in seen:
+            seen.add(u)
+            unique.append(u)
+
+    if not unique:
+        raise HTTPException(400, "tickers 为空且 whitelist + watchlist 也为空")
+
+    result = _value.run_backtest(
+        unique,
+        lookback_years=req.lookback_years,
+        top_n=req.top_n,
+        weights=weights,
+        benchmark=req.benchmark,
+    )
+    return sanitize(result)
+
+
 if __name__ == "__main__":
     # 不在启动时调 health_check —— 它会同步连 Futu OpenD，OpenD 没开会卡住启动。
     # 各源健康状态由 /api/status 端点按需查询（前端拉到才探活）。

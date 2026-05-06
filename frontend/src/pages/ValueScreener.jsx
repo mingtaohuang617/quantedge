@@ -18,10 +18,11 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import {
   Award, Plus, Trash2, RefreshCw, Loader, AlertCircle, Filter,
-  Search, TrendingUp, Settings, Eye, X,
+  Search, TrendingUp, Settings, Eye, X, BarChart3, Star,
 } from "lucide-react";
 import { apiFetch } from "../quant-platform.jsx";
 import ValueScoreCard from "../components/ValueScoreCard.jsx";
+import BacktestModal from "../components/BacktestModal.jsx";
 
 const DEFAULT_WEIGHTS = { moat: 30, financial: 25, mgmt: 15, valuation: 20, compound: 10 };
 
@@ -60,6 +61,13 @@ export default function ValueScreener() {
   // 详情
   const [detailData, setDetailData] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  // V5: 白名单 + 回测
+  const [whitelist, setWhitelist] = useState([]);
+  const [showWhitelist, setShowWhitelist] = useState(false);
+  const [backtestOpen, setBacktestOpen] = useState(false);
+  const [backtestData, setBacktestData] = useState(null);
+  const [backtestLoading, setBacktestLoading] = useState(false);
+  const [backtestErr, setBacktestErr] = useState(null);
 
   // ── 初始拉数据 ─────────────────────────────────
   const reloadItems = useCallback(async () => {
@@ -72,10 +80,16 @@ export default function ValueScreener() {
     if (json && json.presets) setPresets(json.presets);
   }, []);
 
+  const reloadWhitelist = useCallback(async () => {
+    const json = await apiFetch("/value/whitelist");
+    if (json && json.items) setWhitelist(json.items);
+  }, []);
+
   useEffect(() => {
     reloadItems();
     reloadPresets();
-  }, [reloadItems, reloadPresets]);
+    reloadWhitelist();
+  }, [reloadItems, reloadPresets, reloadWhitelist]);
 
   const activeWeights = useMemo(
     () => (customMode ? customWeights : presets[weightPreset] || DEFAULT_WEIGHTS),
@@ -143,6 +157,60 @@ export default function ValueScreener() {
     await reloadItems();
   };
 
+  // ── 回测 ──────────────────────────────────────
+  const runBacktest = async () => {
+    setBacktestOpen(true);
+    setBacktestLoading(true);
+    setBacktestData(null);
+    setBacktestErr(null);
+    try {
+      const json = await apiFetch("/value/backtest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tickers: [],
+          lookback_years: 5,
+          top_n: 30,
+          weights_preset: customMode ? "user_default" : weightPreset,
+          benchmark: "SPY",
+          include_whitelist: true,
+          include_watchlist: true,
+        }),
+      });
+      if (!json) throw new Error("后端无响应");
+      if (json.detail) throw new Error(json.detail);
+      setBacktestData(json);
+    } catch (e) {
+      setBacktestErr(String(e.message || e));
+    } finally {
+      setBacktestLoading(false);
+    }
+  };
+
+  // ── 一键加入白名单 ─────────────────────────────
+  const addAllWhitelist = async () => {
+    if (!window.confirm(`一键加入 ${whitelist.length} 只巴菲特持仓？\n每只都会跑评分 + LLM，预计 ${whitelist.length * 15} 秒。`)) return;
+    const inWl = new Set(items.map((it) => it.ticker));
+    for (const w of whitelist) {
+      if (inWl.has(w.ticker)) continue;
+      try {
+        await apiFetch("/watchlist/value", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ticker: w.ticker,
+            thesis: w.thesis,
+            tags: ["buffett", w.type],
+            weights_preset: customMode ? "user_default" : weightPreset,
+          }),
+        });
+      } catch (e) {
+        console.warn(`加入 ${w.ticker} 失败`, e);
+      }
+    }
+    await reloadItems();
+  };
+
   // ── 详情 ──────────────────────────────────────
   const showDetail = async (ticker) => {
     setDetailLoading(true);
@@ -164,6 +232,22 @@ export default function ValueScreener() {
           <span className="text-sm font-semibold text-white">价值股池</span>
           <span className="text-[10px] text-[#a0aec0]">巴菲特式 · 复利韧性</span>
           <div className="flex-1" />
+
+          <button
+            onClick={addAllWhitelist}
+            disabled={whitelist.length === 0}
+            className="flex items-center gap-1 px-2 py-1 text-[10px] rounded bg-violet-500/15 hover:bg-violet-500/25 text-violet-200 border border-violet-500/40 transition disabled:opacity-50"
+            title="一键加入巴菲特持仓 10 只作为对照基准"
+          >
+            <Star size={10} /> 巴菲特白名单
+          </button>
+          <button
+            onClick={runBacktest}
+            className="flex items-center gap-1 px-2 py-1 text-[10px] rounded bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-200 border border-emerald-500/40 transition"
+            title="基于当前权重 + 白名单 + 观察列表 跑 5 年历史回测"
+          >
+            <BarChart3 size={10} /> 历史回测
+          </button>
 
           {/* 权重预设 */}
           <div className="flex items-center gap-1.5">
@@ -274,9 +358,17 @@ export default function ValueScreener() {
                   </tr>
                 </thead>
                 <tbody>
-                  {candidates.map((c) => (
+                  {candidates.map((c) => {
+                    const valScore = c.sub_scores?.valuation;
+                    const undervalued = valScore != null && valScore >= 80;
+                    const overvalued = valScore != null && valScore <= 20;
+                    return (
                     <tr key={c.ticker} className="border-t border-white/5 hover:bg-white/[0.02] transition">
-                      <td className="px-2 py-1.5 font-mono text-[10px] text-white">{c.ticker}</td>
+                      <td className="px-2 py-1.5 font-mono text-[10px] text-white flex items-center gap-1">
+                        {c.ticker}
+                        {undervalued && <span className="text-[7px] px-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">低估</span>}
+                        {overvalued && <span className="text-[7px] px-0.5 rounded bg-red-500/20 text-red-300 border border-red-500/40">高估</span>}
+                      </td>
                       <td className="px-2 py-1.5 text-[10px] text-[#d0d7e2] truncate max-w-[160px]" title={c.name}>{c.name || "—"}</td>
                       <td className="px-2 py-1.5 text-right font-mono text-[10px] text-[#d0d7e2]">{fmtMcap(c.marketCap)}</td>
                       <td className="px-2 py-1.5 text-right font-mono text-[10px] text-[#d0d7e2]">{c.pe_ttm != null ? c.pe_ttm.toFixed(1) : "—"}</td>
@@ -294,7 +386,7 @@ export default function ValueScreener() {
                         </button>
                       </td>
                     </tr>
-                  ))}
+                  );})}
                 </tbody>
               </table>
             )}
@@ -340,6 +432,16 @@ export default function ValueScreener() {
           onClose={() => setDetailData(null)}
         />
       )}
+
+      {/* 回测结果 modal */}
+      {backtestOpen && (
+        <BacktestModal
+          data={backtestData}
+          loading={backtestLoading}
+          error={backtestErr}
+          onClose={() => setBacktestOpen(false)}
+        />
+      )}
     </div>
   );
 }
@@ -364,14 +466,28 @@ function Threshold({ label, value, setValue, suffix = "", placeholder = "" }) {
 function ValueWatchCard({ item, onView, onDelete }) {
   const score = item.value_score;
   const subs = item.value_sub_scores || {};
+  const tags = item.tags || [];
+  const isBuffett = tags.includes("buffett");
+  const valScore = subs.valuation;
+  const undervalued = valScore != null && valScore >= 80;
+  const overvalued = valScore != null && valScore <= 20;
   return (
     <div className="glass-card p-2 border border-white/10 hover:border-amber-500/30 transition group">
       <div className="flex items-start justify-between gap-2 mb-1">
         <div className="min-w-0">
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 flex-wrap">
             <span className="font-mono text-[12px] font-semibold text-white">{item.ticker}</span>
             {score != null && (
               <span className="text-[10px] font-mono text-amber-300">{score.toFixed(1)}</span>
+            )}
+            {isBuffett && (
+              <span className="text-[8px] px-1 py-px rounded bg-violet-500/20 text-violet-200 border border-violet-500/40" title="巴菲特持仓">BUFFETT</span>
+            )}
+            {undervalued && (
+              <span className="text-[8px] px-1 py-px rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40" title="估值低估">低估</span>
+            )}
+            {overvalued && (
+              <span className="text-[8px] px-1 py-px rounded bg-red-500/20 text-red-300 border border-red-500/40" title="估值高估">高估</span>
             )}
           </div>
           <div className="text-[9px] text-[#7a8497]">{item.weights_preset || "user_default"} · {item.scored_at?.slice(0, 10)}</div>
