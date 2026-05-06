@@ -13,3 +13,9 @@ value — 价值型 X 倍股策略子包
 """
 from .fetcher import fetch_value_metrics  # noqa: F401
 from .industry_peers import find_peers, industry_pctile  # noqa: F401
+from .score import (  # noqa: F401
+    compute_value_score,
+    dcf_value,
+    WEIGHT_PRESETS,
+    DEFAULT_WEIGHTS,
+)
