@@ -80,6 +80,115 @@ CREATE TABLE IF NOT EXISTS sync_state (
   last_error      TEXT,
   consec_fails    INTEGER NOT NULL DEFAULT 0
 );
+
+-- LLM 响应缓存（B1）
+-- key: 由 (endpoint, model, prompt_hash) 组合，避免重复调 DeepSeek
+CREATE TABLE IF NOT EXISTS llm_cache (
+  cache_key       TEXT PRIMARY KEY,    -- sha256(endpoint|model|prompt)[:32]
+  endpoint        TEXT NOT NULL,        -- 'summary' | 'journal-structure' | ...
+  model           TEXT NOT NULL,
+  ticker          TEXT,                 -- 关联 ticker（按需，可空）
+  response_json   TEXT NOT NULL,        -- 序列化后的响应
+  prompt_tokens   INTEGER,
+  completion_tokens INTEGER,
+  created_at      INTEGER NOT NULL,
+  expires_at      INTEGER,              -- 过期时间戳（0=永久）
+  hit_count       INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_llm_cache_endpoint ON llm_cache(endpoint);
+CREATE INDEX IF NOT EXISTS idx_llm_cache_ticker   ON llm_cache(ticker);
+CREATE INDEX IF NOT EXISTS idx_llm_cache_expires  ON llm_cache(expires_at);
+
+-- ── L1/L2 宏观因子库（Phase 1） ────────────────────────────
+-- 时间序列发布观测（PIT，单表通用）：所有外部时间序列（宏观/估值/情绪）
+CREATE TABLE IF NOT EXISTS series_observations (
+  series_id     TEXT NOT NULL,
+  value_date    TEXT NOT NULL,                  -- 数据期 'YYYY-MM-DD'
+  publish_date  TEXT NOT NULL,                  -- 发布日 'YYYY-MM-DD'
+  value         REAL NOT NULL,
+  vintage       INTEGER NOT NULL DEFAULT 0,     -- 0=初值, 1+ 修订版次
+  source        TEXT NOT NULL,
+  ingested_at   INTEGER NOT NULL,
+  PRIMARY KEY (series_id, value_date, vintage)
+);
+CREATE INDEX IF NOT EXISTS idx_series_obs_publish ON series_observations(series_id, publish_date);
+CREATE INDEX IF NOT EXISTS idx_series_obs_value   ON series_observations(series_id, value_date);
+
+CREATE TABLE IF NOT EXISTS series_meta (
+  series_id        TEXT PRIMARY KEY,
+  name             TEXT NOT NULL,
+  source           TEXT NOT NULL,                -- 'fred' / 'tushare' / 'yfinance'
+  source_id        TEXT NOT NULL,                -- 源端 ID（如 FRED 'M2SL'）
+  frequency        TEXT NOT NULL,                -- daily/weekly/monthly/quarterly
+  unit             TEXT,
+  market           TEXT,                         -- US/CN/HK/global
+  description      TEXT,
+  publish_lag_days INTEGER,
+  is_revised       INTEGER NOT NULL DEFAULT 0,
+  updated_at       INTEGER NOT NULL
+);
+
+-- L2 因子值（市场层面，按 factor × market × date × calc_version）
+CREATE TABLE IF NOT EXISTS factor_values (
+  factor_id     TEXT NOT NULL,
+  market        TEXT NOT NULL,                  -- 'US' / 'CN' / 'HK' / 'global'
+  value_date    TEXT NOT NULL,
+  raw_value     REAL,
+  percentile    REAL,                           -- 0-100 历史分位
+  calc_version  TEXT NOT NULL,                  -- 'v1' / 'v2'，公式变更时换版本
+  computed_at   INTEGER NOT NULL,
+  PRIMARY KEY (factor_id, market, value_date, calc_version)
+);
+CREATE INDEX IF NOT EXISTS idx_factor_values_date   ON factor_values(value_date);
+CREATE INDEX IF NOT EXISTS idx_factor_values_factor ON factor_values(factor_id, market, value_date);
+
+CREATE TABLE IF NOT EXISTS factor_meta (
+  factor_id           TEXT PRIMARY KEY,
+  name                TEXT NOT NULL,
+  category            TEXT NOT NULL,            -- valuation/liquidity/breadth/sentiment/macro/technical
+  applicable_markets  TEXT NOT NULL,            -- 'US,CN' / 'US' / 'global'
+  formula_ref         TEXT,                     -- 'module.function' 路径
+  freq                TEXT NOT NULL,            -- daily/weekly/monthly
+  description         TEXT,
+  rolling_window_days INTEGER,                  -- 分位标准化窗口（默认 10Y=2520）
+  is_active           INTEGER NOT NULL DEFAULT 1,
+  created_at          INTEGER NOT NULL,
+  updated_at          INTEGER NOT NULL
+);
+
+-- 指数成分股（PIT-aware；首版用 removed_date='' 表示当前在）
+CREATE TABLE IF NOT EXISTS index_constituents (
+  index_id      TEXT NOT NULL,        -- 'SP500' / 'NDX' / ...
+  ticker        TEXT NOT NULL,        -- 内部 ticker key（与 daily_bars 对齐）
+  yf_symbol     TEXT NOT NULL,        -- yfinance 拉数据用
+  name          TEXT,
+  sector        TEXT,
+  market        TEXT NOT NULL DEFAULT 'US',
+  added_date    TEXT,                 -- 加入指数日期（可空）
+  removed_date  TEXT NOT NULL DEFAULT '',   -- 移除日期；空=当前在
+  source        TEXT NOT NULL,        -- 'wikipedia' / 'manual'
+  updated_at    INTEGER NOT NULL,
+  PRIMARY KEY (index_id, ticker, removed_date)
+);
+CREATE INDEX IF NOT EXISTS idx_idx_const_active
+  ON index_constituents(index_id, removed_date);
+
+-- L1 全市场宽度日快照（每市场每日一行）
+CREATE TABLE IF NOT EXISTS breadth_snapshot (
+  snapshot_date    TEXT NOT NULL,
+  market           TEXT NOT NULL,
+  universe_size    INTEGER,
+  advancing        INTEGER,
+  declining        INTEGER,
+  pct_above_200ma  REAL,
+  pct_above_50ma   REAL,
+  new_highs_52w    INTEGER,
+  new_lows_52w     INTEGER,
+  macd_diffusion   REAL,
+  mcclellan_osc    REAL,
+  computed_at      INTEGER NOT NULL,
+  PRIMARY KEY (snapshot_date, market)
+);
 """
 
 # ── 线程本地连接池 ────────────────────────────────────────
@@ -338,6 +447,96 @@ def db_stats() -> dict:
         )
     ]
     return out
+
+
+# ── LLM 缓存 (B1) ────────────────────────────────────────
+import hashlib
+import json as _json
+
+
+def llm_cache_key(endpoint: str, model: str, prompt: str) -> str:
+    """生成 cache key：sha256(endpoint|model|prompt) 截断到 32 字符。"""
+    h = hashlib.sha256(f"{endpoint}|{model}|{prompt}".encode("utf-8")).hexdigest()
+    return h[:32]
+
+
+def llm_cache_get(cache_key: str) -> dict | None:
+    """命中则返回 {response, prompt_tokens, completion_tokens}；过期或未命中返 None。"""
+    conn = _get_conn()
+    row = conn.execute(
+        "SELECT response_json, prompt_tokens, completion_tokens, expires_at "
+        "FROM llm_cache WHERE cache_key=?",
+        (cache_key,),
+    ).fetchone()
+    if row is None:
+        return None
+    now = int(time.time())
+    if row["expires_at"] and row["expires_at"] > 0 and row["expires_at"] < now:
+        return None  # 过期
+    # 命中计数 +1（异步，失败不影响读）
+    try:
+        conn.execute("UPDATE llm_cache SET hit_count = hit_count + 1 WHERE cache_key=?", (cache_key,))
+    except Exception:
+        pass
+    return {
+        "response": _json.loads(row["response_json"]),
+        "prompt_tokens": row["prompt_tokens"],
+        "completion_tokens": row["completion_tokens"],
+    }
+
+
+def llm_cache_put(
+    cache_key: str,
+    endpoint: str,
+    model: str,
+    response: dict,
+    *,
+    ticker: str | None = None,
+    prompt_tokens: int | None = None,
+    completion_tokens: int | None = None,
+    ttl_seconds: int = 3600,
+) -> None:
+    """写缓存。ttl_seconds=0 表示永不过期。"""
+    now = int(time.time())
+    expires_at = 0 if ttl_seconds == 0 else now + ttl_seconds
+    with transaction() as conn:
+        conn.execute(
+            """
+            INSERT INTO llm_cache
+              (cache_key, endpoint, model, ticker, response_json,
+               prompt_tokens, completion_tokens, created_at, expires_at, hit_count)
+            VALUES (?,?,?,?,?,?,?,?,?,0)
+            ON CONFLICT(cache_key) DO UPDATE SET
+              response_json     = excluded.response_json,
+              prompt_tokens     = excluded.prompt_tokens,
+              completion_tokens = excluded.completion_tokens,
+              created_at        = excluded.created_at,
+              expires_at        = excluded.expires_at
+            """,
+            (
+                cache_key, endpoint, model, ticker,
+                _json.dumps(response, ensure_ascii=False),
+                prompt_tokens, completion_tokens, now, expires_at,
+            ),
+        )
+
+
+def llm_cache_stats() -> dict:
+    """端点级别的命中/调用统计。"""
+    conn = _get_conn()
+    by_endpoint = [
+        dict(r)
+        for r in conn.execute(
+            "SELECT endpoint, COUNT(*) as entries, SUM(hit_count) as total_hits, "
+            "SUM(prompt_tokens) as p_tokens, SUM(completion_tokens) as c_tokens "
+            "FROM llm_cache GROUP BY endpoint"
+        )
+    ]
+    total_entries = conn.execute("SELECT COUNT(*) FROM llm_cache").fetchone()[0]
+    return {
+        "total_entries": total_entries,
+        "by_endpoint": by_endpoint,
+    }
 
 
 # ── DuckDB 只读 attach（分析用）───────────────────────────

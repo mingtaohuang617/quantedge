@@ -2,6 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─────────────────────────────────────────────────────────────────────────
+   QuantEdge · 字号档位（5 档制 · v0.7 收敛 · 禁止散落 text-[8px]/[12.5px]）
+   ─────────────────────────────────────────────────────────────────────────
+   档位        | desktop | mobile  | 用途
+   Display     | 22-24px | 18-20px | 主 KPI 数字（年化收益、价格 hero）
+   Heading     | 14-16px | 13-14px | 页面标题、模块标题
+   Body        | 12-13px | 12px    | 正文 / 标签名
+   Data        | 10-11px | 11-12px | 表格行 / 数据点 / sparkline 行内
+   Caption     | 9-10px  | 10px    | uppercase 表头 / 状态文字 / 极辅助
+   ─────────────────────────────────────────────────────────────────────────
+   QuantEdge · 语义色（5 角色 · v0.7 收敛 · 禁止散落 emerald/fuchsia/sky）
+   ─────────────────────────────────────────────────────────────────────────
+   --sem-brand    | 品牌 / 主 CTA / 选中态 / 图表主色
+   --sem-up       | 涨 / 利好 / 通过 / 在线
+   --sem-down     | 跌 / 错误 / 删除 / 断线
+   --sem-warn     | 提醒 / 缓存过期 / 中性评分
+   --sem-neutral  | 标签 / 次要信息 / 边框
+   ───────────────────────────────────────────────────────────────────────── */
+
 /* ── Theme CSS Custom Properties ── */
 :root {
   /* Dark theme (default) */
@@ -59,6 +78,14 @@
   --accent-violet-soft: #8b5cf688;
   --accent-cyan: #06b6d4;
   --accent-cyan-soft: #06b6d488;
+  /* Semantic role aliases — 见文件顶部说明，jsx 应优先用 var(--sem-*) */
+  --sem-brand:    var(--accent-indigo);
+  --sem-up:       var(--accent-up);
+  --sem-down:     var(--accent-down);
+  --sem-warn:     var(--accent-amber);
+  --sem-neutral:  var(--text-muted);
+  /* 双色品牌渐变（Logo / Tab 下划线 / 列表选中态光条 / 主 CTA） */
+  --brand-gradient: linear-gradient(135deg, var(--accent-indigo) 0%, var(--accent-cyan) 100%);
 }
 
 /* Light theme */
@@ -117,6 +144,13 @@
   --accent-violet-soft: #a78bfa88;
   --accent-cyan: #22d3ee;
   --accent-cyan-soft: #22d3ee88;
+  /* Semantic role aliases — light theme（自动跟随 accent palette）*/
+  --sem-brand:    var(--accent-indigo);
+  --sem-up:       var(--accent-up);
+  --sem-down:     var(--accent-down);
+  --sem-warn:     var(--accent-amber);
+  --sem-neutral:  var(--text-muted);
+  --brand-gradient: linear-gradient(135deg, var(--accent-indigo) 0%, var(--accent-cyan) 100%);
 }
 
 /* ── C17: OKLCH perceptually-uniform palette ──
@@ -549,10 +583,60 @@ input[type="text"]:focus {
 .stagger-7 { animation-delay: 0.35s; }
 .stagger-8 { animation-delay: 0.4s; }
 
-/* ── Chart glow filter ── */
-.chart-glow line,
-.chart-glow path {
-  filter: drop-shadow(0 0 6px var(--chart-glow-color));
+/* ── Detail panel ambient light（PDF2 抛光 · 详情区右上 indigo + 左下 cyan 微弱环境光）──
+   不漂移、不动画 — 提供「场景焦点感」但不抢注意力。reduced-motion 不影响（无动画） */
+.detail-ambient {
+  position: relative;
+  isolation: isolate;
+}
+.detail-ambient::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 60% 40% at 95% 5%, rgba(99, 102, 241, 0.06), transparent 70%),
+    radial-gradient(ellipse 50% 35% at 5% 95%, rgba(6, 182, 212, 0.05), transparent 70%);
+  z-index: 0;
+}
+.detail-ambient > * { position: relative; z-index: 1; }
+
+/* ── Main CTA shine sweep（PDF2 抛光层 · 主按钮表面 45° 高光带 3.6s 循环）── */
+@keyframes btn-shine-sweep {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.btn-shine {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.btn-shine::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: linear-gradient(110deg,
+    transparent 35%,
+    rgba(255, 255, 255, 0.18) 50%,
+    transparent 65%);
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  animation: btn-shine-sweep 3.6s linear infinite;
+  z-index: 1;
+}
+.btn-shine > * { position: relative; z-index: 2; }
+@media (prefers-reduced-motion: reduce) {
+  .btn-shine::before { animation: none; opacity: 0; }
+}
+
+/* ── Chart glow filter（已废弃 · v0.7 收敛）──
+   全局对所有图表线加 6px drop-shadow 会模糊读数（PDF1 P0）。
+   保留 .chart-glow 类作为 hook，将来如果某些 chart 需要 hover 高亮，
+   可以在局部加 :hover { filter: drop-shadow(...) }。
+   原 chart-glow-color CSS 变量也保留，便于按需复用。 */
+.chart-glow {
+  /* 留空：仅作为 className hook，不再施加全局 filter */
 }
 
 /* ── Button click ripple ── */
@@ -839,34 +923,34 @@ button, a, select, input {
     max-width: 200px !important;
   }
 
-  /* KPI cards compact on mobile */
+  /* KPI cards on mobile — PDF1 P2：抬升 KPI 数字让口袋里也能看清 */
   .kpi-card {
     padding: 10px 12px;
   }
 
   .kpi-card .kpi-value {
-    font-size: 14px;
+    font-size: 18px;  /* was 14px */
   }
 
   .kpi-card .kpi-label {
-    font-size: 9px;
+    font-size: 10px;  /* was 9px */
   }
 
   /* Compact delta chip on mobile */
   .delta-chip {
     padding: 0px 4px;
-    font-size: 9px;
+    font-size: 10px;  /* was 9px */
   }
 
-  /* Data table compact on mobile */
+  /* Data table on mobile — 8/10 太小，抬升到 10/12 */
   .data-table th {
     padding: 4px 6px;
-    font-size: 8px;
+    font-size: 10px;  /* was 8px */
   }
 
   .data-table td {
     padding: 4px 6px;
-    font-size: 10px;
+    font-size: 12px;  /* was 10px */
   }
 
   /* Section header smaller on mobile */

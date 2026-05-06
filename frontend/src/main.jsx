@@ -45,6 +45,31 @@ if (import.meta.env.DEV) {
   };
 }
 
+// A4: 全局未捕获 Promise 错误处理
+// React ErrorBoundary 只接 render error；async fetch 失败 / Promise reject 漏网。
+// 这里上报到 Sentry（如已启用）+ console，避免静默白屏的根因。
+window.addEventListener('unhandledrejection', (event) => {
+  const reason = event.reason;
+  const msg = reason?.message || String(reason);
+  // 已知噪声过滤（用户切页面取消的 fetch、AbortController 主动 abort）
+  if (msg.includes('aborted') || msg.includes('AbortError') || msg.includes('signal is aborted')) return;
+  console.error('[QuantEdge] unhandled rejection:', reason);
+  // 上报 Sentry（如启用）
+  if (window.Sentry?.captureException) {
+    window.Sentry.captureException(reason);
+  }
+});
+
+// 同样兜住同步未捕获错误（虽然 ErrorBoundary 大多能接，但有些第三方库 throw 在 setTimeout 里漏网）
+window.addEventListener('error', (event) => {
+  const err = event.error;
+  if (!err) return;
+  console.error('[QuantEdge] uncaught error:', err);
+  if (window.Sentry?.captureException) {
+    window.Sentry.captureException(err);
+  }
+});
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ErrorBoundary>

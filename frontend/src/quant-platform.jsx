@@ -11,6 +11,8 @@ const Journal = lazy(() => import("./pages/Journal.jsx"));
 const Monitor = lazy(() => import("./pages/Monitor.jsx"));
 const BacktestEngine = lazy(() => import("./pages/BacktestEngine.jsx"));
 const ScoringDashboard = lazy(() => import("./pages/ScoringDashboard.jsx"));
+const MacroDashboard = lazy(() => import("./pages/MacroDashboard.jsx"));
+const Screener10x = lazy(() => import("./pages/Screener10x.jsx"));
 
 let STATIC_STOCKS = [];
 let STATIC_ALERTS = [];
@@ -693,6 +695,30 @@ export const fmtChange = (v) => {
   return n.toFixed(2);
 };
 
+// ─── 多币种显示助手 — 替代散落各处的 `currency === "HKD" ? "HK$" : "$"` ─────
+// 用法：const sym = currencySymbol(stk?.currency); fmtPrice(price, currency)
+const CURRENCY_SYMBOLS = {
+  USD: "$", HKD: "HK$", CNY: "¥", JPY: "¥", KRW: "₩", EUR: "€", GBP: "£",
+};
+// 不需要小数位的货币（KRW、JPY 单位本身已是整数）
+const CURRENCY_NO_DECIMALS = new Set(["KRW", "JPY"]);
+
+export const currencySymbol = (currency) => CURRENCY_SYMBOLS[currency] || "$";
+
+/** 价格格式化：统一加货币符号 + 千分位 + 自适应小数位
+ *  - KRW / JPY 整数（韩元、日元单位本身大）
+ *  - 其他默认 2 位小数
+ *  - 大于 1000 加千分位逗号 */
+export const fmtPrice = (price, currency = "USD", opts = {}) => {
+  const n = Number(price);
+  if (!isFinite(n)) return `${currencySymbol(currency)}—`;
+  const noDec = CURRENCY_NO_DECIMALS.has(currency);
+  const decimals = opts.decimals != null ? opts.decimals : (noDec ? 0 : 2);
+  return `${currencySymbol(currency)}${n.toLocaleString(undefined, {
+    minimumFractionDigits: decimals, maximumFractionDigits: decimals,
+  })}`;
+};
+
 // ─── 港股显示名称（优先 中文名/英文名），非港股保持 ticker ─────────
 // 用于"近期财报、实时监控、投资日志"三处：港股以名称示人，更易识别。
 export const displayTicker = (ticker, stock, lang) => {
@@ -1149,7 +1175,7 @@ export const Highlight = ({ text, query }) => {
 };
 
 // 数字滚动动画 — 平滑过渡到新值
-export const CountUp = ({ value, duration = 600, decimals = 2, prefix = "", suffix = "", className = "" }) => {
+export const CountUp = ({ value, duration = 600, decimals = 2, prefix = "", suffix = "", className = "", thousands = false }) => {
   const [display, setDisplay] = useState(value ?? 0);
   const prevRef = useRef(value ?? 0);
   useEffect(() => {
@@ -1168,7 +1194,11 @@ export const CountUp = ({ value, duration = 600, decimals = 2, prefix = "", suff
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
   }, [value, duration]);
-  return <span className={className}>{prefix}{Number(display).toFixed(decimals)}{suffix}</span>;
+  // thousands=true 时用 toLocaleString 加千分位（韩元/日元等大数好读）
+  const text = thousands
+    ? Number(display).toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
+    : Number(display).toFixed(decimals);
+  return <span className={className}>{prefix}{text}{suffix}</span>;
 };
 
 export const ScoreBar = ({ score, max = 100 }) => {
@@ -1190,6 +1220,8 @@ const TAB_CFG = [
   { id: "backtest", label: "组合回测", icon: Activity },
   { id: "monitor", label: "实时监控", icon: Bell },
   { id: "journal", label: "投资日志", icon: BookOpen },
+  { id: "macro", label: "宏观看板", icon: Globe },
+  { id: "screener10x", label: "10x 猎手", icon: Target },
 ];
 
 // ─── Scoring ──────────────────────────────────────────────
@@ -2036,7 +2068,7 @@ function QuantPlatformInner() {
       <header className="flex flex-col md:flex-row items-center justify-between px-3 md:px-6 py-2 md:py-2.5 border-b border-white/5 bg-white/[0.02] backdrop-blur-md flex-shrink-0 gap-2 md:gap-0">
         <div className="flex items-center justify-between w-full md:w-auto">
           <div className="flex items-center gap-2.5 md:gap-3">
-            <div className="relative w-7 h-7 md:w-8 md:h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+            <div className="relative w-7 h-7 md:w-8 md:h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-indigo-500/30">
               <Briefcase size={14} className="text-white drop-shadow-sm" />
               <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-up border border-deep-base" title="系统在线" />
             </div>
@@ -2057,39 +2089,63 @@ function QuantPlatformInner() {
               <Database size={12} />
               <span>{stocks.length}</span>
             </button>
-            <button onClick={() => setShowProfile(true)} className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-white text-[10px] font-bold shadow-sm ring-1 ring-white/10 active:scale-95" title="账户信息">
+            <button onClick={() => setShowProfile(true)} className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-white text-[10px] font-bold shadow-sm ring-1 ring-white/10 active:scale-95" title="账户信息">
               {(user.name || "U").charAt(0).toUpperCase()}
             </button>
           </div>
         </div>
 
-        <nav role="tablist" aria-label={t('主导航')} className={`${useSidebar ? 'flex md:hidden' : 'flex'} items-center gap-0.5 md:gap-1 bg-white/[0.03] rounded-xl p-0.5 md:p-1 gradient-border w-full md:w-auto overflow-x-auto`}>
+        <nav role="tablist" aria-label={t('主导航')} className={`${useSidebar ? 'flex md:hidden' : 'flex'} items-center gap-1 md:gap-2 w-full md:w-auto overflow-x-auto`}>
           {TAB_CFG.map(c => {
             const I = c.icon;
+            const active = tab === c.id;
             return (
               <button
                 key={c.id}
                 onClick={() => setTab(c.id)}
                 role="tab"
-                aria-selected={tab === c.id}
+                aria-selected={active}
                 aria-label={t(c.label)}
-                className={`relative flex items-center gap-1 md:gap-1.5 px-2.5 md:px-4 py-2 md:py-2 rounded-lg text-[11px] md:text-xs font-medium btn-tactile whitespace-nowrap flex-1 md:flex-none justify-center active:scale-95 ${tab === c.id ? "bg-gradient-to-r from-indigo-500 to-violet-500 text-white shadow-[0_0_12px_rgba(99,102,241,0.4)] ring-1 ring-indigo-400/20" : "text-[#a0aec0] hover:text-white hover:bg-white/[0.06]"}`}>
+                className={`relative flex items-center gap-1 md:gap-1.5 px-2.5 md:px-3 py-2 text-[11px] md:text-xs font-medium whitespace-nowrap flex-1 md:flex-none justify-center transition-colors active:scale-[0.97] ${active ? "text-white" : "text-[#a0aec0] hover:text-white"}`}>
                 <I size={13} />{t(c.label)}
+                {active && (
+                  <span
+                    aria-hidden="true"
+                    className="absolute left-2 right-2 -bottom-px h-0.5 rounded-full"
+                    style={{ background: 'var(--brand-gradient)' }}
+                  />
+                )}
               </button>
             );
           })}
         </nav>
 
         <div className="hidden md:flex items-center gap-2.5">
-          {/* Header ticker strip */}
-          <div className="flex items-center gap-px rounded-lg bg-white/[0.03] border border-white/5 overflow-hidden">
-            {stocks.slice(0, 3).map((s, i) => (
-              <div key={s.ticker} className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] font-mono tabular-nums ${i > 0 ? "border-l border-white/5" : ""}`}>
-                <span className="text-[#c8cdd3] font-semibold">{s.ticker}</span>
-                <span className={safeChange(s.change) >= 0 ? "text-up" : "text-down"}>{s.currency === "HKD" ? "HK$" : "$"}{s.price}</span>
+          {/* Header ticker tape — 60s 循环 marquee, hover 暂停（prefers-reduced-motion 自动停） */}
+          {stocks.length > 0 && (
+            <div
+              className="relative flex items-center w-[300px] h-7 overflow-hidden rounded-md bg-white/[0.02] border border-white/5"
+              style={{
+                maskImage: 'linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent)',
+                WebkitMaskImage: 'linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent)',
+              }}
+              aria-label={t('实时行情滚动')}
+            >
+              <div className="flex items-center gap-5 animate-marquee whitespace-nowrap pr-5 hover:[animation-play-state:paused]">
+                {[...stocks, ...stocks].slice(0, 36).map((s, i) => (
+                  <div key={`${s.ticker}-${i}`} className="flex items-center gap-1.5 text-[10px] font-mono tabular-nums shrink-0">
+                    <span className="text-[#c8cdd3] font-semibold">{s.ticker}</span>
+                    <span className={safeChange(s.change) >= 0 ? "text-up" : "text-down"}>
+                      {s.currency === "HKD" ? "HK$" : "$"}{s.price}
+                    </span>
+                    <span className={`text-[9px] ${safeChange(s.change) >= 0 ? "text-up" : "text-down"}`}>
+                      {safeChange(s.change) >= 0 ? "+" : ""}{fmtChange(s.change)}%
+                    </span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </div>
+          )}
           <div className="w-px h-5 bg-white/8" />
           {/* C16: 工作区切换器 */}
           <WorkspaceSwitcher />
@@ -2121,7 +2177,7 @@ function QuantPlatformInner() {
             <LiveClock />
           </div>
           {/* 用户头像按钮 */}
-          <button onClick={() => setShowProfile(true)} className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-white text-[10px] font-bold shadow-sm hover:shadow-indigo-500/30 hover:shadow-md transition-all btn-tactile ring-1 ring-white/10" title="账户信息">
+          <button onClick={() => setShowProfile(true)} className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-white text-[10px] font-bold shadow-sm hover:shadow-indigo-500/30 hover:shadow-md transition-all btn-tactile ring-1 ring-white/10" title="账户信息">
             {(user.name || "U").charAt(0).toUpperCase()}
           </button>
         </div>
@@ -2140,6 +2196,8 @@ function QuantPlatformInner() {
           {tab === "backtest" && <BacktestEngine />}
           {tab === "monitor" && <Monitor />}
           {tab === "journal" && <Journal />}
+          {tab === "macro" && <MacroDashboard />}
+          {tab === "screener10x" && <Screener10x />}
         </Suspense>
       </main>
 
