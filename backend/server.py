@@ -1489,6 +1489,283 @@ def llm_tenx_thesis(req: TenxThesisReq):
     return sanitize(_llm_mod.tenx_thesis(stock, supertrend))
 
 
+# ── 价值型 X 倍股 watchlist 端点（V4）─────────────────────
+import value as _value  # noqa: E402
+
+
+class ValueAddReq(BaseModel):
+    ticker: str
+    thesis: str = ""
+    target_price: float | None = None
+    stop_loss: float | None = None
+    tags: list[str] = []
+    weights_preset: str = "user_default"
+
+
+class ValueUpdateReq(BaseModel):
+    thesis: str | None = None
+    target_price: float | None = None
+    stop_loss: float | None = None
+    tags: list[str] | None = None
+    weights_preset: str | None = None
+
+
+class ValueScreenReq(BaseModel):
+    min_value_score: float = 60
+    min_moat: float | None = None
+    max_pe: float | None = None
+    min_div_streak: int | None = None
+    weights_preset: str = "user_default"
+    markets: list[str] = ["US"]
+    universe_top_n: int = 500    # 美股市值前 N
+    limit: int = 50
+
+
+def _peers_summary(peer_metrics: list[dict], top_k: int = 3) -> str:
+    """把 peers 的关键指标拼成给 LLM 的简短描述。"""
+    parts = []
+    for p in peer_metrics[:top_k]:
+        sym = p.get("ticker", "?")
+        gm = p.get("gross_margin")
+        pm = p.get("profit_margin")
+        roe = p.get("roe_ttm")
+        bits = []
+        if gm is not None: bits.append(f"gm={gm*100:.0f}%")
+        if pm is not None: bits.append(f"pm={pm*100:.0f}%")
+        if roe is not None: bits.append(f"roe={roe*100:.0f}%")
+        parts.append(f"{sym}({','.join(bits)})")
+    return " / ".join(parts)
+
+
+def _compute_full_value(ticker: str, weights_preset: str = "user_default") -> dict:
+    """加入观察 / 重新评分都用：fetch + score + LLM moat + LLM explain。"""
+    weights = _value.WEIGHT_PRESETS.get(weights_preset, _value.DEFAULT_WEIGHTS)
+
+    metrics = _value.fetch_value_metrics(ticker)
+    if metrics.get("data_quality") in ("fetch_failed", "yfinance_not_installed"):
+        raise HTTPException(400, f"无法获取 {ticker} 财务数据: {metrics.get('error', 'unknown')}")
+
+    peers = _value.find_peers(ticker, n=20)
+    peer_metrics: list[dict] = []
+    for p in peers[:5]:
+        try:
+            pm = _value.fetch_value_metrics(p["ticker"])
+            if pm.get("data_quality") in ("good", "partial"):
+                peer_metrics.append(pm)
+        except Exception:
+            pass
+
+    moat_llm_data = None
+    moat_llm_score = None
+    if HAS_LLM and _llm_mod is not None:
+        try:
+            moat_result = _llm_mod.value_moat(metrics, peers_summary=_peers_summary(peer_metrics))
+            if moat_result.get("ok"):
+                moat_llm_data = moat_result["moat"]
+                moat_llm_score = moat_llm_data.get("moat_score")
+        except Exception as e:
+            print(f"[value_moat] {ticker} 失败: {e}")
+
+    score = _value.compute_value_score(metrics, peer_metrics, weights, moat_llm_score=moat_llm_score)
+
+    explain = None
+    if HAS_LLM and _llm_mod is not None and score["value_score"] is not None:
+        try:
+            ex_result = _llm_mod.value_explain(
+                {"ticker": ticker, "name": metrics.get("ticker"), "industry": metrics.get("industry")},
+                score,
+            )
+            if ex_result.get("ok"):
+                explain = ex_result["explanation"]
+        except Exception as e:
+            print(f"[value_explain] {ticker} 失败: {e}")
+
+    return {
+        "ticker": ticker,
+        "metrics": metrics,
+        "peers": peers[:5],
+        "score": score,
+        "moat_llm": moat_llm_data,
+        "explain": explain,
+        "weights_preset": weights_preset,
+    }
+
+
+@app.get("/api/value/weight-presets")
+def list_value_weight_presets():
+    return {"presets": _value.WEIGHT_PRESETS, "default": "user_default"}
+
+
+@app.get("/api/watchlist/value")
+def list_value_items():
+    items = [it for it in _wl.list_items() if it.get("strategy") == "value"]
+    return sanitize({"items": items})
+
+
+@app.post("/api/watchlist/value")
+def add_value_item(req: ValueAddReq):
+    full = _compute_full_value(req.ticker, weights_preset=req.weights_preset)
+    score = full["score"]
+    try:
+        item = _wl.add_item(
+            req.ticker,
+            strategy="value",
+            thesis=req.thesis,
+            target_price=req.target_price,
+            stop_loss=req.stop_loss,
+            tags=req.tags,
+            value_score=score["value_score"],
+            value_sub_scores=score["sub_scores"],
+            value_drivers=score["drivers"],
+            moat_llm=full["moat_llm"],
+            explain=full["explain"],
+            weights_preset=req.weights_preset,
+            scored_at=datetime.now().isoformat(timespec="seconds"),
+        )
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return sanitize({
+        "ok": True,
+        "item": item,
+        "metrics": full["metrics"],
+        "score": score,
+        "moat_llm": full["moat_llm"],
+        "explain": full["explain"],
+    })
+
+
+@app.put("/api/watchlist/value/{ticker}")
+def update_value_item(ticker: str, req: ValueUpdateReq):
+    fields = {k: v for k, v in req.dict().items() if v is not None}
+    try:
+        item = _wl.update_item(ticker, **fields)
+    except KeyError:
+        raise HTTPException(404, f"{ticker} not in watchlist")
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return sanitize({"ok": True, "item": item})
+
+
+@app.delete("/api/watchlist/value/{ticker}")
+def delete_value_item(ticker: str):
+    if _wl.remove_item(ticker):
+        return {"ok": True, "ticker": ticker.upper()}
+    raise HTTPException(404, f"{ticker} not in watchlist")
+
+
+@app.get("/api/watchlist/value/{ticker}/score")
+def recompute_value_score_endpoint(ticker: str, weights_preset: str = "user_default"):
+    """实时重算（不写 watchlist），返回完整评分 + LLM 解释。"""
+    full = _compute_full_value(ticker, weights_preset=weights_preset)
+    return sanitize(full)
+
+
+@app.post("/api/watchlist/value/screen")
+def screen_value_candidates(req: ValueScreenReq):
+    """从指定 markets 的 universe top N 中筛 value_score >= threshold 的标的。
+    注意：每只票要拉 yfinance（~1-2s），所以 universe_top_n 不宜过大；
+    第一版仅用量化评分（不调 LLM moat），保持快速。"""
+    weights = _value.WEIGHT_PRESETS.get(req.weights_preset, _value.DEFAULT_WEIGHTS)
+
+    from universe import load_universe
+    uni = load_universe(req.markets)
+    uni_with_mc = [it for it in uni if it.get("marketCap") and not it.get("is_etf")]
+    uni_with_mc.sort(key=lambda x: x["marketCap"], reverse=True)
+    top = uni_with_mc[:req.universe_top_n]
+
+    # 排除已在 value watchlist 中的
+    in_wl = {it["ticker"] for it in _wl.list_items() if it.get("strategy") == "value"}
+    top = [it for it in top if it["ticker"] not in in_wl]
+
+    candidates = []
+    scanned = 0
+    for it in top:
+        if len(candidates) >= req.limit:
+            break
+        if scanned >= req.universe_top_n:
+            break
+        scanned += 1
+        ticker = it["ticker"]
+        try:
+            metrics = _value.fetch_value_metrics(ticker)
+            if metrics.get("data_quality") not in ("good", "partial"):
+                continue
+            score = _value.compute_value_score(metrics, peer_metrics=None, weights=weights)
+            if score["value_score"] is None:
+                continue
+            if score["value_score"] < req.min_value_score:
+                continue
+            if req.min_moat is not None:
+                m = score["sub_scores"].get("moat")
+                if m is None or m < req.min_moat:
+                    continue
+            if req.max_pe is not None:
+                pe = metrics.get("pe_ttm")
+                if pe is None or pe > req.max_pe:
+                    continue
+            if req.min_div_streak is not None:
+                streak = metrics.get("dividend_streak_years") or 0
+                if streak < req.min_div_streak:
+                    continue
+            candidates.append({
+                "ticker": ticker,
+                "name": it.get("name"),
+                "market": it.get("market"),
+                "marketCap": it.get("marketCap"),
+                "industry": metrics.get("industry"),
+                "pe_ttm": metrics.get("pe_ttm"),
+                "roe_ttm": metrics.get("roe_ttm"),
+                "fcf_ttm": metrics.get("fcf_ttm"),
+                "dividend_streak_years": metrics.get("dividend_streak_years"),
+                "value_score": score["value_score"],
+                "sub_scores": score["sub_scores"],
+            })
+        except Exception:
+            continue
+
+    candidates.sort(key=lambda x: -(x["value_score"] or 0))
+    return sanitize({
+        "count": len(candidates),
+        "scanned": scanned,
+        "items": candidates,
+    })
+
+
+class LLMValueMoatReq(BaseModel):
+    ticker: str
+    name: str | None = None
+    industry: str | None = None
+    sector: str | None = None
+    market_cap: float | None = None
+    gross_margin: float | None = None
+    profit_margin: float | None = None
+    roe_ttm: float | None = None
+    business_summary: str | None = None
+    peers_summary: str = ""
+
+
+@app.post("/api/llm/value-moat")
+def llm_value_moat_endpoint(req: LLMValueMoatReq):
+    if not HAS_LLM or _llm_mod is None:
+        raise HTTPException(503, "llm 模块未加载")
+    return sanitize(_llm_mod.value_moat(req.dict(exclude={"peers_summary"}), peers_summary=req.peers_summary))
+
+
+class LLMValueExplainReq(BaseModel):
+    ticker: str
+    name: str | None = None
+    industry: str | None = None
+    score_result: dict
+
+
+@app.post("/api/llm/value-explain")
+def llm_value_explain_endpoint(req: LLMValueExplainReq):
+    if not HAS_LLM or _llm_mod is None:
+        raise HTTPException(503, "llm 模块未加载")
+    stock = {"ticker": req.ticker, "name": req.name, "industry": req.industry}
+    return sanitize(_llm_mod.value_explain(stock, req.score_result))
+
+
 if __name__ == "__main__":
     # 不在启动时调 health_check —— 它会同步连 Futu OpenD，OpenD 没开会卡住启动。
     # 各源健康状态由 /api/status 端点按需查询（前端拉到才探活）。

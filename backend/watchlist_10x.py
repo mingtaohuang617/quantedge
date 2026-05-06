@@ -105,9 +105,14 @@ def add_supertrend(supertrend_id: str, name: str, note: str = "") -> dict:
 
 # ── Item CRUD ───────────────────────────────────────────
 _VALID_FIELDS = {
-    "strategy", "supertrend_id", "bottleneck_layer", "bottleneck_tag",
-    "moat_score", "thesis", "target_price", "stop_loss", "tags",
-    "llm_thesis_cached_at",
+    # 共用字段
+    "strategy", "thesis", "target_price", "stop_loss", "tags",
+    # 成长型 (growth) 专属
+    "supertrend_id", "bottleneck_layer", "bottleneck_tag",
+    "moat_score", "llm_thesis_cached_at",
+    # 价值型 (value) 专属 — V4 扩展
+    "value_score", "value_sub_scores", "value_drivers",
+    "moat_llm", "explain", "weights_preset", "scored_at",
 }
 
 
@@ -140,15 +145,25 @@ def add_item(ticker: str, **fields) -> dict:
         "ticker": tk,
         "added_at": date.today().isoformat(),
         "strategy": fields.get("strategy", "growth"),
+        # growth 字段
         "supertrend_id": fields.get("supertrend_id"),
         "bottleneck_layer": fields.get("bottleneck_layer"),
         "bottleneck_tag": fields.get("bottleneck_tag", ""),
         "moat_score": fields.get("moat_score"),
+        "llm_thesis_cached_at": None,
+        # 共用
         "thesis": fields.get("thesis", ""),
         "target_price": fields.get("target_price"),
         "stop_loss": fields.get("stop_loss"),
         "tags": list(fields.get("tags") or []),
-        "llm_thesis_cached_at": None,
+        # value 字段（V4 扩展；growth item 也有这些字段，None 表示未评分）
+        "value_score": fields.get("value_score"),
+        "value_sub_scores": fields.get("value_sub_scores"),
+        "value_drivers": fields.get("value_drivers"),
+        "moat_llm": fields.get("moat_llm"),
+        "explain": fields.get("explain"),
+        "weights_preset": fields.get("weights_preset"),
+        "scored_at": fields.get("scored_at"),
     }
     data["items"].append(item)
     save_watchlist(data)

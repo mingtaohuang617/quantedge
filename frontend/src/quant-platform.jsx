@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, createContext, useContext, lazy, Suspense } from "react";
 // C1/C2: Recharts 已下沉到各 lazy page chunk（CompareModal 已迁至 ScoringDashboard），主文件不再直接依赖
-import { TrendingUp, TrendingDown, Search, Bell, BookOpen, BarChart3, Activity, Settings, ChevronRight, ChevronDown, ChevronLeft, Star, AlertTriangle, Clock, Target, Zap, Filter, ArrowUpRight, ArrowDownRight, Minus, RefreshCw, Plus, X, Check, Eye, EyeOff, Layers, Globe, Briefcase, Info, Database, Trash2, Loader, ExternalLink, Sun, Moon, Calendar, User, LogOut, Mail, Lock, Shield, KeyRound, UserCircle, Share2, GripVertical, Maximize2, AlertCircle } from "lucide-react";
+import { TrendingUp, TrendingDown, Search, Bell, BookOpen, BarChart3, Activity, Settings, ChevronRight, ChevronDown, ChevronLeft, Star, AlertTriangle, Clock, Target, Zap, Filter, ArrowUpRight, ArrowDownRight, Minus, RefreshCw, Plus, X, Check, Eye, EyeOff, Layers, Globe, Briefcase, Info, Database, Trash2, Loader, ExternalLink, Sun, Moon, Calendar, User, LogOut, Mail, Lock, Shield, KeyRound, UserCircle, Share2, GripVertical, Maximize2, AlertCircle, Award } from "lucide-react";
 import { searchTickers as standaloneSearch, fetchStockData, fetchBenchmarkPrices, fetchRangePrices, validateStockData, validateAllStocks, loadStandaloneStocks, saveStandaloneStocks, checkStandaloneMode, resolveSector, STOCK_CN_NAMES, STOCK_CN_DESCS } from "./standalone.js";
 import { LangProvider, useLang } from "./i18n.jsx";
 import { monteCarlo as mcSimulate, navToReturns as mcNavToReturns, hhi as hhiCalc, effectiveN as effN } from "./math/stats.ts";
@@ -13,6 +13,7 @@ const BacktestEngine = lazy(() => import("./pages/BacktestEngine.jsx"));
 const ScoringDashboard = lazy(() => import("./pages/ScoringDashboard.jsx"));
 const MacroDashboard = lazy(() => import("./pages/MacroDashboard.jsx"));
 const Screener10x = lazy(() => import("./pages/Screener10x.jsx"));
+const ValueScreener = lazy(() => import("./pages/ValueScreener.jsx"));
 
 let STATIC_STOCKS = [];
 let STATIC_ALERTS = [];
@@ -1222,6 +1223,7 @@ const TAB_CFG = [
   { id: "journal", label: "投资日志", icon: BookOpen },
   { id: "macro", label: "宏观看板", icon: Globe },
   { id: "screener10x", label: "10x 猎手", icon: Target },
+  { id: "value", label: "价值股池", icon: Award },
 ];
 
 // ─── Scoring ──────────────────────────────────────────────
@@ -2198,6 +2200,7 @@ function QuantPlatformInner() {
           {tab === "journal" && <Journal />}
           {tab === "macro" && <MacroDashboard />}
           {tab === "screener10x" && <Screener10x />}
+          {tab === "value" && <ValueScreener />}
         </Suspense>
       </main>
 
