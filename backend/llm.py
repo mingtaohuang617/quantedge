@@ -446,6 +446,181 @@ def tenx_thesis(stock: dict, supertrend: dict, ttl_seconds: int = 86400) -> dict
         return {"ok": False, "ticker": ticker, "error": f"LLM 返回非合法 JSON: {e}"}
 
 
+def value_moat(stock: dict, peers_summary: str = "", ttl_seconds: int = 86400 * 90) -> dict:
+    """
+    价值型 — 护城河 LLM 评估。
+    按巴菲特"四大护城河"框架（品牌 / 网络效应 / 转换成本 / 低成本优势）打 4 个子分。
+    TTL 90 天（财务数据周期长，护城河变化慢）。
+
+    输入:
+      stock: {ticker, name, industry, sector, gross_margin, profit_margin,
+              roe_ttm, market_cap, business_summary}
+      peers_summary: 同行对照简述（可空）
+    返回 {ok, ticker, moat: {moat_score 0-100, brand, network, switching, low_cost, narrative, dimensions}, cached}
+    """
+    ticker = stock.get("ticker", "?")
+    name = stock.get("name", "")
+    ind = stock.get("industry") or stock.get("sector") or ""
+    mc = stock.get("market_cap") or stock.get("marketCap")
+    gm = stock.get("gross_margin")
+    pm = stock.get("profit_margin")
+    roe = stock.get("roe_ttm")
+    desc = (stock.get("business_summary") or stock.get("descriptionCN") or stock.get("description") or "")[:400]
+
+    bullets = [f"代码: {ticker}", f"名称: {name}", f"行业: {ind}"]
+    if mc is not None:
+        bullets.append(f"市值: {mc/1e9:.1f}B")
+    if gm is not None:
+        bullets.append(f"毛利率: {gm*100:.1f}%")
+    if pm is not None:
+        bullets.append(f"净利率: {pm*100:.1f}%")
+    if roe is not None:
+        bullets.append(f"ROE: {roe*100:.1f}%")
+    if desc:
+        bullets.append(f"业务: {desc}")
+    if peers_summary:
+        bullets.append(f"行业对照: {peers_summary}")
+
+    prompt = (
+        "你是巴菲特式价值投资分析助手。基于以下数据评估这家公司的护城河强度，"
+        "按四个维度各打 0-100 分，然后给出综合 0-100 的 moat_score。\n\n"
+        "四个维度（用巴菲特术语）：\n"
+        "  1. brand — 品牌溢价 / 用户忠诚度\n"
+        "  2. network — 网络效应（用户越多产品越有价值）\n"
+        "  3. switching — 转换成本（客户离不开）\n"
+        "  4. low_cost — 低成本优势（竞争对手无法复制的规模/流程）\n\n"
+        "公司信息：\n" + "\n".join(bullets) + "\n\n"
+        "严格输出 JSON：\n"
+        '{\n'
+        '  "moat_score": int 0-100,\n'
+        '  "brand": int 0-100,\n'
+        '  "network": int 0-100,\n'
+        '  "switching": int 0-100,\n'
+        '  "low_cost": int 0-100,\n'
+        '  "narrative": "三句话：最强的护城河是什么/为什么持久/最大威胁",\n'
+        '  "dimensions": "≤30字总结四维加权后的护城河画像"\n'
+        '}\n'
+        "要求客观；不知道就承认不确定。"
+    )
+
+    cache_key = _db.llm_cache_key("value-moat", DEFAULT_MODEL, prompt)
+    cached = _db.llm_cache_get(cache_key)
+    if cached:
+        return {"ok": True, "ticker": ticker, "moat": cached["response"], "cached": True}
+
+    try:
+        content, p_tok, c_tok = _chat(
+            [{"role": "user", "content": prompt}],
+            json_mode=True,
+            max_tokens=600,
+            temperature=0.2,
+        )
+        parsed = _safe_json_parse(content)
+        for k in ("moat_score", "brand", "network", "switching", "low_cost", "narrative", "dimensions"):
+            if k not in parsed:
+                parsed[k] = "" if k in ("narrative", "dimensions") else 0
+        # 校验数值字段
+        for k in ("moat_score", "brand", "network", "switching", "low_cost"):
+            try:
+                parsed[k] = max(0, min(100, int(parsed[k])))
+            except (ValueError, TypeError):
+                parsed[k] = 0
+        _db.llm_cache_put(
+            cache_key, "value-moat", DEFAULT_MODEL, parsed,
+            ticker=ticker, prompt_tokens=p_tok, completion_tokens=c_tok,
+            ttl_seconds=ttl_seconds,
+        )
+        return {"ok": True, "ticker": ticker, "moat": parsed, "cached": False}
+    except LLMError as e:
+        return {"ok": False, "ticker": ticker, "error": str(e)}
+    except json.JSONDecodeError as e:
+        return {"ok": False, "ticker": ticker, "error": f"LLM 返回非合法 JSON: {e}"}
+
+
+def value_explain(stock: dict, score_result: dict, ttl_seconds: int = 86400 * 30) -> dict:
+    """
+    价值型 — "为什么得这个分"解释。基于 compute_value_score 的输出，
+    生成自然语言解释（哪个维度拉高 / 拉低总分，关键原因）。
+    TTL 30 天（评分会随财报变化，缓存稍短）。
+
+    输入:
+      stock: {ticker, name, industry}
+      score_result: compute_value_score(...) 的输出（含 sub_scores 和 drivers）
+    返回 {ok, ticker, explanation: {总评, 强项, 弱项, 关注点}, cached}
+    """
+    ticker = stock.get("ticker", "?")
+    name = stock.get("name", "")
+    ind = stock.get("industry") or stock.get("sector") or ""
+    total = score_result.get("value_score")
+    subs = score_result.get("sub_scores") or {}
+    drivers = score_result.get("drivers") or {}
+
+    # 整理子分数与关键 driver 字段供 LLM 参考
+    sub_lines = []
+    LABELS = {"moat": "护城河", "financial": "财务", "mgmt": "管理层", "valuation": "估值", "compound": "复利"}
+    for k, label in LABELS.items():
+        s = subs.get(k)
+        if s is None:
+            sub_lines.append(f"  {label}: 数据不足")
+        else:
+            sub_lines.append(f"  {label}: {round(s, 1)} 分")
+
+    fin_drv = drivers.get("financial") or {}
+    val_drv = drivers.get("valuation") or {}
+    mgmt_drv = drivers.get("mgmt") or {}
+
+    extra = []
+    if val_drv.get("mkt_to_intrinsic") is not None:
+        extra.append(f"市值/内在价值={val_drv['mkt_to_intrinsic']:.2f}")
+    if mgmt_drv.get("dividend_streak_score") is not None:
+        extra.append(f"分红连续年数评分={mgmt_drv['dividend_streak_score']:.0f}")
+
+    prompt = (
+        "你是价值投资分析助手。基于下面的 5 维评分给出客观解释，"
+        "用 4 个段落表达：总评 / 最强的 1-2 项 / 最弱的 1-2 项 / 投资人需要关注什么。\n\n"
+        f"标的: {ticker} ({name})\n"
+        f"行业: {ind}\n"
+        f"总分: {total}\n"
+        "5 维子分：\n" + "\n".join(sub_lines) + "\n"
+        + (f"补充信号: {' / '.join(extra)}\n" if extra else "")
+        + "\n严格输出 JSON：\n"
+        '{\n'
+        '  "总评": "≤40字综合评价",\n'
+        '  "强项": "≤50字描述最高分维度的 why",\n'
+        '  "弱项": "≤50字描述最低分维度的 why",\n'
+        '  "关注点": "≤40字给投资人一个具体观察指标"\n'
+        '}\n'
+        "不给买卖建议。客观、不夸张。"
+    )
+
+    cache_key = _db.llm_cache_key("value-explain", DEFAULT_MODEL, prompt)
+    cached = _db.llm_cache_get(cache_key)
+    if cached:
+        return {"ok": True, "ticker": ticker, "explanation": cached["response"], "cached": True}
+
+    try:
+        content, p_tok, c_tok = _chat(
+            [{"role": "user", "content": prompt}],
+            json_mode=True,
+            max_tokens=400,
+            temperature=0.3,
+        )
+        parsed = _safe_json_parse(content)
+        for k in ("总评", "强项", "弱项", "关注点"):
+            if k not in parsed:
+                parsed[k] = ""
+        _db.llm_cache_put(
+            cache_key, "value-explain", DEFAULT_MODEL, parsed,
+            ticker=ticker, prompt_tokens=p_tok, completion_tokens=c_tok,
+            ttl_seconds=ttl_seconds,
+        )
+        return {"ok": True, "ticker": ticker, "explanation": parsed, "cached": False}
+    except LLMError as e:
+        return {"ok": False, "ticker": ticker, "error": str(e)}
+    except json.JSONDecodeError as e:
+        return {"ok": False, "ticker": ticker, "error": f"LLM 返回非合法 JSON: {e}"}
+
+
 def health_check() -> tuple[bool, str]:
     """轻量探活，不消耗有意义的 token。"""
     if not HAS_OPENAI:
