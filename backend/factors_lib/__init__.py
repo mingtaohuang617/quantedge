@@ -549,12 +549,19 @@ def compute_composite(market: str = "US") -> dict:
             ws += w
     market_temp = round(ss / ws, 1) if ws > 0 else None
 
-    return {
+    out = {
         "market": market,
         "market_temperature": market_temp,
         "weights": dict(COMPOSITE_WEIGHTS),
         "by_category": by_cat,
     }
+    # L5 顶底双重确认告警（基于本快照即席评估）
+    try:
+        from regime import compute_alerts
+        out["alerts"] = compute_alerts(out)
+    except Exception:
+        out["alerts"] = []
+    return out
 
 
 # ── 分位数标准化 ─────────────────────────────────────────
