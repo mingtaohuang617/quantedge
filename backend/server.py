@@ -1326,6 +1326,15 @@ def get_macro_composite_history(
     return sanitize(_fl.compute_composite_history(market, start=start, end=end))
 
 
+@app.get("/api/macro/narrative")
+def get_macro_narrative(market: str = "US"):
+    """每日 AI 市场画像（DeepSeek，缓存 12h）。"""
+    if not HAS_LLM:
+        return {"ok": False, "error": "llm 模块未加载"}
+    composite = _fl.compute_composite(market)
+    return sanitize(_llm_mod.macro_narrative(composite))
+
+
 # ── 10x 猎手：Universe + Watchlist + LLM ───────────────────
 import watchlist_10x as _wl  # noqa: E402
 from universe import universe_stats as _universe_stats  # noqa: E402

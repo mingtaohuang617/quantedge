@@ -556,6 +556,32 @@ function AlertCard({ a }) {
   );
 }
 
+// AI 市场画像（DeepSeek 生成 150-200 字解读）
+function NarrativePanel({ narrative, loading }) {
+  if (!narrative && !loading) return null;
+  return (
+    <div className="bg-gradient-to-br from-indigo-500/[0.07] to-violet-500/[0.04] border border-indigo-400/[0.18] rounded-xl p-4 mb-4">
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-[10px] px-1.5 py-0.5 rounded font-medium border bg-indigo-500/20 text-indigo-100 border-indigo-400/40">
+          AI 解读
+        </span>
+        <span className="text-xs text-white/55">DeepSeek 当日宏观画像</span>
+      </div>
+      {loading ? (
+        <div className="text-xs text-white/50 flex items-center gap-2">
+          <Loader className="w-3 h-3 animate-spin" />
+          生成中…
+        </div>
+      ) : (
+        <div className="text-[13px] text-white/85 leading-relaxed whitespace-pre-wrap">
+          {narrative}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 function AlertsPanel({ alerts }) {
   if (!alerts || alerts.length === 0) return null;
   // 排序：critical → warning → info；同级按 kind=top→bottom→neutral
@@ -652,6 +678,8 @@ export default function MacroDashboard() {
   const [factors, setFactors] = useState(null);
   const [composite, setComposite] = useState(null);
   const [history, setHistory] = useState(null);
+  const [narrative, setNarrative] = useState(null);
+  const [narrativeLoading, setNarrativeLoading] = useState(false);
   const [range, setRange] = useState("5Y");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -665,6 +693,7 @@ export default function MacroDashboard() {
       setFactors(macroSnapshot.factors || []);
       setComposite(macroSnapshot.composite || null);
       setHistory(macroSnapshot.composite_history || null);
+      setNarrative(macroSnapshot.narrative || null);
       setLoading(false);
       return;
     }
@@ -680,8 +709,13 @@ export default function MacroDashboard() {
       setError("加载失败：检查 backend 是否启动 + FRED_API_KEY 已设置 + 已运行 refresh_macro.py");
     }
     setLoading(false);
-    // 历史曲线异步加载（不阻塞首屏）
+    // 历史曲线 + AI 画像异步加载（不阻塞首屏）
     apiFetch("/macro/composite/history?start=2018-01-01").then(setHistory);
+    setNarrativeLoading(true);
+    apiFetch("/macro/narrative").then(d => {
+      if (d?.ok && d.narrative) setNarrative(d.narrative);
+      setNarrativeLoading(false);
+    });
   };
 
   useEffect(() => { load(); }, []);
@@ -729,6 +763,8 @@ export default function MacroDashboard() {
           刷新
         </button>
       </div>
+
+      <NarrativePanel narrative={narrative} loading={narrativeLoading} />
 
       <CompositePanel data={composite} />
 

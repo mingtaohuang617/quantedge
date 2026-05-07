@@ -446,6 +446,95 @@ def tenx_thesis(stock: dict, supertrend: dict, ttl_seconds: int = 86400) -> dict
         return {"ok": False, "ticker": ticker, "error": f"LLM 返回非合法 JSON: {e}"}
 
 
+def macro_narrative(composite: dict, ttl_seconds: int = 43200) -> dict:
+    """
+    每日宏观市场画像。基于 compute_composite() 的输出生成 150-200 字中文解读。
+
+    输入: composite 含 market_temperature / by_category / alerts / hmm / survival
+    返回: {ok, narrative: str, cached}
+    缓存：默认 12 小时；同 prompt 直接命中。
+    """
+    temp = composite.get("market_temperature")
+    cats = composite.get("by_category") or {}
+    alerts = composite.get("alerts") or []
+    hmm = (composite.get("hmm") or {}).get("current") or {}
+    survival = composite.get("survival") or {}
+
+    cat_cn = {"valuation": "估值", "liquidity": "流动性",
+              "sentiment": "情绪", "breadth": "宽度"}
+    sub_lines = []
+    for cat, info in cats.items():
+        s = info.get("score")
+        if s is not None:
+            sub_lines.append(f"  - {cat_cn.get(cat, cat)}: {s:.1f}/100")
+
+    # 极端因子（≥90 或 ≤10 分位）
+    extremes = []
+    for cat, info in cats.items():
+        for f in info.get("factors", []):
+            pct = f.get("percentile")
+            raw = f.get("raw_value")
+            if pct is not None and (pct >= 90 or pct <= 10):
+                extremes.append(f"{f.get('name')}={raw}（分位 {pct:.0f}%）")
+
+    alert_lines = []
+    for a in alerts:
+        alert_lines.append(f"  - [{a.get('level')}] {a.get('title')}: {a.get('summary')}")
+
+    bull_p = (hmm.get("bull") or 0) * 100
+    neutral_p = (hmm.get("neutral") or 0) * 100
+    bear_p = (hmm.get("bear") or 0) * 100
+
+    surv_str = ""
+    if survival and not survival.get("error"):
+        surv_str = (
+            f"当前 {survival.get('current_regime')} 已 {survival.get('current_duration_days')} 天 "
+            f"(超过 {survival.get('current_duration_pct_rank'):.0f}% 历史；中位 "
+            f"{survival.get('median_past_days')}d，最长 {survival.get('max_past_days')}d)"
+        )
+
+    prompt = (
+        "你是宏观策略助手。基于以下美股市场数据快照，用中文写一段 150-200 字的当日市场画像。\n\n"
+        "数据：\n"
+        f"- L3 综合温度: {temp}/100（0=极熊 100=极牛）\n"
+        f"- 4 类子分(0=熊 100=牛 方向化):\n" + "\n".join(sub_lines) + "\n"
+        f"- L4 HMM 三态: 牛 {bull_p:.0f}% / 震荡 {neutral_p:.0f}% / 熊 {bear_p:.0f}%\n"
+        + (f"- 持续期: {surv_str}\n" if surv_str else "")
+        + (f"- 极端因子:\n  · " + "\n  · ".join(extremes) + "\n" if extremes else "")
+        + f"- 双重确认告警:\n" + ("\n".join(alert_lines) if alert_lines else "  无")
+        + "\n\n要求：\n"
+        "- 客观、不给具体买卖建议；不夸张\n"
+        "- 重点指出主要矛盾（特别是 L3 温度 vs HMM 价格行为视角分歧）+ 一句风险或机会观察\n"
+        "- 严格 150-200 字，纯文本不用 markdown，不用列表"
+    )
+
+    cache_key = _db.llm_cache_key("macro-narrative", DEFAULT_MODEL, prompt)
+    cached = _db.llm_cache_get(cache_key)
+    if cached:
+        return {
+            "ok": True,
+            "narrative": cached["response"].get("text", ""),
+            "cached": True,
+        }
+
+    try:
+        content, p_tok, c_tok = _chat(
+            [{"role": "user", "content": prompt}],
+            json_mode=False,
+            max_tokens=500,
+            temperature=0.5,
+        )
+        text = (content or "").strip()
+        _db.llm_cache_put(
+            cache_key, "macro-narrative", DEFAULT_MODEL, {"text": text},
+            ticker=None, prompt_tokens=p_tok, completion_tokens=c_tok,
+            ttl_seconds=ttl_seconds,
+        )
+        return {"ok": True, "narrative": text, "cached": False}
+    except LLMError as e:
+        return {"ok": False, "error": str(e)}
+
+
 def health_check() -> tuple[bool, str]:
     """轻量探活，不消耗有意义的 token。"""
     if not HAS_OPENAI:
