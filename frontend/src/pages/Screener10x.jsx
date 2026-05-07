@@ -27,6 +27,15 @@ import TenxItemEditor from "../components/TenxItemEditor.jsx";
 
 const STRATEGY_LABEL = { growth: "成长型", value: "价值型" };
 
+// production fallback：vercel 部署没有 FastAPI backend 时，至少能看到 4 个内置赛道。
+// 数据须与 backend/sector_mapping.py SUPERTRENDS 保持一致；筛选/观察操作仍需 self-hosted backend。
+const BUILTIN_SUPERTRENDS_FALLBACK = [
+  { id: "ai_compute", name: "AI 算力", note: "AI 软硬件 / 加速器 / HBM / AI 应用", source: "builtin" },
+  { id: "semi", name: "半导体", note: "设计、制造、设备、材料、存储", source: "builtin" },
+  { id: "optical", name: "光通信", note: "光模块、硅光、CPO、激光器、光纤", source: "builtin" },
+  { id: "datacenter", name: "算力中心", note: "数据中心 / 电力 / 公共事业", source: "builtin" },
+];
+
 function fmtMcap(mc) {
   if (mc == null) return "—";
   if (mc >= 1e12) return `${(mc / 1e12).toFixed(2)}T`;
@@ -40,6 +49,7 @@ export default function Screener10x() {
   const [supertrends, setSupertrends] = useState([]);
   const [items, setItems] = useState([]);                   // watchlist
   const [universeStats, setUniverseStats] = useState(null);
+  const [isDemoMode, setIsDemoMode] = useState(false);      // production 后端不可用 → fallback
   // 筛选条件
   const [selectedTrends, setSelectedTrends] = useState([]); // string[]
   const [maxMcapInput, setMaxMcapInput] = useState(50);     // 单位 B（input 即时绑定）
@@ -63,6 +73,13 @@ export default function Screener10x() {
     if (json) {
       setSupertrends(json.supertrends || []);
       setItems(json.items || []);
+      setIsDemoMode(false);
+    } else {
+      // backend 不可用（如 production vercel SPA）：退回内置赛道，让 UI 可见；
+      // 筛选 / 添加观察会失败，由各路径的 errorCands 反馈
+      setSupertrends(BUILTIN_SUPERTRENDS_FALLBACK);
+      setItems([]);
+      setIsDemoMode(true);
     }
   }, []);
 
@@ -117,9 +134,19 @@ export default function Screener10x() {
   //   - 加入：本地 splice 掉刚加入的 ticker，省一次 screen
   //   - 删除：显式调 runScreen 让 ticker 回到候选
   useEffect(() => {
-    if (selectedTrends.length > 0) runScreen();
-    else setCandidates([]);
-  }, [runScreen, selectedTrends]);
+    if (selectedTrends.length === 0) {
+      setCandidates([]);
+      setErrorCands(null);
+      return;
+    }
+    if (isDemoMode) {
+      // 后端不可用 — 跳过 screen 调用，给一段友好提示替代"后端无响应"
+      setCandidates([]);
+      setErrorCands("演示模式：候选筛选需要后端 API。请 self-host 后端（参见 README）后再试。");
+      return;
+    }
+    runScreen();
+  }, [runScreen, selectedTrends, isDemoMode]);
 
   // ── 候选搜索过滤（前端） ─────────────────────────────
   const filteredCandidates = useMemo(() => {
@@ -182,6 +209,14 @@ export default function Screener10x() {
           <Target size={16} className="text-amber-400" />
           <span className="text-sm font-semibold text-white">10x 猎手</span>
           <span className="text-[10px] text-[#a0aec0]">成长型 · 价值型即将上线</span>
+          {isDemoMode && (
+            <span
+              className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30"
+              title="后端不可用：仅展示内置赛道；筛选 / 添加观察 / AI 草稿需 self-hosted backend"
+            >
+              演示模式
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-3 text-[10px] text-[#a0aec0]">
           {universeStats && (
