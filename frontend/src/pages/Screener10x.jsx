@@ -20,7 +20,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import {
   Target, Layers, Plus, Edit2, Trash2, RefreshCw, Loader, AlertCircle,
-  Filter, Search, Database, Star, ChevronRight, Globe,
+  Filter, Search, Database, Star, ChevronRight, Globe, Sparkles,
 } from "lucide-react";
 import { apiFetch } from "../quant-platform.jsx";
 import TenxItemEditor from "../components/TenxItemEditor.jsx";
@@ -63,6 +63,9 @@ export default function Screener10x() {
   const [candidates, setCandidates] = useState([]);
   const [loadingCands, setLoadingCands] = useState(false);
   const [errorCands, setErrorCands] = useState(null);
+  // AI 排序：{ ticker: { moat_score, reason } }
+  const [aiRanking, setAiRanking] = useState({});
+  const [aiRankingState, setAiRankingState] = useState({ loading: false, error: null });
   // 编辑器
   const [editorOpen, setEditorOpen] = useState(false);
   const [editing, setEditing] = useState(null);             // null = 新增
@@ -153,12 +156,63 @@ export default function Screener10x() {
 
   // ── 候选搜索过滤（前端） ─────────────────────────────
   const filteredCandidates = useMemo(() => {
-    if (!search) return candidates;
-    const q = search.toLowerCase();
-    return candidates.filter((c) =>
-      c.ticker.toLowerCase().includes(q) || (c.name || "").toLowerCase().includes(q)
-    );
-  }, [candidates, search]);
+    let cs = candidates;
+    if (search) {
+      const q = search.toLowerCase();
+      cs = cs.filter((c) =>
+        c.ticker.toLowerCase().includes(q) || (c.name || "").toLowerCase().includes(q)
+      );
+    }
+    // AI 排序：拿到 moat_score 的标的优先，按分数降序；其余保持原顺序在后
+    if (Object.keys(aiRanking).length > 0) {
+      const ranked = cs.filter((c) => aiRanking[c.ticker] != null);
+      const unranked = cs.filter((c) => aiRanking[c.ticker] == null);
+      ranked.sort((a, b) =>
+        (aiRanking[b.ticker]?.moat_score || 0) - (aiRanking[a.ticker]?.moat_score || 0)
+      );
+      cs = [...ranked, ...unranked];
+    }
+    return cs;
+  }, [candidates, search, aiRanking]);
+
+  // candidates 一旦刷新（赛道/市场/市值切换），清空 AI 排序
+  useEffect(() => {
+    setAiRanking({});
+    setAiRankingState({ loading: false, error: null });
+  }, [candidates]);
+
+  // ── AI 排序：取 top 10 候选送 LLM 打 moat_score ───────
+  const handleAiRank = useCallback(async () => {
+    if (selectedTrends.length === 0 || candidates.length === 0) return;
+    setAiRankingState({ loading: true, error: null });
+    try {
+      const top = candidates.slice(0, 10).map((c) => ({
+        ticker: c.ticker,
+        name: c.name,
+        sector: c.sector,
+        industry: c.industry,
+        marketCap: c.marketCap,
+      }));
+      const json = await apiFetch("/llm/rank-candidates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          supertrend_id: selectedTrends[0],   // 用第一个勾选的赛道
+          candidates: top,
+        }),
+      });
+      if (!json) throw new Error("后端无响应（DEEPSEEK_API_KEY 未配置或网络问题）");
+      if (!json.ok) throw new Error(json.error || "AI 排序失败");
+      const map = {};
+      for (const r of json.rankings || []) {
+        if (r.ticker) map[r.ticker] = { moat_score: r.moat_score, reason: r.reason };
+      }
+      setAiRanking(map);
+      setAiRankingState({ loading: false, error: null });
+    } catch (e) {
+      setAiRankingState({ loading: false, error: String(e.message || e) });
+    }
+  }, [selectedTrends, candidates]);
 
   // ── 交互 ────────────────────────────────────────────
   const toggleTrend = (id) => {
@@ -309,6 +363,27 @@ export default function Screener10x() {
               />
             </div>
 
+            {/* AI 排序：按 LLM 给的卡位独特性打分，最多 10 只候选 */}
+            <button
+              onClick={handleAiRank}
+              disabled={
+                aiRankingState.loading || isDemoMode ||
+                selectedTrends.length === 0 || candidates.length === 0
+              }
+              className="flex items-center gap-1 px-2 py-0.5 text-[10px] rounded bg-violet-500/15 hover:bg-violet-500/25 text-violet-200 border border-violet-500/40 transition disabled:opacity-40 disabled:cursor-not-allowed"
+              title={
+                isDemoMode ? "需要 DEEPSEEK_API_KEY" :
+                selectedTrends.length > 1 ? "用第一个勾选的赛道排序" :
+                "对 top 10 候选用 LLM 打卡位独特性 1-5 分"
+              }
+            >
+              {aiRankingState.loading ? (
+                <><Loader size={10} className="animate-spin" /> 排序中</>
+              ) : (
+                <><Sparkles size={10} /> AI 排序</>
+              )}
+            </button>
+
             {/* 市值上限（300ms debounced） */}
             <label className="flex items-center gap-1 text-[10px] text-[#a0aec0]">
               max
@@ -384,6 +459,12 @@ export default function Screener10x() {
                 <span>{errorCands}</span>
               </div>
             )}
+            {aiRankingState.error && (
+              <div className="m-3 p-2 bg-amber-500/10 border border-amber-500/30 rounded text-[10px] text-amber-300/90 flex items-start gap-1">
+                <AlertCircle size={11} className="text-amber-400 shrink-0 mt-0.5" />
+                <span>AI 排序：{aiRankingState.error}</span>
+              </div>
+            )}
             {!loadingCands && !errorCands && selectedTrends.length > 0 && filteredCandidates.length === 0 && (
               <div className="h-full flex items-center justify-center text-[11px] text-[#7a8497] p-4 text-center">
                 没有匹配的候选股 — 尝试放宽市值上限、勾选更多赛道、{precise ? "关闭精严模式、" : ""}或启用 ETF
@@ -398,36 +479,55 @@ export default function Screener10x() {
                     <th className="text-left px-2 py-1.5">市场</th>
                     <th className="text-left px-2 py-1.5">行业</th>
                     <th className="text-right px-2 py-1.5">市值</th>
+                    {Object.keys(aiRanking).length > 0 && (
+                      <th className="text-center px-2 py-1.5 text-violet-300">AI 卡位</th>
+                    )}
                     <th className="text-left px-2 py-1.5">命中</th>
                     <th className="px-2 py-1.5"></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredCandidates.map((c) => (
-                    <tr key={c.ticker} className="border-t border-white/5 hover:bg-white/[0.02] transition">
-                      <td className="px-2 py-1.5 font-mono text-[10px] text-white">{c.ticker}</td>
-                      <td className="px-2 py-1.5 text-[10px] text-[#d0d7e2] truncate max-w-[140px]" title={c.name}>{c.name}</td>
-                      <td className="px-2 py-1.5 text-[9px] text-[#a0aec0]">{c.market}{c.exchange && `·${c.exchange}`}</td>
-                      <td className="px-2 py-1.5 text-[9px] text-[#a0aec0] truncate max-w-[100px]" title={c.sector || c.industry}>{c.sector || c.industry || "—"}</td>
-                      <td className="px-2 py-1.5 text-right font-mono text-[10px] text-[#d0d7e2]">{fmtMcap(c.marketCap)}</td>
-                      <td className="px-2 py-1.5">
-                        <div className="flex flex-wrap gap-0.5">
-                          {(c.matched_supertrends || []).map((t) => (
-                            <span key={t} className="text-[8px] px-1 py-px rounded bg-cyan-500/15 text-cyan-200 border border-cyan-500/30">{trendName(t)}</span>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="px-2 py-1.5 text-right">
-                        <button
-                          onClick={() => openAdd(c)}
-                          className="flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] rounded bg-indigo-500/15 hover:bg-indigo-500/30 text-indigo-200 border border-indigo-500/40 transition"
-                          title="加入观察"
-                        >
-                          <Plus size={9} /> 观察
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {filteredCandidates.map((c) => {
+                    const ai = aiRanking[c.ticker];
+                    return (
+                      <tr key={c.ticker} className="border-t border-white/5 hover:bg-white/[0.02] transition">
+                        <td className="px-2 py-1.5 font-mono text-[10px] text-white">{c.ticker}</td>
+                        <td className="px-2 py-1.5 text-[10px] text-[#d0d7e2] truncate max-w-[140px]" title={c.name}>{c.name}</td>
+                        <td className="px-2 py-1.5 text-[9px] text-[#a0aec0]">{c.market}{c.exchange && `·${c.exchange}`}</td>
+                        <td className="px-2 py-1.5 text-[9px] text-[#a0aec0] truncate max-w-[100px]" title={c.sector || c.industry}>{c.sector || c.industry || "—"}</td>
+                        <td className="px-2 py-1.5 text-right font-mono text-[10px] text-[#d0d7e2]">{fmtMcap(c.marketCap)}</td>
+                        {Object.keys(aiRanking).length > 0 && (
+                          <td className="px-2 py-1.5 text-center" title={ai?.reason || "未排序"}>
+                            {ai ? (
+                              <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold ${
+                                ai.moat_score >= 4 ? "bg-violet-500/20 text-violet-200 border border-violet-500/40" :
+                                ai.moat_score === 3 ? "bg-white/5 text-[#a0aec0] border border-white/15" :
+                                "bg-white/[0.02] text-[#7a8497] border border-white/10"
+                              }`}>{ai.moat_score}</span>
+                            ) : (
+                              <span className="text-[9px] text-[#5a6477]">—</span>
+                            )}
+                          </td>
+                        )}
+                        <td className="px-2 py-1.5">
+                          <div className="flex flex-wrap gap-0.5">
+                            {(c.matched_supertrends || []).map((t) => (
+                              <span key={t} className="text-[8px] px-1 py-px rounded bg-cyan-500/15 text-cyan-200 border border-cyan-500/30">{trendName(t)}</span>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="px-2 py-1.5 text-right">
+                          <button
+                            onClick={() => openAdd(c)}
+                            className="flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] rounded bg-indigo-500/15 hover:bg-indigo-500/30 text-indigo-200 border border-indigo-500/40 transition"
+                            title="加入观察"
+                          >
+                            <Plus size={9} /> 观察
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             )}
