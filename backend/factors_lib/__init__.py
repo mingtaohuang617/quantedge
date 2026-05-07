@@ -452,14 +452,34 @@ def compute_composite_history(
 
     # 4. 基准走势：用 ^W5000 收盘做参照（用户已 sync）
     bench = pd.Series(dtype=float)
+    wil_full = pd.Series(dtype=float)  # 全历史，给 regime 标注用
     try:
         wil = read_series_history("US_W5000_RAW", as_of=None)
         if not wil.empty:
             wil.index = pd.to_datetime(wil.index)
             wil = wil[~wil.index.duplicated(keep="last")].sort_index()
+            wil_full = wil.copy()
             bench = wil.reindex(wil.index.union(target)).sort_index().ffill().reindex(target)
     except Exception:
         pass
+
+    # 5. 牛熊 regime 段（Lunde-Timmermann 20% 阈值）+ 当前 regime
+    regime_segs: list[dict] = []
+    current_regime: str | None = None
+    if not wil_full.empty:
+        try:
+            from regime import label_bull_bear, regime_segments
+            from regime.bull_bear import annotate_returns
+            labeled = label_bull_bear(wil_full, threshold=0.20)
+            regime_segs = annotate_returns(wil_full, regime_segments(labeled))
+            # 把段裁到 target 区间内（保留与显示窗口重叠的）
+            start_str = pd.Timestamp(start).strftime("%Y-%m-%d")
+            end_str = end_dt.strftime("%Y-%m-%d")
+            regime_segs = [s for s in regime_segs if s["end"] >= start_str and s["start"] <= end_str]
+            if not labeled.empty:
+                current_regime = str(labeled["regime"].iloc[-1])
+        except Exception:
+            pass
 
     # 序列化
     dates = [d.strftime("%Y-%m-%d") for d in composite_df.index]
@@ -480,6 +500,8 @@ def compute_composite_history(
             "values": [None if pd.isna(v) else round(float(v), 2)
                        for v in bench.tolist()] if not bench.empty else [],
         },
+        "regimes": regime_segs,
+        "current_regime": current_regime,
     }
 
 
