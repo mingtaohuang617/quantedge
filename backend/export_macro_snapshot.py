@@ -113,6 +113,19 @@ def main() -> int:
     composite = fl.compute_composite(market="US")
     print(f"  [ok] composite: temp={composite.get('market_temperature')}")
 
+    # AI 市场画像（DeepSeek，缓存 12h）
+    narrative = None
+    try:
+        import llm as _llm
+        nar = _llm.macro_narrative(composite)
+        if nar.get("ok"):
+            narrative = nar.get("narrative")
+            print(f"  [ok] narrative: {len(narrative)} 字 (cached={nar.get('cached')})")
+        else:
+            print(f"  [warn] narrative 失败: {nar.get('error')}")
+    except Exception as e:
+        print(f"  [warn] narrative 跳过: {e}")
+
     history = fl.compute_composite_history(market="US", start="2018-01-01")
     print(f"  [ok] composite_history: {len(history.get('dates', []))} days")
 
@@ -121,6 +134,7 @@ def main() -> int:
         "factors": factors_data,
         "composite": composite,
         "composite_history": history,
+        "narrative": narrative,
     }
     snapshot = _sanitize(snapshot)
 

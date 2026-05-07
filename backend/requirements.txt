@@ -10,3 +10,4 @@ futu-api
 tushare
 duckdb
 hmmlearn
+openai
