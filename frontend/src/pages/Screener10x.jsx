@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { apiFetch } from "../quant-platform.jsx";
 import TenxItemEditor from "../components/TenxItemEditor.jsx";
+import AddSupertrendDialog from "../components/AddSupertrendDialog.jsx";
 
 const STRATEGY_LABEL = { growth: "成长型", value: "价值型" };
 
@@ -66,6 +67,8 @@ export default function Screener10x() {
   const [editorOpen, setEditorOpen] = useState(false);
   const [editing, setEditing] = useState(null);             // null = 新增
   const [pendingCandidate, setPendingCandidate] = useState(null);
+  // 添加赛道对话框
+  const [addTrendOpen, setAddTrendOpen] = useState(false);
 
   // ── 拉初始数据（watchlist + universe stats）─────────────
   const reloadWatchlist = useCallback(async () => {
@@ -271,8 +274,18 @@ export default function Screener10x() {
               );
             })}
           </div>
-          <div className="px-3 py-2 border-t border-white/8 text-[9px] text-[#7a8497]">
-            内置 4 个赛道，关键词在 backend/sector_mapping.py
+          <div className="px-3 py-2 border-t border-white/8 flex items-center gap-2">
+            <button
+              onClick={() => setAddTrendOpen(true)}
+              disabled={isDemoMode}
+              className="flex items-center gap-1 px-2 py-1 text-[10px] rounded bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-200 border border-indigo-500/40 transition disabled:opacity-40 disabled:cursor-not-allowed"
+              title={isDemoMode ? "需后端 + KV 才能添加" : "添加自定义赛道（含 AI 关键词生成）"}
+            >
+              <Plus size={10} /> 自定义赛道
+            </button>
+            <span className="text-[9px] text-[#7a8497] flex-1 truncate">
+              内置 4 个 · 关键词在 sector_mapping
+            </span>
           </div>
         </div>
 
@@ -455,6 +468,16 @@ export default function Screener10x() {
         supertrends={supertrends}
         onClose={() => { setEditorOpen(false); setEditing(null); setPendingCandidate(null); }}
         onSaved={handleSaved}
+      />
+
+      {/* 添加赛道对话框 */}
+      <AddSupertrendDialog
+        open={addTrendOpen}
+        onClose={() => setAddTrendOpen(false)}
+        onSaved={async () => {
+          setAddTrendOpen(false);
+          await reloadWatchlist();   // 刷新 supertrends 列表，新赛道立刻可勾选
+        }}
       />
     </div>
   );

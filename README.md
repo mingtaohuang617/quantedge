@@ -77,6 +77,50 @@ QuantEdge/
 
 美股个股（RKLB / NVDA / SNDK / MU / LITE）+ 港股个股（00005.HK 汇丰、09988.HK 阿里、03986.HK 兆易）+ ETF（DRAM 等）+ 港股杠杆 ETF（07709.HK 2x）。
 
+## Vercel production 部署
+
+10x 猎手在 production（quantedge-chi.vercel.app）跑在 vercel serverless functions 上，
+不依赖 self-hosted Python backend。一次性配置：
+
+### 1. 环境变量（Vercel Settings → Environment Variables）
+
+| 变量 | 用途 | 必需 |
+|------|------|------|
+| `DEEPSEEK_API_KEY` | LLM 调用（thesis 草稿 / 赛道匹配 / 卡位排序 / 关键词生成） | LLM 功能必需 |
+| `KV_REST_API_URL` / `KV_REST_API_TOKEN` | Vercel KV 自动注入；watchlist + 自定义赛道持久化 | watchlist CRUD 必需 |
+| `QUANTEDGE_ALLOWED_HOSTS` | 自定义域名 hostname 白名单（逗号分隔） | 仅自定义域名时 |
+
+### 2. 启用 Vercel KV
+
+Vercel Dashboard → 项目 → Storage → Create Database → KV → Connect。完成后
+`KV_REST_API_URL` / `KV_REST_API_TOKEN` 自动注入到所有 environments。
+
+### 3. universe 数据上线（候选筛选必需）
+
+```bash
+# 本地拉数据
+python -m backend.universe.sync_us --enrich
+python -m backend.universe.sync_hk --enrich
+python -m backend.universe.sync_cn --enrich
+
+# 复制到 frontend/public/data/universe/（git track）
+python backend/export_universe_to_frontend.py
+
+# commit + push 触发 vercel 部署
+git add frontend/public/data/universe/
+git commit -m "data: refresh universe"
+git push
+```
+
+### 4. 验证
+
+production 上打开 10x 猎手页面：
+- 左栏看到 4 个内置赛道 + "+ 自定义赛道" 按钮（KV OK）
+- 勾选 "半导体" 看到候选股列表（universe data OK）
+- 编辑器里点 "AI 生成草稿" 拿到 5 段文字（DEEPSEEK_API_KEY OK）
+
+任一步骤失败 → 检查 vercel function logs：Dashboard → Deployments → 选 deployment → Functions。
+
 ## 文档
 
 - 业务背景与设计决策：[docs/PROJECT_CONTEXT.md](docs/PROJECT_CONTEXT.md)

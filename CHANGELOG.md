@@ -24,6 +24,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - 删除 `useEffect[items.length]` 冗余：`handleSaved` 新增路径本地 splice 候选省 1 次 screen；`handleDelete` 显式 `runScreen` 让 ticker 回到候选
   - LLM `tenx_thesis` 返回结构化数字字段：`瓶颈层级_int` (1-2) 和 `卡位等级_int` (1-5)，前端 `TenxItemEditor` 在"AI 生成草稿"时自动预填到 `bottleneck_layer` / `moat_score`，免去用户手填
   - `backend/llm.py` 新增 `_clamp_int` helper + `backend/tests/test_llm_helpers.py` 7 个 case 覆盖 LLM 数字字段容错
+- **10x 猎手 production backend**（Vercel Serverless + KV + DeepSeek）：让线上完整可用，不再仅"演示模式"
+  - **基础 helpers** (`frontend/api/_lib/`)：`kv.js` (Upstash REST) / `auth.js` (referer 白名单) / `sectorMapping.js` (1:1 移植 backend) / `universeLoader.js` (self-fetch + 内存 cache) / `watchlist10x.js` (KV 持久化业务) / `deepseek.js` / `llmCache.js`
+  - **Watchlist endpoints**：`/api/watchlist/10x` (GET/POST) / `/api/watchlist/10x/{ticker}` (PUT/DELETE) / `/api/watchlist/10x/screen` (POST) / `/api/watchlist/10x/supertrends` (GET/POST)
+  - **LLM endpoints**：`/api/llm/10x-thesis` (含 yahoo profile 业务描述兜底) / `/api/llm/match-supertrend` (赛道智能匹配) / `/api/llm/rank-candidates` (候选股按卡位独特性 1-5 打分) / `/api/llm/generate-keywords` (赛道关键词起草)
+  - **Universe endpoint**：`/api/universe/stats`
+  - **前端**：`AddSupertrendDialog.jsx` 新组件 — 添加自定义赛道（含 AI 关键词生成按钮），左栏底部接入 `+ 自定义赛道` 按钮
+  - **数据上线**：新增 `backend/export_universe_to_frontend.py` 把 `backend/output/universe_*.json` 复制到 `frontend/public/data/universe/`（git track），vercel 部署带数据，serverless self-fetch
+  - **测试**：vitest 56 例（`sectorMapping` 21 / `watchlist10x` 24 / `deepseek` 11）
+  - **配置**：`frontend/.env.example` 模板 + README 加 Vercel 部署 4 步流程
+  - **环境变量**：`DEEPSEEK_API_KEY`（必需，LLM）/ `KV_REST_API_URL` + `KV_REST_API_TOKEN`（必需，watchlist 持久化）/ `QUANTEDGE_ALLOWED_HOSTS`（可选，自定义域名）
 - 项目根 `package.json` 提供 `dev` / `refresh-data` / `serve-api` / `test` / `lint:py` 等便捷脚本
 - `pyproject.toml` 集中配置 ruff + pytest
 - `.github/workflows/ci.yml`：push/PR 自动跑 ruff + pytest + vitest + vite build
