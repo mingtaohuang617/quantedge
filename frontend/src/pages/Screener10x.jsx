@@ -20,7 +20,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import {
   Target, Layers, Plus, Edit2, Trash2, RefreshCw, Loader, AlertCircle,
-  Filter, Search, Database, Star, ChevronRight, Globe, Sparkles,
+  Filter, Search, Database, Star, ChevronRight, Globe, Sparkles, X,
 } from "lucide-react";
 import { apiFetch } from "../quant-platform.jsx";
 import TenxItemEditor from "../components/TenxItemEditor.jsx";
@@ -66,6 +66,9 @@ export default function Screener10x() {
   // AI 排序：{ ticker: { moat_score, reason } }
   const [aiRanking, setAiRanking] = useState({});
   const [aiRankingState, setAiRankingState] = useState({ loading: false, error: null });
+  // AI 赛道校验：最近一次结果
+  const [aiMatchResult, setAiMatchResult] = useState(null); // { ticker, matched, reason, confidence, error? }
+  const [aiMatchLoading, setAiMatchLoading] = useState(null); // 当前 loading 的 ticker
   // 编辑器
   const [editorOpen, setEditorOpen] = useState(false);
   const [editing, setEditing] = useState(null);             // null = 新增
@@ -180,6 +183,44 @@ export default function Screener10x() {
     setAiRanking({});
     setAiRankingState({ loading: false, error: null });
   }, [candidates]);
+
+  // ── AI 赛道校验：让 LLM 判断这只票是否真属于已勾选赛道 ───
+  const handleAiMatch = useCallback(async (candidate) => {
+    if (selectedTrends.length === 0 || !candidate?.ticker) return;
+    setAiMatchLoading(candidate.ticker);
+    try {
+      const json = await apiFetch("/llm/match-supertrend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ticker: candidate.ticker,
+          name: candidate.name,
+          sector: candidate.sector,
+          industry: candidate.industry,
+          // 限定 LLM 只在用户已勾选的赛道里选；候选很广时 LLM 容易胡判
+          candidate_ids: selectedTrends,
+        }),
+      });
+      if (!json) throw new Error("后端无响应");
+      if (!json.ok) throw new Error(json.error || "AI 校验失败");
+      setAiMatchResult({
+        ticker: candidate.ticker,
+        name: candidate.name,
+        matched: json.matched || [],
+        reason: json.reason || "",
+        confidence: json.confidence ?? 0,
+        cached: !!json.cached,
+      });
+    } catch (e) {
+      setAiMatchResult({
+        ticker: candidate.ticker,
+        name: candidate.name,
+        error: String(e.message || e),
+      });
+    } finally {
+      setAiMatchLoading(null);
+    }
+  }, [selectedTrends]);
 
   // ── AI 排序：取 top 10 候选送 LLM 打 moat_score ───────
   const handleAiRank = useCallback(async () => {
@@ -465,6 +506,59 @@ export default function Screener10x() {
                 <span>AI 排序：{aiRankingState.error}</span>
               </div>
             )}
+            {aiMatchResult && (
+              <div className="m-3 p-2 bg-violet-500/10 border border-violet-500/30 rounded text-[10px] text-violet-100/90 flex items-start gap-2">
+                <Sparkles size={11} className="text-violet-400 shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1 mb-1">
+                    <span className="font-mono text-[10px] text-white">{aiMatchResult.ticker}</span>
+                    {aiMatchResult.name && (
+                      <span className="text-[9px] text-[#a0aec0] truncate">{aiMatchResult.name}</span>
+                    )}
+                    {aiMatchResult.cached && <span className="text-[8px] text-amber-300/70">cached</span>}
+                  </div>
+                  {aiMatchResult.error ? (
+                    <div className="text-amber-300/90">{aiMatchResult.error}</div>
+                  ) : aiMatchResult.matched && aiMatchResult.matched.length > 0 ? (
+                    <>
+                      <div className="flex flex-wrap items-center gap-1 mb-1">
+                        <span className="text-[9px] text-[#a0aec0]">AI 认为属于：</span>
+                        {aiMatchResult.matched.map((t) => (
+                          <span key={t} className="text-[9px] px-1 py-px rounded bg-violet-500/20 text-violet-200 border border-violet-500/40">
+                            {trendName(t)}
+                          </span>
+                        ))}
+                        <span className="text-[8px] text-[#7a8497] ml-1">
+                          置信度 {(aiMatchResult.confidence * 100).toFixed(0)}%
+                        </span>
+                      </div>
+                      {aiMatchResult.reason && (
+                        <div className="text-[10px] text-[#d0d7e2]/85 leading-relaxed">{aiMatchResult.reason}</div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="text-amber-300/90">
+                      AI 不认为这只票属于已勾选的赛道
+                      {aiMatchResult.confidence != null && (
+                        <span className="text-[8px] text-[#7a8497] ml-2">
+                          置信度 {(aiMatchResult.confidence * 100).toFixed(0)}%
+                        </span>
+                      )}
+                      {aiMatchResult.reason && (
+                        <div className="text-[10px] text-[#d0d7e2]/85 leading-relaxed mt-1">{aiMatchResult.reason}</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={() => setAiMatchResult(null)}
+                  className="text-[#7a8497] hover:text-white p-0.5 rounded hover:bg-white/5 transition"
+                  title="关闭"
+                >
+                  <X size={10} />
+                </button>
+              </div>
+            )}
             {!loadingCands && !errorCands && selectedTrends.length > 0 && filteredCandidates.length === 0 && (
               <div className="h-full flex items-center justify-center text-[11px] text-[#7a8497] p-4 text-center">
                 没有匹配的候选股 — 尝试放宽市值上限、勾选更多赛道、{precise ? "关闭精严模式、" : ""}或启用 ETF
@@ -517,13 +611,30 @@ export default function Screener10x() {
                           </div>
                         </td>
                         <td className="px-2 py-1.5 text-right">
-                          <button
-                            onClick={() => openAdd(c)}
-                            className="flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] rounded bg-indigo-500/15 hover:bg-indigo-500/30 text-indigo-200 border border-indigo-500/40 transition"
-                            title="加入观察"
-                          >
-                            <Plus size={9} /> 观察
-                          </button>
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              onClick={() => handleAiMatch(c)}
+                              disabled={aiMatchLoading === c.ticker || isDemoMode}
+                              className="flex items-center justify-center w-5 h-5 text-[9px] rounded bg-violet-500/10 hover:bg-violet-500/25 text-violet-300 border border-violet-500/30 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                              title={
+                                isDemoMode ? "需要 DEEPSEEK_API_KEY" :
+                                "AI 校验：让 LLM 判断这只票是否真属于已勾选赛道"
+                              }
+                            >
+                              {aiMatchLoading === c.ticker ? (
+                                <Loader size={9} className="animate-spin" />
+                              ) : (
+                                <Sparkles size={9} />
+                              )}
+                            </button>
+                            <button
+                              onClick={() => openAdd(c)}
+                              className="flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] rounded bg-indigo-500/15 hover:bg-indigo-500/30 text-indigo-200 border border-indigo-500/40 transition"
+                              title="加入观察"
+                            >
+                              <Plus size={9} /> 观察
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
