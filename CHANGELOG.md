@@ -14,11 +14,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - `backend/llm.py:tenx_thesis`：DeepSeek 生成 5 段卡位分析（超级趋势 / 瓶颈层 / 卡位逻辑 / 风险 / 推演结论），24h 缓存
   - `frontend/src/pages/Screener10x.jsx` + `frontend/src/components/TenxItemEditor.jsx`：三栏页面 + 编辑模态框 — Sprint 4 (3cfe193)
 - **10x 猎手 v1.5** — 精严 / 宽泛模式切换：精严仅用核心赛道关键词（光通信/硅光/AI/HBM），宽泛扩展到通讯设备/应用软件等大池 (0202dcf)
-- **10x 猎手 P0 修复**（本次）：
+- **10x 猎手 P0 修复**：
   - 用户自定义赛道支持自带关键词（`keywords_zh` / `keywords_en`），加完赛道实际可参与筛选 — 之前 `add_supertrend()` 只存 id/name/note，导致用户赛道在 `screen_candidates` 永远命中 0 只股
   - `screen_candidates(include_no_mcap=True)` 新参数，缺市值（`marketCap=None`）标的默认保留 — 避免设了市值上限后静默丢失 A 股池
   - `backend/tests/test_watchlist_10x.py` 新增 5 个 case 覆盖上述行为
   - `frontend/src/pages/Screener10x.jsx` 候选 0 行空状态文案在精严模式下提示"关闭精严模式"
+- **10x 猎手 P1 优化**：
+  - mcap input 加 300ms debounce（双 state 拆分：`maxMcapInput` 即时显示 + `maxMcapB` 喂 `runScreen`）— 用户连改多个数字仅触发 1 次后端
+  - 删除 `useEffect[items.length]` 冗余：`handleSaved` 新增路径本地 splice 候选省 1 次 screen；`handleDelete` 显式 `runScreen` 让 ticker 回到候选
+  - LLM `tenx_thesis` 返回结构化数字字段：`瓶颈层级_int` (1-2) 和 `卡位等级_int` (1-5)，前端 `TenxItemEditor` 在"AI 生成草稿"时自动预填到 `bottleneck_layer` / `moat_score`，免去用户手填
+  - `backend/llm.py` 新增 `_clamp_int` helper + `backend/tests/test_llm_helpers.py` 7 个 case 覆盖 LLM 数字字段容错
 - 项目根 `package.json` 提供 `dev` / `refresh-data` / `serve-api` / `test` / `lint:py` 等便捷脚本
 - `pyproject.toml` 集中配置 ruff + pytest
 - `.github/workflows/ci.yml`：push/PR 自动跑 ruff + pytest + vitest + vite build
