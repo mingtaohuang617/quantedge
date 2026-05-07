@@ -6,3 +6,4 @@ Phase 1 用 Lunde-Timmermann (2004) 二元标注（牛/熊），阈值默认 20%
 """
 from .bull_bear import label_bull_bear, regime_segments  # noqa: F401
 from .alerts import compute_alerts  # noqa: F401
+from .survival import compute_survival_summary  # noqa: F401
