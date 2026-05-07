@@ -588,7 +588,7 @@ def compute_composite(market: str = "US") -> dict:
         out["alerts"] = []
     # L4 HMM 三态识别（牛/熊/震荡）— 价格行为视角，与 L3 温度互为对照
     try:
-        from regime.hmm_states import fit_hmm_3state
+        from regime.hmm_states import fit_hmm_3state, compute_hmm_bb_confusion
         wil = read_series_history("US_W5000_RAW", as_of=None)
         if not wil.empty:
             wil.index = pd.to_datetime(wil.index)
@@ -601,6 +601,11 @@ def compute_composite(market: str = "US") -> dict:
                 "transition_labels": hmm["transition_labels"],
                 "n_obs": hmm["n_obs"],
             }
+            # HMM vs Bry-Boschan 一致性（验证 HMM 学到了对的东西）
+            try:
+                out["hmm"]["vs_bb"] = compute_hmm_bb_confusion(wil, seed=42)
+            except Exception:
+                pass
     except Exception as e:
         out["hmm"] = {"error": str(e)}
 

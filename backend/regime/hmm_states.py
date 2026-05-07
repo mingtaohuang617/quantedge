@@ -128,6 +128,70 @@ def fit_hmm_3state(prices: pd.Series, seed: int = 42) -> dict:
     }
 
 
+def compute_hmm_bb_confusion(
+    prices: pd.Series,
+    bb_threshold: float = 0.20,
+    seed: int = 42,
+) -> dict:
+    """
+    HMM 主导状态（每日 argmax）与 Bry-Boschan 牛熊标签的一致性矩阵。
+
+    BB 是 2 类（bull/bear），HMM 是 3 类（bull/neutral/bear）。
+    我们看 HMM 的 neutral 大部分时候落在 BB 的什么类——通常是 BB 转折前后的过渡期。
+
+    返回 confusion + 三种 agreement 指标。
+    """
+    from regime.bull_bear import label_bull_bear
+
+    fit = fit_hmm_3state(prices, seed=seed)
+    probs_df = fit["probs"]  # index = 价格日期，cols = bull_prob/neutral_prob/bear_prob
+
+    # HMM 主导状态（argmax）
+    hmm_state = probs_df.idxmax(axis=1).str.replace("_prob", "", regex=False)
+
+    # BB 全部历史
+    bb_labeled = label_bull_bear(prices, threshold=bb_threshold)
+    bb_state = bb_labeled["regime"]
+
+    # 对齐索引
+    common = hmm_state.index.intersection(bb_state.index)
+    hmm_a = hmm_state.loc[common]
+    bb_a = bb_state.loc[common]
+
+    # 2×3 矩阵：行=BB（bull/bear），列=HMM（bull/neutral/bear）
+    confusion: dict[str, dict[str, int]] = {}
+    row_pct: dict[str, dict[str, float]] = {}
+    for bb_cls in ["bull", "bear"]:
+        confusion[bb_cls] = {}
+        row_pct[bb_cls] = {}
+        bb_mask = (bb_a == bb_cls)
+        bb_total = int(bb_mask.sum())
+        for hmm_cls in ["bull", "neutral", "bear"]:
+            cnt = int(((bb_a == bb_cls) & (hmm_a == hmm_cls)).sum())
+            confusion[bb_cls][hmm_cls] = cnt
+            row_pct[bb_cls][hmm_cls] = round(cnt / bb_total * 100, 1) if bb_total else 0.0
+
+    total = len(common)
+    strict = confusion["bull"]["bull"] + confusion["bear"]["bear"]
+    # 宽松：neutral 视为"过渡"不算错
+    loose = strict + confusion["bull"]["neutral"] + confusion["bear"]["neutral"]
+    bb_bull_total = sum(confusion["bull"].values())
+    bb_bear_total = sum(confusion["bear"].values())
+
+    return {
+        "total_days": total,
+        "bb_threshold": bb_threshold,
+        "bb_bull_total": bb_bull_total,
+        "bb_bear_total": bb_bear_total,
+        "confusion": confusion,
+        "row_pct": row_pct,
+        "strict_agreement_pct": round(strict / total * 100, 1) if total else 0.0,
+        "loose_agreement_pct": round(loose / total * 100, 1) if total else 0.0,
+        "bull_recall_pct": round(confusion["bull"]["bull"] / bb_bull_total * 100, 1) if bb_bull_total else 0.0,
+        "bear_recall_pct": round(confusion["bear"]["bear"] / bb_bear_total * 100, 1) if bb_bear_total else 0.0,
+    }
+
+
 def compute_hmm_regime(prices: pd.Series, seed: int = 42) -> dict:
     """对外接口：返回带 history 的 dict（probs 转列表方便 JSON 序列化）。"""
     fit = fit_hmm_3state(prices, seed=seed)
