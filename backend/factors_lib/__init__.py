@@ -603,6 +603,24 @@ def compute_composite(market: str = "US") -> dict:
             }
     except Exception as e:
         out["hmm"] = {"error": str(e)}
+
+    # 持续期预测（Kaplan-Meier on Bry-Boschan 段）
+    try:
+        from regime import label_bull_bear, regime_segments, compute_survival_summary
+        from regime.bull_bear import annotate_returns
+        wil = read_series_history("US_W5000_RAW", as_of=None)
+        if not wil.empty:
+            wil.index = pd.to_datetime(wil.index)
+            wil = wil[~wil.index.duplicated(keep="last")].sort_index()
+            labeled = label_bull_bear(wil, threshold=0.20)
+            segs = annotate_returns(wil, regime_segments(labeled))
+            if segs:
+                last = segs[-1]
+                summary = compute_survival_summary(segs, last["regime"], int(last["days"]))
+                out["survival"] = summary
+    except Exception as e:
+        out["survival"] = {"error": str(e)}
+
     return out
 
 
