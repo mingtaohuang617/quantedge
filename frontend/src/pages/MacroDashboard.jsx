@@ -466,6 +466,63 @@ function HmmPanel({ hmm, temp }) {
           </div>
         )}
       </div>
+
+      {hmm.vs_bb && (
+        <div className="mt-3 pt-3 border-t border-white/[0.04]">
+          <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
+            <span className="text-[10px] text-white/45">
+              vs Bry-Boschan 机械标注（
+              {hmm.vs_bb.bb_threshold * 100}% 阈值，{hmm.vs_bb.total_days} 个交易日）
+            </span>
+            <div className="flex items-center gap-3 text-[10px]">
+              <span className="text-white/55">严格一致</span>
+              <span className={`font-mono font-semibold ${
+                hmm.vs_bb.strict_agreement_pct >= 70 ? "text-emerald-300"
+                : hmm.vs_bb.strict_agreement_pct >= 50 ? "text-lime-300" : "text-amber-300"
+              }`}>
+                {hmm.vs_bb.strict_agreement_pct}%
+              </span>
+              <span className="text-white/30">·</span>
+              <span className="text-white/55">宽松（neutral 算过渡）</span>
+              <span className={`font-mono font-semibold ${
+                hmm.vs_bb.loose_agreement_pct >= 80 ? "text-emerald-300"
+                : hmm.vs_bb.loose_agreement_pct >= 60 ? "text-lime-300" : "text-amber-300"
+              }`}>
+                {hmm.vs_bb.loose_agreement_pct}%
+              </span>
+            </div>
+          </div>
+          {/* 行%矩阵：BB → HMM 分布 */}
+          <div className="text-[10px] font-mono">
+            <div className="grid grid-cols-5 gap-x-2 gap-y-0.5">
+              <div></div>
+              <div className="text-center text-white/45">HMM 牛</div>
+              <div className="text-center text-white/45">HMM 震荡</div>
+              <div className="text-center text-white/45">HMM 熊</div>
+              <div className="text-right text-white/45">总计</div>
+              {["bull", "bear"].map(bb => (
+                <React.Fragment key={bb}>
+                  <div className={`text-right ${cnColor[bb].split(" ")[1]}`}>BB {cnLabel[bb]}</div>
+                  {["bull", "neutral", "bear"].map(hm => {
+                    const pct = hmm.vs_bb.row_pct?.[bb]?.[hm];
+                    const isMatch = bb === hm;
+                    return (
+                      <div key={hm} className={`text-center tabular-nums ${
+                        isMatch ? "text-white/90 font-semibold" : "text-white/45"
+                      }`}>
+                        {pct != null ? `${pct.toFixed(0)}%` : "—"}
+                      </div>
+                    );
+                  })}
+                  <div className="text-right text-white/55 tabular-nums">
+                    {bb === "bull" ? hmm.vs_bb.bb_bull_total : hmm.vs_bb.bb_bear_total}d
+                  </div>
+                </React.Fragment>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
