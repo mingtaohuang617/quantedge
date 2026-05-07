@@ -108,17 +108,21 @@ function CompositeChart({ history, range, setRange }) {
     { id: "ALL", days: Infinity },
   ];
 
+  const [showHmm, setShowHmm] = useState(true);
+
   const { chartData, visibleRegimes } = useMemo(() => {
     if (!history?.dates?.length) return { chartData: [], visibleRegimes: [] };
     const n = history.dates.length;
     const cur = ranges.find(r => r.id === range) || ranges[2];
     const start = Math.max(0, n - cur.days);
+    const hmmBull = history.hmm_history?.bull;
     const data = history.dates.slice(start).map((d, i) => {
       const idx = start + i;
       return {
         date: d,
         temp: history.market_temperature[idx],
         bench: history.benchmark?.values?.[idx],
+        hmmBull: hmmBull && hmmBull[idx] != null ? hmmBull[idx] * 100 : null,
       };
     });
     if (!data.length) return { chartData: data, visibleRegimes: [] };
@@ -145,10 +149,13 @@ function CompositeChart({ history, range, setRange }) {
   const tickFmt = (d) => d?.length === 10 ? d.slice(2, 7) : d;
   const tipFmt = (val, name) => {
     if (val == null) return "—";
-    if (name === "温度") return val.toFixed(1);
+    if (name === "L3 温度") return val.toFixed(1);
+    if (name === "HMM 牛%") return val.toFixed(0) + "%";
     if (name === "W5000") return val.toLocaleString();
     return val;
   };
+
+  const hasHmm = chartData.some(d => d.hmmBull != null);
 
   return (
     <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4 mb-4">
@@ -171,7 +178,18 @@ function CompositeChart({ history, range, setRange }) {
             {visibleRegimes.length > 0 && ` · ${visibleRegimes.length} 段熊市`}
           </div>
         </div>
-        <div className="flex gap-1">
+        <div className="flex gap-1 items-center">
+          {hasHmm && (
+            <button
+              onClick={() => setShowHmm(!showHmm)}
+              className={`px-2 py-0.5 rounded text-[11px] border transition-colors mr-2 ${
+                showHmm
+                  ? "bg-emerald-500/15 border-emerald-400/40 text-emerald-200"
+                  : "bg-white/[0.03] border-white/[0.08] text-white/45 hover:text-white"
+              }`}
+              title="叠加 HMM 牛市概率到温度曲线"
+            >HMM 牛% {showHmm ? "✓" : "○"}</button>
+          )}
           {ranges.map(r => (
             <button
               key={r.id}
@@ -214,7 +232,11 @@ function CompositeChart({ history, range, setRange }) {
             formatter={tipFmt}
           />
           <Line yAxisId="left" type="monotone" dataKey="temp" stroke="#fb923c" strokeWidth={1.8}
-                dot={false} name="温度" isAnimationActive={false} />
+                dot={false} name="L3 温度" isAnimationActive={false} />
+          {showHmm && hasHmm && (
+            <Line yAxisId="left" type="monotone" dataKey="hmmBull" stroke="#34d399" strokeWidth={1.2}
+                  strokeDasharray="3 3" dot={false} name="HMM 牛%" isAnimationActive={false} />
+          )}
           <Line yAxisId="right" type="monotone" dataKey="bench" stroke="#94a3b8" strokeWidth={1}
                 dot={false} name="W5000" isAnimationActive={false} />
         </ComposedChart>
