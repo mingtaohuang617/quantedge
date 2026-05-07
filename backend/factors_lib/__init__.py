@@ -486,6 +486,30 @@ def compute_composite_history(
     out_cats = {cat: [None if pd.isna(v) else round(float(v), 2) for v in s.tolist()]
                 for cat, s in sub_scores.items()}
 
+    # 6. HMM 三态历史概率（与 target 业务日轴对齐）
+    hmm_hist: dict[str, list] = {"bull": [], "neutral": [], "bear": []}
+    try:
+        if not wil_full.empty:
+            from regime.hmm_states import fit_hmm_3state
+            hmm = fit_hmm_3state(wil_full, seed=42)
+            probs_df = hmm["probs"] if "probs" in hmm else None
+            # fit_hmm_3state 返回的 probs 是 DataFrame；这里我们重新从 raw 算一遍
+            # 实际上 fit 已经返回 probs，无需重训
+            # 但 fit 返回的 probs 是嵌入在 hmm 字典里
+            # 看 hmm_states.py: probs key 仍然在 fit 字典里
+            if probs_df is None:
+                # fallback: 兼容
+                pass
+            else:
+                # 对齐到 target 日轴
+                for col_label in ["bull", "neutral", "bear"]:
+                    s = probs_df[f"{col_label}_prob"]
+                    aligned = s.reindex(s.index.union(target)).sort_index().ffill().reindex(target)
+                    hmm_hist[col_label] = [None if pd.isna(v) else round(float(v), 4)
+                                            for v in aligned.tolist()]
+    except Exception:
+        pass
+
     return {
         "market": market,
         "start": start,
@@ -502,6 +526,7 @@ def compute_composite_history(
         },
         "regimes": regime_segs,
         "current_regime": current_regime,
+        "hmm_history": hmm_hist,
     }
 
 
@@ -561,6 +586,23 @@ def compute_composite(market: str = "US") -> dict:
         out["alerts"] = compute_alerts(out)
     except Exception:
         out["alerts"] = []
+    # L4 HMM 三态识别（牛/熊/震荡）— 价格行为视角，与 L3 温度互为对照
+    try:
+        from regime.hmm_states import fit_hmm_3state
+        wil = read_series_history("US_W5000_RAW", as_of=None)
+        if not wil.empty:
+            wil.index = pd.to_datetime(wil.index)
+            hmm = fit_hmm_3state(wil, seed=42)
+            out["hmm"] = {
+                "current": hmm["current"],
+                "state_means_annual_pct": hmm["state_means_annual_pct"],
+                "state_vols_annual_pct": hmm["state_vols_annual_pct"],
+                "transition_matrix": hmm["transition_matrix"],
+                "transition_labels": hmm["transition_labels"],
+                "n_obs": hmm["n_obs"],
+            }
+    except Exception as e:
+        out["hmm"] = {"error": str(e)}
     return out
 
 

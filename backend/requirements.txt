@@ -9,3 +9,4 @@ python-dotenv
 futu-api
 tushare
 duckdb
+hmmlearn
