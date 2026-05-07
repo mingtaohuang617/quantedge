@@ -42,7 +42,8 @@ export default function Screener10x() {
   const [universeStats, setUniverseStats] = useState(null);
   // 筛选条件
   const [selectedTrends, setSelectedTrends] = useState([]); // string[]
-  const [maxMcapB, setMaxMcapB] = useState(50);             // 单位 B
+  const [maxMcapInput, setMaxMcapInput] = useState(50);     // 单位 B（input 即时绑定）
+  const [maxMcapB, setMaxMcapB] = useState(50);             // 300ms debounced，喂 runScreen
   const [includeETF, setIncludeETF] = useState(false);
   const [precise, setPrecise] = useState(false);    // 精严模式：仅核心赛道关键词
   const [markets, setMarkets] = useState(["US", "HK", "CN"]);
@@ -75,6 +76,14 @@ export default function Screener10x() {
     reloadUniverseStats();
   }, [reloadWatchlist, reloadUniverseStats]);
 
+  // ── mcap input debounce（300ms）─────────────────────────
+  // 用户在 input 里改数字时实时更新 maxMcapInput；停手 300ms 后才更新 maxMcapB，
+  // 避免每个数字都触发后端 screen
+  useEffect(() => {
+    const t = setTimeout(() => setMaxMcapB(maxMcapInput), 300);
+    return () => clearTimeout(t);
+  }, [maxMcapInput]);
+
   // ── 候选筛选（赛道 / 市值 / 市场变化时 trigger）─────────
   const runScreen = useCallback(async () => {
     setLoadingCands(true);
@@ -104,16 +113,13 @@ export default function Screener10x() {
   }, [selectedTrends, markets, maxMcapB, includeETF, precise]);
 
   // 自动 re-screen（赛道 / 市场 / 市值上限 / ETF / 精严切换都会触发）
+  // 注：items 变化（加入/删除观察）不在此触发，由 handleSaved / handleDelete 主动处理：
+  //   - 加入：本地 splice 掉刚加入的 ticker，省一次 screen
+  //   - 删除：显式调 runScreen 让 ticker 回到候选
   useEffect(() => {
     if (selectedTrends.length > 0) runScreen();
     else setCandidates([]);
   }, [runScreen, selectedTrends]);
-
-  // 也在 items 变化时重跑（加入/删除观察后）
-  useEffect(() => {
-    if (selectedTrends.length > 0) runScreen();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items.length]);
 
   // ── 候选搜索过滤（前端） ─────────────────────────────
   const filteredCandidates = useMemo(() => {
@@ -145,16 +151,24 @@ export default function Screener10x() {
   };
 
   const handleSaved = async () => {
+    // 编辑模式拿 editing.ticker；新增模式拿 pendingCandidate.ticker
+    const justAddedTicker = !editing ? pendingCandidate?.ticker : null;
     setEditorOpen(false);
     setEditing(null);
     setPendingCandidate(null);
     await reloadWatchlist();
+    // 加入观察：本地剔除候选，省一次 screen 调用
+    if (justAddedTicker) {
+      setCandidates((cur) => cur.filter((c) => c.ticker !== justAddedTicker));
+    }
   };
 
   const handleDelete = async (ticker) => {
     if (!window.confirm(`从观察列表删除 ${ticker}？`)) return;
     await apiFetch(`/watchlist/10x/${encodeURIComponent(ticker)}`, { method: "DELETE" });
     await reloadWatchlist();
+    // 删除后让 ticker 重新进入候选列表
+    if (selectedTrends.length > 0) runScreen();
   };
 
   const trendName = (id) => supertrends.find((s) => s.id === id)?.name || id;
@@ -247,13 +261,13 @@ export default function Screener10x() {
               />
             </div>
 
-            {/* 市值上限 */}
+            {/* 市值上限（300ms debounced） */}
             <label className="flex items-center gap-1 text-[10px] text-[#a0aec0]">
               max
               <input
                 type="number"
-                value={maxMcapB}
-                onChange={(e) => setMaxMcapB(Number(e.target.value) || 0)}
+                value={maxMcapInput}
+                onChange={(e) => setMaxMcapInput(Number(e.target.value) || 0)}
                 className="w-12 px-1 py-0.5 text-[10px] bg-white/5 border border-white/10 rounded text-white focus:outline-none"
               />
               B
