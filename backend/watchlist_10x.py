@@ -85,8 +85,19 @@ def list_supertrends() -> list[dict]:
     return builtin + user
 
 
-def add_supertrend(supertrend_id: str, name: str, note: str = "") -> dict:
-    """新增用户自定义赛道。返回新增项。"""
+def add_supertrend(
+    supertrend_id: str,
+    name: str,
+    note: str = "",
+    keywords_zh: list[str] | None = None,
+    keywords_en: list[str] | None = None,
+) -> dict:
+    """新增用户自定义赛道。返回新增项。
+
+    keywords_zh / keywords_en：参与 screen_candidates 时的 sector/industry/名称匹配。
+    用户赛道关键词无 strict/broad 之分，两种 mode 下都生效。
+    缺关键词的赛道仍然可以加，但筛选时永远命中 0 只股。
+    """
     sid = supertrend_id.strip()
     if not sid:
         raise ValueError("supertrend_id 不能为空")
@@ -97,7 +108,13 @@ def add_supertrend(supertrend_id: str, name: str, note: str = "") -> dict:
     for s in data["user_supertrends"]:
         if s["id"] == sid:
             raise ValueError(f"赛道 id '{sid}' 已存在")
-    new_item = {"id": sid, "name": name.strip() or sid, "note": note}
+    new_item = {
+        "id": sid,
+        "name": name.strip() or sid,
+        "note": note,
+        "keywords_zh": [k.strip() for k in (keywords_zh or []) if k and k.strip()],
+        "keywords_en": [k.strip() for k in (keywords_en or []) if k and k.strip()],
+    }
     data["user_supertrends"].append(new_item)
     save_watchlist(data)
     return new_item
@@ -199,6 +216,7 @@ def screen_candidates(
     exclude_in_watchlist: bool = True,
     limit: int = 200,
     precise: bool = False,
+    include_no_mcap: bool = True,
 ) -> list[dict]:
     """
     从 universe 池里按赛道 + 市值过滤，返回候选股列表。
@@ -207,11 +225,25 @@ def screen_candidates(
     候选范围窄但精度高；precise=False 默认 broad 模式（含扩展词），
     候选范围广但有噪音。
 
+    include_no_mcap (默认 True)：marketCap 缺失的标的是否纳入。
+      默认保留 —— 否则用户一旦设了 max/min 就会静默丢掉所有缺数据的标的
+      （A 股池受影响最严重）。需要旧行为时显式传 False。
+
+    用户自定义赛道：自动从 watchlist 文件读 user_supertrends 中带关键词的项，
+    与 builtin 赛道并行参与匹配。
+
     返回 item: 包含 universe 原字段 + matched_supertrends（命中的赛道集合，list 形式）
     排序：market cap 升序（小市值优先 — 策略中"小市值卡位公司"原则）；缺市值的排最后。
     """
     wanted = set(supertrend_ids or [])
     universe = load_universe(markets)
+
+    # 用户自定义赛道（仅取带关键词的，否则匹配不上反而拖慢循环）
+    user_trends_all = load_watchlist().get("user_supertrends", [])
+    user_trends = [
+        ut for ut in user_trends_all
+        if (ut.get("keywords_zh") or ut.get("keywords_en"))
+    ]
 
     # 1) 行业过滤
     # broad 模式：sector/industry 命中赛道（含扩展词如"通讯设备"）
@@ -223,17 +255,23 @@ def screen_candidates(
         for it in universe:
             if precise:
                 sec_strict_match = (
-                    _sm.classify_sector(it.get("sector"), mode="strict")
-                    | _sm.classify_sector(it.get("industry"), mode="strict")
+                    _sm.classify_sector(it.get("sector"), mode="strict",
+                                        extra_user_trends=user_trends)
+                    | _sm.classify_sector(it.get("industry"), mode="strict",
+                                          extra_user_trends=user_trends)
                 ) & wanted
-                name_match = _sm.name_matches_strict(it.get("name"), wanted)
+                name_match = _sm.name_matches_strict(
+                    it.get("name"), wanted, extra_user_trends=user_trends
+                )
                 if not sec_strict_match and not name_match:
                     continue
                 matched = sec_strict_match if sec_strict_match else set(wanted)
             else:
                 matched = (
-                    _sm.classify_sector(it.get("sector"), mode="broad")
-                    | _sm.classify_sector(it.get("industry"), mode="broad")
+                    _sm.classify_sector(it.get("sector"), mode="broad",
+                                        extra_user_trends=user_trends)
+                    | _sm.classify_sector(it.get("industry"), mode="broad",
+                                          extra_user_trends=user_trends)
                 ) & wanted
                 if not matched:
                     continue
@@ -251,8 +289,7 @@ def screen_candidates(
     # 3) 市值过滤
     def _mc_ok(mc):
         if mc is None:
-            # 缺数据时 — 若设了 max/min 都 fail；不设则保留
-            return max_market_cap_b is None and min_market_cap_b is None
+            return include_no_mcap
         b = mc / 1e9
         if max_market_cap_b is not None and b > max_market_cap_b:
             return False

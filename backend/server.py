@@ -1422,6 +1422,7 @@ class ScreenReq(BaseModel):
     exclude_in_watchlist: bool = True
     limit: int = 200
     precise: bool = False        # True = strict mode（仅核心关键词，精度高）
+    include_no_mcap: bool = True # marketCap 缺失的标的是否纳入（默认 True，避免静默丢 A 股）
 
 
 @app.post("/api/watchlist/10x/screen")
@@ -1436,6 +1437,7 @@ def screen_watchlist_10x(req: ScreenReq):
         exclude_in_watchlist=req.exclude_in_watchlist,
         limit=req.limit,
         precise=req.precise,
+        include_no_mcap=req.include_no_mcap,
     )
     return sanitize({"count": len(candidates), "items": candidates})
 
@@ -1450,13 +1452,22 @@ class SupertrendAddReq(BaseModel):
     id: str
     name: str
     note: str = ""
+    keywords_zh: list[str] = []
+    keywords_en: list[str] = []
 
 
 @app.post("/api/watchlist/10x/supertrends")
 def add_supertrend_10x(req: SupertrendAddReq):
-    """新增用户自定义赛道。"""
+    """新增用户自定义赛道。
+    keywords_zh / keywords_en 提供给 screen_candidates 做 sector/industry/名称匹配；
+    不传则赛道存在但筛选时不命中任何标的。
+    """
     try:
-        item = _wl.add_supertrend(req.id, req.name, req.note)
+        item = _wl.add_supertrend(
+            req.id, req.name, req.note,
+            keywords_zh=req.keywords_zh,
+            keywords_en=req.keywords_en,
+        )
     except ValueError as e:
         raise HTTPException(400, str(e))
     return sanitize({"ok": True, "item": item})

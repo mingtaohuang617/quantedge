@@ -227,3 +227,69 @@ def test_screen_market_cap_min(tmp_watchlist):
     tickers = [it["ticker"] for it in out]
     assert "AAOI" not in tickers   # 1.2B < 4B
     assert "LITE" in tickers       # 5B >= 4B
+
+
+# ── 用户自定义赛道关键词参与筛选（P0 #1 修复） ───────────
+def test_add_user_supertrend_with_keywords(tmp_watchlist, monkeypatch):
+    """用户赛道带 keywords_zh / keywords_en → screen_candidates 实际命中。"""
+    extra = [
+        {"ticker": "FSLR", "name": "First Solar", "market": "US", "exchange": "NASDAQ",
+         "is_etf": False, "sector": "Solar", "industry": "Solar", "marketCap": 3e10},
+        {"ticker": "JKS", "name": "晶科能源", "market": "CN", "exchange": "SH",
+         "is_etf": False, "sector": "光伏发电", "industry": None, "marketCap": 5e9},
+    ]
+    monkeypatch.setattr(wl, "load_universe", lambda markets=("US", "CN"): list(extra))
+
+    wl.add_supertrend(
+        "renewable", "新能源", "光伏/储能",
+        keywords_zh=["光伏"], keywords_en=["Solar"],
+    )
+
+    out = wl.screen_candidates(["renewable"])
+    tickers = {it["ticker"] for it in out}
+    assert "FSLR" in tickers   # sector="Solar" 命中英文关键词
+    assert "JKS" in tickers    # sector="光伏发电" 命中中文关键词
+    # matched_supertrends 标记到正确赛道
+    for it in out:
+        assert "renewable" in it["matched_supertrends"]
+
+
+def test_user_supertrend_keywords_apply_in_precise_mode(tmp_watchlist, monkeypatch):
+    """precise=True 时用户赛道关键词依然生效（用户赛道无 broad 概念）。"""
+    extra = [
+        {"ticker": "FSLR", "name": "First Solar", "market": "US", "exchange": "NASDAQ",
+         "is_etf": False, "sector": "Solar", "industry": "Solar", "marketCap": 3e10},
+    ]
+    monkeypatch.setattr(wl, "load_universe", lambda markets=("US", "CN"): list(extra))
+
+    wl.add_supertrend(
+        "renewable", "新能源", "",
+        keywords_zh=[], keywords_en=["Solar"],
+    )
+
+    out = wl.screen_candidates(["renewable"], precise=True)
+    tickers = {it["ticker"] for it in out}
+    assert "FSLR" in tickers
+
+
+def test_user_supertrend_no_keywords_inert(tmp_watchlist):
+    """兼容老数据：用户赛道无关键词时合法存在，但 screen 永远 0 命中（不抛错）。"""
+    wl.add_supertrend("empty_trend", "空赛道", "")
+    out = wl.screen_candidates(["empty_trend"])
+    assert out == []
+
+
+# ── include_no_mcap 行为（P0 #2 修复） ───────────────────
+def test_screen_keeps_no_mcap_by_default(tmp_watchlist):
+    """新默认 True：设了市值上限时，缺 marketCap 的标的仍保留（如 600171.SH）。"""
+    out = wl.screen_candidates(["semi"], max_market_cap_b=100)
+    tickers = {it["ticker"] for it in out}
+    assert "600171.SH" in tickers   # marketCap=None，新默认行为保留
+    assert "NVDA" not in tickers    # 3500B > 100B，被市值上限剔除
+
+
+def test_screen_drops_no_mcap_when_disabled(tmp_watchlist):
+    """include_no_mcap=False：缺市值标的被排除（旧行为）。"""
+    out = wl.screen_candidates(["semi"], max_market_cap_b=100, include_no_mcap=False)
+    tickers = {it["ticker"] for it in out}
+    assert "600171.SH" not in tickers

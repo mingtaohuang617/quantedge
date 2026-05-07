@@ -324,7 +324,7 @@ export default function Screener10x() {
             )}
             {!loadingCands && !errorCands && selectedTrends.length > 0 && filteredCandidates.length === 0 && (
               <div className="h-full flex items-center justify-center text-[11px] text-[#7a8497] p-4 text-center">
-                没有匹配的候选股 — 尝试放宽市值上限、勾选更多赛道、或启用 ETF
+                没有匹配的候选股 — 尝试放宽市值上限、勾选更多赛道、{precise ? "关闭精严模式、" : ""}或启用 ETF
               </div>
             )}
             {!loadingCands && filteredCandidates.length > 0 && (
