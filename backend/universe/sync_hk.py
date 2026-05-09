@@ -225,8 +225,10 @@ def main():
         },
         "items": items,
     }
+    # NaN/Infinity → None；vercel lambda V8 JSON.parse 不接受 NaN 字面量
+    from . import sanitize_for_json
     with open(OUTPUT_PATH, "w", encoding="utf-8") as f:
-        json.dump(payload, f, ensure_ascii=False, indent=2)
+        json.dump(sanitize_for_json(payload), f, ensure_ascii=False, indent=2, allow_nan=False)
 
     print(f"\n写入 {OUTPUT_PATH}")
     print(f"  {len(items)} 只标的 · 市值 {cap_ok} · 行业 {ind_ok}")
