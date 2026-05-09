@@ -37,6 +37,24 @@ def _features(prices: pd.Series, vol_window: int = 20) -> pd.DataFrame:
     return df
 
 
+# 进程级缓存：同一 W5000 数据 + seed 不重训。key 包含最后日期 + len 防止数据更新后命中旧缓存。
+_HMM_CACHE: dict[tuple, dict] = {}
+
+
+def fit_hmm_3state_cached(prices: pd.Series, seed: int = 42) -> dict:
+    """fit_hmm_3state 的缓存包装。key=(最后日期, 数据点数, seed)。"""
+    if prices is None or prices.empty:
+        return fit_hmm_3state(prices, seed=seed)
+    last_idx = prices.index[-1]
+    key = (str(last_idx), len(prices), seed, 20)
+    cached = _HMM_CACHE.get(key)
+    if cached is not None:
+        return cached
+    fit = fit_hmm_3state(prices, seed=seed)
+    _HMM_CACHE[key] = fit
+    return fit
+
+
 def fit_hmm_3state(prices: pd.Series, seed: int = 42) -> dict:
     """
     训练 3-state Gaussian HMM。返回 fit 结果 dict（不返回模型对象，序列化方便）。
@@ -143,7 +161,7 @@ def compute_hmm_bb_confusion(
     """
     from regime.bull_bear import label_bull_bear
 
-    fit = fit_hmm_3state(prices, seed=seed)
+    fit = fit_hmm_3state_cached(prices, seed=seed)
     probs_df = fit["probs"]  # index = 价格日期，cols = bull_prob/neutral_prob/bear_prob
 
     # HMM 主导状态（argmax）
@@ -194,7 +212,7 @@ def compute_hmm_bb_confusion(
 
 def compute_hmm_regime(prices: pd.Series, seed: int = 42) -> dict:
     """对外接口：返回带 history 的 dict（probs 转列表方便 JSON 序列化）。"""
-    fit = fit_hmm_3state(prices, seed=seed)
+    fit = dict(fit_hmm_3state_cached(prices, seed=seed))  # copy 防止破坏缓存
     probs_df = fit.pop("probs")
     fit["history"] = {
         "dates": [d.strftime("%Y-%m-%d") if hasattr(d, "strftime") else str(d)

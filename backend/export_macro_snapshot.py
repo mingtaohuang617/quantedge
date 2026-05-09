@@ -127,7 +127,7 @@ def main() -> int:
     except Exception as e:
         print(f"  [warn] narrative 跳过: {e}")
 
-    history = fl.compute_composite_history(market="US", start="2018-01-01")
+    history = fl.compute_composite_history(market="US")  # 默认 5Y window 节省 snapshot 体积
     print(f"  [ok] composite_history: {len(history.get('dates', []))} days")
 
     snapshot = {
