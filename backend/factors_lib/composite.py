@@ -9,7 +9,11 @@ factors_lib.composite — L3 子分 + L5 顶层市场温度计算
 """
 from __future__ import annotations
 
+import logging
+
 import pandas as pd
+
+logger = logging.getLogger(__name__)
 
 from .core import (
     _REGISTRY,
@@ -91,8 +95,8 @@ def compute_composite_history(
             wil = wil[~wil.index.duplicated(keep="last")].sort_index()
             wil_full = wil.copy()
             bench = wil.reindex(wil.index.union(target)).sort_index().ffill().reindex(target)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("compute_composite_history: 读取 W5000 失败: %s", e)
 
     # 5. 牛熊 regime 段（Lunde-Timmermann 20% 阈值）+ 当前 regime
     regime_segs: list[dict] = []
@@ -109,8 +113,8 @@ def compute_composite_history(
             regime_segs = [s for s in regime_segs if s["end"] >= start_str and s["start"] <= end_str]
             if not labeled.empty:
                 current_regime = str(labeled["regime"].iloc[-1])
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("compute_composite_history: regime 标注失败: %s", e)
 
     # 序列化
     dates = [d.strftime("%Y-%m-%d") for d in composite_df.index]
@@ -130,8 +134,8 @@ def compute_composite_history(
                     aligned = s.reindex(s.index.union(target)).sort_index().ffill().reindex(target)
                     hmm_hist[col_label] = [None if pd.isna(v) else round(float(v), 3)
                                             for v in aligned.tolist()]
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("compute_composite_history: HMM 训练失败: %s", e)
 
     return {
         "market": market,
@@ -207,7 +211,8 @@ def compute_composite(market: str = "US") -> dict:
     try:
         from regime import compute_alerts
         out["alerts"] = compute_alerts(out)
-    except Exception:
+    except Exception as e:
+        logger.warning("compute_composite: alerts 计算失败: %s", e)
         out["alerts"] = []
     # L4 HMM 三态识别（牛/熊/震荡）— 价格行为视角，与 L3 温度互为对照
     try:
@@ -227,9 +232,10 @@ def compute_composite(market: str = "US") -> dict:
             # HMM vs Bry-Boschan 一致性（验证 HMM 学到了对的东西）
             try:
                 out["hmm"]["vs_bb"] = compute_hmm_bb_confusion(wil, seed=42)
-            except Exception:
-                pass
+            except Exception as e_bb:
+                logger.warning("compute_composite: HMM vs BB 一致性计算失败: %s", e_bb)
     except Exception as e:
+        logger.warning("compute_composite: HMM 训练失败: %s", e)
         out["hmm"] = {"error": str(e)}
 
     # 持续期预测（Kaplan-Meier on Bry-Boschan 段）
@@ -247,6 +253,7 @@ def compute_composite(market: str = "US") -> dict:
                 summary = compute_survival_summary(segs, last["regime"], int(last["days"]))
                 out["survival"] = summary
     except Exception as e:
+        logger.warning("compute_composite: survival 计算失败: %s", e)
         out["survival"] = {"error": str(e)}
 
     return out
