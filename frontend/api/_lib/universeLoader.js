@@ -1,36 +1,32 @@
 // universeLoader — 加载 frontend/public/data/universe/*.json
 //
-// 数据流：
-//   1. 用户跑 backend/universe/sync_us.py 等填充 backend/output/universe_*.json
-//   2. 用户跑 backend/export_universe_to_frontend.py 复制到 frontend/public/data/universe/
-//   3. git push → vercel 部署 → CDN 服务静态文件
-//   4. serverless function self-fetch 这些 JSON
+// production 上 self-fetch VERCEL_URL 不可靠（deployment protection / TLS / cold cache
+// 都可能让请求挂掉），改用 fs.readFile 直接读 lambda bundle 里的 JSON。
+// 数据通过 frontend/vercel.json 的 functions.includeFiles 打进 lambda 一起 deploy。
 //
 // 内存缓存：同 lambda 实例 5 分钟，cold start 重置。
 
-const PATHS = {
-  US: '/data/universe/universe_us.json',
-  CN: '/data/universe/universe_cn.json',
-  HK: '/data/universe/universe_hk.json',
+import { readFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+
+const FILES = {
+  US: 'universe_us.json',
+  CN: 'universe_cn.json',
+  HK: 'universe_hk.json',
 };
 
 const _cache = new Map();
 const _CACHE_TTL_MS = 5 * 60 * 1000;
 
-function _baseUrl() {
-  // production / preview：VERCEL_URL 是当前 deployment 的 hostname（不含 protocol）
-  const u = process.env.VERCEL_URL;
-  if (u) return `https://${u}`;
-  // 自定义域名：QUANTEDGE_PUBLIC_BASE 优先级最高
-  if (process.env.QUANTEDGE_PUBLIC_BASE) return process.env.QUANTEDGE_PUBLIC_BASE;
-  // dev fallback：vite 默认 5173
-  return 'http://localhost:5173';
-}
+// lambda 内部路径推断：本文件位于 api/_lib/，数据在 public/data/universe/
+const _here = dirname(fileURLToPath(import.meta.url));
+const DATA_DIR = join(_here, '..', '..', 'public', 'data', 'universe');
 
 async function _loadOne(market) {
   const m = market.toUpperCase();
-  const path = PATHS[m];
-  if (!path) {
+  const fname = FILES[m];
+  if (!fname) {
     return { meta: { market: m, error: 'unsupported market' }, items: [] };
   }
 
@@ -40,20 +36,20 @@ async function _loadOne(market) {
     return cached.data;
   }
 
-  const url = `${_baseUrl()}${path}`;
+  const filePath = join(DATA_DIR, fname);
   try {
-    const r = await fetch(url, { signal: AbortSignal.timeout(5000) });
-    if (!r.ok) {
-      // 数据缺失（404）— 静默降级到空 universe，不中断 screen 调用
-      const data = { meta: { market: m, error: `HTTP ${r.status}` }, items: [] };
-      _cache.set(ck, { ts: Date.now(), data });
-      return data;
-    }
-    const data = await r.json();
+    const text = await readFile(filePath, 'utf-8');
+    const data = JSON.parse(text);
     _cache.set(ck, { ts: Date.now(), data });
     return data;
   } catch (e) {
-    return { meta: { market: m, error: e.message }, items: [] };
+    // 数据缺失（例如未部署或 includeFiles 没生效）— 静默降级到空 universe
+    const data = {
+      meta: { market: m, error: e.code || e.message, path: filePath },
+      items: [],
+    };
+    _cache.set(ck, { ts: Date.now(), data });
+    return data;
   }
 }
 
@@ -70,12 +66,12 @@ export async function loadUniverse(markets = ['US', 'HK', 'CN']) {
 /** 给 /api/universe/stats 用：每个市场 count + synced_at。 */
 export async function universeStats() {
   const stats = {};
-  for (const m of Object.keys(PATHS)) {
+  for (const m of Object.keys(FILES)) {
     const data = await _loadOne(m);
     stats[m] = {
       count: (data.items || []).length,
       synced_at: data.meta?.synced_at || null,
-      path: PATHS[m],
+      file: FILES[m],
       exists: (data.items || []).length > 0,
     };
   }
