@@ -13,6 +13,8 @@ import macroSnapshot from "../macroSnapshot.json";
 import { CATEGORY_LABEL } from "../components/macro/shared.js";
 import NarrativePanel from "../components/macro/NarrativePanel.jsx";
 import CompositePanel from "../components/macro/CompositePanel.jsx";
+import HmmPanel from "../components/macro/HmmPanel.jsx";
+import SurvivalPanel from "../components/macro/SurvivalPanel.jsx";
 import AlertsPanel from "../components/macro/AlertsPanel.jsx";
 import CompositeChart from "../components/macro/CompositeChart.jsx";
 import FactorCard from "../components/macro/FactorCard.jsx";
@@ -114,6 +116,11 @@ export default function MacroDashboard() {
       <CompositePanel data={composite} />
 
       <AlertsPanel alerts={composite?.alerts} />
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 lg:gap-4">
+        <HmmPanel hmm={composite?.hmm} temp={composite?.market_temperature} />
+        <SurvivalPanel s={composite?.survival} />
+      </div>
 
       <CompositeChart history={history} range={range} setRange={setRange} />
 

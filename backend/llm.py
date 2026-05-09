@@ -513,7 +513,7 @@ def macro_narrative(composite: dict, ttl_seconds: int = 43200) -> dict:
         )
 
     prompt = (
-        "你是宏观策略助手。基于以下美股市场数据快照，用中文写一段 150-200 字的当日市场画像。\n\n"
+        "你是宏观策略助手。基于以下美股市场数据快照，用中文输出 3 段当日市场画像。\n\n"
         "数据：\n"
         f"- L3 综合温度: {temp}/100（0=极熊 100=极牛）\n"
         f"- 4 类子分(0=熊 100=牛 方向化):\n" + "\n".join(sub_lines) + "\n"
@@ -521,10 +521,11 @@ def macro_narrative(composite: dict, ttl_seconds: int = 43200) -> dict:
         + (f"- 持续期: {surv_str}\n" if surv_str else "")
         + (f"- 极端因子:\n  · " + "\n  · ".join(extremes) + "\n" if extremes else "")
         + f"- 双重确认告警:\n" + ("\n".join(alert_lines) if alert_lines else "  无")
-        + "\n\n要求：\n"
-        "- 客观、不给具体买卖建议；不夸张\n"
-        "- 重点指出主要矛盾（特别是 L3 温度 vs HMM 价格行为视角分歧）+ 一句风险或机会观察\n"
-        "- 严格 150-200 字，纯文本不用 markdown，不用列表"
+        + "\n\n输出格式（严格按下方模板，每段 60-80 字，段间空行）：\n\n"
+        "【主要矛盾】<L3 温度 vs HMM 价格行为视角是否分歧；估值 vs 流动性 vs 宽度 是否同向；用一句话说清楚冲突点>\n\n"
+        "【关键观察】<最值得用户关注的 2-3 个极端因子或子分异常，列具体数值>\n\n"
+        "【风险/机会】<基于上述判断，未来 1-3 个月的核心风险点或潜在机会，纯描述不给买卖建议>\n\n"
+        "要求：客观、不夸张；不要 markdown 标题或列表；【】标注必须保留。"
     )
 
     cache_key = _db.llm_cache_key("macro-narrative", DEFAULT_MODEL, prompt)
@@ -550,6 +551,122 @@ def macro_narrative(composite: dict, ttl_seconds: int = 43200) -> dict:
             ttl_seconds=ttl_seconds,
         )
         return {"ok": True, "narrative": text, "cached": False}
+    except LLMError as e:
+        return {"ok": False, "error": str(e)}
+
+
+def parse_strategy(text: str, candidates: list[dict]) -> dict:
+    """
+    B3: NL 策略描述 → portfolio dict。
+    text: "科技 7 + 防御 3 等权" / "半导体龙头 + 高股息 ETF" 等
+    candidates: [{ticker, name, sector}, ...] 自选股池（约束输出 ticker 只能从这里选）
+    返回 {ok, portfolio: {ticker: weight_pct, ...}, rationale: str, cached}
+    """
+    cand_str = "\n".join(f"- {c.get('ticker')}: {c.get('name','')} ({c.get('sector','')})"
+                         for c in (candidates or [])[:200])
+    prompt = (
+        "你是量化投资助手。基于用户的策略描述，从给定标的池中挑选并分配权重。\n"
+        "要求：\n"
+        "  - 只能选标的池里的 ticker（不要造出池外标的）\n"
+        "  - 权重以百分数表示（整数），总和恰好 100\n"
+        "  - 如果策略不清晰，挑 3-8 只最贴近的标的等权\n"
+        "  - 严格输出 JSON: {\"portfolio\": {\"TICKER\": weight_int, ...}, \"rationale\": \"≤40 字解释\"}\n\n"
+        f"标的池:\n{cand_str}\n\n"
+        f"用户策略: {text}"
+    )
+
+    cache_key = _db.llm_cache_key("parse-strategy", DEFAULT_MODEL, prompt)
+    cached = _db.llm_cache_get(cache_key)
+    if cached:
+        return {"ok": True, **cached["response"], "cached": True}
+
+    try:
+        content, p_tok, c_tok = _chat(
+            [{"role": "user", "content": prompt}],
+            json_mode=True,
+            max_tokens=600,
+            temperature=0.2,
+        )
+        parsed = _safe_json_parse(content)
+        portfolio = parsed.get("portfolio") or {}
+        # 校验 ticker 在池内
+        valid_tickers = {c.get("ticker") for c in (candidates or [])}
+        portfolio = {t: int(w) for t, w in portfolio.items() if t in valid_tickers}
+        rationale = parsed.get("rationale", "")
+        result = {"portfolio": portfolio, "rationale": rationale}
+        _db.llm_cache_put(
+            cache_key, "parse-strategy", DEFAULT_MODEL, result,
+            prompt_tokens=p_tok, completion_tokens=c_tok, ttl_seconds=3600,
+        )
+        return {"ok": True, **result, "cached": False}
+    except LLMError as e:
+        return {"ok": False, "error": str(e)}
+    except (json.JSONDecodeError, ValueError) as e:
+        return {"ok": False, "error": f"LLM 返回非合法 JSON: {e}"}
+
+
+def monthly_review(month_label: str, transactions: list[dict],
+                   positions: list[dict], journal_summaries: list[str] | None = None,
+                   ttl_seconds: int = 0) -> dict:
+    """
+    B7: 月度复盘自动撰写。
+    month_label: '2026-04' 类格式
+    transactions: 该月的交易列表 [{ticker, side, qty, price, traded_at}, ...]
+    positions: 月末持仓快照（compute_positions 输出）
+    journal_summaries: 当月日志摘要（可选）
+    返回 {ok, review: str (1500 字结构化复盘), cached}
+    """
+    # 格式化交易摘要
+    tx_lines = []
+    for t in (transactions or [])[:50]:
+        tx_lines.append(f"  {t.get('traded_at','?')} {t.get('side','?').upper()} "
+                        f"{t.get('ticker','?')} ×{t.get('qty')} @ {t.get('price')}")
+    # 持仓摘要
+    pos_lines = []
+    total_unreal = 0
+    for p in (positions or [])[:30]:
+        if p.get("closed"): continue
+        unr = p.get("unrealized_pnl") or 0
+        total_unreal += unr
+        pos_lines.append(f"  {p.get('ticker')}: {p.get('net_qty')}股, 均价 {p.get('avg_cost')}, "
+                         f"现价 {p.get('latest_close')}, 浮盈 {unr:+.2f}")
+
+    journal_block = ""
+    if journal_summaries:
+        journal_block = "\n## 本月日志摘要\n" + "\n".join(f"- {s}" for s in journal_summaries[:20])
+
+    prompt = (
+        f"你是投资复盘助手。基于以下数据，写一份 {month_label} 月度复盘（≈1000 字，中文）。\n"
+        "结构：\n"
+        "  1. 本月概览（交易笔数、净流入流出、当前总浮盈）\n"
+        "  2. 关键操作回顾（买卖逻辑是否兑现）\n"
+        "  3. 持仓表现亮点（最赚 / 最亏）\n"
+        "  4. 风险与情绪反思（是否追涨杀跌、是否过于集中）\n"
+        "  5. 下月行动建议（≤3 条，不给买卖建议，只谈纪律 / 仓位 / 信息源）\n\n"
+        f"## 本月交易（{len(transactions or [])} 笔）\n" + ("\n".join(tx_lines) or "  （无交易）") +
+        f"\n\n## 月末持仓（合计浮盈 {total_unreal:+.2f}）\n" + ("\n".join(pos_lines) or "  （无持仓）") +
+        journal_block +
+        "\n\n用 markdown 格式输出，标题用 ## 二级标题。"
+    )
+
+    cache_key = _db.llm_cache_key("monthly-review", DEFAULT_MODEL, prompt)
+    cached = _db.llm_cache_get(cache_key)
+    if cached:
+        return {"ok": True, "review": cached["response"].get("text", ""), "cached": True}
+
+    try:
+        content, p_tok, c_tok = _chat(
+            [{"role": "user", "content": prompt}],
+            json_mode=False,
+            max_tokens=2000,
+            temperature=0.5,
+        )
+        text = (content or "").strip()
+        _db.llm_cache_put(
+            cache_key, "monthly-review", DEFAULT_MODEL, {"text": text, "month": month_label},
+            prompt_tokens=p_tok, completion_tokens=c_tok, ttl_seconds=ttl_seconds,
+        )
+        return {"ok": True, "review": text, "cached": False, "month": month_label}
     except LLMError as e:
         return {"ok": False, "error": str(e)}
 

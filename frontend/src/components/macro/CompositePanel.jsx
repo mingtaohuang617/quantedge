@@ -1,9 +1,7 @@
 import React from "react";
-import { CATEGORY_LABEL, TEMP_BAR, TEMP_TEXT, TEMP_LABEL } from "./shared.js";
-import HmmPanel from "./HmmPanel.jsx";
-import SurvivalPanel from "./SurvivalPanel.jsx";
+import { CATEGORY_LABEL, TEMP_BAR, TEMP_TEXT, TEMP_LABEL, PANEL } from "./shared.js";
 
-// L3 综合温度大数字 + 4 子分卡片；同时挂载 HmmPanel + SurvivalPanel
+// L3 综合温度大数字 + 4 子分卡片（不再嵌入 HMM/Survival，那两个改成顶层 sibling panel）
 export default function CompositePanel({ data }) {
   if (!data) return null;
   const temp = data.market_temperature;
@@ -11,7 +9,7 @@ export default function CompositePanel({ data }) {
   const order = ["valuation", "liquidity", "sentiment", "breadth"];
 
   return (
-    <div className="bg-gradient-to-br from-white/[0.05] to-white/[0.02] border border-white/[0.08] rounded-xl p-5 mb-4">
+    <div className={PANEL.primary}>
       <div className="flex items-start gap-6 flex-wrap">
         {/* 市场温度大数字 */}
         <div className="flex-1 min-w-[200px]">
@@ -64,14 +62,6 @@ export default function CompositePanel({ data }) {
           })}
         </div>
       </div>
-
-      {data.hmm?.current && (
-        <HmmPanel hmm={data.hmm} temp={temp} />
-      )}
-
-      {data.survival && !data.survival.error && (
-        <SurvivalPanel s={data.survival} />
-      )}
     </div>
   );
 }
