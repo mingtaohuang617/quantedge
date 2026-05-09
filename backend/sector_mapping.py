@@ -115,13 +115,22 @@ def _kw_for_mode(spec: dict, mode: str) -> tuple[list[str], list[str]]:
     return zh, en
 
 
-def classify_sector(raw_sector: str | None, mode: str = "broad") -> set[str]:
+def classify_sector(
+    raw_sector: str | None,
+    mode: str = "broad",
+    extra_user_trends: list[dict] | None = None,
+) -> set[str]:
     """
     把任意 sector/industry 字符串归类到 supertrend ID 集合。
 
     mode:
       - "strict": 仅用核心关键词，命中精准但范围小
       - "broad" (默认): strict + 扩展词，覆盖广但有噪音
+
+    extra_user_trends: 用户自定义赛道列表，每项需含
+      {id, keywords_zh: list[str], keywords_en: list[str]}。
+      用户赛道关键词无 strict/broad 之分（用户加的本来就是想精确匹配），
+      两种 mode 下都按"原样匹配"处理。
 
     None / 空字符串返回空 set。
     """
@@ -142,6 +151,20 @@ def classify_sector(raw_sector: str | None, mode: str = "broad") -> set[str]:
             continue
         if any(kw.lower() in s_lower for kw in kws_en):
             matched.add(tid)
+
+    # 用户自定义赛道
+    for ut in extra_user_trends or []:
+        tid = ut.get("id")
+        if not tid:
+            continue
+        kws_zh = ut.get("keywords_zh") or []
+        kws_en = ut.get("keywords_en") or []
+        if any(kw and kw in s for kw in kws_zh):
+            matched.add(tid)
+            continue
+        if any(kw and kw.lower() in s_lower for kw in kws_en):
+            matched.add(tid)
+
     return matched
 
 
@@ -162,13 +185,31 @@ def get_strict_keywords(supertrend_ids: list[str] | set[str]) -> list[str]:
     return out
 
 
-def name_matches_strict(name: str | None, supertrend_ids: list[str] | set[str]) -> bool:
-    """名称含任意 strict 关键词 → True。中文直接 substring；英文 lower-case。"""
+def name_matches_strict(
+    name: str | None,
+    supertrend_ids: list[str] | set[str],
+    extra_user_trends: list[dict] | None = None,
+) -> bool:
+    """名称含任意 strict 关键词 → True。中文直接 substring；英文 lower-case。
+
+    extra_user_trends: 用户自定义赛道列表（仅匹配 id 在 supertrend_ids 内的）；
+    其关键词无 strict/broad 之分，全部参与名称匹配。
+    """
     if not name:
         return False
     n = str(name)
     n_lower = n.lower()
-    for kw in get_strict_keywords(supertrend_ids):
+
+    builtin_kws = get_strict_keywords(supertrend_ids)
+
+    user_kws: list[str] = []
+    wanted = set(supertrend_ids)
+    for ut in extra_user_trends or []:
+        if ut.get("id") in wanted:
+            user_kws.extend(ut.get("keywords_zh") or [])
+            user_kws.extend(ut.get("keywords_en") or [])
+
+    for kw in builtin_kws + user_kws:
         if not kw:
             continue
         # 中文（含 ASCII 大写如 "AI"、"HBM" 也走这个分支，原样匹配）

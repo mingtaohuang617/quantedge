@@ -370,15 +370,29 @@ def backtest_narrate(payload: dict, ttl_seconds: int = 1800) -> dict:
         return {"ok": False, "error": str(e)}
 
 
+def _clamp_int(v, lo: int, hi: int, default: int) -> int:
+    """把 LLM 返回的值强转 int 并夹到 [lo, hi]；非法或越界则取 default。"""
+    try:
+        i = int(v)
+    except (TypeError, ValueError):
+        return default
+    if lo <= i <= hi:
+        return i
+    return default
+
+
 def tenx_thesis(stock: dict, supertrend: dict, ttl_seconds: int = 86400) -> dict:
     """
     10x 猎手 — 卡位分析草稿生成。
-    按"成长型十倍股"策略框架给出 5 段结构化输出，作为用户编辑 thesis 的起草。
+    按"成长型十倍股"策略框架给出 5 段文字 + 2 个结构化数字，作为用户编辑 thesis 的起草。
 
     输入:
       stock: {ticker, name, sector?, industry?, marketCap?, descriptionCN?}
       supertrend: {id, name, note}（来自 list_supertrends()）
-    返回 {ok, ticker, thesis: {超级趋势, 瓶颈层, 卡位逻辑, 风险, 推演结论}, cached}
+    返回 {ok, ticker, thesis: {超级趋势, 瓶颈层, 瓶颈层级_int, 卡位逻辑,
+                                卡位等级_int, 风险, 推演结论}, cached}
+      - 瓶颈层级_int: 1（共识层）或 2（深度认知层）
+      - 卡位等级_int: 1-5 整数，对应前端 moat_score
     """
     ticker = stock.get("ticker", "?")
     name = stock.get("name", "")
@@ -406,15 +420,17 @@ def tenx_thesis(stock: dict, supertrend: dict, ttl_seconds: int = 86400) -> dict
         f"市值: {mc_str}\n"
         f"所属超级趋势: {st_name}（{st_note}）\n"
         f"业务描述: {desc or '（缺失）'}\n\n"
-        "请严格输出 JSON，5 个字段都要有：\n"
+        "请严格输出 JSON，所有字段都要有：\n"
         '{\n'
         '  "超级趋势": "<这只票为什么属于这条超级趋势，≤30 字>",\n'
         '  "瓶颈层": "<判断它卡在共识层(1)还是深度认知层(2)，简述理由，≤40 字>",\n'
+        '  "瓶颈层级_int": <1 或 2，与"瓶颈层"判断对应；不确定时填 2>,\n'
         '  "卡位逻辑": "<它在产业链什么位置、为什么不可替代，≤60 字>",\n'
+        '  "卡位等级_int": <1-5 整数；3=普通供应链位置，4=有壁垒，5=独家或近垄断；不确定时填 3>,\n'
         '  "风险": "<最大风险点，≤30 字>",\n'
         '  "推演结论": "<基于第一性原理的概率性判断，不给买卖建议，≤60 字>"\n'
         '}\n'
-        "要求：客观、不夸张；不知道就承认不确定。"
+        "要求：客观、不夸张；不知道就承认不确定，但 _int 字段必须给整数（不确定时给提示中的中位值）。"
     )
 
     cache_key = _db.llm_cache_key("10x-thesis", DEFAULT_MODEL, prompt)
@@ -434,6 +450,9 @@ def tenx_thesis(stock: dict, supertrend: dict, ttl_seconds: int = 86400) -> dict
         for k in ("超级趋势", "瓶颈层", "卡位逻辑", "风险", "推演结论"):
             if k not in parsed:
                 parsed[k] = ""
+        # 结构化数字：非法或缺失时取默认（中位值），方便前端无脑预填
+        parsed["瓶颈层级_int"] = _clamp_int(parsed.get("瓶颈层级_int"), 1, 2, 2)
+        parsed["卡位等级_int"] = _clamp_int(parsed.get("卡位等级_int"), 1, 5, 3)
         _db.llm_cache_put(
             cache_key, "10x-thesis", DEFAULT_MODEL, parsed,
             ticker=ticker, prompt_tokens=p_tok, completion_tokens=c_tok,
