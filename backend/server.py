@@ -83,6 +83,7 @@ import factors_lib.liquidity  # noqa: F401
 import factors_lib.sentiment  # noqa: F401
 import factors_lib.breadth    # noqa: F401
 import factors_lib.valuation  # noqa: F401
+import factors_lib.cn_macro   # noqa: F401
 
 # Data sources import — optional (Futu may not be installed)
 try:

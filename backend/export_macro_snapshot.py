@@ -41,6 +41,7 @@ import factors_lib.liquidity   # noqa: E402, F401
 import factors_lib.sentiment   # noqa: E402, F401
 import factors_lib.breadth     # noqa: E402, F401
 import factors_lib.valuation   # noqa: E402, F401
+import factors_lib.cn_macro    # noqa: E402, F401
 
 
 SNAPSHOT_PATH = BACKEND.parent / "frontend" / "src" / "macroSnapshot.json"

@@ -415,7 +415,8 @@ def compute_composite_history(
             continue
         hist.index = pd.to_datetime(hist.index)
         hist = hist[~hist.index.duplicated(keep="last")].sort_index()
-        pct_s = to_percentile_series(hist, window=spec.rolling_window_days)
+        mp = {"monthly": 60, "weekly": 156}.get(spec.freq, 252)
+        pct_s = to_percentile_series(hist, window=spec.rolling_window_days, min_periods=mp)
         if pct_s.empty:
             continue
         # 方向化：lower_bullish 翻转
