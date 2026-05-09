@@ -392,17 +392,16 @@ def to_percentile_series(
 
 def compute_composite_history(
     market: str = "US",
-    start: str = "2020-01-01",
+    start: str | None = None,
     end: str | None = None,
 ) -> dict:
     """
-    每个交易日计算 composite —— 对所有 17 因子做向量化 rolling percentile，
-    再做方向化 + 类内平均 + 顶层加权。
-
-    返回 {dates, market_temperature, by_category, benchmark}。
-    monthly/quarterly 因子在日轴上 forward-fill。
+    每个交易日计算 composite。start 缺省 = 5 年前（snapshot 体积考虑）。
+    返回 {dates, market_temperature, by_category, benchmark, regimes, hmm_history}。
     """
     end_dt = pd.Timestamp(end) if end else pd.Timestamp.now().normalize()
+    if start is None:
+        start = (end_dt - pd.DateOffset(years=5)).strftime("%Y-%m-%d")
     target = pd.bdate_range(start=start, end=end_dt)
 
     # 1. 收集每个因子的方向化 rolling percentile（统一对齐到 target 业务日轴）
@@ -484,15 +483,15 @@ def compute_composite_history(
 
     # 序列化
     dates = [d.strftime("%Y-%m-%d") for d in composite_df.index]
-    out_cats = {cat: [None if pd.isna(v) else round(float(v), 2) for v in s.tolist()]
+    out_cats = {cat: [None if pd.isna(v) else round(float(v), 1) for v in s.tolist()]
                 for cat, s in sub_scores.items()}
 
     # 6. HMM 三态历史概率（与 target 业务日轴对齐）
     hmm_hist: dict[str, list] = {"bull": [], "neutral": [], "bear": []}
     try:
         if not wil_full.empty:
-            from regime.hmm_states import fit_hmm_3state
-            hmm = fit_hmm_3state(wil_full, seed=42)
+            from regime.hmm_states import fit_hmm_3state_cached
+            hmm = fit_hmm_3state_cached(wil_full, seed=42)
             probs_df = hmm["probs"] if "probs" in hmm else None
             # fit_hmm_3state 返回的 probs 是 DataFrame；这里我们重新从 raw 算一遍
             # 实际上 fit 已经返回 probs，无需重训
@@ -506,7 +505,7 @@ def compute_composite_history(
                 for col_label in ["bull", "neutral", "bear"]:
                     s = probs_df[f"{col_label}_prob"]
                     aligned = s.reindex(s.index.union(target)).sort_index().ffill().reindex(target)
-                    hmm_hist[col_label] = [None if pd.isna(v) else round(float(v), 4)
+                    hmm_hist[col_label] = [None if pd.isna(v) else round(float(v), 3)
                                             for v in aligned.tolist()]
     except Exception:
         pass
@@ -517,7 +516,7 @@ def compute_composite_history(
         "end": end_dt.strftime("%Y-%m-%d"),
         "weights": dict(COMPOSITE_WEIGHTS),
         "dates": dates,
-        "market_temperature": [None if pd.isna(v) else round(float(v), 2)
+        "market_temperature": [None if pd.isna(v) else round(float(v), 1)
                                for v in market_temp.tolist()],
         "by_category": out_cats,
         "benchmark": {
@@ -589,11 +588,11 @@ def compute_composite(market: str = "US") -> dict:
         out["alerts"] = []
     # L4 HMM 三态识别（牛/熊/震荡）— 价格行为视角，与 L3 温度互为对照
     try:
-        from regime.hmm_states import fit_hmm_3state, compute_hmm_bb_confusion
+        from regime.hmm_states import fit_hmm_3state_cached, compute_hmm_bb_confusion
         wil = read_series_history("US_W5000_RAW", as_of=None)
         if not wil.empty:
             wil.index = pd.to_datetime(wil.index)
-            hmm = fit_hmm_3state(wil, seed=42)
+            hmm = fit_hmm_3state_cached(wil, seed=42)
             out["hmm"] = {
                 "current": hmm["current"],
                 "state_means_annual_pct": hmm["state_means_annual_pct"],

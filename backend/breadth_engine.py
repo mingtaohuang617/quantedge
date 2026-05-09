@@ -117,6 +117,9 @@ def compute_snapshots(
 
     # 切回到用户要求的 start 之后
     out = out[out.index >= pd.Timestamp(start)]
+    # 写入侧守门：universe < 300 视为部分同步污染，丢弃避免污染因子
+    # （SPX 成分股完整应 ~480-500，<300 通常是 yfinance 当天部分失败）
+    out = out[out["universe_size"] >= 300]
     out["snapshot_date"] = out.index.strftime("%Y-%m-%d")
     out["market"] = market
     return out.reset_index(drop=True)
