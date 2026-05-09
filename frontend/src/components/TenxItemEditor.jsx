@@ -120,7 +120,16 @@ export default function TenxItemEditor({ open, item, candidate, supertrends, onC
         t["风险"] && `⚠️ 风险：${t["风险"]}`,
         t["推演结论"] && `🔮 推演：${t["推演结论"]}`,
       ].filter(Boolean).join("\n");
-      setForm((f) => ({ ...f, thesis: merged }));
+      // LLM 给的结构化数字（瓶颈层级 1-2 / 卡位等级 1-5）预填到表单；
+      // 非数字时保留原值，避免覆盖用户已手填的数字
+      const layerInt = t["瓶颈层级_int"];
+      const moatInt = t["卡位等级_int"];
+      setForm((f) => ({
+        ...f,
+        thesis: merged,
+        bottleneck_layer: Number.isInteger(layerInt) ? layerInt : f.bottleneck_layer,
+        moat_score: Number.isInteger(moatInt) ? moatInt : f.moat_score,
+      }));
       setLlmState({ loading: false, error: null, cached: !!json.cached });
     } catch (e) {
       setLlmState({ loading: false, error: String(e.message || e), cached: false });

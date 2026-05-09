@@ -20,12 +20,22 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import {
   Target, Layers, Plus, Edit2, Trash2, RefreshCw, Loader, AlertCircle,
-  Filter, Search, Database, Star, ChevronRight, Globe,
+  Filter, Search, Database, Star, ChevronRight, Globe, Sparkles, X,
 } from "lucide-react";
 import { apiFetch } from "../quant-platform.jsx";
 import TenxItemEditor from "../components/TenxItemEditor.jsx";
+import AddSupertrendDialog from "../components/AddSupertrendDialog.jsx";
 
 const STRATEGY_LABEL = { growth: "成长型", value: "价值型" };
+
+// production fallback：vercel 部署没有 FastAPI backend 时，至少能看到 4 个内置赛道。
+// 数据须与 backend/sector_mapping.py SUPERTRENDS 保持一致；筛选/观察操作仍需 self-hosted backend。
+const BUILTIN_SUPERTRENDS_FALLBACK = [
+  { id: "ai_compute", name: "AI 算力", note: "AI 软硬件 / 加速器 / HBM / AI 应用", source: "builtin" },
+  { id: "semi", name: "半导体", note: "设计、制造、设备、材料、存储", source: "builtin" },
+  { id: "optical", name: "光通信", note: "光模块、硅光、CPO、激光器、光纤", source: "builtin" },
+  { id: "datacenter", name: "算力中心", note: "数据中心 / 电力 / 公共事业", source: "builtin" },
+];
 
 function fmtMcap(mc) {
   if (mc == null) return "—";
@@ -40,9 +50,11 @@ export default function Screener10x() {
   const [supertrends, setSupertrends] = useState([]);
   const [items, setItems] = useState([]);                   // watchlist
   const [universeStats, setUniverseStats] = useState(null);
+  const [isDemoMode, setIsDemoMode] = useState(false);      // production 后端不可用 → fallback
   // 筛选条件
   const [selectedTrends, setSelectedTrends] = useState([]); // string[]
-  const [maxMcapB, setMaxMcapB] = useState(50);             // 单位 B
+  const [maxMcapInput, setMaxMcapInput] = useState(50);     // 单位 B（input 即时绑定）
+  const [maxMcapB, setMaxMcapB] = useState(50);             // 300ms debounced，喂 runScreen
   const [includeETF, setIncludeETF] = useState(false);
   const [precise, setPrecise] = useState(false);    // 精严模式：仅核心赛道关键词
   const [markets, setMarkets] = useState(["US", "HK", "CN"]);
@@ -51,10 +63,18 @@ export default function Screener10x() {
   const [candidates, setCandidates] = useState([]);
   const [loadingCands, setLoadingCands] = useState(false);
   const [errorCands, setErrorCands] = useState(null);
+  // AI 排序：{ ticker: { moat_score, reason } }
+  const [aiRanking, setAiRanking] = useState({});
+  const [aiRankingState, setAiRankingState] = useState({ loading: false, error: null });
+  // AI 赛道校验：最近一次结果
+  const [aiMatchResult, setAiMatchResult] = useState(null); // { ticker, matched, reason, confidence, error? }
+  const [aiMatchLoading, setAiMatchLoading] = useState(null); // 当前 loading 的 ticker
   // 编辑器
   const [editorOpen, setEditorOpen] = useState(false);
   const [editing, setEditing] = useState(null);             // null = 新增
   const [pendingCandidate, setPendingCandidate] = useState(null);
+  // 添加赛道对话框
+  const [addTrendOpen, setAddTrendOpen] = useState(false);
 
   // ── 拉初始数据（watchlist + universe stats）─────────────
   const reloadWatchlist = useCallback(async () => {
@@ -62,6 +82,13 @@ export default function Screener10x() {
     if (json) {
       setSupertrends(json.supertrends || []);
       setItems(json.items || []);
+      setIsDemoMode(false);
+    } else {
+      // backend 不可用（如 production vercel SPA）：退回内置赛道，让 UI 可见；
+      // 筛选 / 添加观察会失败，由各路径的 errorCands 反馈
+      setSupertrends(BUILTIN_SUPERTRENDS_FALLBACK);
+      setItems([]);
+      setIsDemoMode(true);
     }
   }, []);
 
@@ -74,6 +101,14 @@ export default function Screener10x() {
     reloadWatchlist();
     reloadUniverseStats();
   }, [reloadWatchlist, reloadUniverseStats]);
+
+  // ── mcap input debounce（300ms）─────────────────────────
+  // 用户在 input 里改数字时实时更新 maxMcapInput；停手 300ms 后才更新 maxMcapB，
+  // 避免每个数字都触发后端 screen
+  useEffect(() => {
+    const t = setTimeout(() => setMaxMcapB(maxMcapInput), 300);
+    return () => clearTimeout(t);
+  }, [maxMcapInput]);
 
   // ── 候选筛选（赛道 / 市值 / 市场变化时 trigger）─────────
   const runScreen = useCallback(async () => {
@@ -104,25 +139,121 @@ export default function Screener10x() {
   }, [selectedTrends, markets, maxMcapB, includeETF, precise]);
 
   // 自动 re-screen（赛道 / 市场 / 市值上限 / ETF / 精严切换都会触发）
+  // 注：items 变化（加入/删除观察）不在此触发，由 handleSaved / handleDelete 主动处理：
+  //   - 加入：本地 splice 掉刚加入的 ticker，省一次 screen
+  //   - 删除：显式调 runScreen 让 ticker 回到候选
   useEffect(() => {
-    if (selectedTrends.length > 0) runScreen();
-    else setCandidates([]);
-  }, [runScreen, selectedTrends]);
-
-  // 也在 items 变化时重跑（加入/删除观察后）
-  useEffect(() => {
-    if (selectedTrends.length > 0) runScreen();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items.length]);
+    if (selectedTrends.length === 0) {
+      setCandidates([]);
+      setErrorCands(null);
+      return;
+    }
+    if (isDemoMode) {
+      // 后端不可用 — 跳过 screen 调用，给一段友好提示替代"后端无响应"
+      setCandidates([]);
+      setErrorCands("演示模式：候选筛选需要后端 API。请 self-host 后端（参见 README）后再试。");
+      return;
+    }
+    runScreen();
+  }, [runScreen, selectedTrends, isDemoMode]);
 
   // ── 候选搜索过滤（前端） ─────────────────────────────
   const filteredCandidates = useMemo(() => {
-    if (!search) return candidates;
-    const q = search.toLowerCase();
-    return candidates.filter((c) =>
-      c.ticker.toLowerCase().includes(q) || (c.name || "").toLowerCase().includes(q)
-    );
-  }, [candidates, search]);
+    let cs = candidates;
+    if (search) {
+      const q = search.toLowerCase();
+      cs = cs.filter((c) =>
+        c.ticker.toLowerCase().includes(q) || (c.name || "").toLowerCase().includes(q)
+      );
+    }
+    // AI 排序：拿到 moat_score 的标的优先，按分数降序；其余保持原顺序在后
+    if (Object.keys(aiRanking).length > 0) {
+      const ranked = cs.filter((c) => aiRanking[c.ticker] != null);
+      const unranked = cs.filter((c) => aiRanking[c.ticker] == null);
+      ranked.sort((a, b) =>
+        (aiRanking[b.ticker]?.moat_score || 0) - (aiRanking[a.ticker]?.moat_score || 0)
+      );
+      cs = [...ranked, ...unranked];
+    }
+    return cs;
+  }, [candidates, search, aiRanking]);
+
+  // candidates 一旦刷新（赛道/市场/市值切换），清空 AI 排序
+  useEffect(() => {
+    setAiRanking({});
+    setAiRankingState({ loading: false, error: null });
+  }, [candidates]);
+
+  // ── AI 赛道校验：让 LLM 判断这只票是否真属于已勾选赛道 ───
+  const handleAiMatch = useCallback(async (candidate) => {
+    if (selectedTrends.length === 0 || !candidate?.ticker) return;
+    setAiMatchLoading(candidate.ticker);
+    try {
+      const json = await apiFetch("/llm/match-supertrend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ticker: candidate.ticker,
+          name: candidate.name,
+          sector: candidate.sector,
+          industry: candidate.industry,
+          // 限定 LLM 只在用户已勾选的赛道里选；候选很广时 LLM 容易胡判
+          candidate_ids: selectedTrends,
+        }),
+      });
+      if (!json) throw new Error("后端无响应");
+      if (!json.ok) throw new Error(json.error || "AI 校验失败");
+      setAiMatchResult({
+        ticker: candidate.ticker,
+        name: candidate.name,
+        matched: json.matched || [],
+        reason: json.reason || "",
+        confidence: json.confidence ?? 0,
+        cached: !!json.cached,
+      });
+    } catch (e) {
+      setAiMatchResult({
+        ticker: candidate.ticker,
+        name: candidate.name,
+        error: String(e.message || e),
+      });
+    } finally {
+      setAiMatchLoading(null);
+    }
+  }, [selectedTrends]);
+
+  // ── AI 排序：取 top 10 候选送 LLM 打 moat_score ───────
+  const handleAiRank = useCallback(async () => {
+    if (selectedTrends.length === 0 || candidates.length === 0) return;
+    setAiRankingState({ loading: true, error: null });
+    try {
+      const top = candidates.slice(0, 10).map((c) => ({
+        ticker: c.ticker,
+        name: c.name,
+        sector: c.sector,
+        industry: c.industry,
+        marketCap: c.marketCap,
+      }));
+      const json = await apiFetch("/llm/rank-candidates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          supertrend_id: selectedTrends[0],   // 用第一个勾选的赛道
+          candidates: top,
+        }),
+      });
+      if (!json) throw new Error("后端无响应（DEEPSEEK_API_KEY 未配置或网络问题）");
+      if (!json.ok) throw new Error(json.error || "AI 排序失败");
+      const map = {};
+      for (const r of json.rankings || []) {
+        if (r.ticker) map[r.ticker] = { moat_score: r.moat_score, reason: r.reason };
+      }
+      setAiRanking(map);
+      setAiRankingState({ loading: false, error: null });
+    } catch (e) {
+      setAiRankingState({ loading: false, error: String(e.message || e) });
+    }
+  }, [selectedTrends, candidates]);
 
   // ── 交互 ────────────────────────────────────────────
   const toggleTrend = (id) => {
@@ -145,16 +276,24 @@ export default function Screener10x() {
   };
 
   const handleSaved = async () => {
+    // 编辑模式拿 editing.ticker；新增模式拿 pendingCandidate.ticker
+    const justAddedTicker = !editing ? pendingCandidate?.ticker : null;
     setEditorOpen(false);
     setEditing(null);
     setPendingCandidate(null);
     await reloadWatchlist();
+    // 加入观察：本地剔除候选，省一次 screen 调用
+    if (justAddedTicker) {
+      setCandidates((cur) => cur.filter((c) => c.ticker !== justAddedTicker));
+    }
   };
 
   const handleDelete = async (ticker) => {
     if (!window.confirm(`从观察列表删除 ${ticker}？`)) return;
     await apiFetch(`/watchlist/10x/${encodeURIComponent(ticker)}`, { method: "DELETE" });
     await reloadWatchlist();
+    // 删除后让 ticker 重新进入候选列表
+    if (selectedTrends.length > 0) runScreen();
   };
 
   const trendName = (id) => supertrends.find((s) => s.id === id)?.name || id;
@@ -168,6 +307,14 @@ export default function Screener10x() {
           <Target size={16} className="text-amber-400" />
           <span className="text-sm font-semibold text-white">10x 猎手</span>
           <span className="text-[10px] text-[#a0aec0]">成长型 · 价值型即将上线</span>
+          {isDemoMode && (
+            <span
+              className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30"
+              title="后端不可用：仅展示内置赛道；筛选 / 添加观察 / AI 草稿需 self-hosted backend"
+            >
+              演示模式
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-3 text-[10px] text-[#a0aec0]">
           {universeStats && (
@@ -222,8 +369,18 @@ export default function Screener10x() {
               );
             })}
           </div>
-          <div className="px-3 py-2 border-t border-white/8 text-[9px] text-[#7a8497]">
-            内置 4 个赛道，关键词在 backend/sector_mapping.py
+          <div className="px-3 py-2 border-t border-white/8 flex items-center gap-2">
+            <button
+              onClick={() => setAddTrendOpen(true)}
+              disabled={isDemoMode}
+              className="flex items-center gap-1 px-2 py-1 text-[10px] rounded bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-200 border border-indigo-500/40 transition disabled:opacity-40 disabled:cursor-not-allowed"
+              title={isDemoMode ? "需后端 + KV 才能添加" : "添加自定义赛道（含 AI 关键词生成）"}
+            >
+              <Plus size={10} /> 自定义赛道
+            </button>
+            <span className="text-[9px] text-[#7a8497] flex-1 truncate">
+              内置 4 个 · 关键词在 sector_mapping
+            </span>
           </div>
         </div>
 
@@ -247,13 +404,34 @@ export default function Screener10x() {
               />
             </div>
 
-            {/* 市值上限 */}
+            {/* AI 排序：按 LLM 给的卡位独特性打分，最多 10 只候选 */}
+            <button
+              onClick={handleAiRank}
+              disabled={
+                aiRankingState.loading || isDemoMode ||
+                selectedTrends.length === 0 || candidates.length === 0
+              }
+              className="flex items-center gap-1 px-2 py-0.5 text-[10px] rounded bg-violet-500/15 hover:bg-violet-500/25 text-violet-200 border border-violet-500/40 transition disabled:opacity-40 disabled:cursor-not-allowed"
+              title={
+                isDemoMode ? "需要 DEEPSEEK_API_KEY" :
+                selectedTrends.length > 1 ? "用第一个勾选的赛道排序" :
+                "对 top 10 候选用 LLM 打卡位独特性 1-5 分"
+              }
+            >
+              {aiRankingState.loading ? (
+                <><Loader size={10} className="animate-spin" /> 排序中</>
+              ) : (
+                <><Sparkles size={10} /> AI 排序</>
+              )}
+            </button>
+
+            {/* 市值上限（300ms debounced） */}
             <label className="flex items-center gap-1 text-[10px] text-[#a0aec0]">
               max
               <input
                 type="number"
-                value={maxMcapB}
-                onChange={(e) => setMaxMcapB(Number(e.target.value) || 0)}
+                value={maxMcapInput}
+                onChange={(e) => setMaxMcapInput(Number(e.target.value) || 0)}
                 className="w-12 px-1 py-0.5 text-[10px] bg-white/5 border border-white/10 rounded text-white focus:outline-none"
               />
               B
@@ -322,9 +500,68 @@ export default function Screener10x() {
                 <span>{errorCands}</span>
               </div>
             )}
+            {aiRankingState.error && (
+              <div className="m-3 p-2 bg-amber-500/10 border border-amber-500/30 rounded text-[10px] text-amber-300/90 flex items-start gap-1">
+                <AlertCircle size={11} className="text-amber-400 shrink-0 mt-0.5" />
+                <span>AI 排序：{aiRankingState.error}</span>
+              </div>
+            )}
+            {aiMatchResult && (
+              <div className="m-3 p-2 bg-violet-500/10 border border-violet-500/30 rounded text-[10px] text-violet-100/90 flex items-start gap-2">
+                <Sparkles size={11} className="text-violet-400 shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1 mb-1">
+                    <span className="font-mono text-[10px] text-white">{aiMatchResult.ticker}</span>
+                    {aiMatchResult.name && (
+                      <span className="text-[9px] text-[#a0aec0] truncate">{aiMatchResult.name}</span>
+                    )}
+                    {aiMatchResult.cached && <span className="text-[8px] text-amber-300/70">cached</span>}
+                  </div>
+                  {aiMatchResult.error ? (
+                    <div className="text-amber-300/90">{aiMatchResult.error}</div>
+                  ) : aiMatchResult.matched && aiMatchResult.matched.length > 0 ? (
+                    <>
+                      <div className="flex flex-wrap items-center gap-1 mb-1">
+                        <span className="text-[9px] text-[#a0aec0]">AI 认为属于：</span>
+                        {aiMatchResult.matched.map((t) => (
+                          <span key={t} className="text-[9px] px-1 py-px rounded bg-violet-500/20 text-violet-200 border border-violet-500/40">
+                            {trendName(t)}
+                          </span>
+                        ))}
+                        <span className="text-[8px] text-[#7a8497] ml-1">
+                          置信度 {(aiMatchResult.confidence * 100).toFixed(0)}%
+                        </span>
+                      </div>
+                      {aiMatchResult.reason && (
+                        <div className="text-[10px] text-[#d0d7e2]/85 leading-relaxed">{aiMatchResult.reason}</div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="text-amber-300/90">
+                      AI 不认为这只票属于已勾选的赛道
+                      {aiMatchResult.confidence != null && (
+                        <span className="text-[8px] text-[#7a8497] ml-2">
+                          置信度 {(aiMatchResult.confidence * 100).toFixed(0)}%
+                        </span>
+                      )}
+                      {aiMatchResult.reason && (
+                        <div className="text-[10px] text-[#d0d7e2]/85 leading-relaxed mt-1">{aiMatchResult.reason}</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={() => setAiMatchResult(null)}
+                  className="text-[#7a8497] hover:text-white p-0.5 rounded hover:bg-white/5 transition"
+                  title="关闭"
+                >
+                  <X size={10} />
+                </button>
+              </div>
+            )}
             {!loadingCands && !errorCands && selectedTrends.length > 0 && filteredCandidates.length === 0 && (
               <div className="h-full flex items-center justify-center text-[11px] text-[#7a8497] p-4 text-center">
-                没有匹配的候选股 — 尝试放宽市值上限、勾选更多赛道、或启用 ETF
+                没有匹配的候选股 — 尝试放宽市值上限、勾选更多赛道、{precise ? "关闭精严模式、" : ""}或启用 ETF
               </div>
             )}
             {!loadingCands && filteredCandidates.length > 0 && (
@@ -336,36 +573,72 @@ export default function Screener10x() {
                     <th className="text-left px-2 py-1.5">市场</th>
                     <th className="text-left px-2 py-1.5">行业</th>
                     <th className="text-right px-2 py-1.5">市值</th>
+                    {Object.keys(aiRanking).length > 0 && (
+                      <th className="text-center px-2 py-1.5 text-violet-300">AI 卡位</th>
+                    )}
                     <th className="text-left px-2 py-1.5">命中</th>
                     <th className="px-2 py-1.5"></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredCandidates.map((c) => (
-                    <tr key={c.ticker} className="border-t border-white/5 hover:bg-white/[0.02] transition">
-                      <td className="px-2 py-1.5 font-mono text-[10px] text-white">{c.ticker}</td>
-                      <td className="px-2 py-1.5 text-[10px] text-[#d0d7e2] truncate max-w-[140px]" title={c.name}>{c.name}</td>
-                      <td className="px-2 py-1.5 text-[9px] text-[#a0aec0]">{c.market}{c.exchange && `·${c.exchange}`}</td>
-                      <td className="px-2 py-1.5 text-[9px] text-[#a0aec0] truncate max-w-[100px]" title={c.sector || c.industry}>{c.sector || c.industry || "—"}</td>
-                      <td className="px-2 py-1.5 text-right font-mono text-[10px] text-[#d0d7e2]">{fmtMcap(c.marketCap)}</td>
-                      <td className="px-2 py-1.5">
-                        <div className="flex flex-wrap gap-0.5">
-                          {(c.matched_supertrends || []).map((t) => (
-                            <span key={t} className="text-[8px] px-1 py-px rounded bg-cyan-500/15 text-cyan-200 border border-cyan-500/30">{trendName(t)}</span>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="px-2 py-1.5 text-right">
-                        <button
-                          onClick={() => openAdd(c)}
-                          className="flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] rounded bg-indigo-500/15 hover:bg-indigo-500/30 text-indigo-200 border border-indigo-500/40 transition"
-                          title="加入观察"
-                        >
-                          <Plus size={9} /> 观察
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {filteredCandidates.map((c) => {
+                    const ai = aiRanking[c.ticker];
+                    return (
+                      <tr key={c.ticker} className="border-t border-white/5 hover:bg-white/[0.02] transition">
+                        <td className="px-2 py-1.5 font-mono text-[10px] text-white">{c.ticker}</td>
+                        <td className="px-2 py-1.5 text-[10px] text-[#d0d7e2] truncate max-w-[140px]" title={c.name}>{c.name}</td>
+                        <td className="px-2 py-1.5 text-[9px] text-[#a0aec0]">{c.market}{c.exchange && `·${c.exchange}`}</td>
+                        <td className="px-2 py-1.5 text-[9px] text-[#a0aec0] truncate max-w-[100px]" title={c.sector || c.industry}>{c.sector || c.industry || "—"}</td>
+                        <td className="px-2 py-1.5 text-right font-mono text-[10px] text-[#d0d7e2]">{fmtMcap(c.marketCap)}</td>
+                        {Object.keys(aiRanking).length > 0 && (
+                          <td className="px-2 py-1.5 text-center" title={ai?.reason || "未排序"}>
+                            {ai ? (
+                              <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold ${
+                                ai.moat_score >= 4 ? "bg-violet-500/20 text-violet-200 border border-violet-500/40" :
+                                ai.moat_score === 3 ? "bg-white/5 text-[#a0aec0] border border-white/15" :
+                                "bg-white/[0.02] text-[#7a8497] border border-white/10"
+                              }`}>{ai.moat_score}</span>
+                            ) : (
+                              <span className="text-[9px] text-[#5a6477]">—</span>
+                            )}
+                          </td>
+                        )}
+                        <td className="px-2 py-1.5">
+                          <div className="flex flex-wrap gap-0.5">
+                            {(c.matched_supertrends || []).map((t) => (
+                              <span key={t} className="text-[8px] px-1 py-px rounded bg-cyan-500/15 text-cyan-200 border border-cyan-500/30">{trendName(t)}</span>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="px-2 py-1.5 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              onClick={() => handleAiMatch(c)}
+                              disabled={aiMatchLoading === c.ticker || isDemoMode}
+                              className="flex items-center justify-center w-5 h-5 text-[9px] rounded bg-violet-500/10 hover:bg-violet-500/25 text-violet-300 border border-violet-500/30 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                              title={
+                                isDemoMode ? "需要 DEEPSEEK_API_KEY" :
+                                "AI 校验：让 LLM 判断这只票是否真属于已勾选赛道"
+                              }
+                            >
+                              {aiMatchLoading === c.ticker ? (
+                                <Loader size={9} className="animate-spin" />
+                              ) : (
+                                <Sparkles size={9} />
+                              )}
+                            </button>
+                            <button
+                              onClick={() => openAdd(c)}
+                              className="flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] rounded bg-indigo-500/15 hover:bg-indigo-500/30 text-indigo-200 border border-indigo-500/40 transition"
+                              title="加入观察"
+                            >
+                              <Plus size={9} /> 观察
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             )}
@@ -406,6 +679,16 @@ export default function Screener10x() {
         supertrends={supertrends}
         onClose={() => { setEditorOpen(false); setEditing(null); setPendingCandidate(null); }}
         onSaved={handleSaved}
+      />
+
+      {/* 添加赛道对话框 */}
+      <AddSupertrendDialog
+        open={addTrendOpen}
+        onClose={() => setAddTrendOpen(false)}
+        onSaved={async () => {
+          setAddTrendOpen(false);
+          await reloadWatchlist();   // 刷新 supertrends 列表，新赛道立刻可勾选
+        }}
       />
     </div>
   );
