@@ -81,6 +81,23 @@ CREATE TABLE IF NOT EXISTS sync_state (
   consec_fails    INTEGER NOT NULL DEFAULT 0
 );
 
+-- 交易记录（A6 — Sprint 3）
+-- 用户手动录入的买卖交易；持仓 = 所有 transactions 的 FIFO/加权平均聚合
+CREATE TABLE IF NOT EXISTS transactions (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  ticker        TEXT NOT NULL,
+  side          TEXT NOT NULL CHECK(side IN ('buy', 'sell')),
+  qty           REAL NOT NULL CHECK(qty > 0),
+  price         REAL NOT NULL CHECK(price > 0),
+  fee           REAL NOT NULL DEFAULT 0,
+  traded_at     TEXT NOT NULL,    -- 'YYYY-MM-DD'
+  journal_ref   INTEGER,          -- 可选关联 journal entry id
+  notes         TEXT,
+  created_at    INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_transactions_ticker ON transactions(ticker);
+CREATE INDEX IF NOT EXISTS idx_transactions_date   ON transactions(traded_at);
+
 -- LLM 响应缓存（B1）
 -- key: 由 (endpoint, model, prompt_hash) 组合，避免重复调 DeepSeek
 CREATE TABLE IF NOT EXISTS llm_cache (
@@ -247,14 +264,43 @@ def normalize_ticker(cfg: dict) -> str:
 
 
 # ── 写入 ──────────────────────────────────────────────────
+def _is_sane_bar(r: dict) -> bool:
+    """
+    数据 sanity guard：拒绝异常 row（写库前最后一道防线）。
+    - close 必须是有限正数（NaN / inf / ≤0 全拒）
+    - 已知症状: yfinance dividend-adjusted close 在多次拆股+大额股息时偶尔产生负值
+    - high/low 颠倒、未来日期等暂不阻塞（仅日志），避免误杀边界 case
+    """
+    import math
+    close = r.get("close")
+    if close is None:
+        return False
+    try:
+        c = float(close)
+    except (TypeError, ValueError):
+        return False
+    if math.isnan(c) or math.isinf(c) or c <= 0:
+        return False
+    return True
+
+
 def upsert_bars(ticker: str, rows: list[dict], source: str) -> int:
     """
     rows: [{trade_date, open, high, low, close, volume, amount, adj_factor}, ...]
     冲突策略: 仅当新源优先级 ≥ 旧源时覆盖。
-    返回入参 rows 长度（实际写入未必每行都生效，但事务整体成功）。
+    sanity: close ≤ 0 / NaN / inf 的 row 自动跳过并日志。
+    返回 *实际写入* 的行数（被 sanity 过滤掉的不计）。
     """
     if not rows:
         return 0
+    # Sanity 过滤
+    sane = [r for r in rows if _is_sane_bar(r)]
+    skipped = len(rows) - len(sane)
+    if skipped > 0:
+        print(f"[db] {ticker} ({source}): skipped {skipped} insane row(s) (close<=0/NaN)")
+    if not sane:
+        return 0
+    rows = sane
     new_prio = SOURCE_PRIORITY.get(source, 0)
 
     sql = """
@@ -446,6 +492,120 @@ def db_stats() -> dict:
             "FROM daily_bars GROUP BY ticker ORDER BY bars DESC"
         )
     ]
+    return out
+
+
+# ── 交易记录 / 持仓 (A6 - Sprint 3) ──────────────────────
+def insert_transaction(
+    ticker: str, side: str, qty: float, price: float,
+    *, fee: float = 0.0, traded_at: str | None = None,
+    journal_ref: int | None = None, notes: str | None = None,
+) -> int:
+    """插入一条交易，返回新行 id。traded_at 缺省取今天。"""
+    if side not in ("buy", "sell"):
+        raise ValueError(f"side 必须是 buy 或 sell，收到: {side}")
+    if qty <= 0 or price <= 0:
+        raise ValueError("qty / price 必须 > 0")
+    from datetime import date as _date
+    if traded_at is None:
+        traded_at = _date.today().isoformat()
+    now_ms = int(time.time() * 1000)
+    with transaction() as conn:
+        cur = conn.execute(
+            """INSERT INTO transactions (ticker, side, qty, price, fee, traded_at, journal_ref, notes, created_at)
+               VALUES (?,?,?,?,?,?,?,?,?)""",
+            (ticker, side, qty, price, fee, traded_at, journal_ref, notes, now_ms),
+        )
+        return cur.lastrowid
+
+
+def list_transactions(ticker: str | None = None, limit: int = 200) -> list[dict]:
+    conn = _get_conn()
+    if ticker:
+        cur = conn.execute(
+            "SELECT * FROM transactions WHERE ticker=? ORDER BY traded_at DESC, id DESC LIMIT ?",
+            (ticker, limit),
+        )
+    else:
+        cur = conn.execute(
+            "SELECT * FROM transactions ORDER BY traded_at DESC, id DESC LIMIT ?",
+            (limit,),
+        )
+    return [dict(r) for r in cur.fetchall()]
+
+
+def delete_transaction(tx_id: int) -> bool:
+    with transaction() as conn:
+        cur = conn.execute("DELETE FROM transactions WHERE id=?", (tx_id,))
+        return cur.rowcount > 0
+
+
+def compute_positions() -> list[dict]:
+    """
+    用加权平均成本聚合每只 ticker 的持仓:
+      - 净持仓量 net_qty = sum(buy.qty) - sum(sell.qty)
+      - 平均成本 avg_cost = sum(buy.qty * buy.price + buy.fee) / sum(buy.qty)（仅买入计成本）
+      - 已实现 P&L 简化：sum(sell.qty * (sell.price - avg_cost_at_time))（这里用最终 avg_cost 近似）
+      - 未实现 P&L = net_qty * (latest_close - avg_cost) — latest_close 来自 daily_bars 最新一行
+    返回每行: {ticker, net_qty, avg_cost, latest_close, market_value, unrealized_pnl, realized_pnl}
+    净持仓为 0 的标的不返回。
+    """
+    conn = _get_conn()
+    # 拿所有交易按 ticker 分组
+    txs = [dict(r) for r in conn.execute(
+        "SELECT ticker, side, qty, price, fee FROM transactions ORDER BY traded_at, id"
+    )]
+    by_ticker: dict[str, list[dict]] = {}
+    for t in txs:
+        by_ticker.setdefault(t["ticker"], []).append(t)
+
+    out = []
+    for ticker, ts in by_ticker.items():
+        buy_qty = sum(t["qty"] for t in ts if t["side"] == "buy")
+        sell_qty = sum(t["qty"] for t in ts if t["side"] == "sell")
+        net_qty = buy_qty - sell_qty
+        # 简化：忽略卖出后再买入的复杂场景
+        if buy_qty <= 0:
+            continue
+        total_cost = sum(t["qty"] * t["price"] + (t.get("fee") or 0) for t in ts if t["side"] == "buy")
+        avg_cost = total_cost / buy_qty
+        realized = sum(t["qty"] * (t["price"] - avg_cost) - (t.get("fee") or 0)
+                       for t in ts if t["side"] == "sell")
+
+        # 拿最新 close
+        latest_row = conn.execute(
+            "SELECT close FROM daily_bars WHERE ticker=? ORDER BY trade_date DESC LIMIT 1",
+            (ticker,),
+        ).fetchone()
+        latest_close = float(latest_row["close"]) if latest_row else None
+
+        if net_qty <= 0:
+            # 已清仓 — 仅显示已实现 P&L
+            out.append({
+                "ticker": ticker, "net_qty": 0, "avg_cost": round(avg_cost, 4),
+                "latest_close": latest_close, "market_value": 0,
+                "unrealized_pnl": 0, "realized_pnl": round(realized, 2),
+                "closed": True,
+            })
+            continue
+
+        market_value = net_qty * latest_close if latest_close else None
+        unrealized = (net_qty * (latest_close - avg_cost)) if latest_close else None
+
+        out.append({
+            "ticker": ticker,
+            "net_qty": round(net_qty, 4),
+            "avg_cost": round(avg_cost, 4),
+            "latest_close": round(latest_close, 4) if latest_close else None,
+            "market_value": round(market_value, 2) if market_value is not None else None,
+            "unrealized_pnl": round(unrealized, 2) if unrealized is not None else None,
+            "unrealized_pnl_pct": round(unrealized / total_cost * 100, 2) if unrealized is not None and total_cost > 0 else None,
+            "realized_pnl": round(realized, 2),
+            "closed": False,
+        })
+
+    # 按 market_value 降序
+    out.sort(key=lambda x: x.get("market_value") or 0, reverse=True)
     return out
 
 

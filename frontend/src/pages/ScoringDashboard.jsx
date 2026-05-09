@@ -429,10 +429,13 @@ const ScoringDashboard = () => {
     const rawAll = (Array.isArray(candidate) && candidate.length > 0)
       ? candidate
       : (sel.priceHistory || []);
-    // Filter out null/0 prices (sanitized NaN values)
-    const raw = rawAll.filter(d => d.p != null && d.p !== 0);
+    // Filter out null/0/negative prices (sanitized NaN + dividend-adjusted 异常)
+    // 例: yfinance 韩股 SK 海力士 25Y ALL 调整后 close 可能出现负值，导致 basePrice
+    // 算反 + 区间收益变成 -647% 之类的不可能值。
+    const raw = rawAll.filter(d => d.p != null && d.p > 0);
     if (raw.length === 0) return [];
     const basePrice = raw[0].p;
+    if (basePrice <= 0) return [];   // 防御性二次校验
     return raw.map(d => ({
       ...d,
       pct: +((d.p - basePrice) / basePrice * 100).toFixed(2),

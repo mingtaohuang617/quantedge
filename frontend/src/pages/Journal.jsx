@@ -4,7 +4,10 @@
 // ─────────────────────────────────────────────────────────────
 import React, { useState, useEffect, useMemo, useCallback, useContext, useRef } from "react";
 import { BarChart, Bar, XAxis, YAxis, Cell, Tooltip, ResponsiveContainer } from "recharts";
-import { Plus, Search, Loader, Check, Briefcase, Activity, BookOpen, Trash2, Eye, Layers, Globe, ChevronRight, Zap, Database, X, Upload, Sparkles } from "lucide-react";
+import { Plus, Search, Loader, Check, Briefcase, Activity, BookOpen, Trash2, Eye, Layers, Globe, ChevronRight, Zap, Database, X, Upload, Sparkles, FileText } from "lucide-react";
+import PositionsCard from "../components/PositionsCard.jsx";
+import AddTransactionModal from "../components/AddTransactionModal.jsx";
+import MonthlyReviewModal from "../components/MonthlyReviewModal.jsx";
 import { searchTickers as standaloneSearch, fetchStockData, STOCK_CN_NAMES } from "../standalone.js";
 import { useLang } from "../i18n.jsx";
 import {
@@ -240,6 +243,11 @@ const Journal = () => {
   // B5: AI 整理一句话日志 → 结构化字段
   const [aiOrganizing, setAiOrganizing] = useState(false);
   const [aiHint, setAiHint] = useState("");  // 解析提示文本
+  // A6: 录入交易弹窗
+  const [showAddTx, setShowAddTx] = useState(false);
+  const [positionsRefreshKey, setPositionsRefreshKey] = useState(0);
+  // B7: 月度复盘弹窗
+  const [showMonthlyReview, setShowMonthlyReview] = useState(false);
 
   useEffect(() => { if (!sel && entries.length > 0) setSel(entries[0]); }, [entries]);
 
@@ -569,9 +577,23 @@ ${angleQuestion}
   return (
     <div className="flex flex-col md:grid md:grid-cols-12 gap-3 md:gap-4 h-full min-h-0 overflow-auto md:overflow-hidden">
       <div className={`md:col-span-4 flex flex-col gap-3 md:min-h-0 ${mobileShowDetail ? "hidden md:flex" : "flex"}`}>
-        <div className="flex gap-2 shrink-0">
+        <div className="flex gap-2 shrink-0 flex-wrap">
           <button onClick={() => setShowAdd(!showAdd)} className="flex-1 py-2.5 rounded-xl text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 hover:bg-indigo-500/20 flex items-center justify-center gap-1.5">
             <Plus size={14} /> {t('新增看好标的')}
+          </button>
+          {/* A6: 录入交易（结构化 → SQLite transactions） */}
+          <button onClick={() => setShowAddTx(true)}
+            className="px-3 py-2.5 rounded-xl text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 flex items-center gap-1.5"
+            title="结构化录入买卖交易，自动算持仓和浮盈"
+          >
+            <Briefcase size={13} /> 交易
+          </button>
+          {/* B7: 月度复盘 */}
+          <button onClick={() => setShowMonthlyReview(true)}
+            className="px-3 py-2.5 rounded-xl text-xs font-semibold bg-violet-500/10 text-violet-400 border border-violet-500/20 hover:bg-violet-500/20 flex items-center gap-1.5"
+            title="DeepSeek 基于本月交易自动撰写复盘"
+          >
+            <FileText size={13} /> 复盘
           </button>
           {/* C12: CSV 导入按钮 */}
           <button onClick={() => setCsvImportOpen(true)}
@@ -670,7 +692,9 @@ ${angleQuestion}
             </div>
           </div>
         )}
-        {/* 持仓汇总卡片 */}
+        {/* A6: 我的持仓（基于 SQLite transactions，独立于日志的 entries 估算） */}
+        <PositionsCard key={positionsRefreshKey} onAddClick={() => setShowAddTx(true)} />
+        {/* 持仓汇总卡片（旧：基于日志 entries 估算） */}
         {positionSummary && (
           <div className="glass-card p-3 border border-indigo-500/20 animate-slide-up shrink-0">
             <div className="flex items-center justify-between mb-2">
@@ -1133,6 +1157,17 @@ AAPL,50,189.2,2025-04-01
           </div>
         </div>
       )}
+      {/* A6: 录入交易弹窗 */}
+      <AddTransactionModal
+        open={showAddTx}
+        onClose={() => setShowAddTx(false)}
+        onAdded={() => setPositionsRefreshKey(k => k + 1)}
+      />
+      {/* B7: 月度复盘弹窗 */}
+      <MonthlyReviewModal
+        open={showMonthlyReview}
+        onClose={() => setShowMonthlyReview(false)}
+      />
     </div>
   );
 };

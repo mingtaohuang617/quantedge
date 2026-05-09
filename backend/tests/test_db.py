@@ -47,6 +47,62 @@ def test_normalize_ticker_a_share(fresh_db):
 
 
 # ── upsert_bars 跨源优先级 ────────────────────────────────
+# ── 数据 sanity (新加防御) ────────────────────────────────
+def test_upsert_bars_rejects_negative_close(fresh_db):
+    """yfinance dividend-adjusted close 偶尔产生负值 — 必须拒绝"""
+    rows = [
+        {"trade_date": "2026-01-02", "close": 100.0},
+        {"trade_date": "2026-01-03", "close": -50.5},  # 异常负值
+        {"trade_date": "2026-01-04", "close": 102.0},
+    ]
+    fresh_db.upsert_bars("TEST", rows, "yfinance")
+    bars = fresh_db.get_bars("TEST")
+    assert len(bars) == 2  # 负值 row 被过滤
+    assert all(b["close"] > 0 for b in bars)
+
+
+def test_upsert_bars_rejects_zero_close(fresh_db):
+    rows = [{"trade_date": "2026-01-02", "close": 0.0}]
+    fresh_db.upsert_bars("TEST", rows, "yfinance")
+    assert fresh_db.get_bars("TEST") == []
+
+
+def test_upsert_bars_rejects_nan_close(fresh_db):
+    rows = [{"trade_date": "2026-01-02", "close": float("nan")}]
+    fresh_db.upsert_bars("TEST", rows, "yfinance")
+    assert fresh_db.get_bars("TEST") == []
+
+
+def test_upsert_bars_rejects_inf_close(fresh_db):
+    rows = [{"trade_date": "2026-01-02", "close": float("inf")}]
+    fresh_db.upsert_bars("TEST", rows, "yfinance")
+    assert fresh_db.get_bars("TEST") == []
+
+
+def test_upsert_bars_all_insane_returns_zero(fresh_db):
+    """全部 row 都异常时返回 0，不应抛异常"""
+    rows = [
+        {"trade_date": "2026-01-02", "close": -1.0},
+        {"trade_date": "2026-01-03", "close": 0.0},
+    ]
+    n = fresh_db.upsert_bars("TEST", rows, "yfinance")
+    assert n == 0
+    assert fresh_db.get_bars("TEST") == []
+
+
+def test_is_sane_bar_helper(fresh_db):
+    """直接测 helper（保证与 upsert 一致）"""
+    assert fresh_db._is_sane_bar({"close": 100.0}) is True
+    assert fresh_db._is_sane_bar({"close": 0.01}) is True
+    assert fresh_db._is_sane_bar({"close": 0.0}) is False
+    assert fresh_db._is_sane_bar({"close": -1.0}) is False
+    assert fresh_db._is_sane_bar({"close": float("nan")}) is False
+    assert fresh_db._is_sane_bar({"close": float("inf")}) is False
+    assert fresh_db._is_sane_bar({"close": None}) is False
+    assert fresh_db._is_sane_bar({}) is False
+    assert fresh_db._is_sane_bar({"close": "abc"}) is False  # 非数字字符串
+
+
 def test_upsert_bars_inserts_new(fresh_db):
     rows = [
         {"trade_date": "2026-01-02", "close": 100.0, "open": 99, "high": 101, "low": 98},

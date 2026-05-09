@@ -1261,7 +1261,8 @@ export const get5DSparkData = (stk) => {
   } else {
     return [];
   }
-  return pts.map(d => d.p).filter(p => p != null && p !== 0 && Number.isFinite(p));
+  // 数据 sanity（与 standalone.js / db._is_sane_bar 对齐：拒绝 ≤0 / NaN / inf）
+  return pts.map(d => d.p).filter(p => p != null && Number.isFinite(p) && p > 0);
 };
 
 // 可靠的尺寸测量 hook — 用 callback ref，元素挂载时立即触发测量+ResizeObserver

@@ -585,12 +585,18 @@ async function _fetchOneRange(yfSym, rangeKey) {
   const closes = result.indicators?.quote?.[0]?.close || [];
   const history = [];
   for (let i = 0; i < timestamps.length; i++) {
-    if (closes[i] == null) continue;
+    const c = closes[i];
+    // 数据 sanity 入口防御（统一拒绝异常价格）：
+    //  - null / undefined：yfinance 节假日插值
+    //  - NaN / Infinity / 非数字
+    //  - 价格 ≤ 0：dividend-adjusted close 算法在多次拆股+大额股息时偶尔产生负值
+    //    （已知症状: SK 海力士 ALL 范围 25Y 出现 -45 万韩元）
+    if (c == null || !Number.isFinite(c) || c <= 0) continue;
     const m = formatDateKey(timestamps[i], rangeKey);
     if (history.length > 0 && history[history.length - 1].m === m) {
-      history[history.length - 1].p = +(closes[i].toFixed(2));
+      history[history.length - 1].p = +(c.toFixed(2));
     } else {
-      history.push({ m, p: +(closes[i].toFixed(2)) });
+      history.push({ m, p: +(c.toFixed(2)) });
     }
   }
   return history;
@@ -775,13 +781,15 @@ async function _fetchStockDataNoCache(ticker) {
   // Build 1Y price history（不降采样，保留全部日线数据）
   const priceHistory1Y = [];
   for (let i = 0; i < timestamps.length; i++) {
-    if (closes[i] == null) continue;
+    const c = closes[i];
+    // 同 _fetchOneRange 的 sanity 防御：拒 null/NaN/inf/<=0
+    if (c == null || !Number.isFinite(c) || c <= 0) continue;
     const d = new Date(timestamps[i] * 1000);
     const m = `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
     if (priceHistory1Y.length > 0 && priceHistory1Y[priceHistory1Y.length - 1].m === m) {
-      priceHistory1Y[priceHistory1Y.length - 1].p = +(closes[i].toFixed(2));
+      priceHistory1Y[priceHistory1Y.length - 1].p = +(c.toFixed(2));
     } else {
-      priceHistory1Y.push({ m, p: +(closes[i].toFixed(2)) });
+      priceHistory1Y.push({ m, p: +(c.toFixed(2)) });
     }
   }
 
