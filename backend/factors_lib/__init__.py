@@ -392,17 +392,16 @@ def to_percentile_series(
 
 def compute_composite_history(
     market: str = "US",
-    start: str = "2020-01-01",
+    start: str | None = None,
     end: str | None = None,
 ) -> dict:
     """
-    每个交易日计算 composite —— 对所有 17 因子做向量化 rolling percentile，
-    再做方向化 + 类内平均 + 顶层加权。
-
-    返回 {dates, market_temperature, by_category, benchmark}。
-    monthly/quarterly 因子在日轴上 forward-fill。
+    每个交易日计算 composite。start 缺省 = 5 年前（snapshot 体积考虑）。
+    返回 {dates, market_temperature, by_category, benchmark, regimes, hmm_history}。
     """
     end_dt = pd.Timestamp(end) if end else pd.Timestamp.now().normalize()
+    if start is None:
+        start = (end_dt - pd.DateOffset(years=5)).strftime("%Y-%m-%d")
     target = pd.bdate_range(start=start, end=end_dt)
 
     # 1. 收集每个因子的方向化 rolling percentile（统一对齐到 target 业务日轴）
@@ -415,7 +414,8 @@ def compute_composite_history(
             continue
         hist.index = pd.to_datetime(hist.index)
         hist = hist[~hist.index.duplicated(keep="last")].sort_index()
-        pct_s = to_percentile_series(hist, window=spec.rolling_window_days)
+        mp = {"monthly": 60, "weekly": 156}.get(spec.freq, 252)
+        pct_s = to_percentile_series(hist, window=spec.rolling_window_days, min_periods=mp)
         if pct_s.empty:
             continue
         # 方向化：lower_bullish 翻转
@@ -452,19 +452,63 @@ def compute_composite_history(
 
     # 4. 基准走势：用 ^W5000 收盘做参照（用户已 sync）
     bench = pd.Series(dtype=float)
+    wil_full = pd.Series(dtype=float)  # 全历史，给 regime 标注用
     try:
         wil = read_series_history("US_W5000_RAW", as_of=None)
         if not wil.empty:
             wil.index = pd.to_datetime(wil.index)
             wil = wil[~wil.index.duplicated(keep="last")].sort_index()
+            wil_full = wil.copy()
             bench = wil.reindex(wil.index.union(target)).sort_index().ffill().reindex(target)
     except Exception:
         pass
 
+    # 5. 牛熊 regime 段（Lunde-Timmermann 20% 阈值）+ 当前 regime
+    regime_segs: list[dict] = []
+    current_regime: str | None = None
+    if not wil_full.empty:
+        try:
+            from regime import label_bull_bear, regime_segments
+            from regime.bull_bear import annotate_returns
+            labeled = label_bull_bear(wil_full, threshold=0.20)
+            regime_segs = annotate_returns(wil_full, regime_segments(labeled))
+            # 把段裁到 target 区间内（保留与显示窗口重叠的）
+            start_str = pd.Timestamp(start).strftime("%Y-%m-%d")
+            end_str = end_dt.strftime("%Y-%m-%d")
+            regime_segs = [s for s in regime_segs if s["end"] >= start_str and s["start"] <= end_str]
+            if not labeled.empty:
+                current_regime = str(labeled["regime"].iloc[-1])
+        except Exception:
+            pass
+
     # 序列化
     dates = [d.strftime("%Y-%m-%d") for d in composite_df.index]
-    out_cats = {cat: [None if pd.isna(v) else round(float(v), 2) for v in s.tolist()]
+    out_cats = {cat: [None if pd.isna(v) else round(float(v), 1) for v in s.tolist()]
                 for cat, s in sub_scores.items()}
+
+    # 6. HMM 三态历史概率（与 target 业务日轴对齐）
+    hmm_hist: dict[str, list] = {"bull": [], "neutral": [], "bear": []}
+    try:
+        if not wil_full.empty:
+            from regime.hmm_states import fit_hmm_3state_cached
+            hmm = fit_hmm_3state_cached(wil_full, seed=42)
+            probs_df = hmm["probs"] if "probs" in hmm else None
+            # fit_hmm_3state 返回的 probs 是 DataFrame；这里我们重新从 raw 算一遍
+            # 实际上 fit 已经返回 probs，无需重训
+            # 但 fit 返回的 probs 是嵌入在 hmm 字典里
+            # 看 hmm_states.py: probs key 仍然在 fit 字典里
+            if probs_df is None:
+                # fallback: 兼容
+                pass
+            else:
+                # 对齐到 target 日轴
+                for col_label in ["bull", "neutral", "bear"]:
+                    s = probs_df[f"{col_label}_prob"]
+                    aligned = s.reindex(s.index.union(target)).sort_index().ffill().reindex(target)
+                    hmm_hist[col_label] = [None if pd.isna(v) else round(float(v), 3)
+                                            for v in aligned.tolist()]
+    except Exception:
+        pass
 
     return {
         "market": market,
@@ -472,7 +516,7 @@ def compute_composite_history(
         "end": end_dt.strftime("%Y-%m-%d"),
         "weights": dict(COMPOSITE_WEIGHTS),
         "dates": dates,
-        "market_temperature": [None if pd.isna(v) else round(float(v), 2)
+        "market_temperature": [None if pd.isna(v) else round(float(v), 1)
                                for v in market_temp.tolist()],
         "by_category": out_cats,
         "benchmark": {
@@ -480,6 +524,9 @@ def compute_composite_history(
             "values": [None if pd.isna(v) else round(float(v), 2)
                        for v in bench.tolist()] if not bench.empty else [],
         },
+        "regimes": regime_segs,
+        "current_regime": current_regime,
+        "hmm_history": hmm_hist,
     }
 
 
@@ -527,12 +574,59 @@ def compute_composite(market: str = "US") -> dict:
             ws += w
     market_temp = round(ss / ws, 1) if ws > 0 else None
 
-    return {
+    out = {
         "market": market,
         "market_temperature": market_temp,
         "weights": dict(COMPOSITE_WEIGHTS),
         "by_category": by_cat,
     }
+    # L5 顶底双重确认告警（基于本快照即席评估）
+    try:
+        from regime import compute_alerts
+        out["alerts"] = compute_alerts(out)
+    except Exception:
+        out["alerts"] = []
+    # L4 HMM 三态识别（牛/熊/震荡）— 价格行为视角，与 L3 温度互为对照
+    try:
+        from regime.hmm_states import fit_hmm_3state_cached, compute_hmm_bb_confusion
+        wil = read_series_history("US_W5000_RAW", as_of=None)
+        if not wil.empty:
+            wil.index = pd.to_datetime(wil.index)
+            hmm = fit_hmm_3state_cached(wil, seed=42)
+            out["hmm"] = {
+                "current": hmm["current"],
+                "state_means_annual_pct": hmm["state_means_annual_pct"],
+                "state_vols_annual_pct": hmm["state_vols_annual_pct"],
+                "transition_matrix": hmm["transition_matrix"],
+                "transition_labels": hmm["transition_labels"],
+                "n_obs": hmm["n_obs"],
+            }
+            # HMM vs Bry-Boschan 一致性（验证 HMM 学到了对的东西）
+            try:
+                out["hmm"]["vs_bb"] = compute_hmm_bb_confusion(wil, seed=42)
+            except Exception:
+                pass
+    except Exception as e:
+        out["hmm"] = {"error": str(e)}
+
+    # 持续期预测（Kaplan-Meier on Bry-Boschan 段）
+    try:
+        from regime import label_bull_bear, regime_segments, compute_survival_summary
+        from regime.bull_bear import annotate_returns
+        wil = read_series_history("US_W5000_RAW", as_of=None)
+        if not wil.empty:
+            wil.index = pd.to_datetime(wil.index)
+            wil = wil[~wil.index.duplicated(keep="last")].sort_index()
+            labeled = label_bull_bear(wil, threshold=0.20)
+            segs = annotate_returns(wil, regime_segments(labeled))
+            if segs:
+                last = segs[-1]
+                summary = compute_survival_summary(segs, last["regime"], int(last["days"]))
+                out["survival"] = summary
+    except Exception as e:
+        out["survival"] = {"error": str(e)}
+
+    return out
 
 
 # ── 分位数标准化 ─────────────────────────────────────────

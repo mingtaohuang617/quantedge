@@ -41,6 +41,7 @@ import factors_lib.liquidity   # noqa: E402, F401
 import factors_lib.sentiment   # noqa: E402, F401
 import factors_lib.breadth     # noqa: E402, F401
 import factors_lib.valuation   # noqa: E402, F401
+import factors_lib.cn_macro    # noqa: E402, F401
 
 
 SNAPSHOT_PATH = BACKEND.parent / "frontend" / "src" / "macroSnapshot.json"
@@ -113,7 +114,20 @@ def main() -> int:
     composite = fl.compute_composite(market="US")
     print(f"  [ok] composite: temp={composite.get('market_temperature')}")
 
-    history = fl.compute_composite_history(market="US", start="2018-01-01")
+    # AI 市场画像（DeepSeek，缓存 12h）
+    narrative = None
+    try:
+        import llm as _llm
+        nar = _llm.macro_narrative(composite)
+        if nar.get("ok"):
+            narrative = nar.get("narrative")
+            print(f"  [ok] narrative: {len(narrative)} 字 (cached={nar.get('cached')})")
+        else:
+            print(f"  [warn] narrative 失败: {nar.get('error')}")
+    except Exception as e:
+        print(f"  [warn] narrative 跳过: {e}")
+
+    history = fl.compute_composite_history(market="US")  # 默认 5Y window 节省 snapshot 体积
     print(f"  [ok] composite_history: {len(history.get('dates', []))} days")
 
     snapshot = {
@@ -121,6 +135,7 @@ def main() -> int:
         "factors": factors_data,
         "composite": composite,
         "composite_history": history,
+        "narrative": narrative,
     }
     snapshot = _sanitize(snapshot)
 

@@ -9,3 +9,6 @@ python-dotenv
 futu-api
 tushare
 duckdb
+hmmlearn
+openai
+akshare

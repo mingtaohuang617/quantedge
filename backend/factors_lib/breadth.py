@@ -15,11 +15,14 @@ from . import register_factor
 
 
 def _read_breadth_column(column: str, market: str = "US") -> pd.Series:
-    """从 breadth_snapshot 表读一列；index=snapshot_date 字符串。"""
+    """从 breadth_snapshot 表读一列；index=snapshot_date 字符串。
+    自动过滤 universe_size 太小的部分同步天（< 300，对 SPX 500 而言）。"""
     conn = db._get_conn()
     rows = conn.execute(
         f"SELECT snapshot_date, {column} FROM breadth_snapshot "
-        f"WHERE market=? AND {column} IS NOT NULL ORDER BY snapshot_date",
+        f"WHERE market=? AND {column} IS NOT NULL "
+        f"AND universe_size >= 300 "
+        f"ORDER BY snapshot_date",
         (market,),
     ).fetchall()
     if not rows:
@@ -75,7 +78,7 @@ def calc_us_new_high_low_ratio(as_of: Date | str | None = None) -> pd.Series:
     conn = db._get_conn()
     rows = conn.execute(
         "SELECT snapshot_date, new_highs_52w, new_lows_52w, universe_size "
-        "FROM breadth_snapshot WHERE market='US' AND universe_size > 0 "
+        "FROM breadth_snapshot WHERE market='US' AND universe_size >= 300 "
         "ORDER BY snapshot_date"
     ).fetchall()
     if not rows:
@@ -101,7 +104,7 @@ def calc_us_ad_ratio_5d(as_of: Date | str | None = None) -> pd.Series:
     conn = db._get_conn()
     rows = conn.execute(
         "SELECT snapshot_date, advancing, declining FROM breadth_snapshot "
-        "WHERE market='US' ORDER BY snapshot_date"
+        "WHERE market='US' AND universe_size >= 300 ORDER BY snapshot_date"
     ).fetchall()
     if not rows:
         return pd.Series(dtype=float)

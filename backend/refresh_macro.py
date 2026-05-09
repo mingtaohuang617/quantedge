@@ -38,8 +38,10 @@ import factors_lib.liquidity  # noqa: E402, F401
 import factors_lib.sentiment  # noqa: E402, F401
 import factors_lib.breadth    # noqa: E402, F401
 import factors_lib.valuation  # noqa: E402, F401
+import factors_lib.cn_macro   # noqa: E402, F401
 
 from data_sources import multpl_source  # noqa: E402
+from data_sources import cn_macro_source  # noqa: E402
 
 
 # ── FRED 上游序列清单 ─────────────────────────────────────
@@ -107,6 +109,16 @@ def sync_all_series() -> dict[str, int]:
             print(f"  [ok]  {local:20s} <- mlt  {slug:25s} {n:6d} obs  ({time.time()-t0:.1f}s)")
         except Exception as e:
             print(f"  [fail] {local:20s} <- mlt  {slug:25s} {type(e).__name__}: {e}")
+    # A 股对照层（akshare + tushare 北向）
+    t0 = time.time()
+    try:
+        cn_out = cn_macro_source.sync_all()
+        for k, v in cn_out.items():
+            out[k] = v
+            print(f"  [ok]  {k:20s} <- cn   {'akshare/tushare':15s} {v:6d} obs")
+        print(f"  ...A 股共 {len(cn_out)} 序列 ({time.time()-t0:.1f}s)")
+    except Exception as e:
+        print(f"  [fail] CN macro batch: {type(e).__name__}: {e}")
     return out
 
 
@@ -122,7 +134,9 @@ def compute_all_factors() -> dict[str, dict]:
                 continue
             raw = float(hist.iloc[-1])
             last_date = str(hist.index[-1])
-            pct = fl.to_percentile(hist, window=spec.rolling_window_days)
+            # 频率自适应 min_periods：月度 60 / 周度 156 / 日度 252
+            mp = {"monthly": 60, "weekly": 156}.get(spec.freq, 252)
+            pct = fl.to_percentile(hist, window=spec.rolling_window_days, min_periods=mp)
             fl.upsert_factor_value(
                 spec.factor_id, market, last_date,
                 raw_value=raw, percentile=pct, calc_version="v1",

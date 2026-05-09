@@ -7,7 +7,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { Globe, RefreshCw, AlertCircle, Loader } from "lucide-react";
 import {
   ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, ReferenceLine,
+  ResponsiveContainer, ReferenceLine, ReferenceArea,
 } from "recharts";
 import { apiFetch, MiniSparkline } from "../quant-platform.jsx";
 
@@ -108,19 +108,34 @@ function CompositeChart({ history, range, setRange }) {
     { id: "ALL", days: Infinity },
   ];
 
-  const chartData = useMemo(() => {
-    if (!history?.dates?.length) return [];
+  const [showHmm, setShowHmm] = useState(true);
+
+  const { chartData, visibleRegimes } = useMemo(() => {
+    if (!history?.dates?.length) return { chartData: [], visibleRegimes: [] };
     const n = history.dates.length;
     const cur = ranges.find(r => r.id === range) || ranges[2];
     const start = Math.max(0, n - cur.days);
-    return history.dates.slice(start).map((d, i) => {
+    const hmmBull = history.hmm_history?.bull;
+    const data = history.dates.slice(start).map((d, i) => {
       const idx = start + i;
       return {
         date: d,
         temp: history.market_temperature[idx],
         bench: history.benchmark?.values?.[idx],
+        hmmBull: hmmBull && hmmBull[idx] != null ? hmmBull[idx] * 100 : null,
       };
     });
+    if (!data.length) return { chartData: data, visibleRegimes: [] };
+    const visStart = data[0].date;
+    const visEnd = data[data.length - 1].date;
+    const segs = (history.regimes || []).filter(s => s.regime === "bear" && s.end >= visStart && s.start <= visEnd);
+    // 裁到可视区间
+    const clipped = segs.map(s => ({
+      ...s,
+      x1: s.start < visStart ? visStart : s.start,
+      x2: s.end > visEnd ? visEnd : s.end,
+    }));
+    return { chartData: data, visibleRegimes: clipped };
   }, [history, range]);
 
   if (!history?.dates?.length) {
@@ -134,21 +149,47 @@ function CompositeChart({ history, range, setRange }) {
   const tickFmt = (d) => d?.length === 10 ? d.slice(2, 7) : d;
   const tipFmt = (val, name) => {
     if (val == null) return "—";
-    if (name === "温度") return val.toFixed(1);
+    if (name === "L3 温度") return val.toFixed(1);
+    if (name === "HMM 牛%") return val.toFixed(0) + "%";
     if (name === "W5000") return val.toLocaleString();
     return val;
   };
+
+  const hasHmm = chartData.some(d => d.hmmBull != null);
 
   return (
     <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4 mb-4">
       <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
         <div>
-          <div className="text-sm font-medium text-white/85">市场温度历史 · 与 Wilshire 5000 走势对照</div>
+          <div className="text-sm font-medium text-white/85 flex items-center gap-2">
+            市场温度历史 · 与 Wilshire 5000 走势对照
+            {history?.current_regime && (
+              <span className={`text-[10px] px-1.5 py-0.5 rounded border font-mono ${
+                history.current_regime === "bull"
+                  ? "text-emerald-300 bg-emerald-500/10 border-emerald-400/30"
+                  : "text-red-300 bg-red-500/10 border-red-400/30"
+              }`} title="Lunde-Timmermann 20% 阈值机械标注">
+                当前 · {history.current_regime === "bull" ? "牛 ↑" : "熊 ↓"}
+              </span>
+            )}
+          </div>
           <div className="text-[10px] text-white/40 mt-0.5">
             {chartData[0]?.date} → {chartData[chartData.length - 1]?.date} · {chartData.length} 个交易日
+            {visibleRegimes.length > 0 && ` · ${visibleRegimes.length} 段熊市`}
           </div>
         </div>
-        <div className="flex gap-1">
+        <div className="flex gap-1 items-center">
+          {hasHmm && (
+            <button
+              onClick={() => setShowHmm(!showHmm)}
+              className={`px-2 py-0.5 rounded text-[11px] border transition-colors mr-2 ${
+                showHmm
+                  ? "bg-emerald-500/15 border-emerald-400/40 text-emerald-200"
+                  : "bg-white/[0.03] border-white/[0.08] text-white/45 hover:text-white"
+              }`}
+              title="叠加 HMM 牛市概率到温度曲线"
+            >HMM 牛% {showHmm ? "✓" : "○"}</button>
+          )}
           {ranges.map(r => (
             <button
               key={r.id}
@@ -173,13 +214,29 @@ function CompositeChart({ history, range, setRange }) {
                  tick={{ fill: '#94a3b8', fontSize: 10 }} stroke="rgba(148,163,184,0.3)" width={50}
                  tickFormatter={(v) => v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v} />
           <ReferenceLine yAxisId="left" y={50} stroke="rgba(255,255,255,0.15)" strokeDasharray="4 4" />
+          {visibleRegimes.map((s, i) => (
+            <ReferenceArea
+              key={`bear-${i}`}
+              yAxisId="left"
+              x1={s.x1}
+              x2={s.x2}
+              fill="rgba(239, 68, 68, 0.10)"
+              stroke="rgba(239, 68, 68, 0.25)"
+              strokeWidth={0}
+              ifOverflow="hidden"
+            />
+          ))}
           <Tooltip
             contentStyle={{ background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 11 }}
             labelStyle={{ color: '#94a3b8' }}
             formatter={tipFmt}
           />
           <Line yAxisId="left" type="monotone" dataKey="temp" stroke="#fb923c" strokeWidth={1.8}
-                dot={false} name="温度" isAnimationActive={false} />
+                dot={false} name="L3 温度" isAnimationActive={false} />
+          {showHmm && hasHmm && (
+            <Line yAxisId="left" type="monotone" dataKey="hmmBull" stroke="#34d399" strokeWidth={1.2}
+                  strokeDasharray="3 3" dot={false} name="HMM 牛%" isAnimationActive={false} />
+          )}
           <Line yAxisId="right" type="monotone" dataKey="bench" stroke="#94a3b8" strokeWidth={1}
                 dot={false} name="W5000" isAnimationActive={false} />
         </ComposedChart>
@@ -249,6 +306,245 @@ function CompositePanel({ data }) {
           })}
         </div>
       </div>
+
+      {data.hmm?.current && (
+        <HmmPanel hmm={data.hmm} temp={temp} />
+      )}
+
+      {data.survival && !data.survival.error && (
+        <SurvivalPanel s={data.survival} />
+      )}
+    </div>
+  );
+}
+
+// 持续期预测面板（Kaplan-Meier）
+function SurvivalPanel({ s }) {
+  const cn = s.current_regime === "bull" ? "牛" : s.current_regime === "bear" ? "熊" : s.current_regime;
+  const tone = s.current_regime === "bull" ? "text-emerald-300" : "text-red-300";
+  const probs = s.prob_continue || {};
+
+  const probBar = (p) => {
+    if (p == null) return null;
+    const pct = Math.round(p * 100);
+    let color = "bg-slate-400";
+    if (pct >= 70) color = "bg-emerald-400/70";
+    else if (pct >= 40) color = "bg-amber-400/70";
+    else if (pct > 0) color = "bg-orange-400/70";
+    return (
+      <div className="h-1.5 bg-white/[0.05] rounded-full overflow-hidden">
+        <div className={`h-full rounded-full ${color}`} style={{ width: `${Math.max(2, pct)}%` }} />
+      </div>
+    );
+  };
+
+  return (
+    <div className="mt-4 pt-4 border-t border-white/[0.06]">
+      <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-white/55">持续期预测 · Kaplan-Meier</span>
+          <span className="text-[10px] text-white/35 font-mono">
+            ({s.n_past_same_segments} 段历史 {cn} 市)
+          </span>
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-4">
+        {/* 当前 + 历史对比 */}
+        <div className="flex-1 min-w-[260px]">
+          <div className="text-[11px] text-white/55 mb-1">当前 {cn} 市已持续</div>
+          <div className="flex items-baseline gap-2">
+            <span className={`text-3xl font-mono font-bold tabular-nums ${tone}`}>
+              {s.current_duration_days}
+            </span>
+            <span className="text-xs text-white/45">交易日 ≈ {(s.current_duration_days / 252).toFixed(1)} 年</span>
+          </div>
+          <div className="text-[11px] text-white/55 mt-2">
+            历史同类分位 <span className="font-mono text-white/85">{s.current_duration_pct_rank}%</span>
+            <span className="text-white/40"> · 中位数 </span>
+            <span className="font-mono text-white/75">{s.median_past_days}d</span>
+            <span className="text-white/40"> · 最长 </span>
+            <span className="font-mono text-white/75">{s.max_past_days}d</span>
+          </div>
+        </div>
+
+        {/* 3 个 horizon 条件概率 */}
+        <div className="flex-1 min-w-[280px]">
+          <div className="text-[11px] text-white/55 mb-2">再持续 N 期的条件概率</div>
+          <div className="space-y-2">
+            {[["3M", "3 个月"], ["6M", "6 个月"], ["12M", "1 年"]].map(([k, label]) => {
+              const p = probs[k];
+              return (
+                <div key={k}>
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-white/55">{label}</span>
+                    <span className="font-mono tabular-nums text-white/85">
+                      {p != null ? `${(p * 100).toFixed(0)}%` : "—"}
+                    </span>
+                  </div>
+                  {probBar(p)}
+                </div>
+              );
+            })}
+          </div>
+          <div className="text-[10px] text-white/35 mt-2">
+            注：n={s.n_past_same_segments + 1} 小样本，仅供参考；下一拐点需新 event 确认
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// L4 HMM 三态识别面板
+function HmmPanel({ hmm, temp }) {
+  const cur = hmm.current || {};
+  const means = hmm.state_means_annual_pct || {};
+  const vols = hmm.state_vols_annual_pct || {};
+  const tm = hmm.transition_matrix || [];
+  const labels = hmm.transition_labels || ["bull", "neutral", "bear"];
+  const cnLabel = { bull: "牛", neutral: "震荡", bear: "熊" };
+  const cnColor = {
+    bull: "bg-emerald-400/80 text-emerald-300",
+    neutral: "bg-slate-400/70 text-slate-200",
+    bear: "bg-red-400/80 text-red-300",
+  };
+
+  // 主导状态 = current 最高的
+  const dom = ["bull", "neutral", "bear"].reduce((a, b) => (cur[a] || 0) >= (cur[b] || 0) ? a : b, "bull");
+
+  // 与 L3 温度对比的解读
+  const tempBullish = temp != null && temp >= 50;
+  const hmmBullish = dom === "bull";
+  const divergence = tempBullish !== hmmBullish && temp != null;
+
+  return (
+    <div className="mt-4 pt-4 border-t border-white/[0.06]">
+      <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-white/55">L4 HMM 三态识别（W5000 价格行为视角）</span>
+          {divergence && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded border bg-amber-500/10 border-amber-400/30 text-amber-200"
+                  title="HMM（短期价格行为）与 L3 温度（基本面+估值+情绪）方向分歧——常见于顶/底前期">
+              ⚠ 与 L3 温度分歧
+            </span>
+          )}
+        </div>
+        <span className="text-[10px] text-white/35 font-mono">
+          训练样本 {hmm.n_obs} 个交易日
+        </span>
+      </div>
+
+      <div className="flex flex-wrap gap-3">
+        {/* 三态 stacked bar */}
+        <div className="flex-1 min-w-[280px]">
+          <div className="flex w-full h-3 rounded overflow-hidden bg-white/[0.04]">
+            {["bull", "neutral", "bear"].map(s => {
+              const p = (cur[s] || 0) * 100;
+              if (p < 0.5) return null;
+              return (
+                <div key={s}
+                     className={cnColor[s].split(" ")[0]}
+                     style={{ width: `${p}%` }}
+                     title={`${cnLabel[s]} ${p.toFixed(1)}%`} />
+              );
+            })}
+          </div>
+          <div className="grid grid-cols-3 gap-2 mt-2">
+            {["bull", "neutral", "bear"].map(s => (
+              <div key={s} className="text-center">
+                <div className={`text-[10px] ${cnColor[s].split(" ")[1]} font-medium`}>{cnLabel[s]}</div>
+                <div className={`text-lg font-mono font-semibold tabular-nums ${cnColor[s].split(" ")[1]}`}>
+                  {((cur[s] || 0) * 100).toFixed(1)}%
+                </div>
+                <div className="text-[10px] text-white/40 font-mono">
+                  μ {means[s] >= 0 ? "+" : ""}{means[s]}% σ {vols[s]}%
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* 转移矩阵 */}
+        {tm.length === 3 && (
+          <div className="flex-shrink-0">
+            <div className="text-[10px] text-white/45 mb-1">状态转移矩阵（行=今 / 列=明）</div>
+            <div className="text-[10px] font-mono">
+              <div className="grid grid-cols-4 gap-x-1.5 gap-y-0.5">
+                <div></div>
+                {labels.map(l => <div key={l} className={`${cnColor[l].split(" ")[1]} text-center`}>{cnLabel[l]}</div>)}
+                {labels.map((row, i) => (
+                  <React.Fragment key={row}>
+                    <div className={`${cnColor[row].split(" ")[1]} text-right`}>{cnLabel[row]}</div>
+                    {tm[i].map((v, j) => (
+                      <div key={j} className={`text-center tabular-nums ${i === j ? "text-white/85 font-semibold" : "text-white/45"}`}>
+                        {(v * 100).toFixed(0)}
+                      </div>
+                    ))}
+                  </React.Fragment>
+                ))}
+              </div>
+              <div className="text-[9px] text-white/30 mt-1">单位 %；对角持续，离对角转换</div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {hmm.vs_bb && (
+        <div className="mt-3 pt-3 border-t border-white/[0.04]">
+          <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
+            <span className="text-[10px] text-white/45">
+              vs Bry-Boschan 机械标注（
+              {hmm.vs_bb.bb_threshold * 100}% 阈值，{hmm.vs_bb.total_days} 个交易日）
+            </span>
+            <div className="flex items-center gap-3 text-[10px]">
+              <span className="text-white/55">严格一致</span>
+              <span className={`font-mono font-semibold ${
+                hmm.vs_bb.strict_agreement_pct >= 70 ? "text-emerald-300"
+                : hmm.vs_bb.strict_agreement_pct >= 50 ? "text-lime-300" : "text-amber-300"
+              }`}>
+                {hmm.vs_bb.strict_agreement_pct}%
+              </span>
+              <span className="text-white/30">·</span>
+              <span className="text-white/55">宽松（neutral 算过渡）</span>
+              <span className={`font-mono font-semibold ${
+                hmm.vs_bb.loose_agreement_pct >= 80 ? "text-emerald-300"
+                : hmm.vs_bb.loose_agreement_pct >= 60 ? "text-lime-300" : "text-amber-300"
+              }`}>
+                {hmm.vs_bb.loose_agreement_pct}%
+              </span>
+            </div>
+          </div>
+          {/* 行%矩阵：BB → HMM 分布 */}
+          <div className="text-[10px] font-mono">
+            <div className="grid grid-cols-5 gap-x-2 gap-y-0.5">
+              <div></div>
+              <div className="text-center text-white/45">HMM 牛</div>
+              <div className="text-center text-white/45">HMM 震荡</div>
+              <div className="text-center text-white/45">HMM 熊</div>
+              <div className="text-right text-white/45">总计</div>
+              {["bull", "bear"].map(bb => (
+                <React.Fragment key={bb}>
+                  <div className={`text-right ${cnColor[bb].split(" ")[1]}`}>BB {cnLabel[bb]}</div>
+                  {["bull", "neutral", "bear"].map(hm => {
+                    const pct = hmm.vs_bb.row_pct?.[bb]?.[hm];
+                    const isMatch = bb === hm;
+                    return (
+                      <div key={hm} className={`text-center tabular-nums ${
+                        isMatch ? "text-white/90 font-semibold" : "text-white/45"
+                      }`}>
+                        {pct != null ? `${pct.toFixed(0)}%` : "—"}
+                      </div>
+                    );
+                  })}
+                  <div className="text-right text-white/55 tabular-nums">
+                    {bb === "bull" ? hmm.vs_bb.bb_bull_total : hmm.vs_bb.bb_bear_total}d
+                  </div>
+                </React.Fragment>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -278,6 +574,114 @@ const DIRECTION_BADGE = (direction, contrarian) => {
     cls: "text-slate-300 bg-slate-500/10 border-slate-400/30",
   };
 };
+
+// L5 双重确认告警面板
+const ALERT_STYLE = {
+  critical: {
+    cls: "bg-red-500/10 border-red-400/40 text-red-200",
+    badge: "bg-red-500/20 text-red-100 border-red-400/40",
+    label: "严重",
+  },
+  warning: {
+    cls: "bg-orange-500/8 border-orange-400/30 text-orange-100",
+    badge: "bg-orange-500/15 text-orange-100 border-orange-400/30",
+    label: "警示",
+  },
+  info: {
+    cls: "bg-slate-500/8 border-slate-400/20 text-slate-200",
+    badge: "bg-slate-500/15 text-slate-200 border-slate-400/20",
+    label: "提示",
+  },
+};
+
+const KIND_ICON = {
+  top: "▲", bottom: "▼", neutral: "─",
+};
+
+function AlertCard({ a }) {
+  const st = ALERT_STYLE[a.level] || ALERT_STYLE.info;
+  return (
+    <div className={`border rounded-lg p-3 ${st.cls}`}>
+      <div className="flex items-center gap-2 mb-1.5">
+        <span className={`text-[10px] px-1.5 py-0.5 rounded border font-medium ${st.badge}`}>
+          {st.label}
+        </span>
+        <span className="text-base font-mono mr-0.5 opacity-70">{KIND_ICON[a.kind]}</span>
+        <span className="text-sm font-medium flex-1 min-w-0">{a.title}</span>
+      </div>
+      <div className="text-[11px] opacity-85 mb-2 leading-relaxed">{a.summary}</div>
+      {a.evidence?.length > 0 && (
+        <div className="space-y-1 mb-2 pl-2 border-l border-white/10">
+          {a.evidence.map((e, i) => (
+            <div key={i} className="text-[10px] flex items-baseline gap-2 font-mono opacity-80">
+              <span className="opacity-60">·</span>
+              <span className="flex-1 truncate">{e.name}</span>
+              <span className="tabular-nums">
+                {e.raw_value != null ? Number(e.raw_value).toFixed(2) : "—"}
+              </span>
+              <span className="text-white/50 tabular-nums w-10 text-right">
+                {e.percentile != null ? `${e.percentile.toFixed(0)}%` : "—"}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+      {a.action && (
+        <div className="text-[11px] font-medium pt-1 border-t border-white/5 opacity-90">
+          建议：{a.action}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// AI 市场画像（DeepSeek 生成 150-200 字解读）
+function NarrativePanel({ narrative, loading }) {
+  if (!narrative && !loading) return null;
+  return (
+    <div className="bg-gradient-to-br from-indigo-500/[0.07] to-violet-500/[0.04] border border-indigo-400/[0.18] rounded-xl p-4 mb-4">
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-[10px] px-1.5 py-0.5 rounded font-medium border bg-indigo-500/20 text-indigo-100 border-indigo-400/40">
+          AI 解读
+        </span>
+        <span className="text-xs text-white/55">DeepSeek 当日宏观画像</span>
+      </div>
+      {loading ? (
+        <div className="text-xs text-white/50 flex items-center gap-2">
+          <Loader className="w-3 h-3 animate-spin" />
+          生成中…
+        </div>
+      ) : (
+        <div className="text-[13px] text-white/85 leading-relaxed whitespace-pre-wrap">
+          {narrative}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+function AlertsPanel({ alerts }) {
+  if (!alerts || alerts.length === 0) return null;
+  // 排序：critical → warning → info；同级按 kind=top→bottom→neutral
+  const order = { critical: 0, warning: 1, info: 2 };
+  const kindOrder = { top: 0, bottom: 1, neutral: 2 };
+  const sorted = [...alerts].sort((a, b) =>
+    (order[a.level] - order[b.level]) || (kindOrder[a.kind] - kindOrder[b.kind])
+  );
+  return (
+    <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-3 mb-4">
+      <div className="text-xs text-white/55 mb-2 flex items-center gap-2">
+        <span>L5 双重确认告警</span>
+        <span className="text-white/30">· {alerts.length} 条活跃</span>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+        {sorted.map((a, i) => <AlertCard key={a.id || i} a={a} />)}
+      </div>
+    </div>
+  );
+}
+
 
 function FactorCard({ f }) {
   const pct = f.latest?.percentile;
@@ -353,7 +757,9 @@ export default function MacroDashboard() {
   const [factors, setFactors] = useState(null);
   const [composite, setComposite] = useState(null);
   const [history, setHistory] = useState(null);
-  const [range, setRange] = useState("3Y");
+  const [narrative, setNarrative] = useState(null);
+  const [narrativeLoading, setNarrativeLoading] = useState(false);
+  const [range, setRange] = useState("5Y");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState("all");
@@ -366,6 +772,7 @@ export default function MacroDashboard() {
       setFactors(macroSnapshot.factors || []);
       setComposite(macroSnapshot.composite || null);
       setHistory(macroSnapshot.composite_history || null);
+      setNarrative(macroSnapshot.narrative || null);
       setLoading(false);
       return;
     }
@@ -381,8 +788,13 @@ export default function MacroDashboard() {
       setError("加载失败：检查 backend 是否启动 + FRED_API_KEY 已设置 + 已运行 refresh_macro.py");
     }
     setLoading(false);
-    // 历史曲线异步加载（不阻塞首屏）
+    // 历史曲线 + AI 画像异步加载（不阻塞首屏）
     apiFetch("/macro/composite/history?start=2018-01-01").then(setHistory);
+    setNarrativeLoading(true);
+    apiFetch("/macro/narrative").then(d => {
+      if (d?.ok && d.narrative) setNarrative(d.narrative);
+      setNarrativeLoading(false);
+    });
   };
 
   useEffect(() => { load(); }, []);
@@ -431,7 +843,11 @@ export default function MacroDashboard() {
         </button>
       </div>
 
+      <NarrativePanel narrative={narrative} loading={narrativeLoading} />
+
       <CompositePanel data={composite} />
+
+      <AlertsPanel alerts={composite?.alerts} />
 
       <CompositeChart history={history} range={range} setRange={setRange} />
 
