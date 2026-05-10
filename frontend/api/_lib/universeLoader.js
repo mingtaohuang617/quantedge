@@ -68,12 +68,18 @@ export async function universeStats() {
   const stats = {};
   for (const m of Object.keys(FILES)) {
     const data = await _loadOne(m);
+    const items = data.items || [];
     stats[m] = {
-      count: (data.items || []).length,
+      count: items.length,
       synced_at: data.meta?.synced_at || null,
       file: FILES[m],
-      exists: (data.items || []).length > 0,
+      exists: items.length > 0,
     };
+    // 暴露 loader 错误（仅当 0 items 且有 meta.error 时），便于排查 lambda 文件可见性问题
+    if (items.length === 0 && data.meta?.error) {
+      stats[m].error = data.meta.error;
+      stats[m].path = data.meta.path;
+    }
   }
   return stats;
 }
