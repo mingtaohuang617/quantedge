@@ -51,6 +51,14 @@ export default function MacroDashboard() {
   useEffect(() => {
     try { localStorage.setItem("quantedge_macro_dir_filter", dirFilter); } catch {}
   }, [dirFilter]);
+  // 市场过滤：all / US / CN（snapshot 同时含 17 美股 + 6 A股因子）
+  const [marketFilter, setMarketFilter] = useState(() => {
+    try { return localStorage.getItem("quantedge_macro_market_filter") || "all"; }
+    catch { return "all"; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem("quantedge_macro_market_filter", marketFilter); } catch {}
+  }, [marketFilter]);
   // 搜索框：按 factor_id / name / description 子串模糊匹配
   const [search, setSearch] = useState("");
   const [selectedFactor, setSelectedFactor] = useState(null);
@@ -110,9 +118,18 @@ export default function MacroDashboard() {
     return order;
   }, [factors]);
 
+  // 计算每个市场的因子数（用于按钮 badge 显示）
+  const marketCounts = useMemo(() => {
+    if (!factors) return { all: 0 };
+    const counts = { all: factors.length };
+    factors.forEach(f => { counts[f.market] = (counts[f.market] || 0) + 1; });
+    return counts;
+  }, [factors]);
+
   const filtered = useMemo(() => {
     if (!factors) return [];
     let out = factors;
+    if (marketFilter !== "all") out = out.filter(f => f.market === marketFilter);
     if (filter !== "all") out = out.filter(f => f.category === filter);
     if (dirFilter !== "all") {
       out = out.filter(f => {
@@ -131,7 +148,7 @@ export default function MacroDashboard() {
       );
     }
     return out;
-  }, [factors, filter, dirFilter, search]);
+  }, [factors, filter, dirFilter, marketFilter, search]);
 
   return (
     <div ref={scrollRef} className="space-y-4 flex-1 min-h-0 overflow-y-auto pr-1 -mr-1 relative">
@@ -209,6 +226,29 @@ export default function MacroDashboard() {
               </button>
             ))}
           </div>
+          {/* 市场过滤副行（snapshot 同时含 US/CN） */}
+          {Object.keys(marketCounts).length > 2 && (
+            <div className="flex flex-wrap gap-1.5 items-center">
+              <span className="text-[10px] text-white/40 mr-1">{t("市场")}:</span>
+              {[
+                { id: "all", label: t("全部"), count: marketCounts.all },
+                ...Object.keys(marketCounts).filter(k => k !== "all").sort()
+                  .map(m => ({ id: m, label: m, count: marketCounts[m] })),
+              ].map(opt => (
+                <button
+                  key={opt.id}
+                  onClick={() => setMarketFilter(opt.id)}
+                  className={`px-2 py-0.5 rounded text-[10px] border transition-colors ${
+                    marketFilter === opt.id
+                      ? "bg-cyan-500/20 border-cyan-400/40 text-cyan-200"
+                      : "bg-white/[0.02] border-white/[0.05] text-white/45 hover:text-white/80"
+                  }`}
+                >
+                  {opt.label} ({opt.count})
+                </button>
+              ))}
+            </div>
+          )}
           {/* 方向过滤副行 + 搜索框 */}
           <div className="flex flex-wrap gap-1.5 items-center">
             <span className="text-[10px] text-white/40 mr-1">{t("方向")}:</span>
@@ -277,7 +317,7 @@ export default function MacroDashboard() {
         <div className="flex items-center justify-center gap-3 py-8 text-white/45 text-xs">
           <span>{t("当前筛选条件下没有因子")}</span>
           <button
-            onClick={() => { setFilter("all"); setDirFilter("all"); setSearch(""); }}
+            onClick={() => { setFilter("all"); setDirFilter("all"); setMarketFilter("all"); setSearch(""); }}
             className="px-2 py-0.5 rounded text-[10px] border bg-indigo-500/15 border-indigo-400/30 text-indigo-200 hover:bg-indigo-500/25"
           >
             {t("清除全部筛选")}
