@@ -45,6 +45,24 @@ function fmtMcap(mc) {
   return `${mc.toFixed(0)}`;
 }
 
+const FIELD_LABEL = { sector: "板块", industry: "行业", name: "名称" };
+
+/** 把候选 item 的 match_reasons[trend_id] 渲染成 hover tooltip 文本。
+ * 输入：[{ field, value, keywords }, ...]
+ * 输出："板块='Semiconductors' 含 Semiconductor | 名称='长飞光纤' 含 光纤"
+ */
+function formatMatchReason(matchReasons, tid) {
+  const reasons = matchReasons?.[tid];
+  if (!Array.isArray(reasons) || reasons.length === 0) return null;
+  return reasons
+    .map((r) => {
+      const fieldLabel = FIELD_LABEL[r.field] || r.field;
+      const kws = (r.keywords || []).join("、");
+      return `${fieldLabel}="${r.value}" 含 ${kws}`;
+    })
+    .join(" | ");
+}
+
 export default function Screener10x() {
   // 数据状态
   const [supertrends, setSupertrends] = useState([]);
@@ -605,9 +623,21 @@ export default function Screener10x() {
                         )}
                         <td className="px-2 py-1.5">
                           <div className="flex flex-wrap gap-0.5">
-                            {(c.matched_supertrends || []).map((t) => (
-                              <span key={t} className="text-[8px] px-1 py-px rounded bg-cyan-500/15 text-cyan-200 border border-cyan-500/30">{trendName(t)}</span>
-                            ))}
+                            {(c.matched_supertrends || []).map((t) => {
+                              const reason = formatMatchReason(c.match_reasons, t);
+                              const tip = reason
+                                ? `${trendName(t)}\n\n命中原因：${reason}`
+                                : trendName(t);
+                              return (
+                                <span
+                                  key={t}
+                                  title={tip}
+                                  className="text-[8px] px-1 py-px rounded bg-cyan-500/15 text-cyan-200 border border-cyan-500/30 cursor-help"
+                                >
+                                  {trendName(t)}
+                                </span>
+                              );
+                            })}
                           </div>
                         </td>
                         <td className="px-2 py-1.5 text-right">
