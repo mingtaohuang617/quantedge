@@ -24,6 +24,7 @@ import FactorCard from "../components/macro/FactorCard.jsx";
 import DataStatusBanner from "../components/macro/DataStatusBanner.jsx";
 import FactorDetailModal from "../components/macro/FactorDetailModal.jsx";
 import TopMovers from "../components/macro/TopMovers.jsx";
+import ShortcutsHelp from "../components/macro/ShortcutsHelp.jsx";
 
 const USE_SNAPSHOT = import.meta.env.PROD;
 
@@ -91,6 +92,7 @@ export default function MacroDashboard() {
   useEffect(() => {
     try { localStorage.setItem("quantedge_macro_compact", compact ? "1" : "0"); } catch {}
   }, [compact]);
+  const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
   // scroll-to-top：滚动 >400px 时显示浮动按钮
   const scrollRef = useRef(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -119,17 +121,19 @@ export default function MacroDashboard() {
         return;
       }
       if (selectedFactor) return;  // modal 优先
+      if (showShortcutsHelp) return;  // 帮助 modal 优先
       if (e.key === "r") { e.preventDefault(); load(); }
       else if (e.key === "c") { e.preventDefault(); setCompact(v => !v); }
       else if (e.key === "s" || e.key === "/") {
         e.preventDefault();
         searchInputRef.current?.focus();
       }
+      else if (e.key === "?") { e.preventDefault(); setShowShortcutsHelp(true); }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedFactor, search, compact]);
+  }, [selectedFactor, search, compact, showShortcutsHelp]);
 
   const load = async () => {
     setLoading(true);
@@ -491,6 +495,8 @@ export default function MacroDashboard() {
           );
         })}
       </div>
+
+      <ShortcutsHelp open={showShortcutsHelp} onClose={() => setShowShortcutsHelp(false)} />
 
       <FactorDetailModal
         f={selectedFactor}
