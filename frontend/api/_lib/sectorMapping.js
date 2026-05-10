@@ -115,6 +115,58 @@ function _kwForMode(spec, mode) {
 }
 
 /**
+ * 同 classifySector，但额外返回每个命中赛道触发的关键词列表。
+ *
+ * @param {string|null|undefined} rawSector
+ * @param {'strict'|'broad'} mode
+ * @param {Array<{id, keywords_zh?, keywords_en?}>|null} extraUserTrends
+ * @returns {{ matched: Set<string>, reasons: Record<string, string[]> }}
+ *   reasons[trend_id] = [kw1, kw2, ...]（按 zh 后 en 顺序去重）
+ */
+export function classifySectorWithReasons(rawSector, mode = 'broad', extraUserTrends = null) {
+  if (mode !== 'strict' && mode !== 'broad') {
+    throw new Error(`mode must be 'strict' or 'broad', got ${mode}`);
+  }
+  const matched = new Set();
+  const reasons = {};
+  if (!rawSector) return { matched, reasons };
+  const s = String(rawSector).trim();
+  if (!s) return { matched, reasons };
+  const sLower = s.toLowerCase();
+
+  const collect = (tid, zh, en) => {
+    const hits = [];
+    for (const kw of zh) {
+      if (kw && s.includes(kw) && !hits.includes(kw)) hits.push(kw);
+    }
+    for (const kw of en) {
+      if (kw && sLower.includes(kw.toLowerCase()) && !hits.includes(kw)) hits.push(kw);
+    }
+    if (hits.length) {
+      matched.add(tid);
+      if (!reasons[tid]) reasons[tid] = [];
+      for (const kw of hits) {
+        if (!reasons[tid].includes(kw)) reasons[tid].push(kw);
+      }
+    }
+  };
+
+  for (const [tid, spec] of Object.entries(SUPERTRENDS)) {
+    const { zh, en } = _kwForMode(spec, mode);
+    collect(tid, zh, en);
+  }
+
+  // 用户自定义赛道
+  for (const ut of extraUserTrends || []) {
+    const tid = ut?.id;
+    if (!tid) continue;
+    collect(tid, ut.keywords_zh || [], ut.keywords_en || []);
+  }
+
+  return { matched, reasons };
+}
+
+/**
  * 把任意 sector/industry 字符串归类到 supertrend ID 集合。
  *
  * @param {string|null|undefined} rawSector
@@ -123,42 +175,7 @@ function _kwForMode(spec, mode) {
  * @returns {Set<string>}
  */
 export function classifySector(rawSector, mode = 'broad', extraUserTrends = null) {
-  if (mode !== 'strict' && mode !== 'broad') {
-    throw new Error(`mode must be 'strict' or 'broad', got ${mode}`);
-  }
-  if (!rawSector) return new Set();
-  const s = String(rawSector).trim();
-  if (!s) return new Set();
-  const sLower = s.toLowerCase();
-  const matched = new Set();
-
-  for (const [tid, spec] of Object.entries(SUPERTRENDS)) {
-    const { zh, en } = _kwForMode(spec, mode);
-    if (zh.some(kw => kw && s.includes(kw))) {
-      matched.add(tid);
-      continue;
-    }
-    if (en.some(kw => kw && sLower.includes(kw.toLowerCase()))) {
-      matched.add(tid);
-    }
-  }
-
-  // 用户自定义赛道 — 关键词无 strict/broad 之分
-  for (const ut of extraUserTrends || []) {
-    const tid = ut?.id;
-    if (!tid) continue;
-    const kwZh = ut.keywords_zh || [];
-    const kwEn = ut.keywords_en || [];
-    if (kwZh.some(kw => kw && s.includes(kw))) {
-      matched.add(tid);
-      continue;
-    }
-    if (kwEn.some(kw => kw && sLower.includes(kw.toLowerCase()))) {
-      matched.add(tid);
-    }
-  }
-
-  return matched;
+  return classifySectorWithReasons(rawSector, mode, extraUserTrends).matched;
 }
 
 function _hasCJK(s) {
@@ -185,30 +202,57 @@ export function getStrictKeywords(supertrendIds) {
   return out;
 }
 
-/** 公司名是否含任意 strict 关键词（含用户赛道）。 */
-export function nameMatchesStrict(name, supertrendIds, extraUserTrends = null) {
-  if (!name) return false;
+/**
+ * 同 nameMatchesStrict，但返回 (是否命中, 各赛道命中的关键词)。
+ * @returns {{ ok: boolean, reasons: Record<string, string[]> }}
+ */
+export function nameMatchesStrictWithReasons(name, supertrendIds, extraUserTrends = null) {
+  const reasons = {};
+  if (!name) return { ok: false, reasons };
   const n = String(name);
   const nLower = n.toLowerCase();
   const wanted = new Set(supertrendIds);
 
-  const builtinKws = getStrictKeywords(supertrendIds);
-  const userKws = [];
+  const kwHits = (kws) => {
+    const hits = [];
+    for (const kw of kws) {
+      if (!kw) continue;
+      if (_hasCJK(kw) || _isAllUpperAscii(kw)) {
+        if (n.includes(kw) && !hits.includes(kw)) hits.push(kw);
+      } else {
+        if (nLower.includes(kw.toLowerCase()) && !hits.includes(kw)) hits.push(kw);
+      }
+    }
+    return hits;
+  };
+
+  // builtin 按 trend 分组
+  for (const tid of wanted) {
+    const spec = SUPERTRENDS[tid];
+    if (!spec) continue;
+    const kws = [...(spec.keywords_strict_zh || []), ...(spec.keywords_strict_en || [])];
+    const hits = kwHits(kws);
+    if (hits.length) reasons[tid] = hits;
+  }
+
+  // user trend
   for (const ut of extraUserTrends || []) {
-    if (wanted.has(ut?.id)) {
-      userKws.push(...(ut.keywords_zh || []));
-      userKws.push(...(ut.keywords_en || []));
+    const tid = ut?.id;
+    if (!wanted.has(tid)) continue;
+    const kws = [...(ut.keywords_zh || []), ...(ut.keywords_en || [])];
+    const hits = kwHits(kws);
+    if (hits.length) {
+      if (!reasons[tid]) reasons[tid] = [];
+      for (const kw of hits) {
+        if (!reasons[tid].includes(kw)) reasons[tid].push(kw);
+      }
     }
   }
 
-  for (const kw of [...builtinKws, ...userKws]) {
-    if (!kw) continue;
-    // 中文（含 ASCII 全大写如 "AI"、"HBM" 也走原样匹配分支）
-    if (_hasCJK(kw) || _isAllUpperAscii(kw)) {
-      if (n.includes(kw)) return true;
-    } else {
-      if (nLower.includes(kw.toLowerCase())) return true;
-    }
-  }
-  return false;
+  return { ok: Object.keys(reasons).length > 0, reasons };
+}
+
+/** 公司名是否含任意 strict 关键词（含用户赛道）。 */
+export function nameMatchesStrict(name, supertrendIds, extraUserTrends = null) {
+  return nameMatchesStrictWithReasons(name, supertrendIds, extraUserTrends).ok;
 }

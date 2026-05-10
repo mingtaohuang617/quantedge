@@ -9,13 +9,18 @@ sector_mapping 单测
 import sys
 from pathlib import Path
 
+import pytest
+
 # backend/tests/ → backend/
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from sector_mapping import (  # noqa: E402
     classify_sector,
+    classify_sector_with_reasons,
     filter_by_supertrends,
     list_supertrends_meta,
+    name_matches_strict,
+    name_matches_strict_with_reasons,
     SUPERTRENDS,
 )
 
@@ -217,7 +222,6 @@ def test_strict_mode_excludes_loose_utilities():
 
 
 def test_invalid_mode_raises():
-    import pytest
     with pytest.raises(ValueError):
         classify_sector("Semiconductors", mode="loose")
 
@@ -287,3 +291,134 @@ def test_list_supertrends_meta_strategy_invalid():
     """无效 strategy 返回空 list（不抛错，前端容错）"""
     out = list_supertrends_meta(strategy="speculative")
     assert out == []
+
+
+# ── classify_sector_with_reasons：诊断命中关键词 ─────────────
+def test_classify_with_reasons_basic():
+    """命中赛道时同时返回触发的关键词列表"""
+    matched, reasons = classify_sector_with_reasons("半导体/HBM")
+    assert matched == {"semi", "ai_compute"}
+    assert "半导体" in reasons["semi"]
+    assert "HBM" in reasons["ai_compute"]
+
+
+def test_classify_with_reasons_english():
+    matched, reasons = classify_sector_with_reasons("Semiconductors")
+    assert matched == {"semi"}
+    # 关键词原大小写保留（前端展示用）
+    assert any(kw.lower() == "semiconductors" or kw.lower() == "semiconductor"
+               for kw in reasons["semi"])
+
+
+def test_classify_with_reasons_no_match_returns_empty():
+    matched, reasons = classify_sector_with_reasons("零售")
+    assert matched == set()
+    assert reasons == {}
+
+
+def test_classify_with_reasons_none_input():
+    """None / 空串行为同 classify_sector"""
+    assert classify_sector_with_reasons(None) == (set(), {})
+    assert classify_sector_with_reasons("") == (set(), {})
+    assert classify_sector_with_reasons("   ") == (set(), {})
+
+
+def test_classify_with_reasons_user_trend():
+    """用户自定义赛道关键词命中也带 reasons"""
+    user_trends = [{
+        "id": "renewable",
+        "keywords_zh": ["光伏", "锂电池"],
+        "keywords_en": ["Solar"],
+    }]
+    matched, reasons = classify_sector_with_reasons(
+        "光伏发电", mode="broad", extra_user_trends=user_trends,
+    )
+    assert "renewable" in matched
+    assert "光伏" in reasons["renewable"]
+
+
+def test_classify_with_reasons_multiple_keywords_dedup():
+    """同一关键词重复出现去重；不同关键词都命中时全部收集"""
+    # "Semiconductor Equipment & Materials" 同时含 "Semiconductor" 和 "Semiconductors" 关键词？
+    # 实际只有 "Semiconductor" 是 keyword_strict_en，确认收集到的是去重的
+    _, reasons = classify_sector_with_reasons("Semiconductor Equipment & Materials")
+    semi_kws = reasons.get("semi", [])
+    assert len(semi_kws) == len(set(semi_kws)), "reasons 应去重"
+
+
+def test_classify_with_reasons_invalid_mode():
+    """与 classify_sector 一致：无效 mode 抛 ValueError"""
+    with pytest.raises(ValueError):
+        classify_sector_with_reasons("Semiconductors", mode="loose")
+
+
+def test_classify_with_reasons_consistent_with_classify():
+    """classify_sector(...) 的 set 必须与 classify_sector_with_reasons(...)[0] 一致"""
+    cases = [
+        ("半导体/HBM", "broad"),
+        ("半导体/HBM", "strict"),
+        ("通讯设备", "broad"),
+        ("通讯设备", "strict"),
+        ("公共事业", "broad"),
+        ("Semiconductors", "broad"),
+        ("零售", "broad"),
+        (None, "broad"),
+        ("", "strict"),
+    ]
+    for s, m in cases:
+        a = classify_sector(s, mode=m)
+        b, _ = classify_sector_with_reasons(s, mode=m)
+        assert a == b, f"mismatch on ({s!r}, {m})"
+
+
+# ── name_matches_strict_with_reasons ────────────────────────
+def test_name_with_reasons_optical():
+    """光纤公司名命中 optical 赛道，reasons 含触发关键词"""
+    ok, reasons = name_matches_strict_with_reasons("长飞光纤", {"optical"})
+    assert ok
+    assert "光纤" in reasons["optical"]
+
+
+def test_name_with_reasons_english_lowercase():
+    """英文关键词大小写不敏感"""
+    ok, reasons = name_matches_strict_with_reasons(
+        "Lumentum Optical Networks Inc", {"optical"},
+    )
+    assert ok
+    # 原大小写保留
+    assert any(kw == "Optical" for kw in reasons["optical"])
+
+
+def test_name_with_reasons_no_match():
+    ok, reasons = name_matches_strict_with_reasons("Apple Inc", {"optical", "semi"})
+    assert ok is False
+    assert reasons == {}
+
+
+def test_name_with_reasons_user_trend():
+    """用户赛道关键词参与名称匹配"""
+    user_trends = [{
+        "id": "robotics",
+        "keywords_zh": ["机器人"],
+        "keywords_en": ["Robotics"],
+    }]
+    ok, reasons = name_matches_strict_with_reasons(
+        "优必选机器人", {"robotics"}, extra_user_trends=user_trends,
+    )
+    assert ok
+    assert "机器人" in reasons["robotics"]
+
+
+def test_name_with_reasons_consistent_with_bool():
+    """name_matches_strict 必须与 _with_reasons[0] 一致"""
+    cases = [
+        ("长飞光纤", ["optical"]),
+        ("Apple Inc", ["semi", "optical"]),
+        (None, ["semi"]),
+        ("", ["semi"]),
+        ("某半导体公司", ["semi"]),
+    ]
+    for n, ids in cases:
+        a = name_matches_strict(n, ids)
+        b, _ = name_matches_strict_with_reasons(n, ids)
+        assert a == b, f"mismatch on ({n!r}, {ids})"

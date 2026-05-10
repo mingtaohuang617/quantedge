@@ -186,6 +186,56 @@ def _kw_for_mode(spec: dict, mode: str) -> tuple[list[str], list[str]]:
     return zh, en
 
 
+def classify_sector_with_reasons(
+    raw_sector: str | None,
+    mode: str = "broad",
+    extra_user_trends: list[dict] | None = None,
+) -> tuple[set[str], dict[str, list[str]]]:
+    """同 classify_sector，额外返回每个命中赛道触发的关键词列表。
+
+    返回 (matched_set, reasons)；reasons[trend_id] = [kw1, kw2, ...] 按出现顺序去重。
+    给前端"为啥这只票算半导体了"展示用。
+
+    与 classify_sector 行为完全等价（matched 部分），只是不 short-circuit ——
+    会遍历完所有关键词收集 reasons。性能差异可忽略（每 trend ≤ 10 关键词）。
+    """
+    if mode not in ("strict", "broad"):
+        raise ValueError(f"mode must be 'strict' or 'broad', got {mode!r}")
+    matched: set[str] = set()
+    reasons: dict[str, list[str]] = {}
+    if not raw_sector:
+        return matched, reasons
+    s = str(raw_sector).strip()
+    if not s:
+        return matched, reasons
+    s_lower = s.lower()
+
+    def _collect(tid: str, kws_zh: list[str], kws_en: list[str]) -> None:
+        hits: list[str] = []
+        for kw in kws_zh:
+            if kw and kw in s and kw not in hits:
+                hits.append(kw)
+        for kw in kws_en:
+            if kw and kw.lower() in s_lower and kw not in hits:
+                hits.append(kw)
+        if hits:
+            matched.add(tid)
+            reasons.setdefault(tid, []).extend(hits)
+
+    for tid, spec in SUPERTRENDS.items():
+        kws_zh, kws_en = _kw_for_mode(spec, mode)
+        _collect(tid, kws_zh, kws_en)
+
+    # 用户自定义赛道
+    for ut in extra_user_trends or []:
+        tid = ut.get("id")
+        if not tid:
+            continue
+        _collect(tid, ut.get("keywords_zh") or [], ut.get("keywords_en") or [])
+
+    return matched, reasons
+
+
 def classify_sector(
     raw_sector: str | None,
     mode: str = "broad",
@@ -204,38 +254,10 @@ def classify_sector(
       两种 mode 下都按"原样匹配"处理。
 
     None / 空字符串返回空 set。
+
+    需要命中关键词诊断时用 classify_sector_with_reasons。
     """
-    if mode not in ("strict", "broad"):
-        raise ValueError(f"mode must be 'strict' or 'broad', got {mode!r}")
-    if not raw_sector:
-        return set()
-    s = str(raw_sector).strip()
-    if not s:
-        return set()
-    s_lower = s.lower()
-    matched: set[str] = set()
-
-    for tid, spec in SUPERTRENDS.items():
-        kws_zh, kws_en = _kw_for_mode(spec, mode)
-        if any(kw in s for kw in kws_zh):
-            matched.add(tid)
-            continue
-        if any(kw.lower() in s_lower for kw in kws_en):
-            matched.add(tid)
-
-    # 用户自定义赛道
-    for ut in extra_user_trends or []:
-        tid = ut.get("id")
-        if not tid:
-            continue
-        kws_zh = ut.get("keywords_zh") or []
-        kws_en = ut.get("keywords_en") or []
-        if any(kw and kw in s for kw in kws_zh):
-            matched.add(tid)
-            continue
-        if any(kw and kw.lower() in s_lower for kw in kws_en):
-            matched.add(tid)
-
+    matched, _ = classify_sector_with_reasons(raw_sector, mode, extra_user_trends)
     return matched
 
 
@@ -256,6 +278,62 @@ def get_strict_keywords(supertrend_ids: list[str] | set[str]) -> list[str]:
     return out
 
 
+def name_matches_strict_with_reasons(
+    name: str | None,
+    supertrend_ids: list[str] | set[str],
+    extra_user_trends: list[dict] | None = None,
+) -> tuple[bool, dict[str, list[str]]]:
+    """同 name_matches_strict，但返回 (是否命中, 各赛道命中的关键词)。
+
+    reasons[trend_id] = [kw1, kw2, ...]（按 strict_zh + strict_en 顺序去重）。
+    用户赛道按其 keywords_zh + keywords_en 收集。
+    """
+    reasons: dict[str, list[str]] = {}
+    if not name:
+        return False, reasons
+    n = str(name)
+    n_lower = n.lower()
+    wanted = set(supertrend_ids)
+
+    def _kw_hits(n_str: str, n_lower_str: str, kws: list[str]) -> list[str]:
+        hits: list[str] = []
+        for kw in kws:
+            if not kw:
+                continue
+            # 中文（含 ASCII 大写如 "AI"、"HBM" 也走这个分支，原样匹配）
+            if any(0x4e00 <= ord(c) <= 0x9fff for c in kw) or kw.isupper():
+                if kw in n_str and kw not in hits:
+                    hits.append(kw)
+            elif kw.lower() in n_lower_str and kw not in hits:
+                hits.append(kw)
+        return hits
+
+    # builtin 按 trend 分组收集
+    for tid in wanted:
+        spec = SUPERTRENDS.get(tid)
+        if not spec:
+            continue
+        kws = list(spec.get("keywords_strict_zh", [])) + list(spec.get("keywords_strict_en", []))
+        hits = _kw_hits(n, n_lower, kws)
+        if hits:
+            reasons[tid] = hits
+
+    # user trend 关键词
+    for ut in extra_user_trends or []:
+        tid = ut.get("id")
+        if tid not in wanted:
+            continue
+        kws = list(ut.get("keywords_zh") or []) + list(ut.get("keywords_en") or [])
+        hits = _kw_hits(n, n_lower, kws)
+        if hits:
+            reasons.setdefault(tid, [])
+            for kw in hits:
+                if kw not in reasons[tid]:
+                    reasons[tid].append(kw)
+
+    return bool(reasons), reasons
+
+
 def name_matches_strict(
     name: str | None,
     supertrend_ids: list[str] | set[str],
@@ -265,32 +343,11 @@ def name_matches_strict(
 
     extra_user_trends: 用户自定义赛道列表（仅匹配 id 在 supertrend_ids 内的）；
     其关键词无 strict/broad 之分，全部参与名称匹配。
+
+    需要命中关键词诊断时用 name_matches_strict_with_reasons。
     """
-    if not name:
-        return False
-    n = str(name)
-    n_lower = n.lower()
-
-    builtin_kws = get_strict_keywords(supertrend_ids)
-
-    user_kws: list[str] = []
-    wanted = set(supertrend_ids)
-    for ut in extra_user_trends or []:
-        if ut.get("id") in wanted:
-            user_kws.extend(ut.get("keywords_zh") or [])
-            user_kws.extend(ut.get("keywords_en") or [])
-
-    for kw in builtin_kws + user_kws:
-        if not kw:
-            continue
-        # 中文（含 ASCII 大写如 "AI"、"HBM" 也走这个分支，原样匹配）
-        if any(0x4e00 <= ord(c) <= 0x9fff for c in kw) or kw.isupper():
-            if kw in n:
-                return True
-        else:
-            if kw.lower() in n_lower:
-                return True
-    return False
+    ok, _ = name_matches_strict_with_reasons(name, supertrend_ids, extra_user_trends)
+    return ok
 
 
 def filter_by_supertrends(

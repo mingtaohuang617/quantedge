@@ -181,6 +181,64 @@ describe('screenCandidates', () => {
   });
 });
 
+// ── match_reasons：命中诊断 ──────────────────────────────
+describe('screenCandidates.match_reasons', () => {
+  it('每个候选 item 带 match_reasons 字段', async () => {
+    const out = await screenCandidates({ supertrend_ids: ['semi'] });
+    expect(out.length).toBeGreaterThan(0);
+    for (const it of out) {
+      expect(it.match_reasons).toBeDefined();
+      for (const tid of it.matched_supertrends) {
+        const reasons = it.match_reasons[tid];
+        expect(Array.isArray(reasons)).toBe(true);
+        expect(reasons.length).toBeGreaterThan(0);
+        for (const r of reasons) {
+          expect(['sector', 'industry', 'name']).toContain(r.field);
+          expect(r.value).toBeTruthy();
+          expect(Array.isArray(r.keywords)).toBe(true);
+          expect(r.keywords.length).toBeGreaterThan(0);
+        }
+      }
+    }
+  });
+
+  it('NVDA sector="Semiconductors" → semi reason 含 sector + Semiconductor 关键词', async () => {
+    const out = await screenCandidates({ supertrend_ids: ['semi'] });
+    const nvda = out.find(it => it.ticker === 'NVDA');
+    expect(nvda).toBeDefined();
+    const reasons = nvda.match_reasons.semi;
+    expect(reasons.some(r => r.field === 'sector' && r.value === 'Semiconductors')).toBe(true);
+    const allKws = reasons.flatMap(r => r.keywords);
+    expect(allKws.some(kw => kw.toLowerCase().startsWith('semicon'))).toBe(true);
+  });
+
+  it('A 股 sector==industry 同值时去重，只报一条', async () => {
+    const out = await screenCandidates({ supertrend_ids: ['semi'] });
+    const cn = out.find(it => it.ticker === '600171.SH');
+    expect(cn).toBeDefined();
+    const semiReasons = cn.match_reasons.semi;
+    const sameValue = semiReasons.filter(r => r.value === '半导体');
+    expect(sameValue).toHaveLength(1);
+  });
+
+  it('用户赛道命中带 reasons', async () => {
+    await addSupertrend('hw', '消费电子', '', [], ['Consumer Electronics']);
+    const out = await screenCandidates({ supertrend_ids: ['hw'] });
+    const aapl = out.find(it => it.ticker === 'AAPL');
+    expect(aapl).toBeDefined();
+    expect(aapl.match_reasons.hw).toBeDefined();
+    const allKws = aapl.match_reasons.hw.flatMap(r => r.keywords);
+    expect(allKws).toContain('Consumer Electronics');
+  });
+
+  it('空 supertrend_ids → match_reasons={}', async () => {
+    const out = await screenCandidates({ supertrend_ids: [] });
+    for (const it of out) {
+      expect(it.match_reasons).toEqual({});
+    }
+  });
+});
+
 // ── update / remove / list ───────────────────────────────
 describe('updateItem / removeItem', () => {
   it('partial update keeps other fields', async () => {

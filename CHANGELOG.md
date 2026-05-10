@@ -36,6 +36,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - 删除 `useEffect[items.length]` 冗余：`handleSaved` 新增路径本地 splice 候选省 1 次 screen；`handleDelete` 显式 `runScreen` 让 ticker 回到候选
   - LLM `tenx_thesis` 返回结构化数字字段：`瓶颈层级_int` (1-2) 和 `卡位等级_int` (1-5)，前端 `TenxItemEditor` 在"AI 生成草稿"时自动预填到 `bottleneck_layer` / `moat_score`，免去用户手填
   - `backend/llm.py` 新增 `_clamp_int` helper + `backend/tests/test_llm_helpers.py` 7 个 case 覆盖 LLM 数字字段容错
+- **10x 猎手 命中诊断（match_reasons）**：候选股不再只显示"命中了什么赛道"，还能查"因为哪个字段哪个关键词命中"
+  - `backend/sector_mapping.py` 新增 `classify_sector_with_reasons` / `name_matches_strict_with_reasons`（旧函数 delegate，零 behavior change）
+  - `backend/watchlist_10x.py:screen_candidates` 在每个候选 item 加 `match_reasons: dict[trend_id, [{field, value, keywords}]]`；A 股池 `sector==industry` 同值时去重
+  - `frontend/api/_lib/sectorMapping.js` + `watchlist10x.js` 1:1 同步到 JS 移植版
+  - `frontend/src/pages/Screener10x.jsx`：候选行赛道标签加 hover tooltip，鼠标悬停显示 `板块="Semiconductors" 含 Semiconductor` 这种诊断文案 — 用户能立刻验证 AI 算力 / 半导体 / 自定义赛道 keyword 是否命中预期
+  - 新增测试：backend pytest 13 例（`classify_sector_with_reasons` 7 + `name_matches_strict_with_reasons` 5 + `screen_candidates.match_reasons` 7）；frontend vitest 13 例
 - **10x 猎手 production backend**（Vercel Serverless + KV + DeepSeek）：让线上完整可用，不再仅"演示模式"
   - **基础 helpers** (`frontend/api/_lib/`)：`kv.js` (Upstash REST) / `auth.js` (referer 白名单) / `sectorMapping.js` (1:1 移植 backend) / `universeLoader.js` (self-fetch + 内存 cache) / `watchlist10x.js` (KV 持久化业务) / `deepseek.js` / `llmCache.js`
   - **Watchlist endpoints**：`/api/watchlist/10x` (GET/POST) / `/api/watchlist/10x/{ticker}` (PUT/DELETE) / `/api/watchlist/10x/screen` (POST) / `/api/watchlist/10x/supertrends` (GET/POST)
