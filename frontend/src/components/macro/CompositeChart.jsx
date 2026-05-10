@@ -3,9 +3,11 @@ import {
   ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine, ReferenceArea,
 } from "recharts";
+import { useLang } from "../../i18n.jsx";
 
 // 市场温度历史曲线 + W5000 + HMM 牛% 三线对照 + bear regime 红色色块
 export default function CompositeChart({ history, range, setRange }) {
+  const { t } = useLang();
   const ranges = [
     { id: "1Y", days: 252 },
     { id: "3Y", days: 252 * 3 },
@@ -45,16 +47,18 @@ export default function CompositeChart({ history, range, setRange }) {
   if (!history?.dates?.length) {
     return (
       <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4 mb-4 text-center text-white/50 text-sm">
-        加载历史温度曲线中…
+        {t("加载历史温度曲线中…")}
       </div>
     );
   }
 
   const tickFmt = (d) => d?.length === 10 ? d.slice(2, 7) : d;
+  const L3 = t("L3 温度");
+  const HMM = t("HMM 牛%");
   const tipFmt = (val, name) => {
     if (val == null) return "—";
-    if (name === "L3 温度") return val.toFixed(1);
-    if (name === "HMM 牛%") return val.toFixed(0) + "%";
+    if (name === L3) return val.toFixed(1);
+    if (name === HMM) return val.toFixed(0) + "%";
     if (name === "W5000") return val.toLocaleString();
     return val;
   };
@@ -66,20 +70,20 @@ export default function CompositeChart({ history, range, setRange }) {
       <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
         <div>
           <div className="text-sm font-medium text-white/85 flex items-center gap-2">
-            市场温度历史 · 与 Wilshire 5000 走势对照
+            {t("市场温度历史 · 与 Wilshire 5000 走势对照")}
             {history?.current_regime && (
               <span className={`text-[10px] px-1.5 py-0.5 rounded border font-mono ${
                 history.current_regime === "bull"
                   ? "text-emerald-300 bg-emerald-500/10 border-emerald-400/30"
                   : "text-red-300 bg-red-500/10 border-red-400/30"
               }`} title="Lunde-Timmermann 20% 阈值机械标注">
-                当前 · {history.current_regime === "bull" ? "牛 ↑" : "熊 ↓"}
+                {t("当前")} · {history.current_regime === "bull" ? t("牛 ↑") : t("熊 ↓")}
               </span>
             )}
           </div>
           <div className="text-[10px] text-white/40 mt-0.5">
-            {chartData[0]?.date} → {chartData[chartData.length - 1]?.date} · {chartData.length} 个交易日
-            {visibleRegimes.length > 0 && ` · ${visibleRegimes.length} 段熊市`}
+            {chartData[0]?.date} → {chartData[chartData.length - 1]?.date} · {chartData.length} {t("个交易日")}
+            {visibleRegimes.length > 0 && ` · ${visibleRegimes.length} ${t("段熊市")}`}
           </div>
         </div>
         <div className="flex gap-1 items-center">
@@ -91,8 +95,8 @@ export default function CompositeChart({ history, range, setRange }) {
                   ? "bg-emerald-500/15 border-emerald-400/40 text-emerald-200"
                   : "bg-white/[0.03] border-white/[0.08] text-white/45 hover:text-white"
               }`}
-              title="叠加 HMM 牛市概率到温度曲线"
-            >HMM 牛% {showHmm ? "✓" : "○"}</button>
+              title={t("叠加 HMM 牛市概率到温度曲线")}
+            >{HMM} {showHmm ? "✓" : "○"}</button>
           )}
           {ranges.map(r => (
             <button
@@ -136,10 +140,10 @@ export default function CompositeChart({ history, range, setRange }) {
             formatter={tipFmt}
           />
           <Line yAxisId="left" type="monotone" dataKey="temp" stroke="#fb923c" strokeWidth={1.8}
-                dot={false} name="L3 温度" isAnimationActive={false} />
+                dot={false} name={L3} isAnimationActive={false} />
           {showHmm && hasHmm && (
             <Line yAxisId="left" type="monotone" dataKey="hmmBull" stroke="#34d399" strokeWidth={1.2}
-                  strokeDasharray="3 3" dot={false} name="HMM 牛%" isAnimationActive={false} />
+                  strokeDasharray="3 3" dot={false} name={HMM} isAnimationActive={false} />
           )}
           <Line yAxisId="right" type="monotone" dataKey="bench" stroke="#94a3b8" strokeWidth={1}
                 dot={false} name="W5000" isAnimationActive={false} />

@@ -1,9 +1,11 @@
 import React from "react";
+import { useLang } from "../../i18n.jsx";
 import { PANEL, HMM_COLOR } from "./shared.js";
 
 // L4 HMM 三态识别面板：stacked bar + 转移矩阵 + vs Bry-Boschan 一致性
 // 配色独立于 L3 温度（cyan/violet/rose 区分价格行为视角 vs 基本面视角）
 export default function HmmPanel({ hmm, temp }) {
+  const { t } = useLang();
   if (!hmm?.current) return null;
   const cur = hmm.current || {};
   const means = hmm.state_means_annual_pct || {};
@@ -23,17 +25,17 @@ export default function HmmPanel({ hmm, temp }) {
     <div className={PANEL.secondary}>
       <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-white/85">L4 HMM 三态识别</span>
-          <span className="text-[10px] text-white/45">W5000 价格行为视角</span>
+          <span className="text-sm font-medium text-white/85">{t("L4 HMM 三态识别")}</span>
+          <span className="text-[10px] text-white/45">{t("W5000 价格行为视角")}</span>
           {divergence && (
             <span className="text-[10px] px-1.5 py-0.5 rounded border bg-amber-500/10 border-amber-400/30 text-amber-200"
                   title="HMM（短期价格行为）与 L3 温度（基本面+估值+情绪）方向分歧——常见于顶/底前期">
-              ⚠ 与 L3 温度分歧
+              {t("⚠ 与 L3 温度分歧")}
             </span>
           )}
         </div>
         <span className="text-[10px] text-white/35 font-mono">
-          训练样本 {hmm.n_obs} 个交易日
+          {t("训练样本")} {hmm.n_obs} {t("个交易日")}
         </span>
       </div>
 
@@ -55,7 +57,7 @@ export default function HmmPanel({ hmm, temp }) {
           <div className="grid grid-cols-3 gap-2 mt-2">
             {["bull", "neutral", "bear"].map(s => (
               <div key={s} className="text-center">
-                <div className={`text-[10px] ${HMM_COLOR[s].text} font-medium`}>{HMM_COLOR[s].label}</div>
+                <div className={`text-[10px] ${HMM_COLOR[s].text} font-medium`}>{t(HMM_COLOR[s].label)}</div>
                 <div className={`text-lg font-mono font-semibold tabular-nums ${HMM_COLOR[s].text}`}>
                   {((cur[s] || 0) * 100).toFixed(1)}%
                 </div>
@@ -71,15 +73,15 @@ export default function HmmPanel({ hmm, temp }) {
         {tm.length === 3 && (
           <details className="flex-shrink-0 sm:open" open>
             <summary className="text-[10px] text-white/45 mb-1 cursor-pointer select-none sm:cursor-default sm:list-none">
-              状态转移矩阵（行=今 / 列=明）
+              {t("状态转移矩阵（行=今 / 列=明）")}
             </summary>
             <div className="text-[10px] font-mono mt-1 overflow-x-auto">
               <div className="grid grid-cols-4 gap-x-1.5 gap-y-0.5 min-w-[160px]">
                 <div></div>
-                {labels.map(l => <div key={l} className={`${HMM_COLOR[l].text} text-center`}>{HMM_COLOR[l].label}</div>)}
+                {labels.map(l => <div key={l} className={`${HMM_COLOR[l].text} text-center`}>{t(HMM_COLOR[l].label)}</div>)}
                 {labels.map((row, i) => (
                   <React.Fragment key={row}>
-                    <div className={`${HMM_COLOR[row].text} text-right`}>{HMM_COLOR[row].label}</div>
+                    <div className={`${HMM_COLOR[row].text} text-right`}>{t(HMM_COLOR[row].label)}</div>
                     {tm[i].map((v, j) => (
                       <div key={j} className={`text-center tabular-nums ${i === j ? "text-white/85 font-semibold" : "text-white/45"}`}>
                         {(v * 100).toFixed(0)}
@@ -88,7 +90,7 @@ export default function HmmPanel({ hmm, temp }) {
                   </React.Fragment>
                 ))}
               </div>
-              <div className="text-[9px] text-white/30 mt-1">单位 %；对角持续，离对角转换</div>
+              <div className="text-[9px] text-white/30 mt-1">{t("单位 %；对角持续，离对角转换")}</div>
             </div>
           </details>
         )}
@@ -98,11 +100,11 @@ export default function HmmPanel({ hmm, temp }) {
         <div className={PANEL.inline}>
           <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
             <span className="text-[10px] text-white/45">
-              vs Bry-Boschan 机械标注（
-              {hmm.vs_bb.bb_threshold * 100}% 阈值，{hmm.vs_bb.total_days} 个交易日）
+              {t("vs Bry-Boschan 机械标注")}（
+              {hmm.vs_bb.bb_threshold * 100}% {t("阈值")}，{hmm.vs_bb.total_days} {t("个交易日")}）
             </span>
             <div className="flex items-center gap-3 text-[10px]">
-              <span className="text-white/55">严格一致</span>
+              <span className="text-white/55">{t("严格一致")}</span>
               <span className={`font-mono font-semibold ${
                 hmm.vs_bb.strict_agreement_pct >= 70 ? "text-emerald-300"
                 : hmm.vs_bb.strict_agreement_pct >= 50 ? "text-lime-300" : "text-amber-300"
@@ -110,7 +112,7 @@ export default function HmmPanel({ hmm, temp }) {
                 {hmm.vs_bb.strict_agreement_pct}%
               </span>
               <span className="text-white/30">·</span>
-              <span className="text-white/55">宽松（neutral 算过渡）</span>
+              <span className="text-white/55">{t("宽松（neutral 算过渡）")}</span>
               <span className={`font-mono font-semibold ${
                 hmm.vs_bb.loose_agreement_pct >= 80 ? "text-emerald-300"
                 : hmm.vs_bb.loose_agreement_pct >= 60 ? "text-lime-300" : "text-amber-300"
@@ -123,13 +125,13 @@ export default function HmmPanel({ hmm, temp }) {
           <div className="text-[10px] font-mono overflow-x-auto">
             <div className="grid grid-cols-5 gap-x-2 gap-y-0.5 min-w-[260px]">
               <div></div>
-              <div className="text-center text-white/45">HMM 牛</div>
-              <div className="text-center text-white/45">HMM 震荡</div>
-              <div className="text-center text-white/45">HMM 熊</div>
-              <div className="text-right text-white/45">总计</div>
+              <div className="text-center text-white/45">{t("HMM 牛")}</div>
+              <div className="text-center text-white/45">{t("HMM 震荡")}</div>
+              <div className="text-center text-white/45">{t("HMM 熊")}</div>
+              <div className="text-right text-white/45">{t("总计")}</div>
               {["bull", "bear"].map(bb => (
                 <React.Fragment key={bb}>
-                  <div className={`text-right ${HMM_COLOR[bb].text}`}>BB {HMM_COLOR[bb].label}</div>
+                  <div className={`text-right ${HMM_COLOR[bb].text}`}>BB {t(HMM_COLOR[bb].label)}</div>
                   {["bull", "neutral", "bear"].map(hm => {
                     const pct = hmm.vs_bb.row_pct?.[bb]?.[hm];
                     const isMatch = bb === hm;

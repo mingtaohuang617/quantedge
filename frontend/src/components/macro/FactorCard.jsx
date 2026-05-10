@@ -1,5 +1,6 @@
 import React from "react";
 import { MiniSparkline } from "../../quant-platform.jsx";
+import { useLang } from "../../i18n.jsx";
 import {
   CATEGORY_LABEL, CATEGORY_COLOR, PCT_BAR_BG, PCT_TEXT,
   DIRECTION_BADGE, fmtRaw, daysSince, factorLagThreshold,
@@ -9,6 +10,7 @@ import {
 // 整张卡 clickable → 弹出 FactorDetailModal（由父组件管理 selected state）
 // React.memo 避免 filter 切换时全量重渲（23 卡 × DOM）
 function FactorCard({ f, onSelect }) {
+  const { t } = useLang();
   const pct = f.latest?.percentile;
   const sparkValues = f.sparkline?.values || [];
   const since = daysSince(f.latest?.value_date);
@@ -31,14 +33,14 @@ function FactorCard({ f, onSelect }) {
       <div className="flex items-center justify-between mb-2 gap-2">
         <div className="flex items-center gap-1.5 min-w-0">
           <span className={`px-2 py-0.5 rounded text-[10px] font-medium border ${CATEGORY_COLOR[f.category] || ""}`}>
-            {CATEGORY_LABEL[f.category] || f.category}
+            {t(CATEGORY_LABEL[f.category] || f.category)}
           </span>
           <span
             className={`px-1.5 py-0.5 rounded text-[10px] font-medium border ${dirBadge.cls} cursor-help select-none`}
             title={dirBadge.title}
           >
             <span className="font-mono mr-0.5">{dirBadge.icon}</span>
-            {dirBadge.label}
+            {t(dirBadge.label)}
           </span>
         </div>
         <span className="text-[10px] text-white/40 font-mono shrink-0">
@@ -64,7 +66,7 @@ function FactorCard({ f, onSelect }) {
 
       <div className="space-y-1 mb-3">
         <div className="flex items-center justify-between text-[10px]">
-          <span className="text-white/50">历史分位</span>
+          <span className="text-white/50">{t("历史分位")}</span>
           <span className={`font-mono ${PCT_TEXT(pct)} font-semibold`}>
             {pct != null ? `${pct.toFixed(1)}%` : "—"}
           </span>
@@ -81,25 +83,25 @@ function FactorCard({ f, onSelect }) {
 
       <div className="flex items-center gap-1.5 mb-2 flex-wrap">
         <span className={`text-[10px] font-mono ${lagged ? "text-amber-300" : "text-white/40"}`}>
-          最后值: {f.latest?.value_date || "—"}
-          {since != null && ` (${since}天前)`}
+          {t("最后值")}: {f.latest?.value_date || "—"}
+          {since != null && ` (${since}${t("天前")})`}
         </span>
         {missing && (
           <span className="text-[9px] px-1.5 py-0.5 rounded border bg-red-500/10 border-red-400/30 text-red-300"
                 title="无最新数据 — 同步未完成或上游数据源异常">
-            无数据
+            {t("无数据")}
           </span>
         )}
         {insufficientSample && (
           <span className="text-[9px] px-1.5 py-0.5 rounded border bg-slate-500/10 border-slate-400/30 text-slate-300"
                 title="样本不足以计算分位（rolling_window 内有效观测过少）">
-            样本不足
+            {t("样本不足")}
           </span>
         )}
         {lagged && (
           <span className="text-[9px] px-1.5 py-0.5 rounded border bg-amber-500/10 border-amber-400/30 text-amber-300"
                 title={`数据滞后超过 ${f.freq} 频率阈值 ${lagThresh} 天 — 上游可能延迟`}>
-            滞后
+            {t("滞后")}
           </span>
         )}
       </div>

@@ -5,6 +5,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Globe, RefreshCw, AlertCircle, Loader } from "lucide-react";
 import { apiFetch } from "../quant-platform.jsx";
+import { useLang } from "../i18n.jsx";
 
 // 线上快照（production 只能读它，因为 Vercel 上没跑 backend；本地 dev 走实时 API）
 // 主动刷新：本地 `cd backend && python export_macro_snapshot.py` → commit → push
@@ -24,6 +25,7 @@ import FactorDetailModal from "../components/macro/FactorDetailModal.jsx";
 const USE_SNAPSHOT = import.meta.env.PROD;
 
 export default function MacroDashboard() {
+  const { t } = useLang();
   const [factors, setFactors] = useState(null);
   const [composite, setComposite] = useState(null);
   const [history, setHistory] = useState(null);
@@ -56,7 +58,7 @@ export default function MacroDashboard() {
       setFactors(data);
       setComposite(comp || null);
     } else {
-      setError("加载失败：检查 backend 是否启动 + FRED_API_KEY 已设置 + 已运行 refresh_macro.py");
+      setError(t("加载失败：检查 backend 是否启动 + FRED_API_KEY 已设置 + 已运行 refresh_macro.py"));
     }
     setLoading(false);
     // 历史曲线 + AI 画像异步加载（不阻塞首屏）
@@ -91,9 +93,9 @@ export default function MacroDashboard() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-2 flex-wrap">
           <Globe className="w-5 h-5 text-indigo-400" />
-          <h2 className="text-lg font-semibold text-white">宏观因子看板</h2>
+          <h2 className="text-lg font-semibold text-white">{t("宏观因子看板")}</h2>
           <span className="text-xs text-white/50">
-            {factors ? `${filtered.length} / ${factors.length} 因子` : ""}
+            {factors ? `${filtered.length} / ${factors.length} ${t("因子")}` : ""}
           </span>
           {USE_SNAPSHOT && macroSnapshot.generated_at && (() => {
             const st = snapshotStaleness(macroSnapshot.generated_at);
@@ -103,7 +105,7 @@ export default function MacroDashboard() {
                 title={`线上为静态 snapshot · 生成于 ${macroSnapshot.generated_at.slice(0,10)}${st.days != null ? `（${st.days} 天前）` : ""}。\n本地跑 backend/export_macro_snapshot.py 重新打包后 commit + push 才会更新。`}
               >
                 <span className="mr-1">{st.icon}</span>
-                snapshot · {macroSnapshot.generated_at.slice(0, 10)} · {st.label}
+                snapshot · {macroSnapshot.generated_at.slice(0, 10)} · {t(st.label)}
               </span>
             );
           })()}
@@ -114,7 +116,7 @@ export default function MacroDashboard() {
           className="px-3 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-xs flex items-center gap-1.5 disabled:opacity-50 text-white/80"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
-          刷新
+          {t("刷新")}
         </button>
       </div>
 
@@ -143,7 +145,7 @@ export default function MacroDashboard() {
                 : "bg-white/[0.03] border-white/[0.08] text-white/60 hover:text-white"
             }`}
           >
-            全部 ({factors.length})
+            {t("全部")} ({factors.length})
           </button>
           {categories.map(c => (
             <button
@@ -155,7 +157,7 @@ export default function MacroDashboard() {
                   : "bg-white/[0.03] border-white/[0.08] text-white/60 hover:text-white"
               }`}
             >
-              {CATEGORY_LABEL[c] || c} ({factors.filter(f => f.category === c).length})
+              {t(CATEGORY_LABEL[c] || c)} ({factors.filter(f => f.category === c).length})
             </button>
           ))}
         </div>
@@ -170,13 +172,13 @@ export default function MacroDashboard() {
 
       {loading && !factors && (
         <div className="flex items-center justify-center py-12 text-white/50">
-          <Loader className="w-5 h-5 animate-spin mr-2" /> 加载中…
+          <Loader className="w-5 h-5 animate-spin mr-2" /> {t("加载中…")}
         </div>
       )}
 
       {factors && factors.length === 0 && !loading && !error && (
         <div className="text-center py-12 text-white/50 text-sm">
-          没有因子。先在 backend 跑 <code className="font-mono text-indigo-300">python refresh_macro.py</code>
+          {t("没有因子。先在 backend 跑")} <code className="font-mono text-indigo-300">python refresh_macro.py</code>
         </div>
       )}
 
