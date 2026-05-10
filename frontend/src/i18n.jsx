@@ -447,6 +447,11 @@ const EN = {
   '清除全部筛选': 'Clear all filters',
   '回到顶部': 'Back to top',
   '导出当前筛选结果为 CSV': 'Export current filtered factors as CSV',
+  '收藏因子': 'Star factor',
+  '取消收藏': 'Remove star',
+  '仅显示收藏': 'Show only starred',
+  '显示全部': 'Show all',
+  '仅收藏': 'Starred',
   // CompositeChart
   '市场温度历史 · 与 Wilshire 5000 走势对照': 'Market Temp History · vs Wilshire 5000',
   '加载历史温度曲线中…': 'Loading history…',

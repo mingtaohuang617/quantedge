@@ -11,7 +11,9 @@ import { useLang } from "../i18n.jsx";
 // 主动刷新：本地 `cd backend && python export_macro_snapshot.py` → commit → push
 import macroSnapshot from "../macroSnapshot.json";
 
-import { CATEGORY_LABEL, snapshotStaleness } from "../components/macro/shared.js";
+import {
+  CATEGORY_LABEL, snapshotStaleness, readStarred, writeStarred, factorStarKey,
+} from "../components/macro/shared.js";
 import NarrativePanel from "../components/macro/NarrativePanel.jsx";
 import CompositePanel from "../components/macro/CompositePanel.jsx";
 import HmmPanel from "../components/macro/HmmPanel.jsx";
@@ -61,6 +63,24 @@ export default function MacroDashboard() {
   }, [marketFilter]);
   // 搜索框：按 factor_id / name / description 子串模糊匹配
   const [search, setSearch] = useState("");
+  // 收藏因子集（factor_id@market 复合键）+ 仅显示收藏切换
+  const [starred, setStarred] = useState(() => readStarred());
+  const [onlyStarred, setOnlyStarred] = useState(() => {
+    try { return localStorage.getItem("quantedge_macro_only_starred") === "1"; }
+    catch { return false; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem("quantedge_macro_only_starred", onlyStarred ? "1" : "0"); } catch {}
+  }, [onlyStarred]);
+  const toggleStar = (f) => {
+    const k = factorStarKey(f);
+    setStarred(prev => {
+      const next = new Set(prev);
+      if (next.has(k)) next.delete(k); else next.add(k);
+      writeStarred(next);
+      return next;
+    });
+  };
   const [selectedFactor, setSelectedFactor] = useState(null);
   // scroll-to-top：滚动 >400px 时显示浮动按钮
   const scrollRef = useRef(null);
@@ -161,6 +181,7 @@ export default function MacroDashboard() {
   const filtered = useMemo(() => {
     if (!factors) return [];
     let out = factors;
+    if (onlyStarred) out = out.filter(f => starred.has(factorStarKey(f)));
     if (marketFilter !== "all") out = out.filter(f => f.market === marketFilter);
     if (filter !== "all") out = out.filter(f => f.category === filter);
     if (dirFilter !== "all") {
@@ -179,8 +200,15 @@ export default function MacroDashboard() {
         (f.description || "").toLowerCase().includes(q)
       );
     }
+    // 收藏的排在前面（保持原顺序）
+    if (starred.size > 0) {
+      out = [
+        ...out.filter(f => starred.has(factorStarKey(f))),
+        ...out.filter(f => !starred.has(factorStarKey(f))),
+      ];
+    }
     return out;
-  }, [factors, filter, dirFilter, marketFilter, search]);
+  }, [factors, filter, dirFilter, marketFilter, search, starred, onlyStarred]);
 
   return (
     <div ref={scrollRef} className="space-y-4 flex-1 min-h-0 overflow-y-auto pr-1 -mr-1 relative">
@@ -281,8 +309,21 @@ export default function MacroDashboard() {
               ))}
             </div>
           )}
-          {/* 方向过滤副行 + 搜索框 */}
+          {/* 方向过滤副行 + 搜索框 + 仅收藏切换 + CSV */}
           <div className="flex flex-wrap gap-1.5 items-center">
+            {starred.size > 0 && (
+              <button
+                onClick={() => setOnlyStarred(v => !v)}
+                className={`px-2 py-0.5 rounded text-[10px] border transition-colors flex items-center gap-1 ${
+                  onlyStarred
+                    ? "bg-amber-500/15 border-amber-400/40 text-amber-200"
+                    : "bg-white/[0.02] border-white/[0.05] text-white/55 hover:text-white/85"
+                }`}
+                title={onlyStarred ? t("显示全部") : t("仅显示收藏")}
+              >
+                ★ {onlyStarred ? t("仅收藏") : `${starred.size}`}
+              </button>
+            )}
             <span className="text-[10px] text-white/40 mr-1">{t("方向")}:</span>
             {[
               { id: "all", label: t("全部") },
@@ -367,9 +408,18 @@ export default function MacroDashboard() {
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-        {filtered.map(f => (
-          <FactorCard key={`${f.factor_id}@${f.market}`} f={f} onSelect={setSelectedFactor} />
-        ))}
+        {filtered.map(f => {
+          const k = factorStarKey(f);
+          return (
+            <FactorCard
+              key={k}
+              f={f}
+              onSelect={setSelectedFactor}
+              isStarred={starred.has(k)}
+              onToggleStar={toggleStar}
+            />
+          );
+        })}
       </div>
 
       <FactorDetailModal f={selectedFactor} onClose={() => setSelectedFactor(null)} />
