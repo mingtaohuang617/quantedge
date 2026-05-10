@@ -486,6 +486,8 @@ const EN = {
   '严重': 'CRIT', '警示': 'WARN', '提示': 'INFO',
   '建议': 'Action',
   '查看对持仓的影响': 'See impact on holdings',
+  '自上次访问后新增的告警': 'New alerts since last visit',
+  '新': 'NEW',
   '切到评分仪表盘，结合此宏观信号评估持仓': 'Switch to Scoring dashboard with this macro signal',
   '来自宏观看板': 'From Macro',
   // FactorCard
