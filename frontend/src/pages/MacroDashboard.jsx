@@ -21,6 +21,7 @@ import CompositeChart from "../components/macro/CompositeChart.jsx";
 import FactorCard from "../components/macro/FactorCard.jsx";
 import DataStatusBanner from "../components/macro/DataStatusBanner.jsx";
 import FactorDetailModal from "../components/macro/FactorDetailModal.jsx";
+import TopMovers from "../components/macro/TopMovers.jsx";
 
 const USE_SNAPSHOT = import.meta.env.PROD;
 
@@ -42,6 +43,14 @@ export default function MacroDashboard() {
   useEffect(() => {
     try { localStorage.setItem("quantedge_macro_filter", filter); } catch {}
   }, [filter]);
+  // 方向过滤：all / higher / lower / contrarian
+  const [dirFilter, setDirFilter] = useState(() => {
+    try { return localStorage.getItem("quantedge_macro_dir_filter") || "all"; }
+    catch { return "all"; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem("quantedge_macro_dir_filter", dirFilter); } catch {}
+  }, [dirFilter]);
   const [selectedFactor, setSelectedFactor] = useState(null);
 
   const load = async () => {
@@ -91,9 +100,18 @@ export default function MacroDashboard() {
 
   const filtered = useMemo(() => {
     if (!factors) return [];
-    if (filter === "all") return factors;
-    return factors.filter(f => f.category === filter);
-  }, [factors, filter]);
+    let out = factors;
+    if (filter !== "all") out = out.filter(f => f.category === filter);
+    if (dirFilter !== "all") {
+      out = out.filter(f => {
+        if (dirFilter === "higher") return f.direction === "higher_bullish";
+        if (dirFilter === "contrarian") return f.contrarian_at_extremes === true;
+        if (dirFilter === "lower") return f.direction === "lower_bullish" && !f.contrarian_at_extremes;
+        return true;
+      });
+    }
+    return out;
+  }, [factors, filter, dirFilter]);
 
   return (
     <div className="space-y-4 flex-1 min-h-0 overflow-y-auto pr-1 -mr-1">
@@ -142,31 +160,57 @@ export default function MacroDashboard() {
 
       <CompositeChart history={history} range={range} setRange={setRange} />
 
+      <TopMovers factors={factors} />
+
       {factors && factors.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          <button
-            onClick={() => setFilter("all")}
-            className={`px-2.5 py-1 rounded text-[11px] border transition-colors ${
-              filter === "all"
-                ? "bg-indigo-500/20 border-indigo-400/40 text-indigo-200"
-                : "bg-white/[0.03] border-white/[0.08] text-white/60 hover:text-white"
-            }`}
-          >
-            {t("全部")} ({factors.length})
-          </button>
-          {categories.map(c => (
+        <div className="space-y-1.5">
+          <div className="flex flex-wrap gap-1.5">
             <button
-              key={c}
-              onClick={() => setFilter(c)}
+              onClick={() => setFilter("all")}
               className={`px-2.5 py-1 rounded text-[11px] border transition-colors ${
-                filter === c
+                filter === "all"
                   ? "bg-indigo-500/20 border-indigo-400/40 text-indigo-200"
                   : "bg-white/[0.03] border-white/[0.08] text-white/60 hover:text-white"
               }`}
             >
-              {t(CATEGORY_LABEL[c] || c)} ({factors.filter(f => f.category === c).length})
+              {t("全部")} ({factors.length})
             </button>
-          ))}
+            {categories.map(c => (
+              <button
+                key={c}
+                onClick={() => setFilter(c)}
+                className={`px-2.5 py-1 rounded text-[11px] border transition-colors ${
+                  filter === c
+                    ? "bg-indigo-500/20 border-indigo-400/40 text-indigo-200"
+                    : "bg-white/[0.03] border-white/[0.08] text-white/60 hover:text-white"
+                }`}
+              >
+                {t(CATEGORY_LABEL[c] || c)} ({factors.filter(f => f.category === c).length})
+              </button>
+            ))}
+          </div>
+          {/* 方向过滤副行 */}
+          <div className="flex flex-wrap gap-1.5 items-center">
+            <span className="text-[10px] text-white/40 mr-1">{t("方向")}:</span>
+            {[
+              { id: "all", label: t("全部") },
+              { id: "higher", label: t("高=牛") },
+              { id: "lower", label: t("低=牛") },
+              { id: "contrarian", label: t("低=牛·极端反向") },
+            ].map(opt => (
+              <button
+                key={opt.id}
+                onClick={() => setDirFilter(opt.id)}
+                className={`px-2 py-0.5 rounded text-[10px] border transition-colors ${
+                  dirFilter === opt.id
+                    ? "bg-violet-500/20 border-violet-400/40 text-violet-200"
+                    : "bg-white/[0.02] border-white/[0.05] text-white/45 hover:text-white/80"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 

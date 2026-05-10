@@ -120,6 +120,29 @@ export function fmtRaw(x) {
   return x.toFixed(4);
 }
 
+// 因子方向化分数（0-100，模仿 backend 的 directional_score）
+//   higher_bullish: pct（直接，高=牛）
+//   lower_bullish（非 contrarian）: 100-pct（反向，低=牛）
+//   lower_bullish + contrarian: 三角形，50 处最牛，两端最熊
+//     50→100, ±0→0；用 (50 - |pct - 50|) * 2
+//   neutral / unknown direction: null（不计入）
+export function directionalScore(f) {
+  const pct = f.latest?.percentile;
+  if (pct == null) return null;
+  if (f.direction === "higher_bullish") return pct;
+  if (f.direction === "lower_bullish" && f.contrarian_at_extremes) {
+    return (50 - Math.abs(pct - 50)) * 2;
+  }
+  if (f.direction === "lower_bullish") return 100 - pct;
+  return null;
+}
+
+// 因子的"贡献偏离" = directional_score - 50；正=拉牛，负=拉熊
+export function bullishContribution(f) {
+  const ds = directionalScore(f);
+  return ds == null ? null : ds - 50;
+}
+
 // 周环比 (WoW) Δ：当前值 vs N 个交易日前的值（默认 5 ≈ 1 周）
 //   key="temp" 或 4 个 category id
 //   缺数据/不够长 → null
