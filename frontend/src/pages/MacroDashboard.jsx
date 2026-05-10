@@ -3,7 +3,7 @@
 // 组件已拆到 ../components/macro/*；本文件只负责数据加载 + 组合 + 路由级 state
 // ─────────────────────────────────────────────────────────────
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { Globe, RefreshCw, AlertCircle, Loader, Search, X, ArrowUp, Download } from "lucide-react";
+import { Globe, RefreshCw, AlertCircle, Loader, Search, X, ArrowUp, Download, Maximize2, Minimize2 } from "lucide-react";
 import { apiFetch } from "../quant-platform.jsx";
 import { useLang } from "../i18n.jsx";
 
@@ -82,6 +82,14 @@ export default function MacroDashboard() {
     });
   };
   const [selectedFactor, setSelectedFactor] = useState(null);
+  // 紧凑视图：隐藏次级面板（HMM/持续期/历史曲线/TopMovers），只保留温度/告警/因子网格
+  const [compact, setCompact] = useState(() => {
+    try { return localStorage.getItem("quantedge_macro_compact") === "1"; }
+    catch { return false; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem("quantedge_macro_compact", compact ? "1" : "0"); } catch {}
+  }, [compact]);
   // scroll-to-top：滚动 >400px 时显示浮动按钮
   const scrollRef = useRef(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -240,14 +248,29 @@ export default function MacroDashboard() {
             );
           })()}
         </div>
-        <button
-          onClick={load}
-          disabled={loading}
-          className="px-3 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-xs flex items-center gap-1.5 disabled:opacity-50 text-white/80"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
-          {t("刷新")}
-        </button>
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => setCompact(v => !v)}
+            className={`px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 ${
+              compact
+                ? "bg-cyan-500/15 border border-cyan-400/40 text-cyan-200"
+                : "bg-white/[0.04] hover:bg-white/[0.08] text-white/80"
+            }`}
+            title={compact ? t("展开全部面板") : t("仅显示核心信息")}
+            aria-pressed={compact}
+          >
+            {compact ? <Maximize2 className="w-3.5 h-3.5" /> : <Minimize2 className="w-3.5 h-3.5" />}
+            {compact ? t("完整") : t("紧凑")}
+          </button>
+          <button
+            onClick={load}
+            disabled={loading}
+            className="px-3 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-xs flex items-center gap-1.5 disabled:opacity-50 text-white/80"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+            {t("刷新")}
+          </button>
+        </div>
       </div>
 
       <DataStatusBanner composite={composite} factors={factors} />
@@ -262,14 +285,18 @@ export default function MacroDashboard() {
 
       <AlertsPanel alerts={composite?.alerts} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 lg:gap-4">
-        <HmmPanel hmm={composite?.hmm} temp={composite?.market_temperature} />
-        <SurvivalPanel s={composite?.survival} />
-      </div>
+      {!compact && (
+        <>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 lg:gap-4">
+            <HmmPanel hmm={composite?.hmm} temp={composite?.market_temperature} />
+            <SurvivalPanel s={composite?.survival} />
+          </div>
 
-      <CompositeChart history={history} range={range} setRange={setRange} />
+          <CompositeChart history={history} range={range} setRange={setRange} />
 
-      <TopMovers factors={factors} />
+          <TopMovers factors={factors} />
+        </>
+      )}
 
       {factors && factors.length > 0 && (
         <div className="space-y-1.5">
