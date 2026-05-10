@@ -7,6 +7,9 @@ import {
   directionalScore,
   bullishContribution,
   TEMP_LABEL,
+  DIRECTION_BADGE,
+  fmtRaw,
+  factorStarKey,
 } from "./shared.js";
 
 // ─── daysSince ──────────────────────────────────────────────
@@ -156,6 +159,81 @@ describe("bullishContribution", () => {
   });
   it("returns null when score is null", () => {
     expect(bullishContribution({ direction: "neutral", latest: { percentile: 50 } })).toBeNull();
+  });
+});
+
+// ─── DIRECTION_BADGE ────────────────────────────────────────
+describe("DIRECTION_BADGE", () => {
+  it("returns higher_bullish badge with up arrow icon", () => {
+    const b = DIRECTION_BADGE("higher_bullish", false);
+    expect(b.icon).toBe("↑");
+    expect(b.label).toBe("高=牛");
+    expect(b.cls).toContain("emerald");
+  });
+  it("returns lower_bullish + contrarian badge with bidirectional arrow", () => {
+    const b = DIRECTION_BADGE("lower_bullish", true);
+    expect(b.icon).toBe("↕");
+    expect(b.label).toBe("低=牛·极端反向");
+    expect(b.cls).toContain("fuchsia");
+  });
+  it("returns lower_bullish (non-contrarian) badge with down arrow", () => {
+    const b = DIRECTION_BADGE("lower_bullish", false);
+    expect(b.icon).toBe("↓");
+    expect(b.label).toBe("低=牛");
+    expect(b.cls).toContain("sky");
+  });
+  it("returns neutral badge for unknown / undefined direction", () => {
+    const b = DIRECTION_BADGE(undefined, false);
+    expect(b.icon).toBe("─");
+    expect(b.label).toBe("中性");
+    expect(b.cls).toContain("slate");
+  });
+  it("all badges have title (description) field", () => {
+    for (const [d, c] of [["higher_bullish", false], ["lower_bullish", true],
+                          ["lower_bullish", false], ["neutral", false]]) {
+      const b = DIRECTION_BADGE(d, c);
+      expect(typeof b.title).toBe("string");
+      expect(b.title.length).toBeGreaterThan(0);
+    }
+  });
+});
+
+// ─── fmtRaw ─────────────────────────────────────────────────
+describe("fmtRaw", () => {
+  it("returns em-dash for null", () => {
+    expect(fmtRaw(null)).toBe("—");
+    expect(fmtRaw(undefined)).toBe("—");
+  });
+  it("uses 0 decimals for >=1000", () => {
+    expect(fmtRaw(1234.567)).toBe("1235");
+    expect(fmtRaw(72258.41)).toBe("72258");
+  });
+  it("uses 1 decimal for [100, 1000)", () => {
+    expect(fmtRaw(123.456)).toBe("123.5");
+    expect(fmtRaw(100)).toBe("100.0");
+  });
+  it("uses 2 decimals for [10, 100)", () => {
+    expect(fmtRaw(45.678)).toBe("45.68");
+    expect(fmtRaw(10)).toBe("10.00");
+  });
+  it("uses 3 decimals for [1, 10)", () => {
+    expect(fmtRaw(2.3456)).toBe("2.346");
+  });
+  it("uses 4 decimals for <1", () => {
+    expect(fmtRaw(0.12345)).toBe("0.1235");
+    expect(fmtRaw(0)).toBe("0.0000");
+  });
+  it("handles negatives by absolute magnitude", () => {
+    expect(fmtRaw(-1234.5)).toBe("-1235");
+    expect(fmtRaw(-0.5)).toBe("-0.5000");
+  });
+});
+
+// ─── factorStarKey ──────────────────────────────────────────
+describe("factorStarKey", () => {
+  it("returns factor_id@market composite key", () => {
+    expect(factorStarKey({ factor_id: "US_VIX", market: "US" })).toBe("US_VIX@US");
+    expect(factorStarKey({ factor_id: "CN_M2_GROWTH", market: "CN" })).toBe("CN_M2_GROWTH@CN");
   });
 });
 
