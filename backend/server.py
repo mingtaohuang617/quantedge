@@ -1630,6 +1630,38 @@ def llm_tenx_thesis(req: TenxThesisReq):
     return sanitize(_llm_mod.tenx_thesis(stock, supertrend))
 
 
+class ValueThesisReq(BaseModel):
+    ticker: str
+    name: str | None = None
+    sector: str | None = None
+    industry: str | None = None
+    marketCap: float | None = None
+    descriptionCN: str | None = None
+    description: str | None = None
+    supertrend_id: str
+    # 价值型独有：5 维财务指标，给 LLM 喂数字判断更准
+    pe: float | None = None
+    pb: float | None = None
+    dividend_yield: float | None = None
+    roe: float | None = None
+    debt_to_equity: float | None = None
+
+
+@app.post("/api/llm/value-thesis")
+def llm_value_thesis(req: ValueThesisReq):
+    """LLM 生成价值型分析草稿（Graham 安全边际，含估值点位 + 内在价值 + 护城河 + 风险 + 结论）。"""
+    if not HAS_LLM or _llm_mod is None:
+        raise HTTPException(503, "llm 模块未加载（DEEPSEEK_API_KEY 未设？）")
+    supertrend = next(
+        (s for s in _wl.list_supertrends() if s["id"] == req.supertrend_id),
+        None,
+    )
+    if not supertrend:
+        raise HTTPException(400, f"unknown supertrend_id: {req.supertrend_id}")
+    stock = req.dict(exclude={"supertrend_id"})
+    return sanitize(_llm_mod.value_thesis(stock, supertrend))
+
+
 if __name__ == "__main__":
     # 不在启动时调 health_check —— 它会同步连 Futu OpenD，OpenD 没开会卡住启动。
     # 各源健康状态由 /api/status 端点按需查询（前端拉到才探活）。

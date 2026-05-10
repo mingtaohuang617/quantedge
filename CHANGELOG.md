@@ -6,6 +6,22 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- **10x 猎手 价值型 PR-B UI + LLM**（v2.0 第二阶段）：完成成长/价值同页 tab 切换 + 价值型 LLM thesis
+  - `backend/llm.py:value_thesis`：Graham 安全边际框架 LLM prompt — 8 字段（价值赛道 / 估值点位 / 估值点位_int / 内在价值 / 护城河 / 卡位等级_int / 风险 / 推演结论）；cache key prefix `value-thesis` 与成长型 `10x-thesis` 隔离；额外把 PE/PB/股息率/ROE/D/E 5 维数字喂给 LLM
+  - `backend/server.py`：新增 `POST /api/llm/value-thesis` endpoint + `ValueThesisReq` 含 5 维财务字段
+  - `frontend/api/llm/value-thesis.js`：vercel serverless port，含 yahoo profile 业务描述兜底（与 10x-thesis 同模式）
+  - `frontend/src/pages/Screener10x.jsx`：
+    - 顶栏加「成长型 / 价值型」tab 切换；切 tab 清空赛道选择避免脏状态
+    - 左栏赛道列表按 `activeStrategy` 过滤（成长 4 / 价值 3）
+    - 中栏筛选条件按 strategy 切换：成长型保留 `max_market_cap_b`；价值型显示 5 维 input（PE/PB/ROE/股息/D/E）
+    - 候选行：价值型额外列展示 PE / PB / 股息率 / ROE
+    - `runScreen` 按 strategy 选择参数集（成长型不带 5 维；价值型不带 max_market_cap_b）
+    - `BUILTIN_SUPERTRENDS_FALLBACK` 扩展到 7 个（含 strategy 字段）
+  - `frontend/src/components/TenxItemEditor.jsx`：
+    - 启用价值型 strategy（去掉 `disabled: true`）
+    - 字段标签按 strategy 切换：成长「瓶颈层级 (L1 共识 / L2 深度认知)」/「卡位等级」；价值「估值点位 (L1 深度低估 / L2 合理估值)」/「护城河等级」
+    - 「AI 生成草稿」按钮根据 strategy 路由 `/llm/10x-thesis` 或 `/llm/value-thesis`，预填规则相同（_int 字段自动填 bottleneck_layer / moat_score）
+  - 测试：backend pytest 新增 2 例 value_thesis（cache 命中 + 字段缺失容错；mock LLM，零网络）
 - **10x 猎手 价值型 PR-A 数据基础**（v2.0 第一阶段；UI 在 PR-B）：让 watchlist 同时支持成长/价值两条策略
   - `backend/sector_mapping.py`：每个 supertrend 加 `strategy: "growth" | "value"` 字段；新增 3 个价值赛道 `value_div`（高股息蓝筹）/ `value_cyclical`（周期价值：银行/保险/化工/钢铁）/ `value_consumer`（消费稳健：食品饮料/必需消费）
   - `backend/data_sources/yfinance_source.py:fetch_fundamentals`：拉单只 PE/PB/股息率/ROE/D/E（同 `.info` 调用零额外 IO）

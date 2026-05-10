@@ -465,6 +465,112 @@ def tenx_thesis(stock: dict, supertrend: dict, ttl_seconds: int = 86400) -> dict
         return {"ok": False, "ticker": ticker, "error": f"LLM 返回非合法 JSON: {e}"}
 
 
+def value_thesis(stock: dict, supertrend: dict, ttl_seconds: int = 86400) -> dict:
+    """
+    10x 猎手 价值型 — Graham 安全边际分析草稿。
+
+    与成长型 tenx_thesis 平行：
+      - 不强调"小市值卡位"，强调"安全边际 + 现金流稳健 + 估值合理"
+      - 不用"双层瓶颈"，改用"估值点位"（深度低估 / 合理估值 / 偏高）
+      - moat_score 复用：价值型语义=护城河强度（品牌/规模/网络效应）
+
+    输入:
+      stock: {ticker, name, sector?, industry?, marketCap?, descriptionCN?,
+              pe?, pb?, dividend_yield?, roe?, debt_to_equity?}
+      supertrend: {id, name, note, strategy="value"}
+    返回 {ok, ticker, thesis: {价值赛道, 估值点位, 估值点位_int, 内在价值,
+                                护城河, 卡位等级_int, 风险, 推演结论}, cached}
+      - 估值点位_int: 1（深度低估）或 2（合理估值）；前端预填 bottleneck_layer
+      - 卡位等级_int: 1-5 整数；前端预填 moat_score
+    """
+    ticker = stock.get("ticker", "?")
+    name = stock.get("name", "")
+    sector = stock.get("sector") or stock.get("industry") or ""
+    mc = stock.get("marketCap")
+    desc = (stock.get("descriptionCN") or stock.get("description") or "")[:300]
+
+    if mc is None:
+        mc_str = "未知"
+    elif mc >= 1e9:
+        mc_str = f"{mc/1e9:.1f}B"
+    else:
+        mc_str = f"{mc/1e6:.0f}M"
+
+    # 价值型独有：5 维财务指标喂给 LLM（缺值标 "？"）
+    def _fmt_pct(v):
+        return f"{v*100:.1f}%" if isinstance(v, (int, float)) else "?"
+
+    def _fmt_num(v, prec=1):
+        return f"{v:.{prec}f}" if isinstance(v, (int, float)) else "?"
+
+    pe_str = _fmt_num(stock.get("pe"))
+    pb_str = _fmt_num(stock.get("pb"), 2)
+    dy_str = _fmt_pct(stock.get("dividend_yield"))
+    roe_str = _fmt_pct(stock.get("roe"))
+    de_str = _fmt_num(stock.get("debt_to_equity"), 2)
+
+    st_id = supertrend.get("id", "")
+    st_name = supertrend.get("name", st_id)
+    st_note = supertrend.get("note", "")
+
+    prompt = (
+        "你是价值投资研究助手，按 'Graham 安全边际' 策略给出客观分析。\n"
+        "策略框架：识别价值赛道 → 评估估值点位（PE/PB/股息率/ROE 当前 vs 历史/同行）"
+        "→ 估算内在价值（DCF 简化 / 净资产 / 股息折现）"
+        "→ 计算安全边际 → 第一性原理：业务可预测性 + 护城河 + 资本回报。\n\n"
+        f"标的: {ticker} ({name})\n"
+        f"行业/分类: {sector}\n"
+        f"市值: {mc_str}\n"
+        f"PE: {pe_str} · PB: {pb_str} · 股息率: {dy_str} · ROE: {roe_str} · D/E: {de_str}\n"
+        f"所属价值赛道: {st_name}（{st_note}）\n"
+        f"业务描述: {desc or '（缺失）'}\n\n"
+        "请严格输出 JSON，所有字段都要有：\n"
+        '{\n'
+        '  "价值赛道": "<为什么属于这条价值赛道，≤30 字>",\n'
+        '  "估值点位": "<PE/PB/股息率/ROE 当前 vs 历史/同行对标，≤60 字>",\n'
+        '  "估值点位_int": <1 或 2；1=深度低估（PE<10 或 PB<1 或 股息>5%），2=合理估值；不确定填 2>,\n'
+        '  "内在价值": "<DCF 简化 / 净资产法 / 股息折现 给出粗略数字 + 计算逻辑，≤80 字>",\n'
+        '  "护城河": "<品牌/规模/网络效应/转换成本/牌照壁垒，≤40 字>",\n'
+        '  "卡位等级_int": <1-5 整数；价值型语义=护城河强度；3=普通龙头，4=显著壁垒，5=近乎垄断；不确定填 3>,\n'
+        '  "风险": "<价值陷阱 / 行业衰退 / 资本效率下降 / 高负债，≤30 字>",\n'
+        '  "推演结论": "<建议关注价 / 触发买入区间，不给具体买卖建议，≤60 字>"\n'
+        '}\n'
+        "要求：客观、不夸张；不知道就承认不确定，但 _int 字段必须给整数（不确定时给提示中的中位值）。"
+        "结合给出的 PE/PB/股息率/ROE/D/E 数字一起判断，不要忽略。"
+    )
+
+    # cache key 用 value-thesis 前缀，与 10x-thesis 隔离（避免缓存污染）
+    cache_key = _db.llm_cache_key("value-thesis", DEFAULT_MODEL, prompt)
+
+    cached = _db.llm_cache_get(cache_key)
+    if cached:
+        return {"ok": True, "ticker": ticker, "thesis": cached["response"], "cached": True}
+
+    try:
+        content, p_tok, c_tok = _chat(
+            [{"role": "user", "content": prompt}],
+            json_mode=True,
+            max_tokens=700,
+            temperature=0.3,
+        )
+        parsed = _safe_json_parse(content)
+        for k in ("价值赛道", "估值点位", "内在价值", "护城河", "风险", "推演结论"):
+            if k not in parsed:
+                parsed[k] = ""
+        parsed["估值点位_int"] = _clamp_int(parsed.get("估值点位_int"), 1, 2, 2)
+        parsed["卡位等级_int"] = _clamp_int(parsed.get("卡位等级_int"), 1, 5, 3)
+        _db.llm_cache_put(
+            cache_key, "value-thesis", DEFAULT_MODEL, parsed,
+            ticker=ticker, prompt_tokens=p_tok, completion_tokens=c_tok,
+            ttl_seconds=ttl_seconds,
+        )
+        return {"ok": True, "ticker": ticker, "thesis": parsed, "cached": False}
+    except LLMError as e:
+        return {"ok": False, "ticker": ticker, "error": str(e)}
+    except json.JSONDecodeError as e:
+        return {"ok": False, "ticker": ticker, "error": f"LLM 返回非合法 JSON: {e}"}
+
+
 def macro_narrative(composite: dict, ttl_seconds: int = 43200, force: bool = False) -> dict:
     """
     每日宏观市场画像。基于 compute_composite() 的输出生成 150-200 字中文解读。
