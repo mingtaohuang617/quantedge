@@ -438,7 +438,8 @@ const EN = {
   '无明显拉牛因子': 'No obvious bullish drivers',
   '无明显拉熊因子': 'No obvious bearish drivers',
   '情绪未到极端': 'Sentiment not at extremes',
-  // Direction filter row + search
+  // Market + Direction filter row + search
+  '市场': 'Market',
   '方向': 'Direction',
   '搜索因子 (id / 名称 / 描述)': 'Search factors (id / name / desc)',
   '清除': 'Clear',
