@@ -3,7 +3,7 @@
 // 组件已拆到 ../components/macro/*；本文件只负责数据加载 + 组合 + 路由级 state
 // ─────────────────────────────────────────────────────────────
 import React, { useState, useEffect, useMemo } from "react";
-import { Globe, RefreshCw, AlertCircle, Loader } from "lucide-react";
+import { Globe, RefreshCw, AlertCircle, Loader, Search, X } from "lucide-react";
 import { apiFetch } from "../quant-platform.jsx";
 import { useLang } from "../i18n.jsx";
 
@@ -51,6 +51,8 @@ export default function MacroDashboard() {
   useEffect(() => {
     try { localStorage.setItem("quantedge_macro_dir_filter", dirFilter); } catch {}
   }, [dirFilter]);
+  // 搜索框：按 factor_id / name / description 子串模糊匹配
+  const [search, setSearch] = useState("");
   const [selectedFactor, setSelectedFactor] = useState(null);
 
   const load = async () => {
@@ -110,8 +112,16 @@ export default function MacroDashboard() {
         return true;
       });
     }
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      out = out.filter(f =>
+        (f.factor_id || "").toLowerCase().includes(q) ||
+        (f.name || "").toLowerCase().includes(q) ||
+        (f.description || "").toLowerCase().includes(q)
+      );
+    }
     return out;
-  }, [factors, filter, dirFilter]);
+  }, [factors, filter, dirFilter, search]);
 
   return (
     <div className="space-y-4 flex-1 min-h-0 overflow-y-auto pr-1 -mr-1">
@@ -189,7 +199,7 @@ export default function MacroDashboard() {
               </button>
             ))}
           </div>
-          {/* 方向过滤副行 */}
+          {/* 方向过滤副行 + 搜索框 */}
           <div className="flex flex-wrap gap-1.5 items-center">
             <span className="text-[10px] text-white/40 mr-1">{t("方向")}:</span>
             {[
@@ -210,6 +220,25 @@ export default function MacroDashboard() {
                 {opt.label}
               </button>
             ))}
+            <div className="ml-auto relative flex items-center">
+              <Search className="absolute left-2 w-3 h-3 text-white/30" />
+              <input
+                type="text"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder={t("搜索因子 (id / 名称 / 描述)")}
+                className="pl-7 pr-7 py-0.5 text-[10px] bg-white/[0.03] border border-white/[0.08] rounded text-white/85 placeholder:text-white/30 focus:outline-none focus:border-indigo-400/50 w-56"
+              />
+              {search && (
+                <button
+                  onClick={() => setSearch("")}
+                  className="absolute right-1 p-0.5 rounded hover:bg-white/10 text-white/40 hover:text-white/70"
+                  title={t("清除")}
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -230,6 +259,19 @@ export default function MacroDashboard() {
       {factors && factors.length === 0 && !loading && !error && (
         <div className="text-center py-12 text-white/50 text-sm">
           {t("没有因子。先在 backend 跑")} <code className="font-mono text-indigo-300">python refresh_macro.py</code>
+        </div>
+      )}
+
+      {/* 过滤后空集 — 引导清除筛选 */}
+      {factors && factors.length > 0 && filtered.length === 0 && (
+        <div className="flex items-center justify-center gap-3 py-8 text-white/45 text-xs">
+          <span>{t("当前筛选条件下没有因子")}</span>
+          <button
+            onClick={() => { setFilter("all"); setDirFilter("all"); setSearch(""); }}
+            className="px-2 py-0.5 rounded text-[10px] border bg-indigo-500/15 border-indigo-400/30 text-indigo-200 hover:bg-indigo-500/25"
+          >
+            {t("清除全部筛选")}
+          </button>
         </div>
       )}
 
