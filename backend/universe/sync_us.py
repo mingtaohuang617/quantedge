@@ -287,8 +287,10 @@ def main():
             "items": unique,
         }
         tmp = OUTPUT_PATH.with_suffix(".json.tmp")
+        # NaN/Infinity → None；vercel lambda V8 JSON.parse 不接受 NaN 字面量
+        from . import sanitize_for_json
         with open(tmp, "w", encoding="utf-8") as f:
-            json.dump(payload, f, ensure_ascii=False, indent=2)
+            json.dump(sanitize_for_json(payload), f, ensure_ascii=False, indent=2, allow_nan=False)
         tmp.replace(OUTPUT_PATH)
 
     if args.enrich:
