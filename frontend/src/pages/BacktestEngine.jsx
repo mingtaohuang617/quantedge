@@ -4,7 +4,7 @@
 // ─────────────────────────────────────────────────────────────
 import React, { useState, useEffect, useMemo, useCallback, useRef, useContext } from "react";
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, ComposedChart, ReferenceLine, ReferenceArea } from "recharts";
-import { Activity, AlertCircle, AlertTriangle, BarChart3, BookOpen, Briefcase, Check, ChevronDown, Database, Layers, Loader, Plus, RefreshCw, Search, Share2, Target, Trash2, TrendingDown, X, Zap } from "lucide-react";
+import { Activity, AlertCircle, AlertTriangle, BarChart3, BookOpen, Briefcase, Check, ChevronDown, Database, Layers, Loader, Plus, RefreshCw, Search, Share2, Sparkles, Target, Trash2, TrendingDown, X, Zap } from "lucide-react";
 import { searchTickers as standaloneSearch, fetchStockData, fetchBenchmarkPrices, fetchRangePrices, fetchRangePricesEx, STOCK_CN_NAMES } from "../standalone.js";
 import BacktestNarrationCard from "../components/BacktestNarrationCard.jsx";
 import { useLang } from "../i18n.jsx";
@@ -270,6 +270,41 @@ const BacktestEngine = () => {
   const [missingDataTickers, setMissingDataTickers] = useState([]); // [{ticker, reason}]
   // 用了 stale 缓存的标的（远程拉失败但 IDB 有旧数据可兜底）
   const [staleList, setStaleList] = useState([]); // [{ticker, error}]
+  // B3: NL 策略 → portfolio
+  const [nlText, setNlText] = useState("");
+  const [nlLoading, setNlLoading] = useState(false);
+  const [nlHint, setNlHint] = useState("");
+
+  const handleNLStrategy = useCallback(async () => {
+    const text = nlText.trim();
+    if (!text) { setNlHint("先描述一句策略，比如：科技 + 防御 7:3"); return; }
+    setNlLoading(true);
+    setNlHint("");
+    try {
+      const candidates = (liveStocks || []).map(s => ({
+        ticker: s.ticker, name: s.name, sector: s.sector,
+      }));
+      const json = await apiFetch("/llm/parse-strategy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, candidates }),
+      });
+      if (!json) throw new Error("后端无响应");
+      if (!json.ok) throw new Error(json.error || json.detail || "AI 服务异常");
+      const port = json.portfolio || {};
+      const tickers = Object.keys(port);
+      if (tickers.length === 0) {
+        setNlHint("AI 没识别到合适标的，换个描述试试");
+        return;
+      }
+      setPortfolio(port);
+      setNlHint(`✓ ${json.rationale || "已填入 portfolio"} (${tickers.length} 只)`);
+    } catch (e) {
+      setNlHint(`AI 失败: ${String(e?.message || e)}`);
+    } finally {
+      setNlLoading(false);
+    }
+  }, [nlText, liveStocks]);
 
   // ── 配置分享链接（URL hash 编码/解码）────────────────────
   const encodeConfig = useCallback(() => {
@@ -551,9 +586,12 @@ const BacktestEngine = () => {
       return data5Y;
     }
     // 优先 priceRanges
-    if (stk.priceRanges && stk.priceRanges[btRange]) return stk.priceRanges[btRange];
-    // 降级到 priceHistory
-    return stk.priceHistory || [];
+    let arr;
+    if (stk.priceRanges && stk.priceRanges[btRange]) arr = stk.priceRanges[btRange];
+    else arr = stk.priceHistory || [];
+    // 数据 sanity 末端防御：标的导入器/缓存里如有遗留脏数据点（p<=0/NaN），过滤掉
+    // 否则下游 navCurve 计算会因负价格除法产生 NaN/Inf 串扰
+    return arr.filter(d => d && typeof d.p === "number" && Number.isFinite(d.p) && d.p > 0);
   }, [btRange, customStart, customEnd]);
 
   // 各时间维度的估算天数/期 (用于年化计算)
@@ -1244,6 +1282,33 @@ const BacktestEngine = () => {
     <div className="flex flex-col md:grid md:grid-cols-12 gap-5 md:gap-4 h-full min-h-0 overflow-auto md:overflow-hidden">
       {/* ── 左栏：组合构建器 ── */}
       <div className={`md:col-span-4 flex flex-col gap-2 md:min-h-0 ${builderOpen ? "md:overflow-auto" : ""} pr-0 md:pr-1`}>
+        {/* B3: NL 策略输入 → DeepSeek 自动填 portfolio */}
+        <div className="glass-card p-2 border border-violet-500/20">
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <Sparkles size={11} className="text-violet-400" />
+            <span className="text-[10px] font-medium text-violet-300">用一句话描述策略 (AI 自动选股)</span>
+          </div>
+          <div className="flex gap-1.5">
+            <input
+              value={nlText}
+              onChange={e => setNlText(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter" && !nlLoading) handleNLStrategy(); }}
+              placeholder="例: 半导体龙头 + 防御股 6:4"
+              className="flex-1 px-2 py-1 text-[11px] bg-[var(--bg-input)] border border-[var(--border-default)] rounded outline-none text-white"
+            />
+            <button
+              onClick={handleNLStrategy}
+              disabled={nlLoading || !nlText.trim()}
+              className="px-2 py-1 text-[10px] rounded bg-violet-500/20 hover:bg-violet-500/30 text-violet-200 border border-violet-500/40 transition disabled:opacity-40 flex items-center gap-1"
+            >
+              {nlLoading ? <Loader size={10} className="animate-spin" /> : <Sparkles size={10} />}
+              {nlLoading ? "..." : "AI"}
+            </button>
+          </div>
+          {nlHint && (
+            <div className="text-[9px] text-violet-200/80 mt-1 break-all">{nlHint}</div>
+          )}
+        </div>
         {/* 策略模板 & 分享按钮 */}
         <div className="flex gap-2">
           <button

@@ -1,9 +1,13 @@
 import React from "react";
+import { PANEL, HMM_COLOR } from "./shared.js";
 
-// 持续期预测面板（Kaplan-Meier）
+// L4 持续期预测面板（Kaplan-Meier）
 export default function SurvivalPanel({ s }) {
-  const cn = s.current_regime === "bull" ? "牛" : s.current_regime === "bear" ? "熊" : s.current_regime;
-  const tone = s.current_regime === "bull" ? "text-emerald-300" : "text-red-300";
+  if (!s || s.error) return null;
+  const cn = s.current_regime === "bull" ? HMM_COLOR.bull.label
+    : s.current_regime === "bear" ? HMM_COLOR.bear.label : s.current_regime;
+  const tone = s.current_regime === "bull" ? HMM_COLOR.bull.text
+    : s.current_regime === "bear" ? HMM_COLOR.bear.text : "text-slate-300";
   const probs = s.prob_continue || {};
 
   const probBar = (p) => {
@@ -21,13 +25,11 @@ export default function SurvivalPanel({ s }) {
   };
 
   return (
-    <div className="mt-4 pt-4 border-t border-white/[0.06]">
-      <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+    <div className={PANEL.secondary}>
+      <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
         <div className="flex items-center gap-2">
-          <span className="text-xs text-white/55">持续期预测 · Kaplan-Meier</span>
-          <span className="text-[10px] text-white/35 font-mono">
-            ({s.n_past_same_segments} 段历史 {cn} 市)
-          </span>
+          <span className="text-sm font-medium text-white/85">L4 持续期预测</span>
+          <span className="text-[10px] text-white/45">Kaplan-Meier · {s.n_past_same_segments} 段历史 {cn} 市</span>
         </div>
       </div>
       <div className="flex flex-wrap gap-4">

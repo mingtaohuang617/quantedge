@@ -1183,6 +1183,97 @@ def llm_backtest_narrate(req: LLMBacktestNarrateReq):
     return sanitize(_llm_mod.backtest_narrate(req.dict()))
 
 
+# ── 交易 / 持仓端点 (A6 - Sprint 3) ──────────────────────
+class TransactionReq(BaseModel):
+    ticker: str
+    side: str          # 'buy' | 'sell'
+    qty: float
+    price: float
+    fee: float = 0.0
+    traded_at: str | None = None
+    journal_ref: int | None = None
+    notes: str | None = None
+
+
+@app.post("/api/transactions")
+def add_transaction(req: TransactionReq):
+    """A6: 录入一笔交易。"""
+    if not HAS_DB or _db_mod is None:
+        raise HTTPException(503, "db 模块未加载")
+    try:
+        tx_id = _db_mod.insert_transaction(
+            req.ticker, req.side, req.qty, req.price,
+            fee=req.fee, traded_at=req.traded_at,
+            journal_ref=req.journal_ref, notes=req.notes,
+        )
+        return {"success": True, "id": tx_id}
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.get("/api/transactions")
+def list_transactions_endpoint(ticker: str | None = None, limit: int = 200):
+    """A6: 列出交易记录（可按 ticker 筛选）。"""
+    if not HAS_DB or _db_mod is None:
+        raise HTTPException(503, "db 模块未加载")
+    return sanitize({"transactions": _db_mod.list_transactions(ticker=ticker, limit=limit)})
+
+
+@app.delete("/api/transactions/{tx_id}")
+def delete_transaction_endpoint(tx_id: int):
+    """A6: 删除一笔交易。"""
+    if not HAS_DB or _db_mod is None:
+        raise HTTPException(503, "db 模块未加载")
+    ok = _db_mod.delete_transaction(tx_id)
+    if not ok:
+        raise HTTPException(404, "交易不存在")
+    return {"success": True}
+
+
+@app.get("/api/positions")
+def get_positions():
+    """A6: 当前持仓 + 浮盈（基于 db 最新 close 计算）。"""
+    if not HAS_DB or _db_mod is None:
+        raise HTTPException(503, "db 模块未加载")
+    return sanitize({"positions": _db_mod.compute_positions()})
+
+
+# ── B3: NL 策略解析端点 ──────────────────────────────────
+class LLMParseStrategyReq(BaseModel):
+    text: str
+    candidates: list[dict] = []   # [{ticker, name, sector}, ...]
+
+
+@app.post("/api/llm/parse-strategy")
+def llm_parse_strategy(req: LLMParseStrategyReq):
+    """B3: 一句话策略 → portfolio dict。"""
+    if not HAS_LLM or _llm_mod is None:
+        raise HTTPException(503, "llm 模块未加载")
+    return sanitize(_llm_mod.parse_strategy(req.text, req.candidates))
+
+
+# ── B7: 月度复盘端点 ─────────────────────────────────────
+@app.post("/api/llm/monthly-review")
+def llm_monthly_review(month: str | None = None):
+    """B7: 自动从 db 拉数据生成月度复盘。month='YYYY-MM' 缺省取上月。"""
+    if not HAS_LLM or _llm_mod is None or not HAS_DB:
+        raise HTTPException(503, "llm 或 db 模块未加载")
+    from datetime import date as _date, timedelta
+    if not month:
+        today = _date.today()
+        first_day = today.replace(day=1)
+        last_month_end = first_day - timedelta(days=1)
+        month = last_month_end.strftime("%Y-%m")
+    # 拉该月交易
+    conn = _db_mod._get_conn()
+    txs = [dict(r) for r in conn.execute(
+        "SELECT * FROM transactions WHERE traded_at LIKE ? ORDER BY traded_at, id",
+        (f"{month}%",),
+    )]
+    positions = _db_mod.compute_positions()
+    return sanitize(_llm_mod.monthly_review(month, txs, positions))
+
+
 @app.get("/api/llm/stats")
 def llm_stats():
     """LLM 缓存命中 / token 累计统计。"""

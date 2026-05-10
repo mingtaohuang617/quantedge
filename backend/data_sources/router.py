@@ -72,8 +72,17 @@ def _df_to_rows(df: pd.DataFrame) -> list[dict]:
     rows = []
     has_amount = "Amount" in df.columns
     has_adj = "AdjFactor" in df.columns
+    import math
     for idx, r in df.iterrows():
-        if pd.isna(r.get("Close")):
+        close_raw = r.get("Close")
+        if pd.isna(close_raw):
+            continue
+        try:
+            close_f = float(close_raw)
+        except (TypeError, ValueError):
+            continue
+        # 数据 sanity（与 db._is_sane_bar 对齐）—— 拒绝 NaN / inf / ≤0
+        if math.isnan(close_f) or math.isinf(close_f) or close_f <= 0:
             continue
         d_str = idx.strftime("%Y-%m-%d") if hasattr(idx, "strftime") else str(idx)[:10]
         rows.append({
@@ -81,7 +90,7 @@ def _df_to_rows(df: pd.DataFrame) -> list[dict]:
             "open":  float(r["Open"])  if pd.notna(r.get("Open"))  else None,
             "high":  float(r["High"])  if pd.notna(r.get("High"))  else None,
             "low":   float(r["Low"])   if pd.notna(r.get("Low"))   else None,
-            "close": float(r["Close"]),
+            "close": close_f,
             "volume": int(r["Volume"]) if pd.notna(r.get("Volume")) else None,
             "amount": float(r["Amount"]) if has_amount and pd.notna(r.get("Amount")) else None,
             "adj_factor": float(r["AdjFactor"]) if has_adj and pd.notna(r.get("AdjFactor")) else 1.0,

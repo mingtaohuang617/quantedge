@@ -1,5 +1,23 @@
 // 宏观看板共用常量 + 工具（无 JSX，纯函数 + 配色映射）
 
+// 面板 3 级风格：primary=渐变核心卡 / secondary=次级实色卡 / inline=嵌入分隔
+export const PANEL = {
+  primary: "bg-gradient-to-br from-white/[0.05] to-white/[0.02] border border-white/[0.08] rounded-xl p-5 mb-4",
+  secondary: "bg-white/[0.03] border border-white/[0.06] rounded-xl p-4 mb-4",
+  ai: "bg-gradient-to-br from-indigo-500/[0.07] to-violet-500/[0.04] border border-indigo-400/[0.18] rounded-xl p-4 mb-4",
+  inline: "mt-3 pt-3 border-t border-white/[0.04]",
+};
+
+// L4 HMM 三态独立配色（区别于 L3 温度的 emerald/orange/red 系，避免视觉混淆）
+//   bull → cyan（冷蓝绿，"稳定上行"）
+//   neutral → violet（紫，"不确定/震荡"）
+//   bear → rose（暖红粉，区别于 L3 的纯 red）
+export const HMM_COLOR = {
+  bull:    { bg: "bg-cyan-400/80",   text: "text-cyan-300",    label: "牛" },
+  neutral: { bg: "bg-violet-400/70", text: "text-violet-300",  label: "震荡" },
+  bear:    { bg: "bg-rose-400/80",   text: "text-rose-300",    label: "熊" },
+};
+
 export const CATEGORY_LABEL = {
   valuation: "估值",
   liquidity: "流动性",
