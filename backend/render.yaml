@@ -1,0 +1,27 @@
+# Render.com 部署配置 — 把 backend 部署成 Web Service
+# 用法：在 Render dashboard 选 "Blueprint" → 指向这个文件
+# 或者手动 "New + Web Service" → 设置同上参数（Render 会自动检测此文件）
+
+services:
+  - type: web
+    name: quantedge-backend
+    runtime: python
+    plan: free                        # 免费 tier：512MB RAM / 15min sleep / cold start ~30s
+    region: singapore                 # 离中国大陆最近的 free region
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: python server.py    # 内部已读 $PORT
+    healthCheckPath: /api/llm/stats   # 任何 200 端点都行，避开会卡 Futu 的 /api/status
+    envVars:
+      - key: DEEPSEEK_API_KEY
+        sync: false                   # 在 Render dashboard 手动设置，不进 git
+      - key: TUSHARE_TOKEN
+        sync: false
+      - key: FRED_API_KEY
+        sync: false
+      # protobuf 兼容（与 backend/data_sources/__init__.py 默认一致）
+      - key: PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION
+        value: python
+      # 可选：自定义模型
+      # - key: DEEPSEEK_MODEL
+      #   value: deepseek-chat
