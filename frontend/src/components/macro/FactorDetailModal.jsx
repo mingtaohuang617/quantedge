@@ -1,5 +1,5 @@
 import React, { useMemo, useEffect, useRef } from "react";
-import { X } from "lucide-react";
+import { X, Star, ChevronLeft, ChevronRight } from "lucide-react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine,
@@ -15,13 +15,16 @@ import {
 // 数据来源：snapshot 模式下 sparkline.values 截尾到 120 点（足够看趋势/拐点）。
 // 想要全历史（数百到数千点）需扩展 export_macro_snapshot.py 的 sparkline_window，
 // 但会显著增加 snapshot 体积，目前不做。
-export default function FactorDetailModal({ f, onClose }) {
+//
+// onPrev/onNext: 可选 — 在筛选后的因子列表中切换上下一个，箭头键也能触发
+// isStarred / onToggleStar: 可选 — header 显示星标按钮
+export default function FactorDetailModal({ f, onClose, onPrev, onNext, isStarred, onToggleStar }) {
   const { t } = useLang();
   const closeBtnRef = useRef(null);
   const dialogRef = useRef(null);
   const prevFocusRef = useRef(null);
 
-  // ESC 关闭 + 防滚穿 + 焦点陷阱（Tab 在 modal 内循环）+ 关闭后还原焦点
+  // ESC 关闭 + 防滚穿 + 焦点陷阱（Tab 在 modal 内循环）+ 箭头键切换 + 关闭后还原焦点
   useEffect(() => {
     if (!f) return;
     prevFocusRef.current = document.activeElement;
@@ -29,6 +32,13 @@ export default function FactorDetailModal({ f, onClose }) {
     setTimeout(() => closeBtnRef.current?.focus(), 0);
     const onKey = (e) => {
       if (e.key === "Escape") { e.preventDefault(); onClose?.(); return; }
+      // 箭头键切换上下一个因子（不消费 input 中的箭头）
+      const tag = (e.target?.tagName || "").toLowerCase();
+      const inField = tag === "input" || tag === "textarea";
+      if (!inField) {
+        if (e.key === "ArrowLeft" && onPrev) { e.preventDefault(); onPrev(); return; }
+        if (e.key === "ArrowRight" && onNext) { e.preventDefault(); onNext(); return; }
+      }
       if (e.key !== "Tab" || !dialogRef.current) return;
       // focus trap：取所有可聚焦元素，在首尾环绕
       const focusables = dialogRef.current.querySelectorAll(
@@ -52,7 +62,7 @@ export default function FactorDetailModal({ f, onClose }) {
         try { el.focus(); } catch {}
       }
     };
-  }, [f, onClose]);
+  }, [f, onClose, onPrev, onNext]);
 
   const chartData = useMemo(() => {
     if (!f?.sparkline?.values) return [];
@@ -112,15 +122,49 @@ export default function FactorDetailModal({ f, onClose }) {
           </span>
           <span id="factor-modal-title" className="text-base font-mono font-semibold text-white/95">{f.factor_id}</span>
           <span className="text-[11px] text-white/40 font-mono">{f.market} · {f.freq}</span>
-          <button
-            ref={closeBtnRef}
-            onClick={onClose}
-            className="ml-auto p-1.5 rounded hover:bg-white/[0.06] text-white/50 hover:text-white/80 focus:outline-none focus:ring-2 focus:ring-indigo-400/50"
-            title={t("关闭 (Esc)")}
-            aria-label={t("关闭 (Esc)")}
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <div className="ml-auto flex items-center gap-1">
+            {onToggleStar && (
+              <button
+                onClick={() => onToggleStar(f)}
+                className={`p-1.5 rounded hover:bg-white/[0.06] focus:outline-none focus:ring-2 focus:ring-indigo-400/50 ${
+                  isStarred ? "text-amber-300" : "text-white/40 hover:text-white/70"
+                }`}
+                title={isStarred ? t("取消收藏") : t("收藏因子")}
+                aria-label={isStarred ? t("取消收藏") : t("收藏因子")}
+              >
+                <Star className={`w-4 h-4 ${isStarred ? "fill-current" : ""}`} />
+              </button>
+            )}
+            {onPrev && (
+              <button
+                onClick={onPrev}
+                className="p-1.5 rounded hover:bg-white/[0.06] text-white/45 hover:text-white/85 focus:outline-none focus:ring-2 focus:ring-indigo-400/50"
+                title={t("上一个 (←)")}
+                aria-label={t("上一个 (←)")}
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+            )}
+            {onNext && (
+              <button
+                onClick={onNext}
+                className="p-1.5 rounded hover:bg-white/[0.06] text-white/45 hover:text-white/85 focus:outline-none focus:ring-2 focus:ring-indigo-400/50"
+                title={t("下一个 (→)")}
+                aria-label={t("下一个 (→)")}
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            )}
+            <button
+              ref={closeBtnRef}
+              onClick={onClose}
+              className="p-1.5 rounded hover:bg-white/[0.06] text-white/50 hover:text-white/80 focus:outline-none focus:ring-2 focus:ring-indigo-400/50"
+              title={t("关闭 (Esc)")}
+              aria-label={t("关闭 (Esc)")}
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         <div className="p-5 space-y-4">

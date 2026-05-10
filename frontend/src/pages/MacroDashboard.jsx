@@ -434,7 +434,20 @@ export default function MacroDashboard() {
         })}
       </div>
 
-      <FactorDetailModal f={selectedFactor} onClose={() => setSelectedFactor(null)} />
+      <FactorDetailModal
+        f={selectedFactor}
+        onClose={() => setSelectedFactor(null)}
+        isStarred={selectedFactor ? starred.has(factorStarKey(selectedFactor)) : false}
+        onToggleStar={toggleStar}
+        onPrev={selectedFactor ? () => {
+          const idx = filtered.findIndex(x => factorStarKey(x) === factorStarKey(selectedFactor));
+          if (idx > 0) setSelectedFactor(filtered[idx - 1]);
+        } : null}
+        onNext={selectedFactor ? () => {
+          const idx = filtered.findIndex(x => factorStarKey(x) === factorStarKey(selectedFactor));
+          if (idx >= 0 && idx < filtered.length - 1) setSelectedFactor(filtered[idx + 1]);
+        } : null}
+      />
 
       {/* 浮动 scroll-to-top — 滚动 400px+ 才显示 */}
       {showScrollTop && (
