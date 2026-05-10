@@ -99,10 +99,13 @@ describe('nameMatchesStrict', () => {
 });
 
 describe('listSupertrendsMeta', () => {
-  it('返回 4 个内置赛道并保持稳定顺序', () => {
+  it('返回 7 个内置赛道（4 成长 + 3 价值）并保持稳定顺序', () => {
     const meta = listSupertrendsMeta();
-    expect(meta).toHaveLength(4);
-    expect(meta.map(m => m.id)).toEqual(['ai_compute', 'semi', 'optical', 'datacenter']);
+    expect(meta).toHaveLength(7);
+    expect(meta.map(m => m.id)).toEqual([
+      'ai_compute', 'semi', 'optical', 'datacenter',
+      'value_div', 'value_cyclical', 'value_consumer',
+    ]);
     for (const m of meta) {
       expect(m.name).toBeTruthy();
       expect(typeof m.note).toBe('string');
@@ -130,5 +133,54 @@ describe('SUPERTRENDS 结构对齐', () => {
       expect(Array.isArray(spec.keywords_broad_zh), `${tid}.keywords_broad_zh`).toBe(true);
       expect(Array.isArray(spec.keywords_broad_en), `${tid}.keywords_broad_en`).toBe(true);
     }
+  });
+});
+
+// ── 价值型 SUPERTRENDS (v2.0 PR-A) ────────────────────────
+describe('classifySector — value supertrends', () => {
+  it('value_div 命中能源 / 公用事业关键词', () => {
+    expect(classifySector('Oil & Gas Integrated').has('value_div')).toBe(true);
+    expect(classifySector('Utilities—Regulated Electric').has('value_div')).toBe(true);
+    expect(classifySector('石油').has('value_div')).toBe(true);
+    expect(classifySector('公共事业', 'broad').has('value_div')).toBe(true);
+  });
+
+  it('value_cyclical 命中银行 / 化工 / 钢铁', () => {
+    expect(classifySector('银行业').has('value_cyclical')).toBe(true);
+    expect(classifySector('Banks - Regional').has('value_cyclical')).toBe(true);
+    expect(classifySector('化工原料').has('value_cyclical')).toBe(true);
+    expect(classifySector('Specialty Chemicals').has('value_cyclical')).toBe(true);
+  });
+
+  it('value_consumer 命中食品饮料', () => {
+    expect(classifySector('食品饮料').has('value_consumer')).toBe(true);
+    expect(classifySector('白酒').has('value_consumer')).toBe(true);
+    expect(classifySector('Beverages—Non-Alcoholic').has('value_consumer')).toBe(true);
+    expect(classifySector('Packaged Foods').has('value_consumer')).toBe(true);
+  });
+});
+
+describe('listSupertrendsMeta — strategy filter', () => {
+  it('strategy="growth" 仅返回 4 个成长赛道', () => {
+    const meta = listSupertrendsMeta('growth');
+    const ids = meta.map(m => m.id).sort();
+    expect(ids).toEqual(['ai_compute', 'datacenter', 'optical', 'semi']);
+    for (const m of meta) expect(m.strategy).toBe('growth');
+  });
+
+  it('strategy="value" 仅返回 3 个价值赛道', () => {
+    const meta = listSupertrendsMeta('value');
+    const ids = meta.map(m => m.id).sort();
+    expect(ids).toEqual(['value_consumer', 'value_cyclical', 'value_div']);
+    for (const m of meta) expect(m.strategy).toBe('value');
+  });
+
+  it('strategy=null（默认）返回全部 7 个', () => {
+    expect(listSupertrendsMeta()).toHaveLength(7);
+    expect(listSupertrendsMeta(null)).toHaveLength(7);
+  });
+
+  it('strategy="speculative"（无效）返回空数组', () => {
+    expect(listSupertrendsMeta('speculative')).toEqual([]);
   });
 });

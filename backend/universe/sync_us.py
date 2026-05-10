@@ -190,9 +190,11 @@ def enrich_with_futu(
             pass
 
 
-def enrich_with_yfinance(items: list[dict], limit: int | None = None, sleep_sec: float = 0.15) -> int:
+def enrich_with_yfinance(items: list[dict], limit: int | None = None, sleep_sec: float = 0.15,
+                         enrich_fundamentals: bool = False) -> int:
     """
     用 yfinance 补 sector / industry / marketCap。
+    enrich_fundamentals=True 时一并拉 PE/PB/股息率/ROE/D/E（同一次 .info 调用，零额外 IO）。
     慢（每只 ~0.5-1s），可用 --limit 测试。
     返回成功补全的数量。
     """
@@ -205,7 +207,7 @@ def enrich_with_yfinance(items: list[dict], limit: int | None = None, sleep_sec:
     targets = items if limit is None else items[:limit]
     total = len(targets)
     ok = 0
-    print(f"  enriching {total} 只...")
+    print(f"  enriching {total} 只 ({'+ fundamentals' if enrich_fundamentals else 'sector/mc only'})...")
     t0 = time.time()
     for i, item in enumerate(targets, 1):
         sym = item["ticker"]
@@ -219,6 +221,28 @@ def enrich_with_yfinance(items: list[dict], limit: int | None = None, sleep_sec:
                 item["industry"] = industry
                 item["marketCap"] = float(mc) if mc else None
                 ok += 1
+            if enrich_fundamentals:
+                # 5 维基本面（缺失保持 None；前端按"缺字段保留"语义不丢标的）
+                import math as _math  # noqa: PLC0415  - 仅在 enrich_fundamentals 路径需要
+                _info = info  # 给闭包绑定，避免 ruff B023 loop variable 警告
+                def _f(k, _i=_info):
+                    v = _i.get(k)
+                    if v is None:
+                        return None
+                    try:
+                        f = float(v)
+                        if _math.isnan(f) or _math.isinf(f):
+                            return None
+                        return f
+                    except (TypeError, ValueError):
+                        return None
+                de_pct = _f("debtToEquity")
+                item["pe"] = _f("trailingPE")
+                item["pb"] = _f("priceToBook")
+                item["dividend_yield"] = _f("dividendYield")
+                item["roe"] = _f("returnOnEquity")
+                # yfinance debtToEquity 单位是%，转小数（如 162→1.62）
+                item["debt_to_equity"] = (de_pct / 100.0) if de_pct is not None else None
         except Exception:
             pass  # 失败的字段保持 None，下次跑可补
         if i % 100 == 0:
@@ -241,6 +265,8 @@ def main():
     parser.add_argument("--no-industry", action="store_true", help="仅补市值，跳过行业（节省时间）")
     parser.add_argument("--limit", type=int, default=None, help="限制 enrich 标的数（测试用）")
     parser.add_argument("--sleep", type=float, default=0.15, help="yfinance 调用间隔秒数（仅 yfinance 用）")
+    parser.add_argument("--enrich-fundamentals", action="store_true",
+                        help="同时拉 PE/PB/股息率/ROE/D/E（价值型筛选用，仅 yfinance 源支持）")
     args = parser.parse_args()
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -311,11 +337,17 @@ def main():
         # yfinance fallback
         if (args.source == "yfinance") or (args.source == "auto" and cap_ok == 0):
             print("  → 尝试 yfinance")
-            n_ok = enrich_with_yfinance(unique, limit=args.limit, sleep_sec=args.sleep)
+            n_ok = enrich_with_yfinance(
+                unique, limit=args.limit, sleep_sec=args.sleep,
+                enrich_fundamentals=args.enrich_fundamentals,
+            )
             if n_ok > 0:
                 enrich_source = "yfinance"
                 enriched = True
                 cap_ok = n_ok
+        elif args.enrich_fundamentals and args.source == "futu":
+            # futu 不支持 fundamentals；提示用户用 yfinance
+            print("  [warn] --enrich-fundamentals 仅 yfinance 支持，futu 不会拉财务字段")
         if not enriched:
             print("  两个源都未补到数据")
     else:

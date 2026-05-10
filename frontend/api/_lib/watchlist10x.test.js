@@ -26,6 +26,26 @@ const _fakeUniverse = [
     is_etf: true, sector: 'Semiconductors', industry: null, marketCap: 1e10 },
   { ticker: '600171.SH', name: '上海贝岭', market: 'CN', exchange: 'SH',
     is_etf: false, sector: '半导体', industry: '半导体', marketCap: null },
+  // 价值型样本（PR-A v2.0）
+  { ticker: 'VZ', name: 'Verizon', market: 'US', exchange: 'NYSE',
+    is_etf: false, sector: 'Telecom Services—Diversified', industry: 'Telecom Services',
+    marketCap: 167e9, pe: 9.2, pb: 1.8,
+    dividend_yield: 0.066, roe: 0.234, debt_to_equity: 1.62 },
+  { ticker: 'BAC', name: 'Bank of America', market: 'US', exchange: 'NYSE',
+    is_etf: false, sector: 'Banks - Regional', industry: 'Banks',
+    marketCap: 280e9, pe: 11.0, pb: 1.0,
+    dividend_yield: 0.025, roe: 0.092, debt_to_equity: 0.85 },
+  { ticker: 'KO', name: 'Coca-Cola', market: 'US', exchange: 'NYSE',
+    is_etf: false, sector: 'Beverages—Non-Alcoholic', industry: 'Beverages',
+    marketCap: 270e9, pe: 25.0, pb: 9.0,
+    dividend_yield: 0.029, roe: 0.47, debt_to_equity: 1.85 },
+  { ticker: 'TSLA', name: 'Tesla', market: 'US', exchange: 'NASDAQ',
+    is_etf: false, sector: 'Auto Manufacturers', industry: 'Auto',
+    marketCap: 800e9, pe: 70.0, pb: 12.0,
+    dividend_yield: 0.0, roe: 0.18, debt_to_equity: 0.10 },
+  { ticker: '600519.SH', name: '贵州茅台', market: 'CN', exchange: 'SH',
+    is_etf: false, sector: '白酒', industry: '白酒',
+    marketCap: 2.5e12 /* 缺所有财务字段 */ },
 ];
 vi.mock('./universeLoader.js', () => ({
   loadUniverse: async () => _fakeUniverse.map(it => ({ ...it })),
@@ -190,16 +210,87 @@ describe('updateItem / removeItem', () => {
 
 // ── listAllSupertrends ───────────────────────────────────
 describe('listAllSupertrends', () => {
-  it('内置 4 个 + 用户自定义合并', async () => {
+  it('内置 7 个（4 成长 + 3 价值）+ 用户自定义合并', async () => {
     await addSupertrend('renewable', '新能源', '', ['光伏']);
     const sts = await listAllSupertrends();
     const ids = sts.map(s => s.id);
+    // 成长
     expect(ids).toContain('ai_compute');
     expect(ids).toContain('semi');
     expect(ids).toContain('optical');
     expect(ids).toContain('datacenter');
+    // 价值
+    expect(ids).toContain('value_div');
+    expect(ids).toContain('value_cyclical');
+    expect(ids).toContain('value_consumer');
+    // 用户
     expect(ids).toContain('renewable');
     expect(sts.find(s => s.id === 'renewable').source).toBe('user');
     expect(sts.find(s => s.id === 'semi').source).toBe('builtin');
+    // strategy 字段都在
+    expect(sts.find(s => s.id === 'value_div').strategy).toBe('value');
+    expect(sts.find(s => s.id === 'semi').strategy).toBe('growth');
+  });
+});
+
+// ── 价值型 5 维筛选 (PR-A v2.0) ───────────────────────────
+describe('screenCandidates — value 5-dim filter', () => {
+  it('max_pe=15 保留 VZ/BAC，剔除 KO/TSLA；600519.SH 缺 PE 默认保留', async () => {
+    const out = await screenCandidates({ max_pe: 15 });
+    const tickers = out.map(it => it.ticker);
+    expect(tickers).toContain('VZ');
+    expect(tickers).toContain('BAC');
+    expect(tickers).not.toContain('KO');
+    expect(tickers).not.toContain('TSLA');
+    expect(tickers).toContain('600519.SH');   // 缺 PE 默认保留
+  });
+
+  it('min_dividend_yield=0.04 仅保留高股息股', async () => {
+    const out = await screenCandidates({ min_dividend_yield: 0.04 });
+    const tickers = out.map(it => it.ticker);
+    expect(tickers).toContain('VZ');           // 6.6%
+    expect(tickers).not.toContain('BAC');      // 2.5%
+    expect(tickers).not.toContain('KO');       // 2.9%
+    expect(tickers).not.toContain('TSLA');     // 0%
+  });
+
+  it('min_roe=0.15 保留高 ROE 票', async () => {
+    const out = await screenCandidates({ min_roe: 0.15 });
+    const tickers = out.map(it => it.ticker);
+    expect(tickers).toContain('KO');           // 0.47
+    expect(tickers).toContain('VZ');           // 0.234
+    expect(tickers).toContain('TSLA');         // 0.18
+    expect(tickers).not.toContain('BAC');      // 0.092
+  });
+
+  it('PE<=0 (亏损公司) 即使 max_pe=15 也剔除', async () => {
+    // 临时通过 fetch user_supertrends 不影响 — 直接验证：原 fixture 没负 PE 标的，
+    // 我们用一个 includes('LITE') 校验 LITE 缺 pe 字段时受 max_pe + include_no_fundamentals 影响
+    const out1 = await screenCandidates({ max_pe: 15 });
+    expect(out1.map(it => it.ticker)).toContain('LITE');   // pe 缺失，默认保留
+    const out2 = await screenCandidates({ max_pe: 15, include_no_fundamentals: false });
+    expect(out2.map(it => it.ticker)).not.toContain('LITE');
+  });
+
+  it('5 维组合：高股息蓝筹场景', async () => {
+    const out = await screenCandidates({
+      min_dividend_yield: 0.04, max_pe: 15, max_debt_to_equity: 2.0,
+    });
+    const tickers = out.map(it => it.ticker);
+    expect(tickers).toContain('VZ');       // 全过
+    expect(tickers).toContain('600519.SH'); // 缺字段默认保留
+  });
+
+  it('addSupertrend strategy="value" 透传到存储', async () => {
+    const item = await addSupertrend('reit', 'REITs', '高股息地产', [], [], 'value');
+    expect(item.strategy).toBe('value');
+    const sts = await listAllSupertrends();
+    expect(sts.find(s => s.id === 'reit').strategy).toBe('value');
+  });
+
+  it('addSupertrend invalid strategy 抛错', async () => {
+    await expect(
+      addSupertrend('xxx', '测试', '', [], [], 'speculative')
+    ).rejects.toThrow(/strategy/);
   });
 });

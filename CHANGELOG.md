@@ -6,6 +6,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- **10x 猎手 价值型 PR-A 数据基础**（v2.0 第一阶段；UI 在 PR-B）：让 watchlist 同时支持成长/价值两条策略
+  - `backend/sector_mapping.py`：每个 supertrend 加 `strategy: "growth" | "value"` 字段；新增 3 个价值赛道 `value_div`（高股息蓝筹）/ `value_cyclical`（周期价值：银行/保险/化工/钢铁）/ `value_consumer`（消费稳健：食品饮料/必需消费）
+  - `backend/data_sources/yfinance_source.py:fetch_fundamentals`：拉单只 PE/PB/股息率/ROE/D/E（同 `.info` 调用零额外 IO）
+  - `backend/data_sources/tushare_source.py:fetch_fundamentals_cn`：单次 daily_basic + fina_indicator 拉全 A 股；非交易日回滚 5 天
+  - `backend/data_sources/futu_source.py:fetch_fundamentals_hk`：批量 200 / sleep 1s 拉港股 PE/PB/股息率（同 snapshot）
+  - `backend/universe/sync_us.py / sync_cn.py / sync_hk.py`：加 `--enrich-fundamentals` flag；US 走 yfinance .info，CN 走 tushare，HK 走富途 snapshot
+  - `backend/watchlist_10x.py:screen_candidates` 加 5 维过滤参数：`max_pe / max_pb / min_roe / min_dividend_yield / max_debt_to_equity` + `include_no_fundamentals` 默认 True（缺字段保留，与 `include_no_mcap` 同模式）；PE<=0 亏损公司一律剔除
+  - `backend/watchlist_10x.py:add_supertrend(strategy=...)` 用户赛道支持指定 growth/value
+  - `backend/server.py`：`ScreenReq` 加 5 个字段；`GET /api/watchlist/10x/supertrends?strategy=` 按策略过滤
+  - `frontend/api/_lib/sectorMapping.js` + `watchlist10x.js`：JS port 同步（5 维过滤逻辑 1:1）
+  - `frontend/api/watchlist/10x/supertrends.js`：endpoint 透传 `?strategy=`
+  - 测试：backend pytest 新增 15 例（5 维筛选 + 价值赛道分类 + strategy 过滤），frontend vitest 新增 14 例
 - **10x 猎手** v1.0 — 三段式工作流（赛道勾选 → 候选筛选 → 观察列表 + AI thesis 草稿）
   - `backend/universe/`：US/HK/CN 候选股池同步（NASDAQ Symbol Directory + 富途 OpenD/yfinance enrich）— Sprint 1 (9514231) + 富途接入 (071f0a4, bbdf282)
   - `backend/sector_mapping.py`：行业字符串 → 4 个内置超级赛道（AI 算力 / 半导体 / 光通信 / 算力中心）— Sprint 2 (f859406) + 关键词对齐修正 (5d7d675)

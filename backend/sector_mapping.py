@@ -30,9 +30,11 @@ from __future__ import annotations
 # 超级赛道定义。每个赛道的 keywords 分两层：
 #   keywords_strict_*：核心命中词（精严模式仅用这些）
 #   keywords_broad_*：扩展词（宽泛模式额外加）
+# strategy: "growth" | "value"，决定前端按 tab 过滤
 SUPERTRENDS: dict[str, dict] = {
     "ai_compute": {
         "name": "AI 算力",
+        "strategy": "growth",
         "note": "AI 软硬件 / 加速器 / HBM / AI 应用",
         "keywords_strict_zh": [
             "AI", "HBM", "算力", "智能计算", "人工智能",
@@ -56,6 +58,7 @@ SUPERTRENDS: dict[str, dict] = {
     },
     "semi": {
         "name": "半导体",
+        "strategy": "growth",
         "note": "设计、制造、设备、材料、存储",
         "keywords_strict_zh": [
             "半导体", "存储", "MCU", "元器件", "NAND", "DRAM", "晶圆", "集成电路",
@@ -68,6 +71,7 @@ SUPERTRENDS: dict[str, dict] = {
     },
     "optical": {
         "name": "光通信",
+        "strategy": "growth",
         "note": "光模块、硅光、CPO、激光器、光纤",
         "keywords_strict_zh": [
             "光通信", "光模块", "硅光", "光纤", "激光",
@@ -79,6 +83,7 @@ SUPERTRENDS: dict[str, dict] = {
     },
     "datacenter": {
         "name": "算力中心",
+        "strategy": "growth",
         "note": "数据中心 / 电力 / 公共事业",
         "keywords_strict_zh": [
             "数据中心", "新型电力", "火力发电", "水力发电",
@@ -94,15 +99,81 @@ SUPERTRENDS: dict[str, dict] = {
             "Utilities - Independent",
         ],
     },
+    # ── 价值型 SUPERTRENDS（v2.0 新增）──────────────────────
+    # 价值型选龙头 / 高股息 / 稳健消费，与成长型小市值卡位风格相反
+    "value_div": {
+        "name": "高股息蓝筹",
+        "strategy": "value",
+        "note": "公用事业 / 银行龙头 / 能源 / 电信（股息率 > 4%）",
+        "keywords_strict_zh": [
+            "电信运营", "石油", "天然气", "煤炭",
+        ],
+        "keywords_strict_en": [
+            "Banks—Diversified", "Oil & Gas Integrated",
+            "Telecom Services", "Utilities—Regulated Electric",
+            "Utilities - Regulated Gas",
+        ],
+        # broad: 复用现有 datacenter 的公共事业关键词覆盖（命中也无所谓，价值/成长前端按 tab 过滤）
+        "keywords_broad_zh": ["公共事业"],
+        "keywords_broad_en": ["Utilities - Diversified"],
+    },
+    "value_cyclical": {
+        "name": "周期价值",
+        "strategy": "value",
+        "note": "银行 / 保险 / 化工 / 钢铁（低 PB 入场）",
+        "keywords_strict_zh": [
+            "银行", "保险", "化工", "钢铁", "有色金属", "建材",
+        ],
+        "keywords_strict_en": [
+            "Banks - Regional", "Banks—Regional",
+            "Insurance—Property & Casualty", "Insurance—Life",
+            "Chemicals", "Specialty Chemicals",
+            "Steel", "Aluminum",
+            "Building Materials",
+        ],
+        "keywords_broad_zh": [],
+        "keywords_broad_en": [],
+    },
+    "value_consumer": {
+        "name": "消费稳健",
+        "strategy": "value",
+        "note": "食品饮料 / 必需消费（穿越周期 ROE）",
+        "keywords_strict_zh": [
+            "食品", "饮料", "白酒", "乳制品", "调味品",
+        ],
+        "keywords_strict_en": [
+            "Beverages—Non-Alcoholic", "Beverages - Non-Alcoholic",
+            "Beverages—Wineries & Distilleries",
+            "Packaged Foods", "Confectioners",
+            "Tobacco",
+            "Household & Personal Products",
+        ],
+        "keywords_broad_zh": [],
+        "keywords_broad_en": [],
+    },
 }
 
 
-def list_supertrends_meta() -> list[dict]:
-    """返回前端用的赛道元数据列表。"""
-    return [
-        {"id": tid, "name": spec["name"], "note": spec.get("note", "")}
-        for tid, spec in SUPERTRENDS.items()
-    ]
+def list_supertrends_meta(strategy: str | None = None) -> list[dict]:
+    """返回前端用的赛道元数据列表。
+
+    strategy 过滤：
+      - None（默认）：返回全部赛道
+      - "growth" / "value"：仅返回该策略的赛道
+    老数据没有 strategy 字段时按 "growth" 处理（向后兼容）。
+    """
+    out = []
+    for tid, spec in SUPERTRENDS.items():
+        spec_strategy = spec.get("strategy", "growth")
+        if strategy is not None and spec_strategy != strategy:
+            continue
+        out.append({
+            "id": tid,
+            "name": spec["name"],
+            "note": spec.get("note", ""),
+            "strategy": spec_strategy,
+        })
+    return out
 
 
 def _kw_for_mode(spec: dict, mode: str) -> tuple[list[str], list[str]]:

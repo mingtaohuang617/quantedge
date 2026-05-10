@@ -205,3 +205,113 @@ def health_check() -> tuple[bool, str]:
         return True, f"tushare 正常 (sample {n} rows)"
     except Exception as e:
         return False, f"tushare 失败: {e}"
+
+
+# ── 价值型基本面字段（A 股全市场批量）─────────────────
+def fetch_fundamentals_cn(retries: int = 5) -> dict[str, dict]:
+    """单次拉全 A 股基本面字段，返回 {ts_code: {pe, pb, dividend_yield, roe, debt_to_equity}}。
+
+    数据来源：
+      - pro.daily_basic(trade_date)：pe / pb / dv_ttm（股息率%，转小数）
+      - pro.fina_indicator(period)：roe / debt_to_assets（百分比，需转小数）
+    若 daily_basic 当天空（非交易日），回滚最多 retries 天找有数据的交易日（参考 sync_cn 的 enrich_market_cap_tushare 同模式）。
+
+    fina_indicator 用最近的财报期（按当前年月推）— 上游缓存月级即可，不强求最新季报。
+    """
+    if not HAS_TUSHARE:
+        raise TushareError("tushare 未安装")
+    pro = _get_pro()
+    today = datetime.now()
+    daily_basic_df = None
+
+    for offset in range(retries):
+        d = today - timedelta(days=offset)
+        ds = d.strftime("%Y%m%d")
+        try:
+            df = pro.daily_basic(trade_date=ds, fields="ts_code,pe,pb,dv_ttm")
+        except Exception:
+            continue
+        if df is None or df.empty:
+            continue
+        daily_basic_df = df
+        break
+    if daily_basic_df is None:
+        raise TushareError("daily_basic 5 天内都没拿到数据")
+
+    out: dict[str, dict] = {}
+    for _, row in daily_basic_df.iterrows():
+        ts_code = str(row.get("ts_code", "")).strip()
+        if not ts_code:
+            continue
+        dv = row.get("dv_ttm")
+        out[ts_code] = {
+            "pe": _to_float(row.get("pe")),
+            "pb": _to_float(row.get("pb")),
+            "dividend_yield": (_to_float(dv) / 100.0) if dv is not None else None,  # tushare dv_ttm 单位 %
+            "roe": None,
+            "debt_to_equity": None,
+        }
+
+    # fina_indicator：以最近季报期为参考。报告期以季度末计：3-31 / 6-30 / 9-30 / 12-31
+    period = _last_finished_period(today)
+    try:
+        fi_df = pro.fina_indicator_vip(period=period,
+                                       fields="ts_code,roe,debt_to_assets")
+    except Exception:
+        try:
+            fi_df = pro.fina_indicator(period=period,
+                                       fields="ts_code,roe,debt_to_assets")
+        except Exception:
+            fi_df = None
+
+    if fi_df is not None and not fi_df.empty:
+        for _, row in fi_df.iterrows():
+            ts_code = str(row.get("ts_code", "")).strip()
+            if ts_code not in out:
+                continue
+            roe = _to_float(row.get("roe"))
+            d2a = _to_float(row.get("debt_to_assets"))
+            # tushare roe / debt_to_assets 都是百分比单位（如 18.5 = 18.5%），统一转小数
+            out[ts_code]["roe"] = (roe / 100.0) if roe is not None else None
+            # 注：tushare 给的是 debt_to_assets（资产负债率），与 yfinance 的 debt_to_equity 不同。
+            # 为统一字段名沿用 debt_to_equity，但语义实际是 D/A。前端展示文案需注意。
+            # 一致性：D/A 0.6 = 资产 60% 是负债；D/E 1.5 大致对应 D/A 0.6（具体差异取决于权益）。
+            out[ts_code]["debt_to_equity"] = (d2a / 100.0) if d2a is not None else None
+
+    return out
+
+
+def _to_float(v):
+    """安全转 float，None / NaN / Inf 返回 None。"""
+    import math as _math
+    if v is None:
+        return None
+    try:
+        f = float(v)
+        if _math.isnan(f) or _math.isinf(f):
+            return None
+        return f
+    except (TypeError, ValueError):
+        return None
+
+
+def _last_finished_period(d: datetime) -> str:
+    """给定日期，返回距其最近的、已经结束的财报期 YYYYMMDD。
+
+    Tushare 财报期为季度末（3-31/6-30/9-30/12-31），且实际披露往往晚 1-2 个月。
+    保守取「上上一季报期」（最近 5 个月的，确保已披露）。
+    """
+    y, m = d.year, d.month
+    # 简化：假设当前 m，最近"已披露"季报日：
+    # m in [1, 5]   → 上一年 12-31
+    # m in [6, 8]   → 当年 3-31
+    # m in [9, 11]  → 当年 6-30
+    # m == 12       → 当年 9-30
+    if m <= 5:
+        return f"{y - 1}1231"
+    elif m <= 8:
+        return f"{y}0331"
+    elif m <= 11:
+        return f"{y}0630"
+    else:
+        return f"{y}0930"

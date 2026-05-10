@@ -9,7 +9,11 @@ export default async function handler(req, res) {
   if (!requireReferer(req, res)) return;
 
   if (req.method === 'GET') {
-    const sts = await listAllSupertrends();
+    const strategy = req.query?.strategy;   // "growth" | "value" | undefined（全部）
+    let sts = await listAllSupertrends();
+    if (strategy === 'growth' || strategy === 'value') {
+      sts = sts.filter(s => (s.strategy || 'growth') === strategy);
+    }
     return res.status(200).json(sts);
   }
 
@@ -25,6 +29,7 @@ export default async function handler(req, res) {
       const item = await addSupertrend(
         body.id, body.name, body.note,
         body.keywords_zh, body.keywords_en,
+        body.strategy || 'growth',
       );
       return res.status(200).json({ ok: true, item });
     } catch (e) {
