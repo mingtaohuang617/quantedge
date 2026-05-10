@@ -63,6 +63,7 @@ export default function MacroDashboard() {
   }, [marketFilter]);
   // 搜索框：按 factor_id / name / description 子串模糊匹配
   const [search, setSearch] = useState("");
+  const searchInputRef = useRef(null);
   // 收藏因子集（factor_id@market 复合键）+ 仅显示收藏切换
   const [starred, setStarred] = useState(() => readStarred());
   const [onlyStarred, setOnlyStarred] = useState(() => {
@@ -100,6 +101,35 @@ export default function MacroDashboard() {
     el.addEventListener("scroll", onScroll, { passive: true });
     return () => el.removeEventListener("scroll", onScroll);
   }, []);
+
+  // 键盘快捷键（仅在 macro 页有焦点时；input 内的键不消费）
+  // r: 刷新 / c: 切换紧凑 / s: 聚焦搜索 / Esc: 清空搜索
+  useEffect(() => {
+    const onKey = (e) => {
+      // 跳过修饰键（避免与 tab nav / 浏览器冲突）
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      // 跳过 input 内输入；selectedFactor 时让 modal 自己处理
+      const tag = (e.target?.tagName || "").toLowerCase();
+      if (tag === "input" || tag === "textarea" || tag === "select") {
+        // input 内 Esc 清空搜索
+        if (e.key === "Escape" && e.target === searchInputRef.current && search) {
+          e.preventDefault();
+          setSearch("");
+        }
+        return;
+      }
+      if (selectedFactor) return;  // modal 优先
+      if (e.key === "r") { e.preventDefault(); load(); }
+      else if (e.key === "c") { e.preventDefault(); setCompact(v => !v); }
+      else if (e.key === "s" || e.key === "/") {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedFactor, search, compact]);
 
   const load = async () => {
     setLoading(true);
@@ -385,10 +415,11 @@ export default function MacroDashboard() {
             <div className="sm:ml-auto relative flex items-center w-full sm:w-auto">
               <Search className="absolute left-2 w-3 h-3 text-white/30" />
               <input
+                ref={searchInputRef}
                 type="text"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                placeholder={t("搜索因子 (id / 名称 / 描述)")}
+                placeholder={t("搜索因子 (id / 名称 / 描述)") + " (s)"}
                 className="pl-7 pr-7 py-0.5 text-[10px] bg-white/[0.03] border border-white/[0.08] rounded text-white/85 placeholder:text-white/30 focus:outline-none focus:border-indigo-400/50 w-full sm:w-56"
               />
               {search && (
