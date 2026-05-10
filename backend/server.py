@@ -1604,10 +1604,12 @@ def llm_tenx_thesis(req: TenxThesisReq):
 if __name__ == "__main__":
     # 不在启动时调 health_check —— 它会同步连 Futu OpenD，OpenD 没开会卡住启动。
     # 各源健康状态由 /api/status 端点按需查询（前端拉到才探活）。
+    # Render / Railway 等云平台通过 $PORT 注入端口；本地默认 8001。
+    port = int(os.environ.get("PORT", "8001"))
     print("=" * 50)
     print("  QuantEdge API Server")
-    print("  http://localhost:8001")
-    print("  http://localhost:8001/docs (Swagger UI)")
+    print(f"  http://localhost:{port}")
+    print(f"  http://localhost:{port}/docs (Swagger UI)")
     print("  数据源健康: GET /api/status (lazy probe)")
     print("=" * 50)
-    uvicorn.run(app, host="0.0.0.0", port=8001)
+    uvicorn.run(app, host="0.0.0.0", port=port)
