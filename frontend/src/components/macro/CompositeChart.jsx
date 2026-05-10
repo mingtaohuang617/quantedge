@@ -81,9 +81,36 @@ export default function CompositeChart({ history, range, setRange }) {
               </span>
             )}
           </div>
-          <div className="text-[10px] text-white/40 mt-0.5">
-            {chartData[0]?.date} → {chartData[chartData.length - 1]?.date} · {chartData.length} {t("个交易日")}
-            {visibleRegimes.length > 0 && ` · ${visibleRegimes.length} ${t("段熊市")}`}
+          <div className="text-[10px] text-white/40 mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5">
+            <span>{chartData[0]?.date} → {chartData[chartData.length - 1]?.date}</span>
+            <span>· {chartData.length} {t("个交易日")}</span>
+            {visibleRegimes.length > 0 && <span>· {visibleRegimes.length} {t("段熊市")}</span>}
+            {(() => {
+              // W5000 最新值 + 5d / 21d 变化（提供"现在到了哪"的快速锚点）
+              const vals = history?.benchmark?.values;
+              if (!Array.isArray(vals) || vals.length < 2) return null;
+              const last = vals[vals.length - 1];
+              if (last == null) return null;
+              const fmtNum = (v) => v >= 1000 ? `${(v / 1000).toFixed(1)}k` : v.toFixed(0);
+              const changePct = (lookback) => {
+                if (vals.length <= lookback) return null;
+                const prev = vals[vals.length - 1 - lookback];
+                if (prev == null || prev === 0) return null;
+                return ((last - prev) / prev) * 100;
+              };
+              const c5 = changePct(5);
+              const c21 = changePct(21);
+              const sign = (p) => p == null ? "—" : `${p >= 0 ? "+" : ""}${p.toFixed(1)}%`;
+              const cls = (p) => p == null ? "text-white/40" : p >= 0 ? "text-emerald-300" : "text-rose-300";
+              return (
+                <>
+                  <span className="text-white/30">·</span>
+                  <span className="font-mono">W5000 <span className="text-white/85">{fmtNum(last)}</span></span>
+                  {c5 != null && <span className={`font-mono ${cls(c5)}`}>5d {sign(c5)}</span>}
+                  {c21 != null && <span className={`font-mono ${cls(c21)}`}>1m {sign(c21)}</span>}
+                </>
+              );
+            })()}
           </div>
         </div>
         <div className="flex gap-1 items-center">
