@@ -163,6 +163,26 @@ export function daysSince(dateStr) {
   return Math.round((Date.now() - d.getTime()) / 86400000);
 }
 
+// ─── 收藏（星标）因子持久化 ─────────────────────────────────
+// 存于 localStorage.quantedge_macro_starred，array of "factor_id@market" 复合键
+const STARRED_KEY = "quantedge_macro_starred";
+
+export function readStarred() {
+  try {
+    const raw = localStorage.getItem(STARRED_KEY);
+    if (!raw) return new Set();
+    return new Set(JSON.parse(raw));
+  } catch { return new Set(); }
+}
+
+export function writeStarred(set) {
+  try { localStorage.setItem(STARRED_KEY, JSON.stringify(Array.from(set))); } catch {}
+}
+
+export function factorStarKey(f) {
+  return `${f.factor_id}@${f.market}`;
+}
+
 // 因子级"数据滞后"阈值：按频率分级，超过阈值视为陈旧
 //   daily=7d / weekly=14d / monthly=45d
 // 用于 FactorCard 滞后徽章 + DataStatusBanner 滞后聚合统计。
