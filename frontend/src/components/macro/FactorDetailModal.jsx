@@ -24,11 +24,28 @@ export default function FactorDetailModal({ f, onClose, onPrev, onNext, isStarre
   const dialogRef = useRef(null);
   const prevFocusRef = useRef(null);
 
-  // ESC 关闭 + 防滚穿 + 焦点陷阱（Tab 在 modal 内循环）+ 箭头键切换 + 关闭后还原焦点
+  // 仅在初次打开（f 从 null/undef → truthy）时记录上一个焦点元素 + 锁 body 滚动
+  // 之前的实现在每次 f 改变（如点 prev/next 切换因子）都重置 prevFocusRef，
+  // 导致关闭时焦点会回到 modal 内 button（已被卸载） → 焦点丢失。
   useEffect(() => {
     if (!f) return;
     prevFocusRef.current = document.activeElement;
-    // 下一帧把焦点移到关闭按钮（保险等待 portal 挂载）
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      const el = prevFocusRef.current;
+      if (el && typeof el.focus === "function" && document.body.contains(el)) {
+        try { el.focus(); } catch {}
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // 仅在 modal 第一次打开时跑一次（即 f 从 null → truthy）
+  }, [!!f]);
+
+  // 每次 f / 回调变化都更新键盘 listener + 重置焦点到关闭按钮
+  useEffect(() => {
+    if (!f) return;
     setTimeout(() => closeBtnRef.current?.focus(), 0);
     const onKey = (e) => {
       if (e.key === "Escape") { e.preventDefault(); onClose?.(); return; }
@@ -51,17 +68,7 @@ export default function FactorDetailModal({ f, onClose, onPrev, onNext, isStarre
       else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
     };
     document.addEventListener("keydown", onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prev;
-      // 关闭后焦点还原（如果原元素还在 DOM 中）
-      const el = prevFocusRef.current;
-      if (el && typeof el.focus === "function" && document.body.contains(el)) {
-        try { el.focus(); } catch {}
-      }
-    };
+    return () => document.removeEventListener("keydown", onKey);
   }, [f, onClose, onPrev, onNext]);
 
   const chartData = useMemo(() => {
