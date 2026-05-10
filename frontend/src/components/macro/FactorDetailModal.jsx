@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect } from "react";
+import React, { useMemo, useEffect, useRef } from "react";
 import { X } from "lucide-react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -17,16 +17,40 @@ import {
 // 但会显著增加 snapshot 体积，目前不做。
 export default function FactorDetailModal({ f, onClose }) {
   const { t } = useLang();
-  // ESC 关闭 + 防滚穿
+  const closeBtnRef = useRef(null);
+  const dialogRef = useRef(null);
+  const prevFocusRef = useRef(null);
+
+  // ESC 关闭 + 防滚穿 + 焦点陷阱（Tab 在 modal 内循环）+ 关闭后还原焦点
   useEffect(() => {
     if (!f) return;
-    const onKey = (e) => { if (e.key === "Escape") onClose?.(); };
+    prevFocusRef.current = document.activeElement;
+    // 下一帧把焦点移到关闭按钮（保险等待 portal 挂载）
+    setTimeout(() => closeBtnRef.current?.focus(), 0);
+    const onKey = (e) => {
+      if (e.key === "Escape") { e.preventDefault(); onClose?.(); return; }
+      if (e.key !== "Tab" || !dialogRef.current) return;
+      // focus trap：取所有可聚焦元素，在首尾环绕
+      const focusables = dialogRef.current.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
     document.addEventListener("keydown", onKey);
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = prev;
+      // 关闭后焦点还原（如果原元素还在 DOM 中）
+      const el = prevFocusRef.current;
+      if (el && typeof el.focus === "function" && document.body.contains(el)) {
+        try { el.focus(); } catch {}
+      }
     };
   }, [f, onClose]);
 
@@ -70,6 +94,10 @@ export default function FactorDetailModal({ f, onClose }) {
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="factor-modal-title"
         className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}
       >
@@ -82,12 +110,14 @@ export default function FactorDetailModal({ f, onClose }) {
                 title={dirBadge.title}>
             <span className="font-mono mr-0.5">{dirBadge.icon}</span>{t(dirBadge.label)}
           </span>
-          <span className="text-base font-mono font-semibold text-white/95">{f.factor_id}</span>
+          <span id="factor-modal-title" className="text-base font-mono font-semibold text-white/95">{f.factor_id}</span>
           <span className="text-[11px] text-white/40 font-mono">{f.market} · {f.freq}</span>
           <button
+            ref={closeBtnRef}
             onClick={onClose}
-            className="ml-auto p-1.5 rounded hover:bg-white/[0.06] text-white/50 hover:text-white/80"
+            className="ml-auto p-1.5 rounded hover:bg-white/[0.06] text-white/50 hover:text-white/80 focus:outline-none focus:ring-2 focus:ring-indigo-400/50"
             title={t("关闭 (Esc)")}
+            aria-label={t("关闭 (Esc)")}
           >
             <X className="w-4 h-4" />
           </button>
