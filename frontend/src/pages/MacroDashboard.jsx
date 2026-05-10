@@ -2,8 +2,8 @@
 // MacroDashboard — 市场层面宏观因子看板（Phase 1+2）
 // 组件已拆到 ../components/macro/*；本文件只负责数据加载 + 组合 + 路由级 state
 // ─────────────────────────────────────────────────────────────
-import React, { useState, useEffect, useMemo } from "react";
-import { Globe, RefreshCw, AlertCircle, Loader, Search, X } from "lucide-react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
+import { Globe, RefreshCw, AlertCircle, Loader, Search, X, ArrowUp } from "lucide-react";
 import { apiFetch } from "../quant-platform.jsx";
 import { useLang } from "../i18n.jsx";
 
@@ -54,6 +54,16 @@ export default function MacroDashboard() {
   // 搜索框：按 factor_id / name / description 子串模糊匹配
   const [search, setSearch] = useState("");
   const [selectedFactor, setSelectedFactor] = useState(null);
+  // scroll-to-top：滚动 >400px 时显示浮动按钮
+  const scrollRef = useRef(null);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const onScroll = () => setShowScrollTop(el.scrollTop > 400);
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, []);
 
   const load = async () => {
     setLoading(true);
@@ -124,7 +134,7 @@ export default function MacroDashboard() {
   }, [factors, filter, dirFilter, search]);
 
   return (
-    <div className="space-y-4 flex-1 min-h-0 overflow-y-auto pr-1 -mr-1">
+    <div ref={scrollRef} className="space-y-4 flex-1 min-h-0 overflow-y-auto pr-1 -mr-1 relative">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-2 flex-wrap">
           <Globe className="w-5 h-5 text-indigo-400" />
@@ -220,14 +230,14 @@ export default function MacroDashboard() {
                 {opt.label}
               </button>
             ))}
-            <div className="ml-auto relative flex items-center">
+            <div className="sm:ml-auto relative flex items-center w-full sm:w-auto">
               <Search className="absolute left-2 w-3 h-3 text-white/30" />
               <input
                 type="text"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder={t("搜索因子 (id / 名称 / 描述)")}
-                className="pl-7 pr-7 py-0.5 text-[10px] bg-white/[0.03] border border-white/[0.08] rounded text-white/85 placeholder:text-white/30 focus:outline-none focus:border-indigo-400/50 w-56"
+                className="pl-7 pr-7 py-0.5 text-[10px] bg-white/[0.03] border border-white/[0.08] rounded text-white/85 placeholder:text-white/30 focus:outline-none focus:border-indigo-400/50 w-full sm:w-56"
               />
               {search && (
                 <button
@@ -282,6 +292,18 @@ export default function MacroDashboard() {
       </div>
 
       <FactorDetailModal f={selectedFactor} onClose={() => setSelectedFactor(null)} />
+
+      {/* 浮动 scroll-to-top — 滚动 400px+ 才显示 */}
+      {showScrollTop && (
+        <button
+          onClick={() => scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" })}
+          className="sticky bottom-3 ml-auto mr-3 flex items-center justify-center w-9 h-9 rounded-full bg-indigo-500/20 border border-indigo-400/40 text-indigo-200 hover:bg-indigo-500/30 backdrop-blur-sm shadow-lg transition-opacity z-30"
+          title={t("回到顶部")}
+          aria-label={t("回到顶部")}
+        >
+          <ArrowUp className="w-4 h-4" />
+        </button>
+      )}
     </div>
   );
 }
