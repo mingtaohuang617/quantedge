@@ -534,3 +534,74 @@ def test_match_reasons_empty_when_no_supertrends(tmp_watchlist):
     """空赛道列表时所有候选 match_reasons={}（不过滤）"""
     out = wl.screen_candidates([])
     assert all(it["match_reasons"] == {} for it in out)
+
+
+# ── archived 字段 ─────────────────────────────────────────
+def test_add_item_default_not_archived(tmp_watchlist):
+    """默认 archived=False"""
+    item = wl.add_item("NVDA", supertrend_id="semi")
+    assert item["archived"] is False
+
+
+def test_add_item_archived_true_explicit(tmp_watchlist):
+    """显式 archived=True 也支持（迁移老数据用）"""
+    item = wl.add_item("NVDA", supertrend_id="semi", archived=True)
+    assert item["archived"] is True
+
+
+def test_update_item_set_archived(tmp_watchlist):
+    """update_item 可设 archived=True"""
+    wl.add_item("NVDA", supertrend_id="semi")
+    updated = wl.update_item("NVDA", archived=True)
+    assert updated["archived"] is True
+
+
+def test_update_item_unset_archived(tmp_watchlist):
+    """归档后可恢复（archived=False）"""
+    wl.add_item("NVDA", supertrend_id="semi", archived=True)
+    updated = wl.update_item("NVDA", archived=False)
+    assert updated["archived"] is False
+
+
+def test_list_items_default_excludes_archived(tmp_watchlist):
+    """默认 list_items() 仅返回 active"""
+    wl.add_item("NVDA", supertrend_id="semi")
+    wl.add_item("AAOI", supertrend_id="optical", archived=True)
+    items = wl.list_items()
+    tickers = {it["ticker"] for it in items}
+    assert "NVDA" in tickers
+    assert "AAOI" not in tickers
+
+
+def test_list_items_include_archived(tmp_watchlist):
+    """include_archived=True 返回全部"""
+    wl.add_item("NVDA", supertrend_id="semi")
+    wl.add_item("AAOI", supertrend_id="optical", archived=True)
+    items = wl.list_items(include_archived=True)
+    tickers = {it["ticker"] for it in items}
+    assert tickers == {"NVDA", "AAOI"}
+
+
+def test_list_items_legacy_no_archived_field(tmp_watchlist):
+    """老数据没 archived 字段时按 active 处理（兼容）"""
+    # 直接写一条没 archived 字段的老数据
+    raw = {
+        "version": 1,
+        "user_supertrends": [],
+        "items": [
+            {"ticker": "OLD", "added_at": "2024-01-01", "strategy": "growth",
+             "supertrend_id": "semi", "thesis": "legacy item"}
+        ],
+    }
+    wl.save_watchlist(raw)
+    items = wl.list_items()
+    assert any(it["ticker"] == "OLD" for it in items), "老数据应被视作 active"
+
+
+def test_screen_candidates_excludes_archived_too(tmp_watchlist):
+    """归档项也算"已观察过"，不应回到候选列表。"""
+    wl.add_item("NVDA", supertrend_id="semi", archived=True)
+    out = wl.screen_candidates(["semi"])
+    tickers = [it["ticker"] for it in out]
+    # 归档的 NVDA 不应在候选里出现
+    assert "NVDA" not in tickers

@@ -1442,10 +1442,13 @@ def get_universe_stats():
 
 
 @app.get("/api/watchlist/10x")
-def list_watchlist_10x():
-    """列出全部观察项 + 可用赛道。"""
+def list_watchlist_10x(include_archived: bool = False):
+    """列出观察项 + 可用赛道。
+
+    include_archived=true 时返回所有项（含归档）；默认仅 active。
+    """
     return sanitize({
-        "items": _wl.list_items(),
+        "items": _wl.list_items(include_archived=include_archived),
         "supertrends": _wl.list_supertrends(),
     })
 
@@ -1473,6 +1476,7 @@ class WatchlistUpdateReq(BaseModel):
     target_price: float | None = None
     stop_loss: float | None = None
     tags: list[str] | None = None
+    archived: bool | None = None
 
 
 @app.post("/api/watchlist/10x")

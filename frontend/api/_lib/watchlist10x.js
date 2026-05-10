@@ -18,7 +18,7 @@ const ALLOWED_STRATEGIES = new Set(['growth', 'value']);
 const VALID_FIELDS = new Set([
   'strategy', 'supertrend_id', 'bottleneck_layer', 'bottleneck_tag',
   'moat_score', 'thesis', 'target_price', 'stop_loss', 'tags',
-  'llm_thesis_cached_at',
+  'llm_thesis_cached_at', 'archived',
 ]);
 
 function emptyData() {
@@ -59,8 +59,10 @@ export async function listAllSupertrends() {
   return mergeSupertrends(await loadData());
 }
 
-export async function listItems() {
-  return (await loadData()).items;
+export async function listItems({ includeArchived = false } = {}) {
+  const items = (await loadData()).items;
+  if (includeArchived) return items;
+  return items.filter(it => !it.archived);
 }
 
 export async function addItem(ticker, fields = {}) {
@@ -94,6 +96,7 @@ export async function addItem(ticker, fields = {}) {
     stop_loss: fields.stop_loss ?? null,
     tags: Array.isArray(fields.tags) ? fields.tags : [],
     llm_thesis_cached_at: null,
+    archived: !!fields.archived,
   };
   data.items.push(item);
   await saveData(data);
@@ -320,6 +323,7 @@ export async function screenCandidates(opts = {}) {
   }
 
   if (exclude_in_watchlist) {
+    // 含归档项 — 归档过的票"已经看过"，不应再回到候选
     const inWl = new Set(data.items.map(it => it.ticker));
     filtered = filtered.filter(it => !inWl.has(it.ticker));
   }

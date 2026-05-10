@@ -239,6 +239,54 @@ describe('screenCandidates.match_reasons', () => {
   });
 });
 
+// ── archived 字段 ─────────────────────────────────────────
+describe('archived (item lifecycle)', () => {
+  it('addItem 默认 archived=false', async () => {
+    const item = await addItem('NVDA', { supertrend_id: 'semi' });
+    expect(item.archived).toBe(false);
+  });
+
+  it('addItem archived=true 显式可设', async () => {
+    const item = await addItem('NVDA', { supertrend_id: 'semi', archived: true });
+    expect(item.archived).toBe(true);
+  });
+
+  it('updateItem 可设 archived=true', async () => {
+    await addItem('NVDA', { supertrend_id: 'semi' });
+    const u = await updateItem('NVDA', { archived: true });
+    expect(u.archived).toBe(true);
+  });
+
+  it('updateItem 可恢复 archived=false', async () => {
+    await addItem('NVDA', { supertrend_id: 'semi', archived: true });
+    const u = await updateItem('NVDA', { archived: false });
+    expect(u.archived).toBe(false);
+  });
+
+  it('listItems() 默认仅 active', async () => {
+    await addItem('NVDA', { supertrend_id: 'semi' });
+    await addItem('AAOI', { supertrend_id: 'optical', archived: true });
+    const items = await listItems();
+    const tickers = items.map(it => it.ticker);
+    expect(tickers).toContain('NVDA');
+    expect(tickers).not.toContain('AAOI');
+  });
+
+  it('listItems({ includeArchived: true }) 返回全部', async () => {
+    await addItem('NVDA', { supertrend_id: 'semi' });
+    await addItem('AAOI', { supertrend_id: 'optical', archived: true });
+    const items = await listItems({ includeArchived: true });
+    const tickers = items.map(it => it.ticker).sort();
+    expect(tickers).toEqual(['AAOI', 'NVDA']);
+  });
+
+  it('screenCandidates 排除归档项（已观察过不再回到候选）', async () => {
+    await addItem('NVDA', { supertrend_id: 'semi', archived: true });
+    const out = await screenCandidates({ supertrend_ids: ['semi'] });
+    expect(out.map(it => it.ticker)).not.toContain('NVDA');
+  });
+});
+
 // ── update / remove / list ───────────────────────────────
 describe('updateItem / removeItem', () => {
   it('partial update keeps other fields', async () => {

@@ -134,7 +134,7 @@ def add_supertrend(
 _VALID_FIELDS = {
     "strategy", "supertrend_id", "bottleneck_layer", "bottleneck_tag",
     "moat_score", "thesis", "target_price", "stop_loss", "tags",
-    "llm_thesis_cached_at",
+    "llm_thesis_cached_at", "archived",
 }
 
 
@@ -176,6 +176,7 @@ def add_item(ticker: str, **fields) -> dict:
         "stop_loss": fields.get("stop_loss"),
         "tags": list(fields.get("tags") or []),
         "llm_thesis_cached_at": None,
+        "archived": bool(fields.get("archived", False)),
     }
     data["items"].append(item)
     save_watchlist(data)
@@ -211,8 +212,17 @@ def remove_item(ticker: str) -> bool:
     return False
 
 
-def list_items() -> list[dict]:
-    return load_watchlist().get("items", [])
+def list_items(include_archived: bool = False) -> list[dict]:
+    """返回观察项；默认仅 active（archived=False）。
+
+    include_archived=True 时返回所有（active + archived），前端需要时给"显示归档"toggle 用。
+
+    注：archived 字段为新增（v1.x），老数据没有这个字段时按 False 处理 — 完全兼容。
+    """
+    items = load_watchlist().get("items", [])
+    if include_archived:
+        return items
+    return [it for it in items if not it.get("archived", False)]
 
 
 # ── 候选筛选 ─────────────────────────────────────────────
@@ -398,9 +408,9 @@ def screen_candidates(
                                     min_dividend_yield, max_debt_to_equity)):
         filtered = [it for it in filtered if _fund_ok(it)]
 
-    # 4) 排除已在 watchlist 的
+    # 4) 排除已在 watchlist 的（含归档项 — 归档过的票"已经看过"，不应再回到候选）
     if exclude_in_watchlist:
-        in_wl = {it["ticker"] for it in list_items()}
+        in_wl = {it["ticker"] for it in list_items(include_archived=True)}
         filtered = [it for it in filtered if it["ticker"] not in in_wl]
 
     # 5) 排序：缺市值放最后；其余按市值升序
