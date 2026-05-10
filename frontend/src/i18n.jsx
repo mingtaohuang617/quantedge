@@ -438,8 +438,12 @@ const EN = {
   '无明显拉牛因子': 'No obvious bullish drivers',
   '无明显拉熊因子': 'No obvious bearish drivers',
   '情绪未到极端': 'Sentiment not at extremes',
-  // Direction filter row
+  // Direction filter row + search
   '方向': 'Direction',
+  '搜索因子 (id / 名称 / 描述)': 'Search factors (id / name / desc)',
+  '清除': 'Clear',
+  '当前筛选条件下没有因子': 'No factors match the current filters',
+  '清除全部筛选': 'Clear all filters',
   // CompositeChart
   '市场温度历史 · 与 Wilshire 5000 走势对照': 'Market Temp History · vs Wilshire 5000',
   '加载历史温度曲线中…': 'Loading history…',
