@@ -31,6 +31,34 @@ import {
   fmtPrice,
 } from "../quant-platform.jsx";
 
+// ─── 市场交易时段判定 ───────────────────────────────────
+// 返回 { usOpen, usPre, usPost, hkOpen, cnOpen }，仅判断时段（不含节假日）
+function getMarketsStatus(now = new Date()) {
+  const partsIn = (tz) => {
+    const arr = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz, weekday: 'short', hour: 'numeric', minute: 'numeric', hour12: false,
+    }).formatToParts(now);
+    const get = k => arr.find(p => p.type === k)?.value;
+    const dayMap = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+    return { d: dayMap[get('weekday')], h: parseInt(get('hour'), 10) % 24, m: parseInt(get('minute'), 10) };
+  };
+  const inRange = (h, m, h1, m1, h2, m2) => {
+    const t = h * 60 + m, t1 = h1 * 60 + m1, t2 = h2 * 60 + m2;
+    return t >= t1 && t < t2;
+  };
+  const isWeekday = d => d >= 1 && d <= 5;
+  const ny = partsIn('America/New_York');
+  const hk = partsIn('Asia/Hong_Kong');
+  const sh = partsIn('Asia/Shanghai');
+  return {
+    usOpen: isWeekday(ny.d) && inRange(ny.h, ny.m, 9, 30, 16, 0),
+    usPre:  isWeekday(ny.d) && inRange(ny.h, ny.m, 4, 0, 9, 30),
+    usPost: isWeekday(ny.d) && inRange(ny.h, ny.m, 16, 0, 20, 0),
+    hkOpen: isWeekday(hk.d) && (inRange(hk.h, hk.m, 9, 30, 12, 0) || inRange(hk.h, hk.m, 13, 0, 16, 0)),
+    cnOpen: isWeekday(sh.d) && (inRange(sh.h, sh.m, 9, 30, 11, 30) || inRange(sh.h, sh.m, 13, 0, 15, 0)),
+  };
+}
+
 // 多标的对比模态框
 const COMPARE_COLORS = ["#6366f1", "#06b6d4", "#f59e0b", "#ec4899"];
 const CompareModal = ({ open, onClose, stocks }) => {
@@ -260,6 +288,21 @@ const ScoringDashboard = () => {
   const [indices, setIndices] = useState([]); // [{ sym, close, pct }]
   const [indicesLoading, setIndicesLoading] = useState(false);
   const [indicesTime, setIndicesTime] = useState(null);
+  // 市场状态每 30s tick 一次
+  const [marketTick, setMarketTick] = useState(() => Date.now());
+  useEffect(() => {
+    const iv = setInterval(() => setMarketTick(Date.now()), 30_000);
+    return () => clearInterval(iv);
+  }, []);
+  const marketStatus = useMemo(() => {
+    const ms = getMarketsStatus(new Date(marketTick));
+    if (ms.usOpen) return { key: '美股开盘中', dot: 'bg-up animate-pulse' };
+    if (ms.hkOpen) return { key: '港股开盘中', dot: 'bg-up animate-pulse' };
+    if (ms.cnOpen) return { key: 'A股开盘中', dot: 'bg-up animate-pulse' };
+    if (ms.usPre)  return { key: '美股盘前', dot: 'bg-amber-400' };
+    if (ms.usPost) return { key: '美股盘后', dot: 'bg-amber-400' };
+    return { key: '全部市场休市', dot: 'bg-white/30' };
+  }, [marketTick]);
   const fetchIndices = useCallback(async () => {
     setIndicesLoading(true);
     const defs = [
@@ -652,8 +695,8 @@ const ScoringDashboard = () => {
     {/* ── 市场指数条 ── */}
     <div className="hidden md:flex items-center gap-3 px-3 py-1.5 mb-2 glass-card text-[10px] flex-shrink-0 overflow-x-auto">
       <span className="flex items-center gap-1.5 text-[#a0aec0] shrink-0">
-        <span className="w-1.5 h-1.5 rounded-full bg-up animate-pulse" />
-        <span className="font-medium">{t('市场开盘中')}</span>
+        <span className={`w-1.5 h-1.5 rounded-full ${marketStatus.dot}`} />
+        <span className="font-medium">{t(marketStatus.key)}</span>
       </span>
       <span className="text-white/10 shrink-0">|</span>
       {indices.length === 0 && indicesLoading ? (
