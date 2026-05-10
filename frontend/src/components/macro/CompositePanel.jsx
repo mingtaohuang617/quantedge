@@ -52,8 +52,8 @@ export default function CompositePanel({ data, history }) {
           </div>
         </div>
 
-        {/* 4 类子分 */}
-        <div className="flex-[2] min-w-[400px] grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {/* 4 类子分 — min-w-0 + min-w-[280px] sm 让窄屏不溢出（原 400px 在 320 屏会横向滚动） */}
+        <div className="flex-[2] min-w-0 sm:min-w-[280px] grid grid-cols-2 sm:grid-cols-4 gap-3 w-full">
           {order.map(cat => {
             const info = cats[cat];
             const score = info?.score;
