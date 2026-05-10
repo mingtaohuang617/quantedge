@@ -1,9 +1,11 @@
 import React, { useMemo } from "react";
 import { Loader } from "lucide-react";
+import { useLang } from "../../i18n.jsx";
 import { PANEL } from "./shared.js";
 
 // 把 LLM 输出尝试拆成 3 段：主要矛盾 / 关键观察 / 风险机会
 // 优先匹配【】或 ## 标题，其次按双换行分段，再不行整段一坨展示。
+// 注：label 保留中文 key，渲染时通过 t() 翻译
 const SECTION_KEYS = [
   { key: "矛盾",   label: "主要矛盾", color: "text-amber-200" },
   { key: "观察",   label: "关键观察", color: "text-cyan-200" },
@@ -37,20 +39,21 @@ function parseSections(text) {
 
 // AI 市场画像（DeepSeek 生成 150-200 字解读）
 export default function NarrativePanel({ narrative, loading }) {
+  const { t } = useLang();
   const sections = useMemo(() => parseSections(narrative), [narrative]);
   if (!narrative && !loading) return null;
   return (
     <div className={PANEL.ai}>
       <div className="flex items-center gap-2 mb-2">
         <span className="text-[10px] px-1.5 py-0.5 rounded font-medium border bg-indigo-500/20 text-indigo-100 border-indigo-400/40">
-          AI 解读
+          {t("AI 解读")}
         </span>
-        <span className="text-xs text-white/55">DeepSeek 当日宏观画像</span>
+        <span className="text-xs text-white/55">{t("DeepSeek 当日宏观画像")}</span>
       </div>
       {loading ? (
         <div className="text-xs text-white/50 flex items-center gap-2">
           <Loader className="w-3 h-3 animate-spin" />
-          生成中…
+          {t("生成中…")}
         </div>
       ) : sections ? (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -58,7 +61,7 @@ export default function NarrativePanel({ narrative, loading }) {
             <div key={i} className="space-y-1.5">
               {s.label && (
                 <div className={`text-[10px] font-medium uppercase tracking-wider ${s.color}`}>
-                  {s.label}
+                  {t(s.label)}
                 </div>
               )}
               <div className="text-[12.5px] text-white/85 leading-relaxed">{s.body}</div>

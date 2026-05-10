@@ -718,16 +718,16 @@ const ScoringDashboard = () => {
           ? "bg-orange-500/10 border-orange-400/30 text-orange-100"
           : "bg-slate-500/10 border-slate-400/30 text-slate-200"
       }`}>
-        <span className="font-mono text-[10px] opacity-70">来自宏观看板</span>
+        <span className="font-mono text-[10px] opacity-70">{t("来自宏观看板")}</span>
         <span className="font-medium">{macroSignal.title}</span>
         {macroSignal.summary && <span className="opacity-75 hidden md:inline">— {macroSignal.summary}</span>}
         {macroSignal.action && (
-          <span className="ml-2 opacity-90 hidden lg:inline">建议：{macroSignal.action}</span>
+          <span className="ml-2 opacity-90 hidden lg:inline">{t("建议")}：{macroSignal.action}</span>
         )}
         <button
           onClick={() => setMacroSignal(null)}
           className="ml-auto p-0.5 rounded hover:bg-white/10 opacity-60 hover:opacity-100"
-          title="关闭"
+          title={t("关闭")}
         >
           <X size={12} />
         </button>

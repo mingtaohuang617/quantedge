@@ -4,6 +4,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine,
 } from "recharts";
+import { useLang } from "../../i18n.jsx";
 import {
   CATEGORY_LABEL, CATEGORY_COLOR, PCT_BAR_BG, PCT_TEXT,
   DIRECTION_BADGE, fmtRaw, daysSince, factorLagThreshold,
@@ -15,6 +16,7 @@ import {
 // 想要全历史（数百到数千点）需扩展 export_macro_snapshot.py 的 sparkline_window，
 // 但会显著增加 snapshot 体积，目前不做。
 export default function FactorDetailModal({ f, onClose }) {
+  const { t } = useLang();
   // ESC 关闭 + 防滚穿
   useEffect(() => {
     if (!f) return;
@@ -74,18 +76,18 @@ export default function FactorDetailModal({ f, onClose }) {
         {/* Header */}
         <div className="sticky top-0 bg-slate-900 border-b border-white/[0.08] px-5 py-3 flex items-center gap-3 flex-wrap">
           <span className={`px-2 py-0.5 rounded text-[10px] font-medium border ${CATEGORY_COLOR[f.category] || ""}`}>
-            {CATEGORY_LABEL[f.category] || f.category}
+            {t(CATEGORY_LABEL[f.category] || f.category)}
           </span>
           <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium border ${dirBadge.cls}`}
                 title={dirBadge.title}>
-            <span className="font-mono mr-0.5">{dirBadge.icon}</span>{dirBadge.label}
+            <span className="font-mono mr-0.5">{dirBadge.icon}</span>{t(dirBadge.label)}
           </span>
           <span className="text-base font-mono font-semibold text-white/95">{f.factor_id}</span>
           <span className="text-[11px] text-white/40 font-mono">{f.market} · {f.freq}</span>
           <button
             onClick={onClose}
             className="ml-auto p-1.5 rounded hover:bg-white/[0.06] text-white/50 hover:text-white/80"
-            title="关闭 (Esc)"
+            title={t("关闭 (Esc)")}
           >
             <X className="w-4 h-4" />
           </button>
@@ -101,7 +103,7 @@ export default function FactorDetailModal({ f, onClose }) {
           {/* 当前值 + 分位 */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="bg-white/[0.03] border border-white/[0.06] rounded-lg p-3">
-              <div className="text-[10px] text-white/45">最新原值</div>
+              <div className="text-[10px] text-white/45">{t("最新原值")}</div>
               <div className="text-xl font-mono font-semibold text-white tabular-nums mt-0.5">
                 {fmtRaw(f.latest?.raw_value)}
               </div>
@@ -111,7 +113,7 @@ export default function FactorDetailModal({ f, onClose }) {
               </div>
             </div>
             <div className="bg-white/[0.03] border border-white/[0.06] rounded-lg p-3">
-              <div className="text-[10px] text-white/45">历史分位</div>
+              <div className="text-[10px] text-white/45">{t("历史分位")}</div>
               <div className={`text-xl font-mono font-semibold tabular-nums mt-0.5 ${PCT_TEXT(pct)}`}>
                 {pct != null ? `${pct.toFixed(1)}%` : "—"}
               </div>
@@ -124,18 +126,18 @@ export default function FactorDetailModal({ f, onClose }) {
             {stats && (
               <>
                 <div className="bg-white/[0.03] border border-white/[0.06] rounded-lg p-3">
-                  <div className="text-[10px] text-white/45">窗口 min / max</div>
+                  <div className="text-[10px] text-white/45">{t("窗口 min / max")}</div>
                   <div className="text-sm font-mono font-semibold text-white/85 tabular-nums mt-0.5">
                     {fmtRaw(stats.min)} / {fmtRaw(stats.max)}
                   </div>
-                  <div className="text-[10px] text-white/40 mt-0.5 font-mono">{stats.n} 个观测</div>
+                  <div className="text-[10px] text-white/40 mt-0.5 font-mono">{stats.n} {t("个观测")}</div>
                 </div>
                 <div className="bg-white/[0.03] border border-white/[0.06] rounded-lg p-3">
-                  <div className="text-[10px] text-white/45">均值 / 中位数</div>
+                  <div className="text-[10px] text-white/45">{t("均值 / 中位数")}</div>
                   <div className="text-sm font-mono font-semibold text-white/85 tabular-nums mt-0.5">
                     {fmtRaw(stats.avg)} / {fmtRaw(stats.median)}
                   </div>
-                  <div className="text-[10px] text-white/40 mt-0.5 font-mono">{f.rolling_window_days}d 滚动窗</div>
+                  <div className="text-[10px] text-white/40 mt-0.5 font-mono">{f.rolling_window_days}d {t("滚动窗")}</div>
                 </div>
               </>
             )}
@@ -145,7 +147,7 @@ export default function FactorDetailModal({ f, onClose }) {
           {chartData.length >= 2 && (
             <div>
               <div className="flex items-center justify-between mb-2">
-                <div className="text-xs text-white/55">原值时间序列</div>
+                <div className="text-xs text-white/55">{t("原值时间序列")}</div>
                 <div className="text-[10px] text-white/35 font-mono">{winLabel}</div>
               </div>
               <div className="h-56 bg-white/[0.02] border border-white/[0.05] rounded-lg p-2">
@@ -169,11 +171,11 @@ export default function FactorDetailModal({ f, onClose }) {
                     <Tooltip
                       contentStyle={{ background: "#0f172a", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6, fontSize: 11 }}
                       labelStyle={{ color: "rgba(255,255,255,0.6)" }}
-                      formatter={(v) => [fmtRaw(v), "原值"]}
+                      formatter={(v) => [fmtRaw(v), t("原值")]}
                     />
                     {stats && (
                       <ReferenceLine y={stats.median} stroke="rgba(148,163,184,0.4)" strokeDasharray="3 3"
-                                     label={{ value: "中位数", fontSize: 9, fill: "rgba(148,163,184,0.6)" }} />
+                                     label={{ value: t("中位数"), fontSize: 9, fill: "rgba(148,163,184,0.6)" }} />
                     )}
                     <Line
                       type="monotone"
@@ -193,14 +195,14 @@ export default function FactorDetailModal({ f, onClose }) {
           {chartData.length > 0 && (
             <details className="bg-white/[0.02] border border-white/[0.05] rounded-lg" open={false}>
               <summary className="px-3 py-2 cursor-pointer text-[11px] text-white/55 select-none hover:text-white/75">
-                最近 20 个观测（点击展开）
+                {t("最近 20 个观测（点击展开）")}
               </summary>
               <div className="px-3 pb-3 max-h-56 overflow-y-auto">
                 <table className="w-full text-[10px] font-mono">
                   <thead className="text-white/40 sticky top-0 bg-slate-900">
                     <tr>
-                      <th className="text-left py-1">日期</th>
-                      <th className="text-right py-1">原值</th>
+                      <th className="text-left py-1">{t("日期")}</th>
+                      <th className="text-right py-1">{t("原值")}</th>
                     </tr>
                   </thead>
                   <tbody className="text-white/75">
@@ -217,7 +219,7 @@ export default function FactorDetailModal({ f, onClose }) {
           )}
 
           <div className="text-[10px] text-white/35 pt-2 border-t border-white/[0.04]">
-            滚动窗 {f.rolling_window_days} 天 · {f.contrarian_at_extremes ? "极端反向（contrarian）" : "线性方向"}
+            {t("滚动窗")} {f.rolling_window_days} {t("天")} · {f.contrarian_at_extremes ? t("极端反向（contrarian）") : t("线性方向")}
           </div>
         </div>
       </div>

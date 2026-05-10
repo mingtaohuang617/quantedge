@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { AlertTriangle, ChevronDown, ChevronRight } from "lucide-react";
+import { useLang } from "../../i18n.jsx";
 import { daysSince, factorLagThreshold } from "./shared.js";
 
 // 数据状态横幅：聚合 composite 子模块 error + 因子级数据滞后/缺失，折叠展示。
@@ -25,16 +26,17 @@ function classifyFactorIssue(f) {
 }
 
 export default function DataStatusBanner({ composite, factors }) {
+  const { t } = useLang();
   const [expanded, setExpanded] = useState(false);
 
   const issues = useMemo(() => {
     const list = [];
     if (composite?.hmm?.error) {
-      list.push({ kind: "hmm", level: "warn", title: "HMM 三态模型不可用",
+      list.push({ kind: "hmm", level: "warn", title: t("HMM 三态模型不可用"),
                   detail: composite.hmm.error });
     }
     if (composite?.survival?.error) {
-      list.push({ kind: "survival", level: "info", title: "持续期预测不可用",
+      list.push({ kind: "survival", level: "info", title: t("持续期预测不可用"),
                   detail: composite.survival.error });
     }
     if (factors && factors.length > 0) {
@@ -45,18 +47,18 @@ export default function DataStatusBanner({ composite, factors }) {
         const missing = factorIssues.filter(x => x.issue.kind === "missing").length;
         const lagged = factorIssues.filter(x => x.issue.kind === "lag").length;
         const parts = [];
-        if (missing) parts.push(`${missing} 个无数据`);
-        if (lagged) parts.push(`${lagged} 个滞后`);
+        if (missing) parts.push(`${missing} ${t("个无数据")}`);
+        if (lagged) parts.push(`${lagged} ${t("个滞后")}`);
         list.push({
           kind: "factors", level: lagged > 5 ? "warn" : "info",
-          title: `${factorIssues.length} / ${factors.length} 个因子数据存在问题`,
+          title: `${factorIssues.length} / ${factors.length} ${t("个因子数据存在问题")}`,
           detail: parts.join(" · "),
           rows: factorIssues,
         });
       }
     }
     return list;
-  }, [composite, factors]);
+  }, [composite, factors, t]);
 
   if (issues.length === 0) return null;
 
@@ -73,8 +75,8 @@ export default function DataStatusBanner({ composite, factors }) {
       >
         {expanded ? <ChevronDown className="w-3.5 h-3.5 shrink-0" /> : <ChevronRight className="w-3.5 h-3.5 shrink-0" />}
         <AlertTriangle className="w-3.5 h-3.5 shrink-0 opacity-70" />
-        <span className="text-xs font-medium">数据状态</span>
-        <span className="text-[10px] opacity-70">· {issues.length} 项需关注</span>
+        <span className="text-xs font-medium">{t("数据状态")}</span>
+        <span className="text-[10px] opacity-70">· {issues.length} {t("项需关注")}</span>
         <span className="ml-auto text-[10px] opacity-60 font-mono">
           {issues.map(i => i.title.split(/[（(]/)[0]).slice(0, 2).join(" / ")}
           {issues.length > 2 && " …"}
