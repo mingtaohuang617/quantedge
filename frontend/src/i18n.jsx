@@ -77,6 +77,7 @@ const EN = {
   '美股开盘中': 'US Market Open',
   '港股开盘中': 'HK Market Open',
   'A股开盘中': 'CN Market Open',
+  '韩股开盘中': 'KR Market Open',
   '美股盘前': 'US Pre-Market',
   '美股盘后': 'US After-Hours',
   '全部市场休市': 'All Markets Closed',
