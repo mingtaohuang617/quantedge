@@ -1,4 +1,5 @@
 import React from "react";
+import { Star } from "lucide-react";
 import { MiniSparkline } from "../../quant-platform.jsx";
 import { useLang } from "../../i18n.jsx";
 import {
@@ -8,8 +9,9 @@ import {
 
 // 单因子卡片：分类徽章 + 方向徽章 + 原值 + sparkline + 分位条 + 描述
 // 整张卡 clickable → 弹出 FactorDetailModal（由父组件管理 selected state）
+// 右上角 star 切换"收藏"状态（持久化到 localStorage）
 // React.memo 避免 filter 切换时全量重渲（23 卡 × DOM）
-function FactorCard({ f, onSelect }) {
+function FactorCard({ f, onSelect, isStarred, onToggleStar }) {
   const { t } = useLang();
   const pct = f.latest?.percentile;
   const sparkValues = f.sparkline?.values || [];
@@ -43,9 +45,23 @@ function FactorCard({ f, onSelect }) {
             {t(dirBadge.label)}
           </span>
         </div>
-        <span className="text-[10px] text-white/40 font-mono shrink-0">
-          {f.market} · {f.freq}
-        </span>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className="text-[10px] text-white/40 font-mono">
+            {f.market} · {f.freq}
+          </span>
+          {onToggleStar && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onToggleStar(f); }}
+              className={`p-0.5 rounded transition-colors ${
+                isStarred ? "text-amber-300 hover:text-amber-200" : "text-white/25 hover:text-white/55"
+              }`}
+              title={isStarred ? t("取消收藏") : t("收藏因子")}
+              aria-label={isStarred ? t("取消收藏") : t("收藏因子")}
+            >
+              <Star className={`w-3.5 h-3.5 ${isStarred ? "fill-current" : ""}`} />
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="text-sm font-mono font-semibold text-white/90 mb-1">

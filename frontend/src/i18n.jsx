@@ -428,6 +428,7 @@ const EN = {
   '因子均值': 'factor avg',
   'DeepSeek 当日宏观画像': 'DeepSeek daily macro narrative',
   '生成中…': 'Generating…',
+  '跳过 12 小时缓存重新生成': 'Bypass 12h cache and regenerate',
   '近 5 个交易日 (WoW) 变化': 'Last 5 trading days (WoW) Δ',
   // TopMovers
   '当下推动力': 'Current Drivers',
@@ -446,6 +447,12 @@ const EN = {
   '当前筛选条件下没有因子': 'No factors match the current filters',
   '清除全部筛选': 'Clear all filters',
   '回到顶部': 'Back to top',
+  '导出当前筛选结果为 CSV': 'Export current filtered factors as CSV',
+  '收藏因子': 'Star factor',
+  '取消收藏': 'Remove star',
+  '仅显示收藏': 'Show only starred',
+  '显示全部': 'Show all',
+  '仅收藏': 'Starred',
   // CompositeChart
   '市场温度历史 · 与 Wilshire 5000 走势对照': 'Market Temp History · vs Wilshire 5000',
   '加载历史温度曲线中…': 'Loading history…',

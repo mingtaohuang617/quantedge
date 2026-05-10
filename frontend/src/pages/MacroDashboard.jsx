@@ -3,7 +3,7 @@
 // 组件已拆到 ../components/macro/*；本文件只负责数据加载 + 组合 + 路由级 state
 // ─────────────────────────────────────────────────────────────
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { Globe, RefreshCw, AlertCircle, Loader, Search, X, ArrowUp } from "lucide-react";
+import { Globe, RefreshCw, AlertCircle, Loader, Search, X, ArrowUp, Download } from "lucide-react";
 import { apiFetch } from "../quant-platform.jsx";
 import { useLang } from "../i18n.jsx";
 
@@ -11,7 +11,9 @@ import { useLang } from "../i18n.jsx";
 // 主动刷新：本地 `cd backend && python export_macro_snapshot.py` → commit → push
 import macroSnapshot from "../macroSnapshot.json";
 
-import { CATEGORY_LABEL, snapshotStaleness } from "../components/macro/shared.js";
+import {
+  CATEGORY_LABEL, snapshotStaleness, readStarred, writeStarred, factorStarKey,
+} from "../components/macro/shared.js";
 import NarrativePanel from "../components/macro/NarrativePanel.jsx";
 import CompositePanel from "../components/macro/CompositePanel.jsx";
 import HmmPanel from "../components/macro/HmmPanel.jsx";
@@ -61,6 +63,24 @@ export default function MacroDashboard() {
   }, [marketFilter]);
   // 搜索框：按 factor_id / name / description 子串模糊匹配
   const [search, setSearch] = useState("");
+  // 收藏因子集（factor_id@market 复合键）+ 仅显示收藏切换
+  const [starred, setStarred] = useState(() => readStarred());
+  const [onlyStarred, setOnlyStarred] = useState(() => {
+    try { return localStorage.getItem("quantedge_macro_only_starred") === "1"; }
+    catch { return false; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem("quantedge_macro_only_starred", onlyStarred ? "1" : "0"); } catch {}
+  }, [onlyStarred]);
+  const toggleStar = (f) => {
+    const k = factorStarKey(f);
+    setStarred(prev => {
+      const next = new Set(prev);
+      if (next.has(k)) next.delete(k); else next.add(k);
+      writeStarred(next);
+      return next;
+    });
+  };
   const [selectedFactor, setSelectedFactor] = useState(null);
   // scroll-to-top：滚动 >400px 时显示浮动按钮
   const scrollRef = useRef(null);
@@ -106,6 +126,14 @@ export default function MacroDashboard() {
     });
   };
 
+  // dev 模式：force=true 跳过 12h 缓存重新生成 narrative
+  const forceRefreshNarrative = async () => {
+    setNarrativeLoading(true);
+    const d = await apiFetch("/macro/narrative?force=true");
+    if (d?.ok && d.narrative) setNarrative(d.narrative);
+    setNarrativeLoading(false);
+  };
+
   useEffect(() => { load(); }, []);
 
   const categories = useMemo(() => {
@@ -118,6 +146,38 @@ export default function MacroDashboard() {
     return order;
   }, [factors]);
 
+  // 导出当前筛选结果为 CSV — 写入临时 Blob URL 触发下载
+  const exportCsv = () => {
+    if (!filtered || filtered.length === 0) return;
+    const cols = ["factor_id", "name", "category", "market", "freq", "direction",
+                  "contrarian_at_extremes", "value_date", "raw_value", "percentile",
+                  "rolling_window_days"];
+    const escape = (v) => {
+      if (v == null) return "";
+      const s = String(v);
+      // CSV 转义：含逗号/引号/换行的字段用 "" 包裹，内部 " 转义为 ""
+      if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+      return s;
+    };
+    const rows = [cols.join(",")];
+    filtered.forEach(f => {
+      rows.push([
+        f.factor_id, f.name, f.category, f.market, f.freq, f.direction,
+        f.contrarian_at_extremes, f.latest?.value_date, f.latest?.raw_value,
+        f.latest?.percentile, f.rolling_window_days,
+      ].map(escape).join(","));
+    });
+    const csv = "﻿" + rows.join("\n"); // BOM for Excel compatibility
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const stamp = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `macro-factors-${stamp}.csv`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
   // 计算每个市场的因子数（用于按钮 badge 显示）
   const marketCounts = useMemo(() => {
     if (!factors) return { all: 0 };
@@ -129,6 +189,7 @@ export default function MacroDashboard() {
   const filtered = useMemo(() => {
     if (!factors) return [];
     let out = factors;
+    if (onlyStarred) out = out.filter(f => starred.has(factorStarKey(f)));
     if (marketFilter !== "all") out = out.filter(f => f.market === marketFilter);
     if (filter !== "all") out = out.filter(f => f.category === filter);
     if (dirFilter !== "all") {
@@ -147,8 +208,15 @@ export default function MacroDashboard() {
         (f.description || "").toLowerCase().includes(q)
       );
     }
+    // 收藏的排在前面（保持原顺序）
+    if (starred.size > 0) {
+      out = [
+        ...out.filter(f => starred.has(factorStarKey(f))),
+        ...out.filter(f => !starred.has(factorStarKey(f))),
+      ];
+    }
     return out;
-  }, [factors, filter, dirFilter, marketFilter, search]);
+  }, [factors, filter, dirFilter, marketFilter, search, starred, onlyStarred]);
 
   return (
     <div ref={scrollRef} className="space-y-4 flex-1 min-h-0 overflow-y-auto pr-1 -mr-1 relative">
@@ -184,7 +252,11 @@ export default function MacroDashboard() {
 
       <DataStatusBanner composite={composite} factors={factors} />
 
-      <NarrativePanel narrative={narrative} loading={narrativeLoading} />
+      <NarrativePanel
+        narrative={narrative}
+        loading={narrativeLoading}
+        onForceRefresh={USE_SNAPSHOT ? null : forceRefreshNarrative}
+      />
 
       <CompositePanel data={composite} history={history} />
 
@@ -249,8 +321,21 @@ export default function MacroDashboard() {
               ))}
             </div>
           )}
-          {/* 方向过滤副行 + 搜索框 */}
+          {/* 方向过滤副行 + 搜索框 + 仅收藏切换 + CSV */}
           <div className="flex flex-wrap gap-1.5 items-center">
+            {starred.size > 0 && (
+              <button
+                onClick={() => setOnlyStarred(v => !v)}
+                className={`px-2 py-0.5 rounded text-[10px] border transition-colors flex items-center gap-1 ${
+                  onlyStarred
+                    ? "bg-amber-500/15 border-amber-400/40 text-amber-200"
+                    : "bg-white/[0.02] border-white/[0.05] text-white/55 hover:text-white/85"
+                }`}
+                title={onlyStarred ? t("显示全部") : t("仅显示收藏")}
+              >
+                ★ {onlyStarred ? t("仅收藏") : `${starred.size}`}
+              </button>
+            )}
             <span className="text-[10px] text-white/40 mr-1">{t("方向")}:</span>
             {[
               { id: "all", label: t("全部") },
@@ -289,6 +374,15 @@ export default function MacroDashboard() {
                 </button>
               )}
             </div>
+            <button
+              onClick={exportCsv}
+              disabled={filtered.length === 0}
+              className="px-2 py-0.5 rounded text-[10px] border bg-white/[0.02] border-white/[0.06] text-white/55 hover:text-white/85 hover:bg-white/[0.05] flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed"
+              title={t("导出当前筛选结果为 CSV")}
+            >
+              <Download className="w-3 h-3" />
+              CSV
+            </button>
           </div>
         </div>
       )}
@@ -326,9 +420,18 @@ export default function MacroDashboard() {
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-        {filtered.map(f => (
-          <FactorCard key={`${f.factor_id}@${f.market}`} f={f} onSelect={setSelectedFactor} />
-        ))}
+        {filtered.map(f => {
+          const k = factorStarKey(f);
+          return (
+            <FactorCard
+              key={k}
+              f={f}
+              onSelect={setSelectedFactor}
+              isStarred={starred.has(k)}
+              onToggleStar={toggleStar}
+            />
+          );
+        })}
       </div>
 
       <FactorDetailModal f={selectedFactor} onClose={() => setSelectedFactor(null)} />

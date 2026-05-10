@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { Loader } from "lucide-react";
+import { Loader, RefreshCw } from "lucide-react";
 import { useLang } from "../../i18n.jsx";
 import { PANEL } from "./shared.js";
 
@@ -38,7 +38,8 @@ function parseSections(text) {
 }
 
 // AI 市场画像（DeepSeek 生成 150-200 字解读）
-export default function NarrativePanel({ narrative, loading }) {
+// onForceRefresh: 仅 dev 模式注入；点击跳过 12h 缓存重新生成
+export default function NarrativePanel({ narrative, loading, onForceRefresh }) {
   const { t } = useLang();
   const sections = useMemo(() => parseSections(narrative), [narrative]);
   if (!narrative && !loading) return null;
@@ -49,6 +50,17 @@ export default function NarrativePanel({ narrative, loading }) {
           {t("AI 解读")}
         </span>
         <span className="text-xs text-white/55">{t("DeepSeek 当日宏观画像")}</span>
+        {onForceRefresh && (
+          <button
+            onClick={onForceRefresh}
+            disabled={loading}
+            className="ml-auto p-1 rounded hover:bg-white/[0.06] text-white/45 hover:text-white/85 disabled:opacity-50"
+            title={t("跳过 12 小时缓存重新生成")}
+            aria-label={t("跳过 12 小时缓存重新生成")}
+          >
+            <RefreshCw className={`w-3 h-3 ${loading ? "animate-spin" : ""}`} />
+          </button>
+        )}
       </div>
       {loading ? (
         <div className="text-xs text-white/50 flex items-center gap-2">
