@@ -429,6 +429,17 @@ const EN = {
   'DeepSeek 当日宏观画像': 'DeepSeek daily macro narrative',
   '生成中…': 'Generating…',
   '近 5 个交易日 (WoW) 变化': 'Last 5 trading days (WoW) Δ',
+  // TopMovers
+  '当下推动力': 'Current Drivers',
+  '基于每个因子的方向化分数偏离 50': 'Based on each factor\'s directional score deviation from 50',
+  '拉动牛势': 'Pulling Bullish',
+  '拉动熊势': 'Pulling Bearish',
+  '极端反向警示': 'Contrarian Extremes',
+  '无明显拉牛因子': 'No obvious bullish drivers',
+  '无明显拉熊因子': 'No obvious bearish drivers',
+  '情绪未到极端': 'Sentiment not at extremes',
+  // Direction filter row
+  '方向': 'Direction',
   // CompositeChart
   '市场温度历史 · 与 Wilshire 5000 走势对照': 'Market Temp History · vs Wilshire 5000',
   '加载历史温度曲线中…': 'Loading history…',
