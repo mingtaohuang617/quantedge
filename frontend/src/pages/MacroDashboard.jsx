@@ -10,7 +10,7 @@ import { apiFetch } from "../quant-platform.jsx";
 // 主动刷新：本地 `cd backend && python export_macro_snapshot.py` → commit → push
 import macroSnapshot from "../macroSnapshot.json";
 
-import { CATEGORY_LABEL } from "../components/macro/shared.js";
+import { CATEGORY_LABEL, snapshotStaleness } from "../components/macro/shared.js";
 import NarrativePanel from "../components/macro/NarrativePanel.jsx";
 import CompositePanel from "../components/macro/CompositePanel.jsx";
 import HmmPanel from "../components/macro/HmmPanel.jsx";
@@ -18,6 +18,8 @@ import SurvivalPanel from "../components/macro/SurvivalPanel.jsx";
 import AlertsPanel from "../components/macro/AlertsPanel.jsx";
 import CompositeChart from "../components/macro/CompositeChart.jsx";
 import FactorCard from "../components/macro/FactorCard.jsx";
+import DataStatusBanner from "../components/macro/DataStatusBanner.jsx";
+import FactorDetailModal from "../components/macro/FactorDetailModal.jsx";
 
 const USE_SNAPSHOT = import.meta.env.PROD;
 
@@ -31,6 +33,7 @@ export default function MacroDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState("all");
+  const [selectedFactor, setSelectedFactor] = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -92,14 +95,18 @@ export default function MacroDashboard() {
           <span className="text-xs text-white/50">
             {factors ? `${filtered.length} / ${factors.length} 因子` : ""}
           </span>
-          {USE_SNAPSHOT && macroSnapshot.generated_at && (
-            <span
-              className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-400/30 text-amber-300 font-mono"
-              title="线上为静态 snapshot；本地跑 backend/export_macro_snapshot.py 重新打包后 commit + push 才会更新"
-            >
-              snapshot · {macroSnapshot.generated_at.slice(0, 10)}
-            </span>
-          )}
+          {USE_SNAPSHOT && macroSnapshot.generated_at && (() => {
+            const st = snapshotStaleness(macroSnapshot.generated_at);
+            return (
+              <span
+                className={`text-[10px] px-2 py-0.5 rounded-full border font-mono ${st.cls}`}
+                title={`线上为静态 snapshot · 生成于 ${macroSnapshot.generated_at.slice(0,10)}${st.days != null ? `（${st.days} 天前）` : ""}。\n本地跑 backend/export_macro_snapshot.py 重新打包后 commit + push 才会更新。`}
+              >
+                <span className="mr-1">{st.icon}</span>
+                snapshot · {macroSnapshot.generated_at.slice(0, 10)} · {st.label}
+              </span>
+            );
+          })()}
         </div>
         <button
           onClick={load}
@@ -110,6 +117,8 @@ export default function MacroDashboard() {
           刷新
         </button>
       </div>
+
+      <DataStatusBanner composite={composite} factors={factors} />
 
       <NarrativePanel narrative={narrative} loading={narrativeLoading} />
 
@@ -173,9 +182,11 @@ export default function MacroDashboard() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
         {filtered.map(f => (
-          <FactorCard key={`${f.factor_id}@${f.market}`} f={f} />
+          <FactorCard key={`${f.factor_id}@${f.market}`} f={f} onSelect={setSelectedFactor} />
         ))}
       </div>
+
+      <FactorDetailModal f={selectedFactor} onClose={() => setSelectedFactor(null)} />
     </div>
   );
 }

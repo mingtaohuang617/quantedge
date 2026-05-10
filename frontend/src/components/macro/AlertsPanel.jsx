@@ -1,4 +1,5 @@
 import React from "react";
+import { ArrowRight } from "lucide-react";
 
 // L5 双重确认告警面板配色
 const ALERT_STYLE = {
@@ -54,6 +55,22 @@ function AlertCard({ a }) {
           建议：{a.action}
         </div>
       )}
+      <button
+        onClick={() => {
+          // 先切 tab（触发 lazy load + 挂载），再 setTimeout 派发信号，
+          // 确保 ScoringDashboard 的 useEffect listener 已注册。
+          // 30ms 与现有 selectStock 跨 tab 模式一致。
+          window.dispatchEvent(new CustomEvent("quantedge:nav", { detail: "scoring" }));
+          setTimeout(() => window.dispatchEvent(new CustomEvent("quantedge:macroSignal", {
+            detail: { id: a.id, kind: a.kind, level: a.level, title: a.title, summary: a.summary, action: a.action },
+          })), 30);
+        }}
+        className="mt-2 text-[11px] font-medium flex items-center gap-1 opacity-80 hover:opacity-100 transition-opacity group"
+        title="切到评分仪表盘，结合此宏观信号评估持仓"
+      >
+        查看对持仓的影响
+        <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+      </button>
     </div>
   );
 }
