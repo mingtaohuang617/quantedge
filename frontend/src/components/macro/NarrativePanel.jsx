@@ -1,5 +1,5 @@
-import React, { useMemo } from "react";
-import { Loader, RefreshCw } from "lucide-react";
+import React, { useMemo, useState } from "react";
+import { Loader, RefreshCw, Copy, Check } from "lucide-react";
 import { useLang } from "../../i18n.jsx";
 import { PANEL } from "./shared.js";
 
@@ -42,6 +42,28 @@ function parseSections(text) {
 export default function NarrativePanel({ narrative, loading, onForceRefresh }) {
   const { t } = useLang();
   const sections = useMemo(() => parseSections(narrative), [narrative]);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    if (!narrative) return;
+    try {
+      await navigator.clipboard.writeText(narrative);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      // 退回 textarea 方案 — Safari/特殊环境
+      const ta = document.createElement("textarea");
+      ta.value = narrative;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand("copy"); setCopied(true); setTimeout(() => setCopied(false), 1800); }
+      catch {}
+      document.body.removeChild(ta);
+    }
+  };
+
   if (!narrative && !loading) return null;
   return (
     <div className={PANEL.ai}>
@@ -50,17 +72,31 @@ export default function NarrativePanel({ narrative, loading, onForceRefresh }) {
           {t("AI 解读")}
         </span>
         <span className="text-xs text-white/55">{t("DeepSeek 当日宏观画像")}</span>
-        {onForceRefresh && (
-          <button
-            onClick={onForceRefresh}
-            disabled={loading}
-            className="ml-auto p-1 rounded hover:bg-white/[0.06] text-white/45 hover:text-white/85 disabled:opacity-50"
-            title={t("跳过 12 小时缓存重新生成")}
-            aria-label={t("跳过 12 小时缓存重新生成")}
-          >
-            <RefreshCw className={`w-3 h-3 ${loading ? "animate-spin" : ""}`} />
-          </button>
-        )}
+        <div className="ml-auto flex items-center gap-1">
+          {narrative && !loading && (
+            <button
+              onClick={handleCopy}
+              className={`p-1 rounded hover:bg-white/[0.06] transition-colors ${
+                copied ? "text-emerald-300" : "text-white/45 hover:text-white/85"
+              }`}
+              title={copied ? t("已复制") : t("复制全文到剪贴板")}
+              aria-label={copied ? t("已复制") : t("复制全文到剪贴板")}
+            >
+              {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+            </button>
+          )}
+          {onForceRefresh && (
+            <button
+              onClick={onForceRefresh}
+              disabled={loading}
+              className="p-1 rounded hover:bg-white/[0.06] text-white/45 hover:text-white/85 disabled:opacity-50"
+              title={t("跳过 12 小时缓存重新生成")}
+              aria-label={t("跳过 12 小时缓存重新生成")}
+            >
+              <RefreshCw className={`w-3 h-3 ${loading ? "animate-spin" : ""}`} />
+            </button>
+          )}
+        </div>
       </div>
       {loading ? (
         <div className="text-xs text-white/50 flex items-center gap-2">
