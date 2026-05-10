@@ -34,7 +34,14 @@ export default function MacroDashboard() {
   const [range, setRange] = useState("5Y");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [filter, setFilter] = useState("all");
+  // filter 持久化到 localStorage — 上次选了 "valuation" 下次进来仍然是它
+  const [filter, setFilter] = useState(() => {
+    try { return localStorage.getItem("quantedge_macro_filter") || "all"; }
+    catch { return "all"; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem("quantedge_macro_filter", filter); } catch {}
+  }, [filter]);
   const [selectedFactor, setSelectedFactor] = useState(null);
 
   const load = async () => {
@@ -124,7 +131,7 @@ export default function MacroDashboard() {
 
       <NarrativePanel narrative={narrative} loading={narrativeLoading} />
 
-      <CompositePanel data={composite} />
+      <CompositePanel data={composite} history={history} />
 
       <AlertsPanel alerts={composite?.alerts} />
 

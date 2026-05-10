@@ -428,6 +428,7 @@ const EN = {
   '因子均值': 'factor avg',
   'DeepSeek 当日宏观画像': 'DeepSeek daily macro narrative',
   '生成中…': 'Generating…',
+  '近 5 个交易日 (WoW) 变化': 'Last 5 trading days (WoW) Δ',
   // CompositeChart
   '市场温度历史 · 与 Wilshire 5000 走势对照': 'Market Temp History · vs Wilshire 5000',
   '加载历史温度曲线中…': 'Loading history…',

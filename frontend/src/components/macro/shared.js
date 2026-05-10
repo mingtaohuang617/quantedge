@@ -120,6 +120,19 @@ export function fmtRaw(x) {
   return x.toFixed(4);
 }
 
+// 周环比 (WoW) Δ：当前值 vs N 个交易日前的值（默认 5 ≈ 1 周）
+//   key="temp" 或 4 个 category id
+//   缺数据/不够长 → null
+export function wowDelta(history, key, lookback = 5) {
+  if (!history?.dates?.length) return null;
+  const values = key === "temp" ? history.market_temperature : history.by_category?.[key];
+  if (!Array.isArray(values) || values.length < lookback + 1) return null;
+  const cur = values[values.length - 1];
+  const prev = values[values.length - 1 - lookback];
+  if (cur == null || prev == null) return null;
+  return Number((cur - prev).toFixed(1));
+}
+
 export function daysSince(dateStr) {
   if (!dateStr) return null;
   const d = new Date(dateStr);
