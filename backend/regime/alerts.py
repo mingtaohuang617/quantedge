@@ -131,8 +131,11 @@ def compute_alerts(composite: dict) -> list[dict]:
         })
 
     # ── 中性 / 现状描述（始终活跃，level=info）──
-    if 35 < (temp or 50) < 65 and not any(a["kind"] in ("top", "bottom") and a["level"] == "critical"
-                                          for a in alerts):
+    # 注：temp 为 None 时不进入此分支，避免 f-string 格式化 None 崩溃
+    if temp is not None and 35 < temp < 65 and not any(
+        a["kind"] in ("top", "bottom") and a["level"] == "critical"
+        for a in alerts
+    ):
         alerts.append({
             "id": "info_neutral_zone",
             "kind": "neutral",
