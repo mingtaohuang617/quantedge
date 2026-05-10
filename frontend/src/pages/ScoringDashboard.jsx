@@ -32,7 +32,9 @@ import {
 } from "../quant-platform.jsx";
 
 // ─── 市场交易时段判定 ───────────────────────────────────
-// 返回 { usOpen, usPre, usPost, hkOpen, cnOpen }，仅判断时段（不含节假日）
+// 返回 { usOpen, usPre, usPost, hkOpen, cnOpen, krOpen }，仅判断时段（不含节假日）
+// 注：使用 IANA 时区名 (America/New_York 等)，DST 由 Intl 自动处理 — 美股冬令时
+//     EST UTC-5 / 夏令时 EDT UTC-4 切换无需手动调整
 function getMarketsStatus(now = new Date()) {
   const partsIn = (tz) => {
     const arr = new Intl.DateTimeFormat('en-US', {
@@ -50,12 +52,14 @@ function getMarketsStatus(now = new Date()) {
   const ny = partsIn('America/New_York');
   const hk = partsIn('Asia/Hong_Kong');
   const sh = partsIn('Asia/Shanghai');
+  const kr = partsIn('Asia/Seoul'); // KST UTC+9, 全年固定不用 DST
   return {
     usOpen: isWeekday(ny.d) && inRange(ny.h, ny.m, 9, 30, 16, 0),
     usPre:  isWeekday(ny.d) && inRange(ny.h, ny.m, 4, 0, 9, 30),
     usPost: isWeekday(ny.d) && inRange(ny.h, ny.m, 16, 0, 20, 0),
     hkOpen: isWeekday(hk.d) && (inRange(hk.h, hk.m, 9, 30, 12, 0) || inRange(hk.h, hk.m, 13, 0, 16, 0)),
     cnOpen: isWeekday(sh.d) && (inRange(sh.h, sh.m, 9, 30, 11, 30) || inRange(sh.h, sh.m, 13, 0, 15, 0)),
+    krOpen: isWeekday(kr.d) && inRange(kr.h, kr.m, 9, 0, 15, 30), // 北京时间 08:00–14:30
   };
 }
 
@@ -299,6 +303,7 @@ const ScoringDashboard = () => {
     if (ms.usOpen) return { key: '美股开盘中', dot: 'bg-up animate-pulse' };
     if (ms.hkOpen) return { key: '港股开盘中', dot: 'bg-up animate-pulse' };
     if (ms.cnOpen) return { key: 'A股开盘中', dot: 'bg-up animate-pulse' };
+    if (ms.krOpen) return { key: '韩股开盘中', dot: 'bg-up animate-pulse' };
     if (ms.usPre)  return { key: '美股盘前', dot: 'bg-amber-400' };
     if (ms.usPost) return { key: '美股盘后', dot: 'bg-amber-400' };
     return { key: '全部市场休市', dot: 'bg-white/30' };
