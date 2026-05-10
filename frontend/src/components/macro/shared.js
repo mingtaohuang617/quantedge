@@ -126,3 +126,37 @@ export function daysSince(dateStr) {
   if (isNaN(d.getTime())) return null;
   return Math.round((Date.now() - d.getTime()) / 86400000);
 }
+
+// 因子级"数据滞后"阈值：按频率分级，超过阈值视为陈旧
+//   daily=7d / weekly=14d / monthly=45d
+// 用于 FactorCard 滞后徽章 + DataStatusBanner 滞后聚合统计。
+export const FACTOR_LAG_THRESHOLD = { daily: 7, weekly: 14, monthly: 45 };
+
+export function factorLagThreshold(freq) {
+  return FACTOR_LAG_THRESHOLD[freq] ?? 14;
+}
+
+// Snapshot 陈旧度分级：根据 generated_at 距今天数返回配色 + 文案
+//   ≤1d  → fresh (绿)；≤3d → recent (青)；≤7d → stale (琥珀)；>7d → very_stale (红)
+// 用在 MacroDashboard 顶部 snapshot badge，让用户一眼知道线上数据有多旧。
+export function snapshotStaleness(generatedAt) {
+  const days = daysSince(generatedAt);
+  if (days == null) {
+    return { tier: "unknown", days: null, icon: "·", label: "未知",
+             cls: "bg-slate-500/10 border-slate-400/30 text-slate-300" };
+  }
+  if (days <= 1) {
+    return { tier: "fresh", days, icon: "●", label: "新鲜",
+             cls: "bg-emerald-500/10 border-emerald-400/30 text-emerald-300" };
+  }
+  if (days <= 3) {
+    return { tier: "recent", days, icon: "●", label: "近期",
+             cls: "bg-cyan-500/10 border-cyan-400/30 text-cyan-300" };
+  }
+  if (days <= 7) {
+    return { tier: "stale", days, icon: "◐", label: "1 周内",
+             cls: "bg-amber-500/10 border-amber-400/30 text-amber-300" };
+  }
+  return { tier: "very_stale", days, icon: "○", label: "陈旧",
+           cls: "bg-red-500/10 border-red-400/30 text-red-300" };
+}

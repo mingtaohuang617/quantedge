@@ -17,6 +17,9 @@ backend/output/
 # User-added tickers (regenerate with import_nasdaq100.py)
 backend/tickers_custom.json
 
+# User-managed watchlist (local-only)
+backend/watchlist_10x.json
+
 # Legacy migration archives
 files.zip
 quant-pipeline.tar.gz

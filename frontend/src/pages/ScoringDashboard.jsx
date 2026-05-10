@@ -170,6 +170,8 @@ const CompareModal = ({ open, onClose, stocks }) => {
 const ScoringDashboard = () => {
   const { t, lang } = useLang();
   const [sel, setSel] = useState(null);
+  // 来自 MacroDashboard alert 跳转的上下文 — 显示一个可关闭的横幅
+  const [macroSignal, setMacroSignal] = useState(null);
   const [mkt, setMkt] = useState("ALL");
   const [typeFilter, setTypeFilter] = useState("ALL"); // ALL | STOCK | ETF | LEV
   const [mktOpen, setMktOpen] = useState(false);
@@ -442,6 +444,16 @@ const ScoringDashboard = () => {
     window.addEventListener("quantedge:selectStock", handler);
     return () => window.removeEventListener("quantedge:selectStock", handler);
   }, [liveStocks]);
+
+  // 来自 macro alert 的跨 tab 跳转 → 显示一个临时横幅，提示用户当前查看持仓的宏观背景
+  useEffect(() => {
+    const onSignal = (e) => {
+      const sig = e.detail;
+      if (sig && typeof sig === "object") setMacroSignal(sig);
+    };
+    window.addEventListener("quantedge:macroSignal", onSignal);
+    return () => window.removeEventListener("quantedge:macroSignal", onSignal);
+  }, []);
   const handleContextMenu = (e, stk) => {
     e.preventDefault();
     setCtxMenu({ x: e.clientX, y: e.clientY, ticker: stk.ticker, name: stk.name });
@@ -697,6 +709,30 @@ const ScoringDashboard = () => {
   };
 
   return (<div className="flex flex-col h-full min-h-0">
+    {/* ── 来自 macro alert 的上下文横幅（可关闭） ── */}
+    {macroSignal && (
+      <div className={`flex items-center gap-2 px-3 py-2 mb-2 rounded-lg border text-[11px] flex-shrink-0 ${
+        macroSignal.level === "critical"
+          ? "bg-red-500/10 border-red-400/30 text-red-200"
+          : macroSignal.level === "warning"
+          ? "bg-orange-500/10 border-orange-400/30 text-orange-100"
+          : "bg-slate-500/10 border-slate-400/30 text-slate-200"
+      }`}>
+        <span className="font-mono text-[10px] opacity-70">来自宏观看板</span>
+        <span className="font-medium">{macroSignal.title}</span>
+        {macroSignal.summary && <span className="opacity-75 hidden md:inline">— {macroSignal.summary}</span>}
+        {macroSignal.action && (
+          <span className="ml-2 opacity-90 hidden lg:inline">建议：{macroSignal.action}</span>
+        )}
+        <button
+          onClick={() => setMacroSignal(null)}
+          className="ml-auto p-0.5 rounded hover:bg-white/10 opacity-60 hover:opacity-100"
+          title="关闭"
+        >
+          <X size={12} />
+        </button>
+      </div>
+    )}
     {/* ── 市场指数条 ── */}
     <div className="hidden md:flex items-center gap-3 px-3 py-1.5 mb-2 glass-card text-[10px] flex-shrink-0 overflow-x-auto">
       <span className="flex items-center gap-1.5 text-[#a0aec0] shrink-0">
