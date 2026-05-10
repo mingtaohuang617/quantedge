@@ -519,6 +519,8 @@ const EN = {
   '极端反向（contrarian）': 'Contrarian at extremes',
   '线性方向': 'Linear direction',
   '关闭 (Esc)': 'Close (Esc)',
+  '上一个 (←)': 'Previous (←)',
+  '下一个 (→)': 'Next (→)',
   // DataStatusBanner
   '数据状态': 'Data Status',
   '项需关注': 'item(s) need attention',
