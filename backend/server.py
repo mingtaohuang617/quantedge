@@ -1419,12 +1419,15 @@ def get_macro_composite_history(
 
 
 @app.get("/api/macro/narrative")
-def get_macro_narrative(market: str = "US"):
-    """每日 AI 市场画像（DeepSeek，缓存 12h）。"""
+def get_macro_narrative(market: str = "US", force: bool = False):
+    """每日 AI 市场画像（DeepSeek，缓存 12h）。
+
+    force=true 跳过 12h 缓存，强制重新调用 LLM。用于 dev 调试或手动刷新。
+    """
     if not HAS_LLM:
         return {"ok": False, "error": "llm 模块未加载"}
     composite = _fl.compute_composite(market)
-    return sanitize(_llm_mod.macro_narrative(composite))
+    return sanitize(_llm_mod.macro_narrative(composite, force=force))
 
 
 # ── 10x 猎手：Universe + Watchlist + LLM ───────────────────

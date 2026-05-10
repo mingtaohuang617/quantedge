@@ -428,6 +428,7 @@ const EN = {
   '因子均值': 'factor avg',
   'DeepSeek 当日宏观画像': 'DeepSeek daily macro narrative',
   '生成中…': 'Generating…',
+  '跳过 12 小时缓存重新生成': 'Bypass 12h cache and regenerate',
   '近 5 个交易日 (WoW) 变化': 'Last 5 trading days (WoW) Δ',
   // TopMovers
   '当下推动力': 'Current Drivers',

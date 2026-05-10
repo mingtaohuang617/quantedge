@@ -465,11 +465,12 @@ def tenx_thesis(stock: dict, supertrend: dict, ttl_seconds: int = 86400) -> dict
         return {"ok": False, "ticker": ticker, "error": f"LLM 返回非合法 JSON: {e}"}
 
 
-def macro_narrative(composite: dict, ttl_seconds: int = 43200) -> dict:
+def macro_narrative(composite: dict, ttl_seconds: int = 43200, force: bool = False) -> dict:
     """
     每日宏观市场画像。基于 compute_composite() 的输出生成 150-200 字中文解读。
 
     输入: composite 含 market_temperature / by_category / alerts / hmm / survival
+         force=True 时跳过缓存查询，强制重新调用 LLM（用于 dev 调试或手动刷新）
     返回: {ok, narrative: str, cached}
     缓存：默认 12 小时；同 prompt 直接命中。
     """
@@ -529,13 +530,14 @@ def macro_narrative(composite: dict, ttl_seconds: int = 43200) -> dict:
     )
 
     cache_key = _db.llm_cache_key("macro-narrative", DEFAULT_MODEL, prompt)
-    cached = _db.llm_cache_get(cache_key)
-    if cached:
-        return {
-            "ok": True,
-            "narrative": cached["response"].get("text", ""),
-            "cached": True,
-        }
+    if not force:
+        cached = _db.llm_cache_get(cache_key)
+        if cached:
+            return {
+                "ok": True,
+                "narrative": cached["response"].get("text", ""),
+                "cached": True,
+            }
 
     try:
         content, p_tok, c_tok = _chat(

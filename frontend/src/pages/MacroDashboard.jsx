@@ -126,6 +126,14 @@ export default function MacroDashboard() {
     });
   };
 
+  // dev 模式：force=true 跳过 12h 缓存重新生成 narrative
+  const forceRefreshNarrative = async () => {
+    setNarrativeLoading(true);
+    const d = await apiFetch("/macro/narrative?force=true");
+    if (d?.ok && d.narrative) setNarrative(d.narrative);
+    setNarrativeLoading(false);
+  };
+
   useEffect(() => { load(); }, []);
 
   const categories = useMemo(() => {
@@ -244,7 +252,11 @@ export default function MacroDashboard() {
 
       <DataStatusBanner composite={composite} factors={factors} />
 
-      <NarrativePanel narrative={narrative} loading={narrativeLoading} />
+      <NarrativePanel
+        narrative={narrative}
+        loading={narrativeLoading}
+        onForceRefresh={USE_SNAPSHOT ? null : forceRefreshNarrative}
+      />
 
       <CompositePanel data={composite} history={history} />
 
