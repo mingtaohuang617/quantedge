@@ -41,6 +41,43 @@ def tmp_watchlist(tmp_path, monkeypatch):
     yield fake_path
 
 
+@pytest.fixture
+def tmp_value_watchlist(tmp_path, monkeypatch):
+    """价值型测试 fixture：universe 含 PE/PB/ROE/股息率/D/E 5 维字段。"""
+    fake_path = tmp_path / "watchlist_10x.json"
+    monkeypatch.setattr(wl, "WATCHLIST_PATH", fake_path)
+
+    fake_universe = [
+        # 高股息蓝筹：低 PE/PB + 高股息 + 中等 ROE
+        {"ticker": "VZ", "name": "Verizon", "market": "US", "exchange": "NYSE",
+         "is_etf": False, "sector": "Telecom Services—Diversified", "industry": "Telecom Services",
+         "marketCap": 167e9, "pe": 9.2, "pb": 1.8,
+         "dividend_yield": 0.066, "roe": 0.234, "debt_to_equity": 1.62},
+        # 周期价值：低 PB + 中 ROE
+        {"ticker": "BAC", "name": "Bank of America", "market": "US", "exchange": "NYSE",
+         "is_etf": False, "sector": "Banks - Regional", "industry": "Banks",
+         "marketCap": 280e9, "pe": 11.0, "pb": 1.0,
+         "dividend_yield": 0.025, "roe": 0.092, "debt_to_equity": 0.85},
+        # 消费稳健：高 ROE + 低股息（不算高股息蓝筹）
+        {"ticker": "KO", "name": "Coca-Cola", "market": "US", "exchange": "NYSE",
+         "is_etf": False, "sector": "Beverages—Non-Alcoholic", "industry": "Beverages",
+         "marketCap": 270e9, "pe": 25.0, "pb": 9.0,
+         "dividend_yield": 0.029, "roe": 0.47, "debt_to_equity": 1.85},
+        # 成长股估值高：高 PE/PB 不应在价值筛选里
+        {"ticker": "TSLA", "name": "Tesla", "market": "US", "exchange": "NASDAQ",
+         "is_etf": False, "sector": "Auto Manufacturers", "industry": "Auto",
+         "marketCap": 800e9, "pe": 70.0, "pb": 12.0,
+         "dividend_yield": 0.0, "roe": 0.18, "debt_to_equity": 0.10},
+        # 缺所有字段：A 股贵州茅台（universe 没 enrich 财务）
+        {"ticker": "600519.SH", "name": "贵州茅台", "market": "CN", "exchange": "SH",
+         "is_etf": False, "sector": "白酒", "industry": "白酒",
+         "marketCap": 2.5e12, "pe": None, "pb": None,
+         "dividend_yield": None, "roe": None, "debt_to_equity": None},
+    ]
+    monkeypatch.setattr(wl, "load_universe", lambda markets=("US", "CN"): list(fake_universe))
+    yield fake_path
+
+
 # ── 持久化 ──────────────────────────────────────────────
 def test_load_empty_returns_default(tmp_watchlist):
     data = wl.load_watchlist()
@@ -293,3 +330,106 @@ def test_screen_drops_no_mcap_when_disabled(tmp_watchlist):
     out = wl.screen_candidates(["semi"], max_market_cap_b=100, include_no_mcap=False)
     tickers = {it["ticker"] for it in out}
     assert "600171.SH" not in tickers
+
+
+# ── 价值型 5 维筛选（PR-A v2.0） ─────────────────────────
+def test_screen_max_pe_filter(tmp_value_watchlist):
+    """max_pe=15 应保留 VZ(9.2)/BAC(11)，剔除 KO(25)/TSLA(70)；600519.SH 缺字段保留"""
+    out = wl.screen_candidates([], max_pe=15)
+    tickers = {it["ticker"] for it in out}
+    assert "VZ" in tickers
+    assert "BAC" in tickers
+    assert "KO" not in tickers
+    assert "TSLA" not in tickers
+    assert "600519.SH" in tickers   # 缺 PE，默认保留
+
+
+def test_screen_min_dividend_yield(tmp_value_watchlist):
+    """min_dividend_yield=0.04 仅保留 VZ(6.6%)；其它都太低"""
+    out = wl.screen_candidates([], min_dividend_yield=0.04)
+    tickers = {it["ticker"] for it in out}
+    assert "VZ" in tickers
+    assert "BAC" not in tickers   # 2.5%
+    assert "KO" not in tickers    # 2.9%
+    assert "TSLA" not in tickers  # 0%
+    assert "600519.SH" in tickers   # 缺字段保留
+
+
+def test_screen_min_roe(tmp_value_watchlist):
+    """min_roe=0.15 保留 KO(0.47)/VZ(0.234)/TSLA(0.18)；BAC(0.092) 出局"""
+    out = wl.screen_candidates([], min_roe=0.15)
+    tickers = {it["ticker"] for it in out}
+    assert "KO" in tickers
+    assert "VZ" in tickers
+    assert "TSLA" in tickers
+    assert "BAC" not in tickers
+
+
+def test_screen_max_debt_to_equity(tmp_value_watchlist):
+    """max_debt_to_equity=1.0 仅保留 BAC(0.85)/TSLA(0.10)"""
+    out = wl.screen_candidates([], max_debt_to_equity=1.0)
+    tickers = {it["ticker"] for it in out}
+    assert "BAC" in tickers
+    assert "TSLA" in tickers
+    assert "VZ" not in tickers   # 1.62
+    assert "KO" not in tickers   # 1.85
+
+
+def test_screen_pe_excludes_negative_or_zero(tmp_value_watchlist):
+    """PE<=0（亏损公司）即使 max_pe=15 也应剔除（业务规则）"""
+    # 注入一个 PE=0 的项
+    fake = [{"ticker": "LOSS", "name": "Loss Co", "market": "US", "exchange": "NASDAQ",
+             "is_etf": False, "sector": "Tech", "industry": None,
+             "marketCap": 1e9, "pe": -5.0, "pb": 0.5,
+             "dividend_yield": 0.0, "roe": -0.1, "debt_to_equity": 0.5}]
+    import unittest.mock as _m
+    with _m.patch.object(wl, "load_universe", lambda markets=("US", "CN"): fake):
+        out = wl.screen_candidates([], max_pe=15)
+        assert "LOSS" not in {it["ticker"] for it in out}
+
+
+def test_screen_no_fundamentals_strict(tmp_value_watchlist):
+    """include_no_fundamentals=False：缺字段标的被剔除"""
+    out = wl.screen_candidates([], max_pe=15, include_no_fundamentals=False)
+    tickers = {it["ticker"] for it in out}
+    assert "600519.SH" not in tickers   # 缺 PE，严格模式被剔
+
+
+def test_screen_value_combo(tmp_value_watchlist):
+    """高股息蓝筹组合：min_dividend_yield=0.04 + max_pe=15 + max_debt_to_equity=2.0"""
+    out = wl.screen_candidates([], min_dividend_yield=0.04, max_pe=15,
+                                max_debt_to_equity=2.0)
+    tickers = {it["ticker"] for it in out}
+    # VZ: 股息 6.6%、PE 9.2、D/E 1.62 — 全过
+    assert "VZ" in tickers
+    # 600519.SH 三个字段都缺，但默认保留
+    assert "600519.SH" in tickers
+
+
+def test_add_user_supertrend_with_strategy(tmp_watchlist):
+    """add_supertrend 支持 strategy 参数；存到 user_supertrends 含 strategy 字段"""
+    new = wl.add_supertrend(
+        "reit", "REITs", "高股息地产基金", strategy="value",
+        keywords_zh=["地产投资"],
+    )
+    assert new["strategy"] == "value"
+    sts = wl.list_supertrends()
+    reit = next(s for s in sts if s["id"] == "reit")
+    assert reit["strategy"] == "value"
+
+
+def test_add_user_supertrend_invalid_strategy(tmp_watchlist):
+    """add_supertrend 非法 strategy 抛错"""
+    with pytest.raises(ValueError, match="strategy must be"):
+        wl.add_supertrend("xxx", "测试", "", strategy="speculative")
+
+
+def test_user_supertrend_legacy_no_strategy(tmp_watchlist):
+    """老 user_supertrends 没 strategy 字段时默认 growth（向后兼容）"""
+    raw = {"version": 1, "user_supertrends": [
+        {"id": "legacy", "name": "老赛道", "note": "", "keywords_zh": ["xxx"]},
+    ], "items": []}
+    wl.save_watchlist(raw)
+    sts = wl.list_supertrends()
+    legacy = next(s for s in sts if s["id"] == "legacy")
+    assert legacy["strategy"] == "growth"

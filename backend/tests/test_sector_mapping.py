@@ -237,3 +237,53 @@ def test_filter_by_supertrends_strict_mode():
     out_broad = filter_by_supertrends(items, ["optical"], mode="broad")
     assert sorted(it["ticker"] for it in out_strict) == ["LITE"]
     assert sorted(it["ticker"] for it in out_broad) == ["AAOI", "LITE"]
+
+
+# ── 价值型 SUPERTRENDS (v2.0) ────────────────────────────
+def test_value_dividend_classify():
+    """value_div 命中：能源/电信/公用事业关键词 — 中文 + 英文"""
+    assert "value_div" in classify_sector("石油天然气")
+    assert "value_div" in classify_sector("Oil & Gas Integrated")
+    assert "value_div" in classify_sector("Utilities—Regulated Electric")
+    # 公共事业广义命中（broad）
+    assert "value_div" in classify_sector("公共事业", mode="broad")
+    # 不应误命中其他赛道
+    assert classify_sector("Semiconductors") == {"semi"}
+
+
+def test_value_cyclical_classify():
+    """value_cyclical 命中：银行/保险/化工/钢铁"""
+    assert "value_cyclical" in classify_sector("银行业")
+    assert "value_cyclical" in classify_sector("Banks - Regional")
+    assert "value_cyclical" in classify_sector("化工原料")
+    assert "value_cyclical" in classify_sector("Specialty Chemicals")
+
+
+def test_value_consumer_classify():
+    """value_consumer 命中：食品饮料"""
+    assert "value_consumer" in classify_sector("食品饮料")
+    assert "value_consumer" in classify_sector("白酒")
+    assert "value_consumer" in classify_sector("Beverages—Non-Alcoholic")
+    assert "value_consumer" in classify_sector("Packaged Foods")
+
+
+def test_list_supertrends_meta_strategy_filter():
+    """list_supertrends_meta(strategy=...) 按策略过滤"""
+    growth = list_supertrends_meta(strategy="growth")
+    value = list_supertrends_meta(strategy="value")
+    growth_ids = {m["id"] for m in growth}
+    value_ids = {m["id"] for m in value}
+    assert growth_ids == {"ai_compute", "semi", "optical", "datacenter"}
+    assert value_ids == {"value_div", "value_cyclical", "value_consumer"}
+    # 默认（无参数）返回全部
+    all_meta = list_supertrends_meta()
+    assert len(all_meta) == 7
+    # 每项都有 strategy 字段
+    for m in all_meta:
+        assert m["strategy"] in ("growth", "value")
+
+
+def test_list_supertrends_meta_strategy_invalid():
+    """无效 strategy 返回空 list（不抛错，前端容错）"""
+    out = list_supertrends_meta(strategy="speculative")
+    assert out == []

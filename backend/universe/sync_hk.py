@@ -91,13 +91,19 @@ def fetch_basic_info(ctx) -> list[dict]:
     return items
 
 
-def enrich_market_cap(ctx, items: list[dict]) -> int:
-    """用 get_market_snapshot 分批补市值。"""
+def enrich_market_cap(ctx, items: list[dict], with_fundamentals: bool = False) -> tuple[int, int]:
+    """用 get_market_snapshot 分批补市值。
+
+    with_fundamentals=True 时同一次 snapshot 调用顺便拉 PE/PB/股息率（零额外 IO）。
+    返回 (cap_ok, fund_ok)。
+    """
     by_code = {it["futu_code"]: it for it in items}
     codes = list(by_code.keys())
     total = len(codes)
-    ok = 0
-    print(f"  enrich market_cap: {total} 只 / batch_size={BATCH_SIZE}")
+    cap_ok = 0
+    fund_ok = 0
+    print(f"  enrich market_cap{' + fundamentals' if with_fundamentals else ''}: "
+          f"{total} 只 / batch_size={BATCH_SIZE}")
     t0 = time.time()
     for i in range(0, total, BATCH_SIZE):
         chunk = codes[i:i + BATCH_SIZE]
@@ -108,18 +114,47 @@ def enrich_market_cap(ctx, items: list[dict]) -> int:
             continue
         for _, row in df.iterrows():
             code = str(row.get("code", "")).strip()
+            if code not in by_code:
+                continue
+            it = by_code[code]
             mv = row.get("total_market_val")
-            if code in by_code and mv is not None:
+            if mv is not None:
                 try:
-                    by_code[code]["marketCap"] = float(mv)
-                    ok += 1
+                    it["marketCap"] = float(mv)
+                    cap_ok += 1
                 except Exception:
                     pass
+            if with_fundamentals:
+                pe = row.get("pe_ratio")
+                pb = row.get("pb_ratio")
+                dv = row.get("dividend_ratio_ttm")  # %
+                got_any = False
+                if pe is not None and pe != 0:
+                    try:
+                        it["pe"] = float(pe)
+                        got_any = True
+                    except Exception:
+                        pass
+                if pb is not None and pb != 0:
+                    try:
+                        it["pb"] = float(pb)
+                        got_any = True
+                    except Exception:
+                        pass
+                if dv is not None:
+                    try:
+                        it["dividend_yield"] = float(dv) / 100.0
+                        got_any = True
+                    except Exception:
+                        pass
+                if got_any:
+                    fund_ok += 1
         elapsed = time.time() - t0
         rate = (i + len(chunk)) / elapsed if elapsed > 0 else 0
-        print(f"    batch {i//BATCH_SIZE+1}/{(total+BATCH_SIZE-1)//BATCH_SIZE}: {len(chunk)} fetched, ok cumulative {ok} ({rate:.0f}/s)")
+        print(f"    batch {i//BATCH_SIZE+1}/{(total+BATCH_SIZE-1)//BATCH_SIZE}: "
+              f"{len(chunk)} fetched, mc {cap_ok} / fund {fund_ok} ({rate:.0f}/s)")
         time.sleep(SLEEP_SNAPSHOT)
-    return ok
+    return cap_ok, fund_ok
 
 
 def enrich_industry(ctx, items: list[dict]) -> int:
@@ -169,6 +204,8 @@ def main():
     parser.add_argument("--no-enrich", action="store_true", help="跳过市值 + 板块（仅元数据）")
     parser.add_argument("--no-plate", action="store_true", help="跳过板块查询（仅元数据 + 市值）")
     parser.add_argument("--limit", type=int, default=None, help="限量（测试用）")
+    parser.add_argument("--enrich-fundamentals", action="store_true",
+                        help="同时拉 PE/PB/股息率（snapshot 同一次调用，零额外耗时）")
     args = parser.parse_args()
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -195,11 +232,17 @@ def main():
             items = items[:args.limit]
             print(f"  --limit 截取至 {len(items)} 只")
 
-        cap_ok = ind_ok = 0
+        cap_ok = ind_ok = fund_ok = 0
         if not args.no_enrich:
-            print("\n[2/3] 市值（snapshot）")
-            cap_ok = enrich_market_cap(ctx, items)
-            print(f"  → {cap_ok}/{len(items)} 补全市值")
+            print("\n[2/3] 市值（snapshot）" +
+                  (" + fundamentals" if args.enrich_fundamentals else ""))
+            cap_ok, fund_ok = enrich_market_cap(
+                ctx, items, with_fundamentals=args.enrich_fundamentals,
+            )
+            if args.enrich_fundamentals:
+                print(f"  → {cap_ok}/{len(items)} 补全市值 · {fund_ok}/{len(items)} 补全 PE/PB/股息率")
+            else:
+                print(f"  → {cap_ok}/{len(items)} 补全市值")
 
             if not args.no_plate:
                 print("\n[3/3] 行业板块（owner_plate）")
@@ -222,6 +265,7 @@ def main():
             "enriched": (cap_ok > 0) or (ind_ok > 0),
             "enriched_market_cap": cap_ok,
             "enriched_industry": ind_ok,
+            "fundamentals_filled": fund_ok,
         },
         "items": items,
     }

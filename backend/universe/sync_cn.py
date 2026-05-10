@@ -197,6 +197,45 @@ def enrich_market_cap_futu(items: list[dict]) -> int:
     return ok
 
 
+def enrich_fundamentals_cn(items: list[dict]) -> int:
+    """用 tushare 单次调用拉全 A 股 5 维基本面：pe/pb/dividend_yield + roe/debt_to_equity。
+
+    返回成功补全 1 个或更多字段的标的数。
+    """
+    from data_sources.tushare_source import fetch_fundamentals_cn  # noqa: PLC0415
+
+    print("  fetch_fundamentals_cn (daily_basic + fina_indicator)...")
+    by_ts: dict[str, dict] = {}
+    try:
+        by_ts = fetch_fundamentals_cn()
+    except Exception as e:
+        print(f"  [error] tushare fundamentals 失败: {e}")
+        return 0
+
+    ok = 0
+    for it in items:
+        ts_code = it["ticker"]
+        f = by_ts.get(ts_code)
+        if not f:
+            continue
+        # 只在源有数据时填，避免覆盖现有字段
+        if f.get("pe") is not None:
+            it["pe"] = f["pe"]
+        if f.get("pb") is not None:
+            it["pb"] = f["pb"]
+        if f.get("dividend_yield") is not None:
+            it["dividend_yield"] = f["dividend_yield"]
+        if f.get("roe") is not None:
+            it["roe"] = f["roe"]
+        if f.get("debt_to_equity") is not None:
+            it["debt_to_equity"] = f["debt_to_equity"]
+        # 至少有一个字段被填上才算 ok
+        if any(it.get(k) is not None for k in ("pe", "pb", "dividend_yield", "roe", "debt_to_equity")):
+            ok += 1
+    print(f"  fundamentals 补全 {ok}/{len(items)}")
+    return ok
+
+
 def main():
     parser = argparse.ArgumentParser(description="同步 A 股 universe")
     parser.add_argument("--no-enrich", action="store_true", help="跳过 marketCap 补全")
@@ -204,6 +243,8 @@ def main():
         "--mc-source", choices=["auto", "tushare", "futu"], default="auto",
         help="市值来源（auto = 先 tushare 再 futu fallback）",
     )
+    parser.add_argument("--enrich-fundamentals", action="store_true",
+                        help="同时拉 PE/PB/股息率/ROE/资产负债率（价值型筛选用，仅 tushare）")
     args = parser.parse_args()
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -249,6 +290,11 @@ def main():
     else:
         print("\n[2/2] 跳过 enrich（--no-enrich）")
 
+    fund_ok = 0
+    if args.enrich_fundamentals:
+        print("\n[3/3] 补 fundamentals (PE/PB/股息率/ROE/D/E)")
+        fund_ok = enrich_fundamentals_cn(items)
+
     payload = {
         "meta": {
             "market": "CN",
@@ -258,6 +304,7 @@ def main():
             "enriched": n_ok > 0,
             "mc_source": mc_source,
             "mc_filled": n_ok,
+            "fundamentals_filled": fund_ok,
         },
         "items": items,
     }

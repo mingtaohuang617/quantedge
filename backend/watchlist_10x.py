@@ -69,14 +69,18 @@ def save_watchlist(data: dict) -> None:
 def list_supertrends() -> list[dict]:
     """
     合并内置（来自 sector_mapping）和用户自定义赛道。
-    每项 {id, name, note, source: 'builtin' | 'user'}
+    每项 {id, name, note, strategy, source: 'builtin' | 'user'}
+
+    strategy 字段：
+      - builtin 由 sector_mapping.SUPERTRENDS[*]["strategy"] 决定（"growth"/"value"）
+      - user 由 add_supertrend(strategy=...) 指定；老数据默认 "growth"
     """
     builtin = [
         {**meta, "source": "builtin"}
         for meta in _sm.list_supertrends_meta()
     ]
     user = [
-        {**s, "source": "user"}
+        {**s, "source": "user", "strategy": s.get("strategy", "growth")}
         for s in load_watchlist().get("user_supertrends", [])
     ]
     # 用户赛道 id 与内置冲突时跳过用户的（不让覆盖内置语义）
@@ -91,16 +95,21 @@ def add_supertrend(
     note: str = "",
     keywords_zh: list[str] | None = None,
     keywords_en: list[str] | None = None,
+    strategy: str = "growth",
 ) -> dict:
     """新增用户自定义赛道。返回新增项。
 
     keywords_zh / keywords_en：参与 screen_candidates 时的 sector/industry/名称匹配。
     用户赛道关键词无 strict/broad 之分，两种 mode 下都生效。
     缺关键词的赛道仍然可以加，但筛选时永远命中 0 只股。
+
+    strategy: "growth" | "value"，决定该赛道在前端按 tab 过滤时归属哪一边。
     """
     sid = supertrend_id.strip()
     if not sid:
         raise ValueError("supertrend_id 不能为空")
+    if strategy not in ("growth", "value"):
+        raise ValueError(f"strategy must be 'growth' or 'value', got {strategy!r}")
     builtin_ids = {m["id"] for m in _sm.list_supertrends_meta()}
     if sid in builtin_ids:
         raise ValueError(f"赛道 id '{sid}' 与内置冲突")
@@ -112,6 +121,7 @@ def add_supertrend(
         "id": sid,
         "name": name.strip() or sid,
         "note": note,
+        "strategy": strategy,
         "keywords_zh": [k.strip() for k in (keywords_zh or []) if k and k.strip()],
         "keywords_en": [k.strip() for k in (keywords_en or []) if k and k.strip()],
     }
@@ -217,9 +227,16 @@ def screen_candidates(
     limit: int = 200,
     precise: bool = False,
     include_no_mcap: bool = True,
+    # 价值型 5 维筛选（v2.0 新增）：
+    max_pe: float | None = None,
+    max_pb: float | None = None,
+    min_roe: float | None = None,                # 0~1 小数（如 0.15 = 15%）
+    min_dividend_yield: float | None = None,     # 0~1 小数（如 0.04 = 4%）
+    max_debt_to_equity: float | None = None,     # 小数（如 1.5 = 1.5 倍）
+    include_no_fundamentals: bool = True,
 ) -> list[dict]:
     """
-    从 universe 池里按赛道 + 市值过滤，返回候选股列表。
+    从 universe 池里按赛道 + 市值 + 价值 5 维过滤，返回候选股列表。
 
     precise=True 时使用 sector_mapping 的 strict 模式（仅核心关键词），
     候选范围窄但精度高；precise=False 默认 broad 模式（含扩展词），
@@ -228,6 +245,11 @@ def screen_candidates(
     include_no_mcap (默认 True)：marketCap 缺失的标的是否纳入。
       默认保留 —— 否则用户一旦设了 max/min 就会静默丢掉所有缺数据的标的
       （A 股池受影响最严重）。需要旧行为时显式传 False。
+
+    价值型 5 维（max_pe / max_pb / min_roe / min_dividend_yield / max_debt_to_equity）：
+      只在用户传非 None 时启用。每个独立判断（AND 关系）。
+      include_no_fundamentals=True（默认）：缺该字段的标的视作"通过"，与 mcap 同模式
+      避免 universe 未 enrich 时静默丢标的；明确 False 才严格剔除。
 
     用户自定义赛道：自动从 watchlist 文件读 user_supertrends 中带关键词的项，
     与 builtin 赛道并行参与匹配。
@@ -298,6 +320,51 @@ def screen_candidates(
         return True
 
     filtered = [it for it in filtered if _mc_ok(it.get("marketCap"))]
+
+    # 3.5) 价值型 5 维过滤（任一字段被设了上限/下限才启用）
+    def _fund_ok(it):
+        # 上限类（pe / pb / debt_to_equity）：缺字段时按 include_no_fundamentals 决定
+        if max_pe is not None:
+            v = it.get("pe")
+            if v is None:
+                if not include_no_fundamentals:
+                    return False
+            elif v > max_pe or v <= 0:  # PE<=0 公司亏损，价值型一律剔除
+                return False
+        if max_pb is not None:
+            v = it.get("pb")
+            if v is None:
+                if not include_no_fundamentals:
+                    return False
+            elif v > max_pb or v <= 0:
+                return False
+        if max_debt_to_equity is not None:
+            v = it.get("debt_to_equity")
+            if v is None:
+                if not include_no_fundamentals:
+                    return False
+            elif v > max_debt_to_equity:
+                return False
+        # 下限类（roe / dividend_yield）：缺字段时按 include_no_fundamentals
+        if min_roe is not None:
+            v = it.get("roe")
+            if v is None:
+                if not include_no_fundamentals:
+                    return False
+            elif v < min_roe:
+                return False
+        if min_dividend_yield is not None:
+            v = it.get("dividend_yield")
+            if v is None:
+                if not include_no_fundamentals:
+                    return False
+            elif v < min_dividend_yield:
+                return False
+        return True
+
+    if any(p is not None for p in (max_pe, max_pb, min_roe,
+                                    min_dividend_yield, max_debt_to_equity)):
+        filtered = [it for it in filtered if _fund_ok(it)]
 
     # 4) 排除已在 watchlist 的
     if exclude_in_watchlist:

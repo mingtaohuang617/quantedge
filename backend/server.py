@@ -1527,11 +1527,18 @@ class ScreenReq(BaseModel):
     limit: int = 200
     precise: bool = False        # True = strict mode（仅核心关键词，精度高）
     include_no_mcap: bool = True # marketCap 缺失的标的是否纳入（默认 True，避免静默丢 A 股）
+    # 价值型 5 维（v2.0 新增；任一非 None 即启用）：
+    max_pe: float | None = None
+    max_pb: float | None = None
+    min_roe: float | None = None              # 0~1 小数
+    min_dividend_yield: float | None = None   # 0~1 小数
+    max_debt_to_equity: float | None = None
+    include_no_fundamentals: bool = True
 
 
 @app.post("/api/watchlist/10x/screen")
 def screen_watchlist_10x(req: ScreenReq):
-    """从 universe 池里按赛道 + 市值筛选候选个股。"""
+    """从 universe 池里按赛道 + 市值 + 价值 5 维筛选候选个股。"""
     candidates = _wl.screen_candidates(
         req.supertrend_ids,
         markets=req.markets,
@@ -1542,14 +1549,26 @@ def screen_watchlist_10x(req: ScreenReq):
         limit=req.limit,
         precise=req.precise,
         include_no_mcap=req.include_no_mcap,
+        max_pe=req.max_pe,
+        max_pb=req.max_pb,
+        min_roe=req.min_roe,
+        min_dividend_yield=req.min_dividend_yield,
+        max_debt_to_equity=req.max_debt_to_equity,
+        include_no_fundamentals=req.include_no_fundamentals,
     )
     return sanitize({"count": len(candidates), "items": candidates})
 
 
 @app.get("/api/watchlist/10x/supertrends")
-def list_supertrends_10x():
-    """列出可用的赛道（内置 + 用户自定义）。"""
-    return sanitize(_wl.list_supertrends())
+def list_supertrends_10x(strategy: str | None = None):
+    """列出可用的赛道（内置 + 用户自定义）。
+
+    strategy: "growth" | "value"，仅返回该策略的赛道（None=全部）。
+    """
+    sts = _wl.list_supertrends()
+    if strategy:
+        sts = [s for s in sts if s.get("strategy", "growth") == strategy]
+    return sanitize(sts)
 
 
 class SupertrendAddReq(BaseModel):
@@ -1558,6 +1577,7 @@ class SupertrendAddReq(BaseModel):
     note: str = ""
     keywords_zh: list[str] = []
     keywords_en: list[str] = []
+    strategy: str = "growth"   # "growth" | "value"
 
 
 @app.post("/api/watchlist/10x/supertrends")
@@ -1565,12 +1585,14 @@ def add_supertrend_10x(req: SupertrendAddReq):
     """新增用户自定义赛道。
     keywords_zh / keywords_en 提供给 screen_candidates 做 sector/industry/名称匹配；
     不传则赛道存在但筛选时不命中任何标的。
+    strategy 决定前端按 tab 过滤时归属"成长型"或"价值型"。
     """
     try:
         item = _wl.add_supertrend(
             req.id, req.name, req.note,
             keywords_zh=req.keywords_zh,
             keywords_en=req.keywords_en,
+            strategy=req.strategy,
         )
     except ValueError as e:
         raise HTTPException(400, str(e))
