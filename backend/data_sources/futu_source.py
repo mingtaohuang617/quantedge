@@ -4,6 +4,7 @@ Futu OpenD 数据源
 支持港股 (HK) 和 A 股 (SH/SZ) 历史日 K 线拉取。
 要求本地已启动 Futu OpenD GUI 并登录。
 """
+import time
 from datetime import datetime, timedelta
 
 import pandas as pd
@@ -79,6 +80,58 @@ def fetch_history(cfg: dict, days: int = 120) -> pd.DataFrame:
         return df[["Open", "High", "Low", "Close", "Volume"]]
     finally:
         ctx.close()
+
+
+# ── 价值型基本面字段（HK 批量）─────────────────────────
+def fetch_fundamentals_hk(futu_codes: list[str], batch_size: int = 200,
+                          sleep_sec: float = 1.0) -> dict[str, dict]:
+    """批量拉港股基本面字段。
+
+    返回 {futu_code: {pe, pb, dividend_yield, roe, debt_to_equity}}
+    数据来源：
+      - get_market_snapshot(批量)：pe_ratio / pb_ratio / dividend_ratio_ttm（已经是百分比，转小数）
+      - 暂不调 get_financial_report 拿 ROE/D/E：单股 1 次调用，3000+ 票拉太久
+        ROE / debt_to_equity 留 None；用户能用 PE/PB/股息率 3 维筛即可
+
+    单批最多 200（OpenD 限制）；批间 sleep 1s 避免限频。
+    所有 futu_codes 都不通时返回空 dict（不抛错，让上游知道全市场缺数据）。
+    """
+    out: dict[str, dict] = {}
+    if not futu_codes:
+        return out
+
+    ctx = OpenQuoteContext(host=FUTU_HOST, port=FUTU_PORT)
+    try:
+        # health check
+        ret, gs = ctx.get_global_state()
+        if ret != RET_OK or not gs.get("qot_logined"):
+            raise FutuError(f"OpenD 不可达或未登录行情: {gs}")
+
+        for i in range(0, len(futu_codes), batch_size):
+            chunk = futu_codes[i:i + batch_size]
+            ret, df = ctx.get_market_snapshot(chunk)
+            if ret != RET_OK:
+                # 单批失败不阻塞全局，sleep 后继续
+                time.sleep(sleep_sec * 2)
+                continue
+            for _, row in df.iterrows():
+                code = str(row.get("code", "")).strip()
+                if not code:
+                    continue
+                pe = row.get("pe_ratio")
+                pb = row.get("pb_ratio")
+                dv = row.get("dividend_ratio_ttm")
+                out[code] = {
+                    "pe": float(pe) if pe is not None and pe != 0 else None,
+                    "pb": float(pb) if pb is not None and pb != 0 else None,
+                    "dividend_yield": (float(dv) / 100.0) if dv is not None else None,  # snapshot 单位 %
+                    "roe": None,
+                    "debt_to_equity": None,
+                }
+            time.sleep(sleep_sec)
+    finally:
+        ctx.close()
+    return out
 
 
 def health_check() -> tuple[bool, str]:

@@ -43,13 +43,15 @@ async function saveData(data) {
   await kvSetJson(KEY, data);
 }
 
-/** 合并 builtin + user 自定义，user 与 builtin id 冲突时跳过用户版。 */
+/** 合并 builtin + user 自定义，user 与 builtin id 冲突时跳过用户版。
+ *  每项含 strategy: "growth" | "value"（user 老数据缺失则默认 "growth"）
+ */
 export function mergeSupertrends(data) {
   const builtin = listSupertrendsMeta().map(m => ({ ...m, source: 'builtin' }));
   const builtinIds = new Set(builtin.map(b => b.id));
   const user = (data.user_supertrends || [])
     .filter(u => !builtinIds.has(u.id))
-    .map(u => ({ ...u, source: 'user' }));
+    .map(u => ({ ...u, source: 'user', strategy: u.strategy ?? 'growth' }));
   return [...builtin, ...user];
 }
 
@@ -137,9 +139,16 @@ export async function removeItem(ticker) {
   return false;
 }
 
-export async function addSupertrend(id, name, note = '', keywords_zh = [], keywords_en = []) {
+export async function addSupertrend(
+  id, name, note = '',
+  keywords_zh = [], keywords_en = [],
+  strategy = 'growth',
+) {
   const sid = String(id || '').trim();
   if (!sid) throw new Error('supertrend_id 不能为空');
+  if (strategy !== 'growth' && strategy !== 'value') {
+    throw new Error(`strategy must be 'growth' or 'value', got '${strategy}'`);
+  }
 
   const builtinIds = new Set(listSupertrendsMeta().map(m => m.id));
   if (builtinIds.has(sid)) throw new Error(`赛道 id '${sid}' 与内置冲突`);
@@ -153,6 +162,7 @@ export async function addSupertrend(id, name, note = '', keywords_zh = [], keywo
     id: sid,
     name: String(name || '').trim() || sid,
     note: String(note || ''),
+    strategy,
     keywords_zh: (keywords_zh || []).map(k => String(k).trim()).filter(Boolean),
     keywords_en: (keywords_en || []).map(k => String(k).trim()).filter(Boolean),
   };
@@ -177,6 +187,13 @@ export async function screenCandidates(opts = {}) {
     limit = 200,
     precise = false,
     include_no_mcap = true,
+    // 价值型 5 维（v2.0 新增）
+    max_pe = null,
+    max_pb = null,
+    min_roe = null,
+    min_dividend_yield = null,
+    max_debt_to_equity = null,
+    include_no_fundamentals = true,
   } = opts;
 
   const wanted = new Set(supertrend_ids || []);
@@ -226,6 +243,49 @@ export async function screenCandidates(opts = {}) {
     if (min_market_cap_b != null && b < min_market_cap_b) return false;
     return true;
   });
+
+  // 价值型 5 维过滤（任一非 null 即启用）
+  const fundActive = (
+    max_pe != null || max_pb != null || min_roe != null ||
+    min_dividend_yield != null || max_debt_to_equity != null
+  );
+  if (fundActive) {
+    filtered = filtered.filter(it => {
+      // 上限类（pe / pb / d_to_e）
+      if (max_pe != null) {
+        const v = it.pe;
+        if (v == null) {
+          if (!include_no_fundamentals) return false;
+        } else if (v > max_pe || v <= 0) return false;
+      }
+      if (max_pb != null) {
+        const v = it.pb;
+        if (v == null) {
+          if (!include_no_fundamentals) return false;
+        } else if (v > max_pb || v <= 0) return false;
+      }
+      if (max_debt_to_equity != null) {
+        const v = it.debt_to_equity;
+        if (v == null) {
+          if (!include_no_fundamentals) return false;
+        } else if (v > max_debt_to_equity) return false;
+      }
+      // 下限类（roe / dividend_yield）
+      if (min_roe != null) {
+        const v = it.roe;
+        if (v == null) {
+          if (!include_no_fundamentals) return false;
+        } else if (v < min_roe) return false;
+      }
+      if (min_dividend_yield != null) {
+        const v = it.dividend_yield;
+        if (v == null) {
+          if (!include_no_fundamentals) return false;
+        } else if (v < min_dividend_yield) return false;
+      }
+      return true;
+    });
+  }
 
   if (exclude_in_watchlist) {
     const inWl = new Set(data.items.map(it => it.ticker));
