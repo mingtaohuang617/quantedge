@@ -3,7 +3,7 @@
 // 组件已拆到 ../components/macro/*；本文件只负责数据加载 + 组合 + 路由级 state
 // ─────────────────────────────────────────────────────────────
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { Globe, RefreshCw, AlertCircle, Loader, Search, X, ArrowUp } from "lucide-react";
+import { Globe, RefreshCw, AlertCircle, Loader, Search, X, ArrowUp, Download } from "lucide-react";
 import { apiFetch } from "../quant-platform.jsx";
 import { useLang } from "../i18n.jsx";
 
@@ -117,6 +117,38 @@ export default function MacroDashboard() {
     });
     return order;
   }, [factors]);
+
+  // 导出当前筛选结果为 CSV — 写入临时 Blob URL 触发下载
+  const exportCsv = () => {
+    if (!filtered || filtered.length === 0) return;
+    const cols = ["factor_id", "name", "category", "market", "freq", "direction",
+                  "contrarian_at_extremes", "value_date", "raw_value", "percentile",
+                  "rolling_window_days"];
+    const escape = (v) => {
+      if (v == null) return "";
+      const s = String(v);
+      // CSV 转义：含逗号/引号/换行的字段用 "" 包裹，内部 " 转义为 ""
+      if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+      return s;
+    };
+    const rows = [cols.join(",")];
+    filtered.forEach(f => {
+      rows.push([
+        f.factor_id, f.name, f.category, f.market, f.freq, f.direction,
+        f.contrarian_at_extremes, f.latest?.value_date, f.latest?.raw_value,
+        f.latest?.percentile, f.rolling_window_days,
+      ].map(escape).join(","));
+    });
+    const csv = "﻿" + rows.join("\n"); // BOM for Excel compatibility
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const stamp = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `macro-factors-${stamp}.csv`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
 
   // 计算每个市场的因子数（用于按钮 badge 显示）
   const marketCounts = useMemo(() => {
@@ -289,6 +321,15 @@ export default function MacroDashboard() {
                 </button>
               )}
             </div>
+            <button
+              onClick={exportCsv}
+              disabled={filtered.length === 0}
+              className="px-2 py-0.5 rounded text-[10px] border bg-white/[0.02] border-white/[0.06] text-white/55 hover:text-white/85 hover:bg-white/[0.05] flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed"
+              title={t("导出当前筛选结果为 CSV")}
+            >
+              <Download className="w-3 h-3" />
+              CSV
+            </button>
           </div>
         </div>
       )}

@@ -446,6 +446,7 @@ const EN = {
   '当前筛选条件下没有因子': 'No factors match the current filters',
   '清除全部筛选': 'Clear all filters',
   '回到顶部': 'Back to top',
+  '导出当前筛选结果为 CSV': 'Export current filtered factors as CSV',
   // CompositeChart
   '市场温度历史 · 与 Wilshire 5000 走势对照': 'Market Temp History · vs Wilshire 5000',
   '加载历史温度曲线中…': 'Loading history…',
