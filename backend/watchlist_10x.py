@@ -225,6 +225,114 @@ def list_items(include_archived: bool = False) -> list[dict]:
     return [it for it in items if not it.get("archived", False)]
 
 
+# ── 导入 / 导出（数据备份） ──────────────────────────────
+def export_data() -> dict:
+    """完整导出 watchlist 状态，方便用户下载备份。
+
+    返回结构：
+      {
+        "version": 1,
+        "exported_at": "YYYY-MM-DDTHH:MM:SS",
+        "user_supertrends": [...],
+        "items": [...]
+      }
+    """
+    from datetime import datetime
+    data = load_watchlist()
+    return {
+        "version": data.get("version", 1),
+        "exported_at": datetime.now().isoformat(timespec="seconds"),
+        "user_supertrends": data.get("user_supertrends", []),
+        "items": data.get("items", []),
+    }
+
+
+def import_data(payload: dict, mode: str = "merge") -> dict:
+    """从 export_data 输出格式恢复数据。
+
+    mode:
+      - "merge" (默认)：按 ticker / supertrend id 去重；payload 数据覆盖现有
+      - "replace"：彻底清空再写（用户明确"换掉"，建议先导出一份）
+
+    返回 stats: { items_added, items_updated, supertrends_added, supertrends_updated, mode }
+
+    payload 校验：
+      - 必须有 items 或 user_supertrends 之一
+      - 老 schema（无 archived 字段）兼容
+    """
+    if not isinstance(payload, dict):
+        raise ValueError("payload 必须是 dict")
+    if mode not in ("merge", "replace"):
+        raise ValueError(f"mode must be 'merge' or 'replace', got {mode!r}")
+
+    incoming_items = payload.get("items") or []
+    incoming_trends = payload.get("user_supertrends") or []
+    if not isinstance(incoming_items, list) or not isinstance(incoming_trends, list):
+        raise ValueError("items / user_supertrends 必须是 list")
+
+    if mode == "replace":
+        new_data = {
+            "version": 1,
+            "user_supertrends": list(incoming_trends),
+            "items": list(incoming_items),
+        }
+        save_watchlist(new_data)
+        return {
+            "mode": "replace",
+            "items_added": len(incoming_items),
+            "items_updated": 0,
+            "supertrends_added": len(incoming_trends),
+            "supertrends_updated": 0,
+        }
+
+    # merge：保留现有，按 ticker / id 去重
+    data = load_watchlist()
+    by_ticker = {it["ticker"]: it for it in data["items"] if it.get("ticker")}
+    items_added = items_updated = 0
+    for inc in incoming_items:
+        tk = (inc.get("ticker") or "").strip().upper()
+        if not tk:
+            continue
+        if tk in by_ticker:
+            by_ticker[tk].update(inc)
+            by_ticker[tk]["ticker"] = tk
+            items_updated += 1
+        else:
+            inc2 = dict(inc)
+            inc2["ticker"] = tk
+            by_ticker[tk] = inc2
+            items_added += 1
+    data["items"] = list(by_ticker.values())
+
+    by_tid = {s["id"]: s for s in data["user_supertrends"] if s.get("id")}
+    trends_added = trends_updated = 0
+    builtin_ids = {m["id"] for m in _sm.list_supertrends_meta()}
+    for inc in incoming_trends:
+        tid = (inc.get("id") or "").strip()
+        if not tid or tid in builtin_ids:
+            # builtin 冲突的用户赛道不导入（保护内置语义）
+            continue
+        if tid in by_tid:
+            by_tid[tid].update(inc)
+            by_tid[tid]["id"] = tid
+            trends_updated += 1
+        else:
+            inc2 = dict(inc)
+            inc2["id"] = tid
+            by_tid[tid] = inc2
+            trends_added += 1
+    data["user_supertrends"] = list(by_tid.values())
+    save_watchlist(data)
+
+    return {
+        "mode": "merge",
+        "items_added": items_added,
+        "items_updated": items_updated,
+        "supertrends_added": trends_added,
+        "supertrends_updated": trends_updated,
+    }
+
+
 # ── 候选筛选 ─────────────────────────────────────────────
 def screen_candidates(
     supertrend_ids: Iterable[str],

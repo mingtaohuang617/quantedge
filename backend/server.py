@@ -1521,6 +1521,35 @@ def delete_watchlist_10x(ticker: str):
     raise HTTPException(404, f"{ticker} not in watchlist")
 
 
+@app.get("/api/watchlist/10x/export")
+def export_watchlist_10x():
+    """完整导出 watchlist（含 user_supertrends + items），用户可保存为 .json 备份。"""
+    return sanitize(_wl.export_data())
+
+
+class ImportReq(BaseModel):
+    user_supertrends: list[dict] = []
+    items: list[dict] = []
+    mode: str = "merge"   # "merge" | "replace"
+
+
+@app.post("/api/watchlist/10x/import")
+def import_watchlist_10x(req: ImportReq):
+    """从导出的 JSON 恢复数据。
+
+    mode='merge'（默认）：按 ticker / id 去重，payload 覆盖现有；
+    mode='replace'：彻底清空后写入（建议先导出一份）。
+    """
+    try:
+        stats = _wl.import_data(
+            {"user_supertrends": req.user_supertrends, "items": req.items},
+            mode=req.mode,
+        )
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return sanitize({"ok": True, **stats})
+
+
 class ScreenReq(BaseModel):
     supertrend_ids: list[str] = []
     markets: list[str] = ["US", "HK", "CN"]
