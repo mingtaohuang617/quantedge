@@ -17,11 +17,12 @@
 //
 // 编辑/添加都通过 TenxItemEditor 模态框。
 // ─────────────────────────────────────────────────────────────
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import {
   Target, Layers, Plus, Edit2, Trash2, RefreshCw, Loader, AlertCircle,
   Filter, Search, Database, Star, ChevronRight, Globe, Sparkles, X,
   Archive, ArchiveRestore,
+  Download, Upload,
 } from "lucide-react";
 import { apiFetch } from "../quant-platform.jsx";
 import TenxItemEditor from "../components/TenxItemEditor.jsx";
@@ -29,14 +30,26 @@ import AddSupertrendDialog from "../components/AddSupertrendDialog.jsx";
 
 const STRATEGY_LABEL = { growth: "成长型", value: "价值型" };
 
-// production fallback：vercel 部署没有 FastAPI backend 时，至少能看到 4 个内置赛道。
+// production fallback：vercel 部署没有 FastAPI backend 时，至少能看到 7 个内置赛道。
 // 数据须与 backend/sector_mapping.py SUPERTRENDS 保持一致；筛选/观察操作仍需 self-hosted backend。
 const BUILTIN_SUPERTRENDS_FALLBACK = [
-  { id: "ai_compute", name: "AI 算力", note: "AI 软硬件 / 加速器 / HBM / AI 应用", source: "builtin" },
-  { id: "semi", name: "半导体", note: "设计、制造、设备、材料、存储", source: "builtin" },
-  { id: "optical", name: "光通信", note: "光模块、硅光、CPO、激光器、光纤", source: "builtin" },
-  { id: "datacenter", name: "算力中心", note: "数据中心 / 电力 / 公共事业", source: "builtin" },
+  { id: "ai_compute", name: "AI 算力", note: "AI 软硬件 / 加速器 / HBM / AI 应用", source: "builtin", strategy: "growth" },
+  { id: "semi", name: "半导体", note: "设计、制造、设备、材料、存储", source: "builtin", strategy: "growth" },
+  { id: "optical", name: "光通信", note: "光模块、硅光、CPO、激光器、光纤", source: "builtin", strategy: "growth" },
+  { id: "datacenter", name: "算力中心", note: "数据中心 / 电力 / 公共事业", source: "builtin", strategy: "growth" },
+  { id: "value_div", name: "高股息蓝筹", note: "公用事业 / 银行龙头 / 能源 / 电信（股息率 > 4%）", source: "builtin", strategy: "value" },
+  { id: "value_cyclical", name: "周期价值", note: "银行 / 保险 / 化工 / 钢铁（低 PB 入场）", source: "builtin", strategy: "value" },
+  { id: "value_consumer", name: "消费稳健", note: "食品饮料 / 必需消费（穿越周期 ROE）", source: "builtin", strategy: "value" },
 ];
+
+// 价值型 5 维默认值（None = 不启用筛选）
+const DEFAULT_VALUE_FILTERS = {
+  max_pe: 25,
+  max_pb: null,
+  min_roe: null,
+  min_dividend_yield: null,
+  max_debt_to_equity: null,
+};
 
 function fmtMcap(mc) {
   if (mc == null) return "—";
@@ -64,12 +77,55 @@ function formatMatchReason(matchReasons, tid) {
     .join(" | ");
 }
 
+function fmtNum(v, prec = 1) {
+  return typeof v === "number" ? v.toFixed(prec) : "—";
+}
+
+function fmtPct(v) {
+  return typeof v === "number" ? `${(v * 100).toFixed(1)}%` : "—";
+}
+
+/** 价值型 5 维过滤 input 组件（中栏 toolbar 内）。
+ * value: { max_pe, max_pb, min_roe, min_dividend_yield, max_debt_to_equity } 都可 null
+ */
+function ValueFilters({ value, onChange }) {
+  const set = (k, v) => onChange({ ...value, [k]: v === "" ? null : v });
+  // 通用 numeric input，支持空值清除
+  const Input = ({ k, placeholder, title, step }) => (
+    <input
+      type="number"
+      step={step || "0.1"}
+      value={value[k] ?? ""}
+      placeholder={placeholder}
+      title={title}
+      onChange={(e) => set(k, e.target.value === "" ? null : Number(e.target.value))}
+      className="w-12 px-1 py-0.5 text-[10px] bg-white/5 border border-white/10 rounded text-white focus:outline-none placeholder:text-[#5a6477]"
+    />
+  );
+  return (
+    <div className="flex items-center gap-1 text-[10px] text-[#a0aec0]">
+      <span title="PE 上限（< 0 视为亏损一律剔除）">PE≤</span>
+      <Input k="max_pe" placeholder="25" title="PE 上限" />
+      <span title="PB 上限">PB≤</span>
+      <Input k="max_pb" placeholder="—" title="PB 上限" />
+      <span title="ROE 下限（小数；输入 0.15 = 15%）">ROE≥</span>
+      <Input k="min_roe" placeholder="—" title="ROE 下限（0.15 = 15%）" step="0.01" />
+      <span title="股息率下限（小数；输入 0.04 = 4%）">息≥</span>
+      <Input k="min_dividend_yield" placeholder="—" title="股息率下限（0.04 = 4%）" step="0.005" />
+      <span title="资产负债率上限（A 股）/ 负债权益比上限（美/港股）">D/E≤</span>
+      <Input k="max_debt_to_equity" placeholder="—" title="债务比例上限" />
+    </div>
+  );
+}
+
 export default function Screener10x() {
   // 数据状态
   const [supertrends, setSupertrends] = useState([]);
   const [items, setItems] = useState([]);                   // watchlist
   const [universeStats, setUniverseStats] = useState(null);
   const [isDemoMode, setIsDemoMode] = useState(false);      // production 后端不可用 → fallback
+  // 策略切换（成长型 / 价值型 tab）
+  const [activeStrategy, setActiveStrategy] = useState("growth"); // "growth" | "value"
   // 筛选条件
   const [selectedTrends, setSelectedTrends] = useState([]); // string[]
   const [maxMcapInput, setMaxMcapInput] = useState(50);     // 单位 B（input 即时绑定）
@@ -78,6 +134,8 @@ export default function Screener10x() {
   const [precise, setPrecise] = useState(false);    // 精严模式：仅核心赛道关键词
   const [markets, setMarkets] = useState(["US", "HK", "CN"]);
   const [search, setSearch] = useState("");
+  // 价值型 5 维筛选（仅 activeStrategy="value" 时启用）
+  const [valueFilters, setValueFilters] = useState(DEFAULT_VALUE_FILTERS);
   // 候选 + loading
   const [candidates, setCandidates] = useState([]);
   const [loadingCands, setLoadingCands] = useState(false);
@@ -96,6 +154,9 @@ export default function Screener10x() {
   const [addTrendOpen, setAddTrendOpen] = useState(false);
   // 归档显示开关
   const [showArchived, setShowArchived] = useState(false);
+  // 导入/导出 loading
+  const [importLoading, setImportLoading] = useState(false);
+  const importInputRef = useRef(null);
 
   // ── 拉初始数据（watchlist + universe stats）─────────────
   const reloadWatchlist = useCallback(async (opts = {}) => {
@@ -138,18 +199,27 @@ export default function Screener10x() {
     setLoadingCands(true);
     setErrorCands(null);
     try {
+      const body = {
+        supertrend_ids: selectedTrends,
+        markets,
+        include_etf: includeETF,
+        exclude_in_watchlist: true,
+        limit: 200,
+        precise,
+      };
+      if (activeStrategy === "growth") {
+        // 成长型：保留 max_market_cap_b（小市值卡位）
+        body.max_market_cap_b = maxMcapB > 0 ? maxMcapB : null;
+      } else {
+        // 价值型：5 维财务过滤（None 字段不传，避免误启用）
+        for (const [k, v] of Object.entries(valueFilters)) {
+          if (v != null && v !== "" && !Number.isNaN(v)) body[k] = Number(v);
+        }
+      }
       const json = await apiFetch("/watchlist/10x/screen", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          supertrend_ids: selectedTrends,
-          markets,
-          max_market_cap_b: maxMcapB > 0 ? maxMcapB : null,
-          include_etf: includeETF,
-          exclude_in_watchlist: true,
-          limit: 200,
-          precise,
-        }),
+        body: JSON.stringify(body),
       });
       if (!json) throw new Error("后端无响应");
       setCandidates(json.items || []);
@@ -159,7 +229,7 @@ export default function Screener10x() {
     } finally {
       setLoadingCands(false);
     }
-  }, [selectedTrends, markets, maxMcapB, includeETF, precise]);
+  }, [selectedTrends, markets, maxMcapB, includeETF, precise, activeStrategy, valueFilters]);
 
   // 自动 re-screen（赛道 / 市场 / 市值上限 / ETF / 精严切换都会触发）
   // 注：items 变化（加入/删除观察）不在此触发，由 handleSaved / handleDelete 主动处理：
@@ -328,7 +398,86 @@ export default function Screener10x() {
     // 归档/恢复都不影响候选 — 归档项也算"已观察过"
   };
 
+  // 导出整份 watchlist 为 .json 备份文件
+  const handleExport = async () => {
+    const json = await apiFetch("/watchlist/10x/export");
+    if (!json) {
+      window.alert("导出失败：后端不可用（演示模式或网络问题）");
+      return;
+    }
+    const blob = new Blob([JSON.stringify(json, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `quantedge-watchlist-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  // 选文件 → 解析 JSON → 选 merge / replace → POST import
+  const handleImportFile = async (file) => {
+    if (!file) return;
+    let payload;
+    try {
+      const text = await file.text();
+      payload = JSON.parse(text);
+    } catch (e) {
+      window.alert(`文件解析失败：${e.message}`);
+      return;
+    }
+    if (!payload || typeof payload !== "object") {
+      window.alert("文件格式不对：应为 { items: [], user_supertrends: [] }");
+      return;
+    }
+
+    const summary = `观察项 ${payload.items?.length || 0} 条；自定义赛道 ${payload.user_supertrends?.length || 0} 个`;
+    const choice = window.prompt(
+      `${summary}\n\n输入 'merge' 合并到现有数据（推荐）；输入 'replace' 清空后导入（不可撤销）；其他取消。`,
+      "merge",
+    );
+    if (choice !== "merge" && choice !== "replace") return;
+
+    setImportLoading(true);
+    const res = await apiFetch("/watchlist/10x/import", {
+      method: "POST",
+      body: JSON.stringify({
+        mode: choice,
+        items: payload.items || [],
+        user_supertrends: payload.user_supertrends || [],
+      }),
+    });
+    setImportLoading(false);
+    if (res?.ok) {
+      window.alert(
+        `导入成功（${res.mode}）\n` +
+        `观察项：+${res.items_added} / 更新 ${res.items_updated}\n` +
+        `自定义赛道：+${res.supertrends_added} / 更新 ${res.supertrends_updated}`
+      );
+      await reloadWatchlist();
+    } else {
+      window.alert(`导入失败：${res?.detail || "未知错误"}`);
+    }
+  };
+
   const trendName = (id) => supertrends.find((s) => s.id === id)?.name || id;
+
+  // ── 策略切换：清掉旧 tab 的赛道选择 ───────────────────
+  const handleStrategySwitch = (next) => {
+    if (next === activeStrategy) return;
+    setActiveStrategy(next);
+    setSelectedTrends([]);   // 切换 tab 清空选中（避免 growth 选了 semi 切到 value 后还在筛选）
+    setCandidates([]);
+    setAiRanking({});
+    setAiMatchResult(null);
+  };
+
+  // 按 activeStrategy 过滤左栏赛道
+  const displayedSupertrends = useMemo(() =>
+    supertrends.filter(s => (s.strategy || "growth") === activeStrategy),
+    [supertrends, activeStrategy]
+  );
 
   // ── 渲染 ────────────────────────────────────────────
   return (
@@ -338,7 +487,31 @@ export default function Screener10x() {
         <div className="flex items-center gap-3">
           <Target size={16} className="text-amber-400" />
           <span className="text-sm font-semibold text-white">10x 猎手</span>
-          <span className="text-[10px] text-[#a0aec0]">成长型 · 价值型即将上线</span>
+          {/* Growth / Value tab 切换 */}
+          <div className="flex items-center gap-0.5 ml-2 bg-white/5 rounded border border-white/10 p-0.5">
+            <button
+              onClick={() => handleStrategySwitch("growth")}
+              className={`px-2 py-0.5 text-[10px] rounded transition ${
+                activeStrategy === "growth"
+                  ? "bg-cyan-500/20 text-cyan-100 font-medium"
+                  : "text-[#a0aec0] hover:text-white"
+              }`}
+              title="成长型：超级趋势 + 双层瓶颈 + 卡位公司"
+            >
+              成长型
+            </button>
+            <button
+              onClick={() => handleStrategySwitch("value")}
+              className={`px-2 py-0.5 text-[10px] rounded transition ${
+                activeStrategy === "value"
+                  ? "bg-amber-500/20 text-amber-100 font-medium"
+                  : "text-[#a0aec0] hover:text-white"
+              }`}
+              title="价值型：Graham 安全边际 + 估值点位 + 护城河"
+            >
+              价值型
+            </button>
+          </div>
           {isDemoMode && (
             <span
               className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30"
@@ -375,7 +548,7 @@ export default function Screener10x() {
             <span className="text-[9px] text-[#a0aec0] ml-auto">{selectedTrends.length} 选中</span>
           </div>
           <div className="flex-1 overflow-auto p-2 space-y-1.5">
-            {supertrends.map((s) => {
+            {displayedSupertrends.map((s) => {
               const active = selectedTrends.includes(s.id);
               return (
                 <button
@@ -457,17 +630,21 @@ export default function Screener10x() {
               )}
             </button>
 
-            {/* 市值上限（300ms debounced） */}
-            <label className="flex items-center gap-1 text-[10px] text-[#a0aec0]">
-              max
-              <input
-                type="number"
-                value={maxMcapInput}
-                onChange={(e) => setMaxMcapInput(Number(e.target.value) || 0)}
-                className="w-12 px-1 py-0.5 text-[10px] bg-white/5 border border-white/10 rounded text-white focus:outline-none"
-              />
-              B
-            </label>
+            {/* 筛选条件：成长型 = 市值上限；价值型 = 5 维财务 */}
+            {activeStrategy === "growth" ? (
+              <label className="flex items-center gap-1 text-[10px] text-[#a0aec0]" title="市值上限（B）— 成长型偏小市值卡位">
+                max
+                <input
+                  type="number"
+                  value={maxMcapInput}
+                  onChange={(e) => setMaxMcapInput(Number(e.target.value) || 0)}
+                  className="w-12 px-1 py-0.5 text-[10px] bg-white/5 border border-white/10 rounded text-white focus:outline-none"
+                />
+                B
+              </label>
+            ) : (
+              <ValueFilters value={valueFilters} onChange={setValueFilters} />
+            )}
 
             {/* ETF toggle */}
             <label className="flex items-center gap-1 text-[10px] text-[#a0aec0] cursor-pointer">
@@ -605,6 +782,15 @@ export default function Screener10x() {
                     <th className="text-left px-2 py-1.5">市场</th>
                     <th className="text-left px-2 py-1.5">行业</th>
                     <th className="text-right px-2 py-1.5">市值</th>
+                    {/* 价值型额外列：PE / PB / 股息 / ROE */}
+                    {activeStrategy === "value" && (
+                      <>
+                        <th className="text-right px-2 py-1.5">PE</th>
+                        <th className="text-right px-2 py-1.5">PB</th>
+                        <th className="text-right px-2 py-1.5" title="股息率">股息</th>
+                        <th className="text-right px-2 py-1.5">ROE</th>
+                      </>
+                    )}
                     {Object.keys(aiRanking).length > 0 && (
                       <th className="text-center px-2 py-1.5 text-violet-300">AI 卡位</th>
                     )}
@@ -622,6 +808,15 @@ export default function Screener10x() {
                         <td className="px-2 py-1.5 text-[9px] text-[#a0aec0]">{c.market}{c.exchange && `·${c.exchange}`}</td>
                         <td className="px-2 py-1.5 text-[9px] text-[#a0aec0] truncate max-w-[100px]" title={c.sector || c.industry}>{c.sector || c.industry || "—"}</td>
                         <td className="px-2 py-1.5 text-right font-mono text-[10px] text-[#d0d7e2]">{fmtMcap(c.marketCap)}</td>
+                        {/* 价值型额外列 */}
+                        {activeStrategy === "value" && (
+                          <>
+                            <td className="px-2 py-1.5 text-right font-mono text-[10px] text-[#d0d7e2]">{fmtNum(c.pe)}</td>
+                            <td className="px-2 py-1.5 text-right font-mono text-[10px] text-[#d0d7e2]">{fmtNum(c.pb, 2)}</td>
+                            <td className="px-2 py-1.5 text-right font-mono text-[10px] text-emerald-300">{fmtPct(c.dividend_yield)}</td>
+                            <td className="px-2 py-1.5 text-right font-mono text-[10px] text-[#d0d7e2]">{fmtPct(c.roe)}</td>
+                          </>
+                        )}
                         {Object.keys(aiRanking).length > 0 && (
                           <td className="px-2 py-1.5 text-center" title={ai?.reason || "未排序"}>
                             {ai ? (
@@ -695,22 +890,50 @@ export default function Screener10x() {
             <Star size={12} className="text-amber-400" />
             <span className="text-[11px] font-semibold text-white">观察列表</span>
             <span className="text-[9px] text-[#a0aec0]">{items.length}</span>
-            <button
-              onClick={async () => {
-                const next = !showArchived;
-                setShowArchived(next);
-                await reloadWatchlist({ showArchived: next });
-              }}
-              className={`ml-auto flex items-center gap-1 px-1.5 py-0.5 text-[9px] rounded border transition ${
-                showArchived
-                  ? "bg-amber-500/20 text-amber-200 border-amber-500/40"
-                  : "bg-white/5 text-[#a0aec0] border-white/15 hover:bg-white/10"
-              }`}
-              title={showArchived ? "当前显示含归档；点击隐藏" : "点击显示归档项"}
-            >
-              <Archive size={9} />
-              {showArchived ? "含归档" : "显示归档"}
-            </button>
+            <div className="ml-auto flex items-center gap-1">
+              <button
+                onClick={async () => {
+                  const next = !showArchived;
+                  setShowArchived(next);
+                  await reloadWatchlist({ showArchived: next });
+                }}
+                className={`flex items-center gap-1 px-1.5 py-0.5 text-[9px] rounded border transition ${
+                  showArchived
+                    ? "bg-amber-500/20 text-amber-200 border-amber-500/40"
+                    : "bg-white/5 text-[#a0aec0] border-white/15 hover:bg-white/10"
+                }`}
+                title={showArchived ? "当前显示含归档；点击隐藏" : "点击显示归档项"}
+              >
+                <Archive size={9} />
+                {showArchived ? "含归档" : "显示归档"}
+              </button>
+              <button
+                onClick={handleExport}
+                disabled={isDemoMode}
+                className="flex items-center justify-center w-5 h-5 text-[#a0aec0] hover:text-white hover:bg-white/10 rounded transition disabled:opacity-30 disabled:cursor-not-allowed"
+                title="导出 JSON 备份（含所有观察项 + 自定义赛道）"
+              >
+                <Download size={11} />
+              </button>
+              <button
+                onClick={() => importInputRef.current?.click()}
+                disabled={isDemoMode || importLoading}
+                className="flex items-center justify-center w-5 h-5 text-[#a0aec0] hover:text-white hover:bg-white/10 rounded transition disabled:opacity-30 disabled:cursor-not-allowed"
+                title="从备份文件恢复（merge / replace 可选）"
+              >
+                {importLoading ? <Loader size={11} className="animate-spin" /> : <Upload size={11} />}
+              </button>
+              <input
+                ref={importInputRef}
+                type="file"
+                accept="application/json,.json"
+                className="hidden"
+                onChange={(e) => {
+                  handleImportFile(e.target.files?.[0]);
+                  e.target.value = "";   // 允许重选同一文件
+                }}
+              />
+            </div>
           </div>
           <div className="flex-1 overflow-auto p-2 space-y-2">
             {items.length === 0 && (

@@ -1521,6 +1521,35 @@ def delete_watchlist_10x(ticker: str):
     raise HTTPException(404, f"{ticker} not in watchlist")
 
 
+@app.get("/api/watchlist/10x/export")
+def export_watchlist_10x():
+    """完整导出 watchlist（含 user_supertrends + items），用户可保存为 .json 备份。"""
+    return sanitize(_wl.export_data())
+
+
+class ImportReq(BaseModel):
+    user_supertrends: list[dict] = []
+    items: list[dict] = []
+    mode: str = "merge"   # "merge" | "replace"
+
+
+@app.post("/api/watchlist/10x/import")
+def import_watchlist_10x(req: ImportReq):
+    """从导出的 JSON 恢复数据。
+
+    mode='merge'（默认）：按 ticker / id 去重，payload 覆盖现有；
+    mode='replace'：彻底清空后写入（建议先导出一份）。
+    """
+    try:
+        stats = _wl.import_data(
+            {"user_supertrends": req.user_supertrends, "items": req.items},
+            mode=req.mode,
+        )
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return sanitize({"ok": True, **stats})
+
+
 class ScreenReq(BaseModel):
     supertrend_ids: list[str] = []
     markets: list[str] = ["US", "HK", "CN"]
@@ -1628,6 +1657,38 @@ def llm_tenx_thesis(req: TenxThesisReq):
         raise HTTPException(400, f"unknown supertrend_id: {req.supertrend_id}")
     stock = req.dict(exclude={"supertrend_id"})
     return sanitize(_llm_mod.tenx_thesis(stock, supertrend))
+
+
+class ValueThesisReq(BaseModel):
+    ticker: str
+    name: str | None = None
+    sector: str | None = None
+    industry: str | None = None
+    marketCap: float | None = None
+    descriptionCN: str | None = None
+    description: str | None = None
+    supertrend_id: str
+    # 价值型独有：5 维财务指标，给 LLM 喂数字判断更准
+    pe: float | None = None
+    pb: float | None = None
+    dividend_yield: float | None = None
+    roe: float | None = None
+    debt_to_equity: float | None = None
+
+
+@app.post("/api/llm/value-thesis")
+def llm_value_thesis(req: ValueThesisReq):
+    """LLM 生成价值型分析草稿（Graham 安全边际，含估值点位 + 内在价值 + 护城河 + 风险 + 结论）。"""
+    if not HAS_LLM or _llm_mod is None:
+        raise HTTPException(503, "llm 模块未加载（DEEPSEEK_API_KEY 未设？）")
+    supertrend = next(
+        (s for s in _wl.list_supertrends() if s["id"] == req.supertrend_id),
+        None,
+    )
+    if not supertrend:
+        raise HTTPException(400, f"unknown supertrend_id: {req.supertrend_id}")
+    stock = req.dict(exclude={"supertrend_id"})
+    return sanitize(_llm_mod.value_thesis(stock, supertrend))
 
 
 if __name__ == "__main__":

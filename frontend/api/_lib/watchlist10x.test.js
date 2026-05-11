@@ -55,6 +55,7 @@ vi.mock('./universeLoader.js', () => ({
 import {
   loadData, addItem, updateItem, removeItem,
   addSupertrend, listAllSupertrends, listItems, screenCandidates,
+  exportData, importData,
 } from './watchlist10x.js';
 
 beforeEach(() => {
@@ -398,5 +399,82 @@ describe('screenCandidates — value 5-dim filter', () => {
     await expect(
       addSupertrend('xxx', '测试', '', [], [], 'speculative')
     ).rejects.toThrow(/strategy/);
+  });
+});
+
+// ── export / import ──────────────────────────────────────
+describe('exportData / importData', () => {
+  it('export 含 items + user_supertrends + 时间戳', async () => {
+    await addItem('NVDA', { supertrend_id: 'semi', thesis: 'HBM' });
+    await addSupertrend('renewable', '新能源', '', ['光伏']);
+    const payload = await exportData();
+    expect(payload.exported_at).toBeTruthy();
+    expect(payload.items.some(it => it.ticker === 'NVDA')).toBe(true);
+    expect(payload.user_supertrends.some(s => s.id === 'renewable')).toBe(true);
+  });
+
+  it('import merge 加新 ticker', async () => {
+    await addItem('NVDA', { supertrend_id: 'semi' });
+    const stats = await importData({
+      items: [{ ticker: 'AAOI', supertrend_id: 'optical', thesis: '800G' }],
+      user_supertrends: [{ id: 'renewable', name: '新能源', keywords_zh: ['光伏'] }],
+    }, 'merge');
+    expect(stats.items_added).toBe(1);
+    expect(stats.supertrends_added).toBe(1);
+    const items = await listItems();
+    expect(items.map(it => it.ticker).sort()).toEqual(['AAOI', 'NVDA']);
+  });
+
+  it('import merge 更新已存在的 ticker', async () => {
+    await addItem('NVDA', { supertrend_id: 'semi', thesis: '原版' });
+    const stats = await importData({
+      items: [{ ticker: 'NVDA', supertrend_id: 'semi', thesis: '新版' }],
+    }, 'merge');
+    expect(stats.items_updated).toBe(1);
+    expect(stats.items_added).toBe(0);
+    const items = await listItems();
+    expect(items.find(it => it.ticker === 'NVDA').thesis).toBe('新版');
+  });
+
+  it('import replace 清空原有', async () => {
+    await addItem('NVDA', { supertrend_id: 'semi' });
+    await addItem('AAOI', { supertrend_id: 'optical' });
+    const stats = await importData({
+      items: [{ ticker: 'MSFT', supertrend_id: 'ai_compute' }],
+    }, 'replace');
+    expect(stats.mode).toBe('replace');
+    const items = await listItems();
+    expect(items.map(it => it.ticker)).toEqual(['MSFT']);
+  });
+
+  it('import 内置赛道 id 冲突时跳过', async () => {
+    const stats = await importData({
+      items: [],
+      user_supertrends: [
+        { id: 'semi', name: '假半导体' },        // 冲突 → skip
+        { id: 'renewable', name: '新能源', keywords_zh: ['光伏'] },
+      ],
+    }, 'merge');
+    expect(stats.supertrends_added).toBe(1);
+  });
+
+  it('invalid payload throws', async () => {
+    await expect(importData(null, 'merge')).rejects.toThrow();
+    await expect(importData({ items: 'bad' }, 'merge')).rejects.toThrow();
+    await expect(importData({}, 'invalid_mode')).rejects.toThrow();
+  });
+
+  it('export → import (replace) roundtrip 等价', async () => {
+    await addItem('NVDA', { supertrend_id: 'semi', thesis: 'HBM' });
+    await addSupertrend('renewable', '新能源', '', ['光伏']);
+
+    const payload = await exportData();
+    // 模拟用户清空后导入
+    await removeItem('NVDA');
+    expect((await listItems()).length).toBe(0);
+
+    await importData(payload, 'replace');
+    const items = await listItems();
+    expect(items.find(it => it.ticker === 'NVDA').thesis).toBe('HBM');
   });
 });

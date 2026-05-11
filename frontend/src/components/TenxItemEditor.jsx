@@ -20,13 +20,38 @@ import { apiFetch } from "../quant-platform.jsx";
 
 const STRATEGY_OPTIONS = [
   { value: "growth", label: "成长型" },
-  { value: "value", label: "价值型 (即将上线)", disabled: true },
+  { value: "value", label: "价值型" },
 ];
 
-const BOTTLENECK_OPTIONS = [
-  { value: 1, label: "L1 共识层" },
-  { value: 2, label: "L2 深度认知" },
-];
+// 成长型：bottleneck_layer = 「瓶颈层级」（共识 / 深度认知）
+// 价值型：bottleneck_layer = 「估值点位」（深度低估 / 合理估值）— 字段复用，语义切换
+const BOTTLENECK_OPTIONS_BY_STRATEGY = {
+  growth: [
+    { value: 1, label: "L1 共识层" },
+    { value: 2, label: "L2 深度认知" },
+  ],
+  value: [
+    { value: 1, label: "L1 深度低估" },
+    { value: 2, label: "L2 合理估值" },
+  ],
+};
+
+const FIELD_LABELS_BY_STRATEGY = {
+  growth: {
+    bottleneck: "瓶颈层级",
+    bottleneckTag: "瓶颈标签（如：硅光/CPO 关键供应）",
+    moat: "卡位等级",
+    moatHint: "卡位 thesis",
+    thesisPlaceholder: "超级趋势 / 瓶颈层 / 卡位逻辑 / 风险 / 推演结论 — 可手写或 AI 生成草稿后修改",
+  },
+  value: {
+    bottleneck: "估值点位",
+    bottleneckTag: "估值标签（如：股息可持续 / 周期低位）",
+    moat: "护城河等级",
+    moatHint: "价值 thesis",
+    thesisPlaceholder: "价值赛道 / 估值点位 / 内在价值 / 护城河 / 风险 / 推演结论 — 可手写或 AI 生成草稿后修改",
+  },
+};
 
 function emptyForm() {
   return {
@@ -93,6 +118,7 @@ export default function TenxItemEditor({ open, item, candidate, supertrends, onC
       return;
     }
     const stockMeta = candidate || item || {};
+    const isValue = form.strategy === "value";
     const payload = {
       ticker,
       name: stockMeta.name || displayName,
@@ -103,8 +129,18 @@ export default function TenxItemEditor({ open, item, candidate, supertrends, onC
       description: stockMeta.description ?? null,
       supertrend_id: form.supertrend_id,
     };
+    // 价值型：额外把 5 维财务字段喂给 LLM
+    if (isValue) {
+      payload.pe = stockMeta.pe ?? null;
+      payload.pb = stockMeta.pb ?? null;
+      payload.dividend_yield = stockMeta.dividend_yield ?? null;
+      payload.roe = stockMeta.roe ?? null;
+      payload.debt_to_equity = stockMeta.debt_to_equity ?? null;
+    }
     setLlmState({ loading: true, error: null, cached: false });
     try {
+      // 统一 endpoint /llm/10x-thesis（避免 Vercel 12 lambda 上限）；
+      // backend 按 supertrend.strategy 自动路由到 growth/value prompt。
       const json = await apiFetch("/llm/10x-thesis", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -113,16 +149,29 @@ export default function TenxItemEditor({ open, item, candidate, supertrends, onC
       if (!json) throw new Error("后端无响应（检查 backend 是否启动）");
       if (!json.ok) throw new Error(json.error || json.detail || "LLM 调用失败");
       const t = json.thesis || {};
-      const merged = [
-        t["超级趋势"] && `🌊 超级趋势：${t["超级趋势"]}`,
-        t["瓶颈层"] && `🧱 瓶颈层：${t["瓶颈层"]}`,
-        t["卡位逻辑"] && `🎯 卡位逻辑：${t["卡位逻辑"]}`,
-        t["风险"] && `⚠️ 风险：${t["风险"]}`,
-        t["推演结论"] && `🔮 推演：${t["推演结论"]}`,
-      ].filter(Boolean).join("\n");
-      // LLM 给的结构化数字（瓶颈层级 1-2 / 卡位等级 1-5）预填到表单；
-      // 非数字时保留原值，避免覆盖用户已手填的数字
-      const layerInt = t["瓶颈层级_int"];
+      // 不同 strategy 的 thesis 字段集不同 — 各自拼接
+      let merged;
+      let layerInt;
+      if (isValue) {
+        merged = [
+          t["价值赛道"] && `🛡️ 价值赛道：${t["价值赛道"]}`,
+          t["估值点位"] && `📉 估值点位：${t["估值点位"]}`,
+          t["内在价值"] && `💎 内在价值：${t["内在价值"]}`,
+          t["护城河"] && `🏰 护城河：${t["护城河"]}`,
+          t["风险"] && `⚠️ 风险：${t["风险"]}`,
+          t["推演结论"] && `🔮 推演：${t["推演结论"]}`,
+        ].filter(Boolean).join("\n");
+        layerInt = t["估值点位_int"];
+      } else {
+        merged = [
+          t["超级趋势"] && `🌊 超级趋势：${t["超级趋势"]}`,
+          t["瓶颈层"] && `🧱 瓶颈层：${t["瓶颈层"]}`,
+          t["卡位逻辑"] && `🎯 卡位逻辑：${t["卡位逻辑"]}`,
+          t["风险"] && `⚠️ 风险：${t["风险"]}`,
+          t["推演结论"] && `🔮 推演：${t["推演结论"]}`,
+        ].filter(Boolean).join("\n");
+        layerInt = t["瓶颈层级_int"];
+      }
       const moatInt = t["卡位等级_int"];
       setForm((f) => ({
         ...f,
@@ -236,20 +285,20 @@ export default function TenxItemEditor({ open, item, candidate, supertrends, onC
             </Field>
           </div>
 
-          {/* row: bottleneck layer + moat score */}
+          {/* row: bottleneck layer + moat score（label 按 strategy 切换语义） */}
           <div className="grid grid-cols-2 gap-3">
-            <Field label="瓶颈层级">
+            <Field label={FIELD_LABELS_BY_STRATEGY[form.strategy].bottleneck}>
               <select
                 value={form.bottleneck_layer}
                 onChange={(e) => setField("bottleneck_layer", Number(e.target.value))}
                 className="input-base"
               >
-                {BOTTLENECK_OPTIONS.map((o) => (
+                {BOTTLENECK_OPTIONS_BY_STRATEGY[form.strategy].map((o) => (
                   <option key={o.value} value={o.value}>{o.label}</option>
                 ))}
               </select>
             </Field>
-            <Field label={`卡位等级 ${form.moat_score} / 5`}>
+            <Field label={`${FIELD_LABELS_BY_STRATEGY[form.strategy].moat} ${form.moat_score} / 5`}>
               <input
                 type="range"
                 min="1"
@@ -262,19 +311,19 @@ export default function TenxItemEditor({ open, item, candidate, supertrends, onC
           </div>
 
           {/* bottleneck_tag */}
-          <Field label="瓶颈标签（如：硅光/CPO 关键供应）">
+          <Field label={FIELD_LABELS_BY_STRATEGY[form.strategy].bottleneckTag}>
             <input
               type="text"
               value={form.bottleneck_tag}
               onChange={(e) => setField("bottleneck_tag", e.target.value)}
               className="input-base"
-              placeholder="一句话描述卡的是哪个瓶颈"
+              placeholder={form.strategy === "value" ? "一句话描述估值核心" : "一句话描述卡的是哪个瓶颈"}
             />
           </Field>
 
           {/* thesis with AI button */}
           <Field
-            label="卡位 thesis"
+            label={FIELD_LABELS_BY_STRATEGY[form.strategy].moatHint}
             right={
               <button
                 onClick={handleGenerateThesis}
@@ -297,7 +346,7 @@ export default function TenxItemEditor({ open, item, candidate, supertrends, onC
               onChange={(e) => setField("thesis", e.target.value)}
               rows={6}
               className="input-base font-mono text-[11px] leading-relaxed"
-              placeholder="超级趋势 / 瓶颈层 / 卡位逻辑 / 风险 / 推演结论 — 可手写或 AI 生成草稿后修改"
+              placeholder={FIELD_LABELS_BY_STRATEGY[form.strategy].thesisPlaceholder}
             />
             {llmState.error && (
               <div className="flex items-start gap-1.5 mt-1 text-[10px] text-amber-300/90">
