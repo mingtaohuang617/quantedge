@@ -142,6 +142,100 @@ export async function removeItem(ticker) {
   return false;
 }
 
+/** 完整导出 watchlist 状态，给"下载备份"用。 */
+export async function exportData() {
+  const data = await loadData();
+  return {
+    version: data.version || 1,
+    exported_at: new Date().toISOString().slice(0, 19),
+    user_supertrends: data.user_supertrends || [],
+    items: data.items || [],
+  };
+}
+
+/** 从 exportData 输出格式恢复数据。
+ * mode='merge'（默认）：按 ticker / id 去重，payload 覆盖现有；
+ * mode='replace'：清空再写。
+ * 返回 stats { items_added, items_updated, supertrends_added, supertrends_updated, mode }。
+ */
+export async function importData(payload, mode = 'merge') {
+  if (!payload || typeof payload !== 'object') {
+    throw new Error('payload 必须是 object');
+  }
+  if (mode !== 'merge' && mode !== 'replace') {
+    throw new Error(`mode must be 'merge' or 'replace', got '${mode}'`);
+  }
+  const incomingItems = payload.items || [];
+  const incomingTrends = payload.user_supertrends || [];
+  if (!Array.isArray(incomingItems) || !Array.isArray(incomingTrends)) {
+    throw new Error('items / user_supertrends 必须是 list');
+  }
+
+  if (mode === 'replace') {
+    const newData = {
+      version: 1,
+      user_supertrends: [...incomingTrends],
+      items: [...incomingItems],
+    };
+    await saveData(newData);
+    return {
+      mode: 'replace',
+      items_added: incomingItems.length,
+      items_updated: 0,
+      supertrends_added: incomingTrends.length,
+      supertrends_updated: 0,
+    };
+  }
+
+  // merge
+  const data = await loadData();
+  const byTicker = new Map();
+  for (const it of data.items || []) {
+    if (it.ticker) byTicker.set(it.ticker, it);
+  }
+  let itemsAdded = 0, itemsUpdated = 0;
+  for (const inc of incomingItems) {
+    const tk = String(inc.ticker || '').trim().toUpperCase();
+    if (!tk) continue;
+    if (byTicker.has(tk)) {
+      byTicker.set(tk, { ...byTicker.get(tk), ...inc, ticker: tk });
+      itemsUpdated += 1;
+    } else {
+      byTicker.set(tk, { ...inc, ticker: tk });
+      itemsAdded += 1;
+    }
+  }
+  data.items = [...byTicker.values()];
+
+  const builtinIds = new Set(listSupertrendsMeta().map(m => m.id));
+  const byTid = new Map();
+  for (const s of data.user_supertrends || []) {
+    if (s.id) byTid.set(s.id, s);
+  }
+  let trendsAdded = 0, trendsUpdated = 0;
+  for (const inc of incomingTrends) {
+    const tid = String(inc.id || '').trim();
+    if (!tid || builtinIds.has(tid)) continue;
+    if (byTid.has(tid)) {
+      byTid.set(tid, { ...byTid.get(tid), ...inc, id: tid });
+      trendsUpdated += 1;
+    } else {
+      byTid.set(tid, { ...inc, id: tid });
+      trendsAdded += 1;
+    }
+  }
+  data.user_supertrends = [...byTid.values()];
+  await saveData(data);
+
+  return {
+    mode: 'merge',
+    items_added: itemsAdded,
+    items_updated: itemsUpdated,
+    supertrends_added: trendsAdded,
+    supertrends_updated: trendsUpdated,
+  };
+}
+
 export async function addSupertrend(
   id, name, note = '',
   keywords_zh = [], keywords_en = [],

@@ -605,3 +605,109 @@ def test_screen_candidates_excludes_archived_too(tmp_watchlist):
     tickers = [it["ticker"] for it in out]
     # 归档的 NVDA 不应在候选里出现
     assert "NVDA" not in tickers
+
+
+# ── export / import（数据备份） ─────────────────────────
+def test_export_data_basic(tmp_watchlist):
+    """导出含完整 items + user_supertrends + 时间戳"""
+    wl.add_item("NVDA", supertrend_id="semi", thesis="HBM 上游")
+    wl.add_supertrend("renewable", "新能源", "", keywords_zh=["光伏"])
+
+    payload = wl.export_data()
+    assert payload["version"] >= 1
+    assert "exported_at" in payload
+    assert any(it["ticker"] == "NVDA" for it in payload["items"])
+    assert any(s["id"] == "renewable" for s in payload["user_supertrends"])
+
+
+def test_export_empty(tmp_watchlist):
+    """空 watchlist 也能导出，items / user_supertrends 是空 list"""
+    payload = wl.export_data()
+    assert payload["items"] == []
+    assert payload["user_supertrends"] == []
+
+
+def test_import_merge_adds_new(tmp_watchlist):
+    """merge 模式：新 ticker / 新 trend 都加入"""
+    wl.add_item("NVDA", supertrend_id="semi")
+    payload = {
+        "items": [{"ticker": "AAOI", "supertrend_id": "optical", "thesis": "800G"}],
+        "user_supertrends": [{"id": "renewable", "name": "新能源", "keywords_zh": ["光伏"]}],
+    }
+    stats = wl.import_data(payload, mode="merge")
+    assert stats["mode"] == "merge"
+    assert stats["items_added"] == 1
+    assert stats["supertrends_added"] == 1
+
+    items = wl.list_items()
+    tickers = {it["ticker"] for it in items}
+    assert tickers == {"NVDA", "AAOI"}
+
+
+def test_import_merge_updates_existing(tmp_watchlist):
+    """merge 模式：相同 ticker 的字段被覆盖"""
+    wl.add_item("NVDA", supertrend_id="semi", thesis="原版")
+    stats = wl.import_data({
+        "items": [{"ticker": "NVDA", "supertrend_id": "semi", "thesis": "新版"}],
+    }, mode="merge")
+    assert stats["items_updated"] == 1
+    assert stats["items_added"] == 0
+    nvda = next(it for it in wl.list_items() if it["ticker"] == "NVDA")
+    assert nvda["thesis"] == "新版"
+
+
+def test_import_replace_clears_existing(tmp_watchlist):
+    """replace 模式：原有数据被清空"""
+    wl.add_item("NVDA", supertrend_id="semi")
+    wl.add_item("AAOI", supertrend_id="optical")
+
+    stats = wl.import_data({
+        "items": [{"ticker": "MSFT", "supertrend_id": "ai_compute"}],
+    }, mode="replace")
+    assert stats["mode"] == "replace"
+    assert stats["items_added"] == 1
+
+    tickers = {it["ticker"] for it in wl.list_items()}
+    assert tickers == {"MSFT"}
+
+
+def test_import_skips_builtin_id_conflict(tmp_watchlist):
+    """import 时用户赛道 id 与内置冲突 → 跳过（保护内置语义）"""
+    payload = {
+        "items": [],
+        "user_supertrends": [
+            {"id": "semi", "name": "假半导体", "keywords_zh": ["xxx"]},   # 与内置 id 冲突 → skip
+            {"id": "renewable", "name": "新能源", "keywords_zh": ["光伏"]},
+        ],
+    }
+    stats = wl.import_data(payload, mode="merge")
+    assert stats["supertrends_added"] == 1   # 只有 renewable 被加
+    user_trends = wl.load_watchlist().get("user_supertrends", [])
+    assert all(s["id"] != "semi" for s in user_trends)
+
+
+def test_import_invalid_payload_raises(tmp_watchlist):
+    with pytest.raises(ValueError):
+        wl.import_data("not a dict", mode="merge")
+    with pytest.raises(ValueError):
+        wl.import_data({"items": "not a list"}, mode="merge")
+    with pytest.raises(ValueError):
+        wl.import_data({}, mode="invalid_mode")
+
+
+def test_export_then_import_roundtrip(tmp_watchlist):
+    """导出后再 import (replace mode) 应得到等价数据"""
+    wl.add_item("NVDA", supertrend_id="semi", thesis="HBM")
+    wl.add_supertrend("renewable", "新能源", "", keywords_zh=["光伏"])
+
+    payload = wl.export_data()
+    # 模拟用户清空后导入
+    wl.save_watchlist({"version": 1, "user_supertrends": [], "items": []})
+    assert wl.list_items() == []
+
+    stats = wl.import_data(payload, mode="replace")
+    assert stats["items_added"] == 1
+    assert stats["supertrends_added"] == 1
+
+    items = wl.list_items()
+    assert any(it["ticker"] == "NVDA" and it["thesis"] == "HBM" for it in items)
