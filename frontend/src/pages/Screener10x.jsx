@@ -17,11 +17,12 @@
 //
 // 编辑/添加都通过 TenxItemEditor 模态框。
 // ─────────────────────────────────────────────────────────────
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import {
   Target, Layers, Plus, Edit2, Trash2, RefreshCw, Loader, AlertCircle,
   Filter, Search, Database, Star, ChevronRight, Globe, Sparkles, X,
   Archive, ArchiveRestore,
+  Download, Upload,
 } from "lucide-react";
 import { apiFetch } from "../quant-platform.jsx";
 import TenxItemEditor from "../components/TenxItemEditor.jsx";
@@ -153,6 +154,9 @@ export default function Screener10x() {
   const [addTrendOpen, setAddTrendOpen] = useState(false);
   // 归档显示开关
   const [showArchived, setShowArchived] = useState(false);
+  // 导入/导出 loading
+  const [importLoading, setImportLoading] = useState(false);
+  const importInputRef = useRef(null);
 
   // ── 拉初始数据（watchlist + universe stats）─────────────
   const reloadWatchlist = useCallback(async (opts = {}) => {
@@ -392,6 +396,69 @@ export default function Screener10x() {
     });
     await reloadWatchlist();
     // 归档/恢复都不影响候选 — 归档项也算"已观察过"
+  };
+
+  // 导出整份 watchlist 为 .json 备份文件
+  const handleExport = async () => {
+    const json = await apiFetch("/watchlist/10x/export");
+    if (!json) {
+      window.alert("导出失败：后端不可用（演示模式或网络问题）");
+      return;
+    }
+    const blob = new Blob([JSON.stringify(json, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `quantedge-watchlist-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  // 选文件 → 解析 JSON → 选 merge / replace → POST import
+  const handleImportFile = async (file) => {
+    if (!file) return;
+    let payload;
+    try {
+      const text = await file.text();
+      payload = JSON.parse(text);
+    } catch (e) {
+      window.alert(`文件解析失败：${e.message}`);
+      return;
+    }
+    if (!payload || typeof payload !== "object") {
+      window.alert("文件格式不对：应为 { items: [], user_supertrends: [] }");
+      return;
+    }
+
+    const summary = `观察项 ${payload.items?.length || 0} 条；自定义赛道 ${payload.user_supertrends?.length || 0} 个`;
+    const choice = window.prompt(
+      `${summary}\n\n输入 'merge' 合并到现有数据（推荐）；输入 'replace' 清空后导入（不可撤销）；其他取消。`,
+      "merge",
+    );
+    if (choice !== "merge" && choice !== "replace") return;
+
+    setImportLoading(true);
+    const res = await apiFetch("/watchlist/10x/import", {
+      method: "POST",
+      body: JSON.stringify({
+        mode: choice,
+        items: payload.items || [],
+        user_supertrends: payload.user_supertrends || [],
+      }),
+    });
+    setImportLoading(false);
+    if (res?.ok) {
+      window.alert(
+        `导入成功（${res.mode}）\n` +
+        `观察项：+${res.items_added} / 更新 ${res.items_updated}\n` +
+        `自定义赛道：+${res.supertrends_added} / 更新 ${res.supertrends_updated}`
+      );
+      await reloadWatchlist();
+    } else {
+      window.alert(`导入失败：${res?.detail || "未知错误"}`);
+    }
   };
 
   const trendName = (id) => supertrends.find((s) => s.id === id)?.name || id;
@@ -823,22 +890,50 @@ export default function Screener10x() {
             <Star size={12} className="text-amber-400" />
             <span className="text-[11px] font-semibold text-white">观察列表</span>
             <span className="text-[9px] text-[#a0aec0]">{items.length}</span>
-            <button
-              onClick={async () => {
-                const next = !showArchived;
-                setShowArchived(next);
-                await reloadWatchlist({ showArchived: next });
-              }}
-              className={`ml-auto flex items-center gap-1 px-1.5 py-0.5 text-[9px] rounded border transition ${
-                showArchived
-                  ? "bg-amber-500/20 text-amber-200 border-amber-500/40"
-                  : "bg-white/5 text-[#a0aec0] border-white/15 hover:bg-white/10"
-              }`}
-              title={showArchived ? "当前显示含归档；点击隐藏" : "点击显示归档项"}
-            >
-              <Archive size={9} />
-              {showArchived ? "含归档" : "显示归档"}
-            </button>
+            <div className="ml-auto flex items-center gap-1">
+              <button
+                onClick={async () => {
+                  const next = !showArchived;
+                  setShowArchived(next);
+                  await reloadWatchlist({ showArchived: next });
+                }}
+                className={`flex items-center gap-1 px-1.5 py-0.5 text-[9px] rounded border transition ${
+                  showArchived
+                    ? "bg-amber-500/20 text-amber-200 border-amber-500/40"
+                    : "bg-white/5 text-[#a0aec0] border-white/15 hover:bg-white/10"
+                }`}
+                title={showArchived ? "当前显示含归档；点击隐藏" : "点击显示归档项"}
+              >
+                <Archive size={9} />
+                {showArchived ? "含归档" : "显示归档"}
+              </button>
+              <button
+                onClick={handleExport}
+                disabled={isDemoMode}
+                className="flex items-center justify-center w-5 h-5 text-[#a0aec0] hover:text-white hover:bg-white/10 rounded transition disabled:opacity-30 disabled:cursor-not-allowed"
+                title="导出 JSON 备份（含所有观察项 + 自定义赛道）"
+              >
+                <Download size={11} />
+              </button>
+              <button
+                onClick={() => importInputRef.current?.click()}
+                disabled={isDemoMode || importLoading}
+                className="flex items-center justify-center w-5 h-5 text-[#a0aec0] hover:text-white hover:bg-white/10 rounded transition disabled:opacity-30 disabled:cursor-not-allowed"
+                title="从备份文件恢复（merge / replace 可选）"
+              >
+                {importLoading ? <Loader size={11} className="animate-spin" /> : <Upload size={11} />}
+              </button>
+              <input
+                ref={importInputRef}
+                type="file"
+                accept="application/json,.json"
+                className="hidden"
+                onChange={(e) => {
+                  handleImportFile(e.target.files?.[0]);
+                  e.target.value = "";   // 允许重选同一文件
+                }}
+              />
+            </div>
           </div>
           <div className="flex-1 overflow-auto p-2 space-y-2">
             {items.length === 0 && (

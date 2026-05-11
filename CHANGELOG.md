@@ -63,6 +63,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - `backend/server.py`：`GET /api/watchlist/10x?include_archived=true` 控制返回集；`PUT /{ticker}` 接受 `archived` 字段；`screen_candidates.exclude_in_watchlist` 含归档项（已观察过的票不再回到候选）
   - `frontend/api/_lib/watchlist10x.js` + `frontend/api/watchlist/10x.js`：JS port + endpoint 透传
   - `frontend/src/pages/Screener10x.jsx`：右栏顶部「显示归档」toggle；每张观察卡片加「归档」/「恢复」按钮；归档项 opacity-60 + 角标"归档"视觉区分
+- **10x 猎手 watchlist 备份/恢复**：导出 JSON 文件 + 导入 (merge/replace) — 防 KV 数据丢失 / 跨设备迁移
+  - `backend/watchlist_10x.py`：`export_data()` 含时间戳；`import_data(payload, mode)` 支持 merge（按 ticker / id 去重，payload 覆盖）和 replace（清空再写）；导入时与内置 supertrend id 冲突的用户赛道自动跳过（保护内置语义）
+  - `backend/server.py`：`GET /api/watchlist/10x/export` + `POST /api/watchlist/10x/import`
+  - `frontend/api/_lib/watchlist10x.js`：JS port；`frontend/api/watchlist/10x/export.js` + `import.js` Vercel endpoint
+  - `frontend/src/pages/Screener10x.jsx`：观察列表顶栏加 ⬇ 导出 / ⬆ 导入 按钮；导入用 `<input type=file hidden>` + `window.prompt` 选 merge/replace；返回 stats（添加/更新数）
   - 测试：backend pytest 8 例 + frontend vitest 7 例
 - **10x 猎手 production backend**（Vercel Serverless + KV + DeepSeek）：让线上完整可用，不再仅"演示模式"
   - **基础 helpers** (`frontend/api/_lib/`)：`kv.js` (Upstash REST) / `auth.js` (referer 白名单) / `sectorMapping.js` (1:1 移植 backend) / `universeLoader.js` (self-fetch + 内存 cache) / `watchlist10x.js` (KV 持久化业务) / `deepseek.js` / `llmCache.js`
