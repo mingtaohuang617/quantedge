@@ -296,6 +296,7 @@ const EN = {
   '恐惧': 'Fear',
   '极度恐惧': 'Extreme Fear',
   '关注板块表现 (今日)': 'Sector Performance (Today)',
+  '点击查看宏观看板 · 综合 17 因子方向化温度': 'Click to open macro dashboard · 17-factor weighted temperature',
   '板块-ETF 映射': 'Sector-ETF Mapping',
   '智能预警': 'Smart Alerts',
   '实时数据流': 'Real-time Feed',
