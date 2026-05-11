@@ -3,7 +3,7 @@
 // 组件已拆到 ../components/macro/*；本文件只负责数据加载 + 组合 + 路由级 state
 // ─────────────────────────────────────────────────────────────
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { Globe, RefreshCw, AlertCircle, Loader, Search, X, ArrowUp, Download, Maximize2, Minimize2, Share2, Check } from "lucide-react";
+import { Globe, RefreshCw, AlertCircle, Loader, ArrowUp, Maximize2, Minimize2, Share2, Check } from "lucide-react";
 import { apiFetch } from "../quant-platform.jsx";
 import { useLang } from "../i18n.jsx";
 
@@ -26,6 +26,7 @@ import DataStatusBanner from "../components/macro/DataStatusBanner.jsx";
 import FactorDetailModal from "../components/macro/FactorDetailModal.jsx";
 import TopMovers from "../components/macro/TopMovers.jsx";
 import ShortcutsHelp from "../components/macro/ShortcutsHelp.jsx";
+import FilterBar from "../components/macro/FilterBar.jsx";
 
 const USE_SNAPSHOT = import.meta.env.PROD;
 
@@ -393,122 +394,18 @@ export default function MacroDashboard() {
         </>
       )}
 
-      {factors && factors.length > 0 && (
-        <div className="space-y-1.5">
-          <div className="flex flex-wrap gap-1.5">
-            <button
-              onClick={() => setFilter("all")}
-              className={`px-2.5 py-1 rounded text-[11px] border transition-colors ${
-                filter === "all"
-                  ? "bg-indigo-500/20 border-indigo-400/40 text-indigo-200"
-                  : "bg-white/[0.03] border-white/[0.08] text-white/60 hover:text-white"
-              }`}
-            >
-              {t("全部")} ({factors.length})
-            </button>
-            {categories.map(c => (
-              <button
-                key={c}
-                onClick={() => setFilter(c)}
-                className={`px-2.5 py-1 rounded text-[11px] border transition-colors ${
-                  filter === c
-                    ? "bg-indigo-500/20 border-indigo-400/40 text-indigo-200"
-                    : "bg-white/[0.03] border-white/[0.08] text-white/60 hover:text-white"
-                }`}
-              >
-                {t(CATEGORY_LABEL[c] || c)} ({factors.filter(f => f.category === c).length})
-              </button>
-            ))}
-          </div>
-          {/* 市场过滤副行（snapshot 同时含 US/CN） */}
-          {Object.keys(marketCounts).length > 2 && (
-            <div className="flex flex-wrap gap-1.5 items-center">
-              <span className="text-[10px] text-white/40 mr-1">{t("市场")}:</span>
-              {[
-                { id: "all", label: t("全部"), count: marketCounts.all },
-                ...Object.keys(marketCounts).filter(k => k !== "all").sort()
-                  .map(m => ({ id: m, label: m, count: marketCounts[m] })),
-              ].map(opt => (
-                <button
-                  key={opt.id}
-                  onClick={() => setMarketFilter(opt.id)}
-                  className={`px-2 py-0.5 rounded text-[10px] border transition-colors ${
-                    marketFilter === opt.id
-                      ? "bg-cyan-500/20 border-cyan-400/40 text-cyan-200"
-                      : "bg-white/[0.02] border-white/[0.05] text-white/45 hover:text-white/80"
-                  }`}
-                >
-                  {opt.label} ({opt.count})
-                </button>
-              ))}
-            </div>
-          )}
-          {/* 方向过滤副行 + 搜索框 + 仅收藏切换 + CSV */}
-          <div className="flex flex-wrap gap-1.5 items-center">
-            {starred.size > 0 && (
-              <button
-                onClick={() => setOnlyStarred(v => !v)}
-                className={`px-2 py-0.5 rounded text-[10px] border transition-colors flex items-center gap-1 ${
-                  onlyStarred
-                    ? "bg-amber-500/15 border-amber-400/40 text-amber-200"
-                    : "bg-white/[0.02] border-white/[0.05] text-white/55 hover:text-white/85"
-                }`}
-                title={onlyStarred ? t("显示全部") : t("仅显示收藏")}
-              >
-                ★ {onlyStarred ? t("仅收藏") : `${starred.size}`}
-              </button>
-            )}
-            <span className="text-[10px] text-white/40 mr-1">{t("方向")}:</span>
-            {[
-              { id: "all", label: t("全部") },
-              { id: "higher", label: t("高=牛") },
-              { id: "lower", label: t("低=牛") },
-              { id: "contrarian", label: t("低=牛·极端反向") },
-            ].map(opt => (
-              <button
-                key={opt.id}
-                onClick={() => setDirFilter(opt.id)}
-                className={`px-2 py-0.5 rounded text-[10px] border transition-colors ${
-                  dirFilter === opt.id
-                    ? "bg-violet-500/20 border-violet-400/40 text-violet-200"
-                    : "bg-white/[0.02] border-white/[0.05] text-white/45 hover:text-white/80"
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-            <div className="sm:ml-auto relative flex items-center w-full sm:w-auto">
-              <Search className="absolute left-2 w-3 h-3 text-white/30" />
-              <input
-                ref={searchInputRef}
-                type="text"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder={t("搜索因子 (id / 名称 / 描述)") + " (s)"}
-                className="pl-7 pr-7 py-0.5 text-[10px] bg-white/[0.03] border border-white/[0.08] rounded text-white/85 placeholder:text-white/30 focus:outline-none focus:border-indigo-400/50 w-full sm:w-56"
-              />
-              {search && (
-                <button
-                  onClick={() => setSearch("")}
-                  className="absolute right-1 p-0.5 rounded hover:bg-white/10 text-white/40 hover:text-white/70"
-                  title={t("清除")}
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              )}
-            </div>
-            <button
-              onClick={exportCsv}
-              disabled={filtered.length === 0}
-              className="px-2 py-0.5 rounded text-[10px] border bg-white/[0.02] border-white/[0.06] text-white/55 hover:text-white/85 hover:bg-white/[0.05] flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed"
-              title={t("导出当前筛选结果为 CSV")}
-            >
-              <Download className="w-3 h-3" />
-              CSV
-            </button>
-          </div>
-        </div>
-      )}
+      <FilterBar
+        factors={factors}
+        categories={categories}
+        marketCounts={marketCounts}
+        filtered={filtered}
+        filter={filter} setFilter={setFilter}
+        marketFilter={marketFilter} setMarketFilter={setMarketFilter}
+        dirFilter={dirFilter} setDirFilter={setDirFilter}
+        search={search} setSearch={setSearch} searchInputRef={searchInputRef}
+        starred={starred} onlyStarred={onlyStarred} setOnlyStarred={setOnlyStarred}
+        exportCsv={exportCsv}
+      />
 
       {error && (
         <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-400/30 rounded-lg text-sm text-red-300">
