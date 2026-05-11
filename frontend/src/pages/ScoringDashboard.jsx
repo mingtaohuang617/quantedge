@@ -10,6 +10,8 @@ import { useLang } from "../i18n.jsx";
 import { STOCKS } from "../data.js";
 import AIStockSummaryCard from "../components/AIStockSummaryCard.jsx";
 import ScoreExplainCard from "../components/ScoreExplainCard.jsx";
+import macroSnapshot from "../macroSnapshot.json";
+import { TEMP_TEXT, TEMP_LABEL } from "../components/macro/shared.js";
 import {
   DataContext,
   useData,
@@ -803,6 +805,27 @@ const ScoringDashboard = () => {
                 </div>
               </>
             )}
+          </>
+        );
+      })()}
+      {/* 宏观温度 badge — 让用户看持仓时不脱离市场上下文 */}
+      {(() => {
+        const temp = macroSnapshot?.composite?.market_temperature;
+        if (temp == null) return null;
+        const cls = TEMP_TEXT(temp);
+        const label = t(TEMP_LABEL(temp));
+        return (
+          <>
+            <span className="text-white/10 shrink-0">|</span>
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent("quantedge:nav", { detail: "macro" }))}
+              className="flex items-center gap-1.5 shrink-0 hover:opacity-80 transition-opacity cursor-pointer"
+              title={t('点击查看宏观看板 · 综合 17 因子方向化温度')}
+            >
+              <span className="text-[#a0aec0] font-medium uppercase text-[8px]">{t('宏观')}</span>
+              <span className={`font-mono tabular-nums font-bold ${cls}`}>{temp.toFixed(0)}</span>
+              <span className={`text-[9px] ${cls}`}>{label}</span>
+            </button>
           </>
         );
       })()}
