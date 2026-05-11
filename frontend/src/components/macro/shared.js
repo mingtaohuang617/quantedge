@@ -163,6 +163,45 @@ export function daysSince(dateStr) {
   return Math.round((Date.now() - d.getTime()) / 86400000);
 }
 
+// ─── 看板视图分享：filter state ↔ URL hash 编解码 ─────────────
+// 格式：#m=cat=valuation&mk=US&dir=contrarian&q=VIX&star=1&c=1
+// 默认值不写入 URL，保持 URL 干净。
+//
+// 用户场景：分析师 A 调好 filter 后复制 URL 发给 B，B 打开就看到一模一样的视图。
+const FILTER_DEFAULTS = {
+  filter: "all", marketFilter: "all", dirFilter: "all",
+  search: "", onlyStarred: false, compact: false,
+};
+
+export function encodeMacroState({ filter, marketFilter, dirFilter, search, onlyStarred, compact }) {
+  const params = new URLSearchParams();
+  if (filter && filter !== FILTER_DEFAULTS.filter) params.set("cat", filter);
+  if (marketFilter && marketFilter !== FILTER_DEFAULTS.marketFilter) params.set("mk", marketFilter);
+  if (dirFilter && dirFilter !== FILTER_DEFAULTS.dirFilter) params.set("dir", dirFilter);
+  if (search) params.set("q", search);
+  if (onlyStarred) params.set("star", "1");
+  if (compact) params.set("c", "1");
+  const qs = params.toString();
+  return qs ? `m=${qs}` : "";
+}
+
+export function decodeMacroState(hash) {
+  if (!hash || typeof hash !== "string") return {};
+  // 兼容 "#m=..." / "m=..." 入参
+  const clean = hash.replace(/^#/, "");
+  if (!clean.startsWith("m=")) return {};
+  const qs = clean.substring(2);
+  const params = new URLSearchParams(qs);
+  const out = {};
+  if (params.has("cat")) out.filter = params.get("cat");
+  if (params.has("mk")) out.marketFilter = params.get("mk");
+  if (params.has("dir")) out.dirFilter = params.get("dir");
+  if (params.has("q")) out.search = params.get("q");
+  if (params.get("star") === "1") out.onlyStarred = true;
+  if (params.get("c") === "1") out.compact = true;
+  return out;
+}
+
 // ─── 收藏（星标）因子持久化 ─────────────────────────────────
 // 存于 localStorage.quantedge_macro_starred，array of "factor_id@market" 复合键
 const STARRED_KEY = "quantedge_macro_starred";
