@@ -2,7 +2,9 @@
 import { describe, it, expect } from 'vitest';
 import {
   classifySector,
+  classifySectorWithReasons,
   nameMatchesStrict,
+  nameMatchesStrictWithReasons,
   listSupertrendsMeta,
   getStrictKeywords,
   SUPERTRENDS,
@@ -182,5 +184,122 @@ describe('listSupertrendsMeta — strategy filter', () => {
 
   it('strategy="speculative"（无效）返回空数组', () => {
     expect(listSupertrendsMeta('speculative')).toEqual([]);
+  });
+});
+
+// ── classify_sector_with_reasons：诊断命中关键词 ─────────────
+describe('classifySectorWithReasons', () => {
+  it('命中赛道时同时返回触发关键词列表', () => {
+    const { matched, reasons } = classifySectorWithReasons('半导体/HBM');
+    expect(matched).toEqual(new Set(['semi', 'ai_compute']));
+    expect(reasons.semi).toContain('半导体');
+    expect(reasons.ai_compute).toContain('HBM');
+  });
+
+  it('英文关键词原大小写保留', () => {
+    const { matched, reasons } = classifySectorWithReasons('Semiconductors');
+    expect(matched).toEqual(new Set(['semi']));
+    expect(
+      reasons.semi.some(kw => kw.toLowerCase().startsWith('semicon'))
+    ).toBe(true);
+  });
+
+  it('未命中返回空 set + 空 reasons', () => {
+    const { matched, reasons } = classifySectorWithReasons('零售');
+    expect(matched.size).toBe(0);
+    expect(Object.keys(reasons)).toHaveLength(0);
+  });
+
+  it('null / 空字符串行为同 classifySector', () => {
+    for (const input of [null, '', '   ']) {
+      const { matched, reasons } = classifySectorWithReasons(input);
+      expect(matched.size).toBe(0);
+      expect(Object.keys(reasons)).toHaveLength(0);
+    }
+  });
+
+  it('用户赛道关键词命中也带 reasons', () => {
+    const userTrends = [{ id: 'renewable', keywords_zh: ['光伏'], keywords_en: ['Solar'] }];
+    const { matched, reasons } = classifySectorWithReasons(
+      '光伏发电', 'broad', userTrends
+    );
+    expect(matched.has('renewable')).toBe(true);
+    expect(reasons.renewable).toContain('光伏');
+  });
+
+  it('reasons 关键词去重', () => {
+    const { reasons } = classifySectorWithReasons('Semiconductor Equipment & Materials');
+    const semiKws = reasons.semi || [];
+    expect(semiKws.length).toBe(new Set(semiKws).size);
+  });
+
+  it('与 classifySector 行为完全一致（matched set）', () => {
+    const cases = [
+      ['半导体/HBM', 'broad'],
+      ['半导体/HBM', 'strict'],
+      ['通讯设备', 'broad'],
+      ['通讯设备', 'strict'],
+      ['公共事业', 'broad'],
+      ['Semiconductors', 'broad'],
+      ['零售', 'broad'],
+      [null, 'broad'],
+      ['', 'strict'],
+    ];
+    for (const [s, m] of cases) {
+      const a = classifySector(s, m);
+      const { matched: b } = classifySectorWithReasons(s, m);
+      expect(a, `mismatch (${s}, ${m})`).toEqual(b);
+    }
+  });
+
+  it('无效 mode 抛错', () => {
+    expect(() => classifySectorWithReasons('Semiconductors', 'loose')).toThrow();
+  });
+});
+
+// ── nameMatchesStrictWithReasons ────────────────────────────
+describe('nameMatchesStrictWithReasons', () => {
+  it('光纤公司名命中，reasons 含触发关键词', () => {
+    const { ok, reasons } = nameMatchesStrictWithReasons('长飞光纤', ['optical']);
+    expect(ok).toBe(true);
+    expect(reasons.optical).toContain('光纤');
+  });
+
+  it('英文关键词大小写不敏感，reasons 保留原大小写', () => {
+    const { ok, reasons } = nameMatchesStrictWithReasons(
+      'Lumentum Optical Networks Inc', ['optical']
+    );
+    expect(ok).toBe(true);
+    expect(reasons.optical).toContain('Optical');
+  });
+
+  it('未命中返回 ok=false + 空 reasons', () => {
+    const { ok, reasons } = nameMatchesStrictWithReasons('Apple Inc', ['optical', 'semi']);
+    expect(ok).toBe(false);
+    expect(Object.keys(reasons)).toHaveLength(0);
+  });
+
+  it('用户赛道参与名称匹配', () => {
+    const userTrends = [{ id: 'robotics', keywords_zh: ['机器人'], keywords_en: ['Robotics'] }];
+    const { ok, reasons } = nameMatchesStrictWithReasons(
+      '优必选机器人', ['robotics'], userTrends
+    );
+    expect(ok).toBe(true);
+    expect(reasons.robotics).toContain('机器人');
+  });
+
+  it('与 nameMatchesStrict 行为一致', () => {
+    const cases = [
+      ['长飞光纤', ['optical']],
+      ['Apple Inc', ['semi', 'optical']],
+      [null, ['semi']],
+      ['', ['semi']],
+      ['某半导体公司', ['semi']],
+    ];
+    for (const [n, ids] of cases) {
+      const a = nameMatchesStrict(n, ids);
+      const { ok: b } = nameMatchesStrictWithReasons(n, ids);
+      expect(a, `mismatch (${n}, ${ids})`).toBe(b);
+    }
   });
 });

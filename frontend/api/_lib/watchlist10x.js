@@ -8,8 +8,8 @@
 import { KV_ENABLED, kvGetJson, kvSetJson } from './kv.js';
 import {
   listSupertrendsMeta,
-  classifySector,
-  nameMatchesStrict,
+  classifySectorWithReasons,
+  nameMatchesStrictWithReasons,
 } from './sectorMapping.js';
 import { loadUniverse } from './universeLoader.js';
 
@@ -18,7 +18,7 @@ const ALLOWED_STRATEGIES = new Set(['growth', 'value']);
 const VALID_FIELDS = new Set([
   'strategy', 'supertrend_id', 'bottleneck_layer', 'bottleneck_tag',
   'moat_score', 'thesis', 'target_price', 'stop_loss', 'tags',
-  'llm_thesis_cached_at',
+  'llm_thesis_cached_at', 'archived',
 ]);
 
 function emptyData() {
@@ -59,8 +59,10 @@ export async function listAllSupertrends() {
   return mergeSupertrends(await loadData());
 }
 
-export async function listItems() {
-  return (await loadData()).items;
+export async function listItems({ includeArchived = false } = {}) {
+  const items = (await loadData()).items;
+  if (includeArchived) return items;
+  return items.filter(it => !it.archived);
 }
 
 export async function addItem(ticker, fields = {}) {
@@ -94,6 +96,7 @@ export async function addItem(ticker, fields = {}) {
     stop_loss: fields.stop_loss ?? null,
     tags: Array.isArray(fields.tags) ? fields.tags : [],
     llm_thesis_cached_at: null,
+    archived: !!fields.archived,
   };
   data.items.push(item);
   await saveData(data);
@@ -206,29 +209,61 @@ export async function screenCandidates(opts = {}) {
   let filtered;
   if (wanted.size > 0) {
     filtered = [];
+    const mode = precise ? 'strict' : 'broad';
     for (const it of universe) {
-      let matched;
-      if (precise) {
-        const sectorClassified = classifySector(it.sector, 'strict', userTrends);
-        const industryClassified = classifySector(it.industry, 'strict', userTrends);
-        const secMatch = new Set(
-          [...sectorClassified, ...industryClassified].filter(t => wanted.has(t))
-        );
-        const nameMatch = nameMatchesStrict(it.name, [...wanted], userTrends);
-        if (secMatch.size === 0 && !nameMatch) continue;
-        matched = secMatch.size > 0 ? secMatch : new Set(wanted);
-      } else {
-        const sectorClassified = classifySector(it.sector, 'broad', userTrends);
-        const industryClassified = classifySector(it.industry, 'broad', userTrends);
-        matched = new Set(
-          [...sectorClassified, ...industryClassified].filter(t => wanted.has(t))
-        );
-        if (matched.size === 0) continue;
+      const { matched: secAll, reasons: secKw } =
+        classifySectorWithReasons(it.sector, mode, userTrends);
+      const { matched: indAll, reasons: indKw } =
+        classifySectorWithReasons(it.industry, mode, userTrends);
+      const secMatched = new Set([...secAll].filter(t => wanted.has(t)));
+      const indMatched = new Set([...indAll].filter(t => wanted.has(t)));
+
+      // precise 模式 fallback：sec/ind 都不命中时再查名称
+      let nameReasons = {};
+      if (precise && secMatched.size === 0 && indMatched.size === 0) {
+        const r = nameMatchesStrictWithReasons(it.name, [...wanted], userTrends);
+        nameReasons = r.reasons;
       }
-      filtered.push({ ...it, matched_supertrends: [...matched].sort() });
+
+      const matchedSet = new Set([
+        ...secMatched, ...indMatched, ...Object.keys(nameReasons),
+      ]);
+      if (matchedSet.size === 0) continue;
+
+      // 构建 match_reasons：trend_id → list of {field, value, keywords}
+      const reasons = {};
+      const push = (tid, field, value, keywords) => {
+        if (!reasons[tid]) reasons[tid] = [];
+        reasons[tid].push({ field, value, keywords });
+      };
+
+      for (const tid of secMatched) {
+        push(tid, 'sector', it.sector, secKw[tid] || []);
+      }
+      for (const tid of indMatched) {
+        // A 股池 sector==industry 常见，去重避免重复展示
+        const exists = (reasons[tid] || []).some(
+          r => r.field === 'sector' && r.value === it.industry
+        );
+        if (exists) continue;
+        push(tid, 'industry', it.industry, indKw[tid] || []);
+      }
+      for (const [tid, kws] of Object.entries(nameReasons)) {
+        push(tid, 'name', it.name, kws);
+      }
+
+      filtered.push({
+        ...it,
+        matched_supertrends: [...matchedSet].sort(),
+        match_reasons: reasons,
+      });
     }
   } else {
-    filtered = universe.map(it => ({ ...it, matched_supertrends: [] }));
+    filtered = universe.map(it => ({
+      ...it,
+      matched_supertrends: [],
+      match_reasons: {},
+    }));
   }
 
   if (!include_etf) {
@@ -288,6 +323,7 @@ export async function screenCandidates(opts = {}) {
   }
 
   if (exclude_in_watchlist) {
+    // 含归档项 — 归档过的票"已经看过"，不应再回到候选
     const inWl = new Set(data.items.map(it => it.ticker));
     filtered = filtered.filter(it => !inWl.has(it.ticker));
   }

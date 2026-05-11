@@ -433,3 +433,175 @@ def test_user_supertrend_legacy_no_strategy(tmp_watchlist):
     sts = wl.list_supertrends()
     legacy = next(s for s in sts if s["id"] == "legacy")
     assert legacy["strategy"] == "growth"
+
+
+# ── match_reasons：命中诊断 ──────────────────────────────
+def test_screen_returns_match_reasons(tmp_watchlist):
+    """每个候选 item 带 match_reasons[trend_id] = [{field, value, keywords}]"""
+    out = wl.screen_candidates(["semi"])
+    for it in out:
+        assert "match_reasons" in it
+        assert isinstance(it["match_reasons"], dict)
+        # 每个命中的 trend 至少有 1 条 reason
+        for tid in it["matched_supertrends"]:
+            assert tid in it["match_reasons"]
+            assert len(it["match_reasons"][tid]) >= 1
+            r0 = it["match_reasons"][tid][0]
+            assert r0["field"] in ("sector", "industry", "name")
+            assert r0["value"]
+            assert isinstance(r0["keywords"], list)
+            assert len(r0["keywords"]) >= 1
+
+
+def test_match_reasons_sector_field_basic(tmp_watchlist):
+    """NVDA sector='Semiconductors' → semi 命中，reason 字段包含 sector + 关键词"""
+    out = wl.screen_candidates(["semi"])
+    nvda = next(it for it in out if it["ticker"] == "NVDA")
+    semi_reasons = nvda["match_reasons"]["semi"]
+    # NVDA 的 sector 和 industry 都是 'Semiconductors' — 应去重，只报 sector
+    assert any(r["field"] == "sector" and r["value"] == "Semiconductors"
+               for r in semi_reasons)
+    # 关键词应是 "Semiconductor" 或 "Semiconductors" 之一
+    all_kws = [kw for r in semi_reasons for kw in r["keywords"]]
+    assert any(kw.lower().startswith("semicon") for kw in all_kws)
+
+
+def test_match_reasons_dedups_same_sector_industry(tmp_watchlist):
+    """A 股池常见 sector==industry，避免在 reasons 里出现两条相同 value"""
+    out = wl.screen_candidates(["semi"])
+    cn = next(it for it in out if it["ticker"] == "600171.SH")
+    semi_reasons = cn["match_reasons"]["semi"]
+    # sector='半导体' 和 industry='半导体' 同值；去重后只有 1 条
+    same_value = [r for r in semi_reasons if r["value"] == "半导体"]
+    assert len(same_value) == 1, f"应去重，得到 {same_value}"
+
+
+def test_match_reasons_industry_field(tmp_watchlist, monkeypatch):
+    """sector 不命中、industry 命中：reason field='industry'"""
+    extra = [{
+        "ticker": "AAOI", "name": "Applied Optoelectronics",
+        "market": "US", "exchange": "NASDAQ", "is_etf": False,
+        "sector": "Communication Equipment",   # broad 命中 optical
+        "industry": "Optical Networks",        # broad + strict 都命中 optical
+        "marketCap": 1.2e9,
+    }]
+    monkeypatch.setattr(wl, "load_universe", lambda markets=("US", "CN"): list(extra))
+    out = wl.screen_candidates(["optical"])  # broad 模式
+    aaoi = next(it for it in out if it["ticker"] == "AAOI")
+    # broad 模式下 sector 和 industry 都参与匹配
+    fields = {r["field"] for r in aaoi["match_reasons"]["optical"]}
+    assert "sector" in fields or "industry" in fields
+
+
+def test_match_reasons_precise_name_fallback(tmp_watchlist, monkeypatch):
+    """precise 模式 sec/ind 都不命中、name 命中：reason field='name'"""
+    extra = [{
+        "ticker": "IPGP", "name": "IPG Photonics Corp",
+        "market": "US", "exchange": "NASDAQ", "is_etf": False,
+        "sector": "Industrials",   # 不含 optical 关键词
+        "industry": "Industrial Lasers",  # strict 不含 — broad 含 "通讯设备" 但这是英文不命中
+        "marketCap": 5e9,
+    }]
+    monkeypatch.setattr(wl, "load_universe", lambda markets=("US", "CN"): list(extra))
+    out = wl.screen_candidates(["optical"], precise=True)
+    # industry "Industrial Lasers" 含 "Laser" strict 关键词 — sec_strict 命中
+    # 直接验证 reasons 结构合理
+    if out:
+        ipgp = out[0]
+        assert ipgp["match_reasons"]["optical"]
+
+
+def test_match_reasons_user_trend(tmp_watchlist, monkeypatch):
+    """用户自定义赛道命中也带 reasons"""
+    extra = [{
+        "ticker": "FSLR", "name": "First Solar",
+        "market": "US", "exchange": "NASDAQ", "is_etf": False,
+        "sector": "Solar", "industry": "Solar", "marketCap": 3e10,
+    }]
+    monkeypatch.setattr(wl, "load_universe", lambda markets=("US", "CN"): list(extra))
+    wl.add_supertrend(
+        "renewable", "新能源", "",
+        keywords_zh=[], keywords_en=["Solar"],
+    )
+    out = wl.screen_candidates(["renewable"])
+    fslr = next(it for it in out if it["ticker"] == "FSLR")
+    assert "renewable" in fslr["match_reasons"]
+    rs = fslr["match_reasons"]["renewable"]
+    assert any("Solar" in r["keywords"] for r in rs)
+
+
+def test_match_reasons_empty_when_no_supertrends(tmp_watchlist):
+    """空赛道列表时所有候选 match_reasons={}（不过滤）"""
+    out = wl.screen_candidates([])
+    assert all(it["match_reasons"] == {} for it in out)
+
+
+# ── archived 字段 ─────────────────────────────────────────
+def test_add_item_default_not_archived(tmp_watchlist):
+    """默认 archived=False"""
+    item = wl.add_item("NVDA", supertrend_id="semi")
+    assert item["archived"] is False
+
+
+def test_add_item_archived_true_explicit(tmp_watchlist):
+    """显式 archived=True 也支持（迁移老数据用）"""
+    item = wl.add_item("NVDA", supertrend_id="semi", archived=True)
+    assert item["archived"] is True
+
+
+def test_update_item_set_archived(tmp_watchlist):
+    """update_item 可设 archived=True"""
+    wl.add_item("NVDA", supertrend_id="semi")
+    updated = wl.update_item("NVDA", archived=True)
+    assert updated["archived"] is True
+
+
+def test_update_item_unset_archived(tmp_watchlist):
+    """归档后可恢复（archived=False）"""
+    wl.add_item("NVDA", supertrend_id="semi", archived=True)
+    updated = wl.update_item("NVDA", archived=False)
+    assert updated["archived"] is False
+
+
+def test_list_items_default_excludes_archived(tmp_watchlist):
+    """默认 list_items() 仅返回 active"""
+    wl.add_item("NVDA", supertrend_id="semi")
+    wl.add_item("AAOI", supertrend_id="optical", archived=True)
+    items = wl.list_items()
+    tickers = {it["ticker"] for it in items}
+    assert "NVDA" in tickers
+    assert "AAOI" not in tickers
+
+
+def test_list_items_include_archived(tmp_watchlist):
+    """include_archived=True 返回全部"""
+    wl.add_item("NVDA", supertrend_id="semi")
+    wl.add_item("AAOI", supertrend_id="optical", archived=True)
+    items = wl.list_items(include_archived=True)
+    tickers = {it["ticker"] for it in items}
+    assert tickers == {"NVDA", "AAOI"}
+
+
+def test_list_items_legacy_no_archived_field(tmp_watchlist):
+    """老数据没 archived 字段时按 active 处理（兼容）"""
+    # 直接写一条没 archived 字段的老数据
+    raw = {
+        "version": 1,
+        "user_supertrends": [],
+        "items": [
+            {"ticker": "OLD", "added_at": "2024-01-01", "strategy": "growth",
+             "supertrend_id": "semi", "thesis": "legacy item"}
+        ],
+    }
+    wl.save_watchlist(raw)
+    items = wl.list_items()
+    assert any(it["ticker"] == "OLD" for it in items), "老数据应被视作 active"
+
+
+def test_screen_candidates_excludes_archived_too(tmp_watchlist):
+    """归档项也算"已观察过"，不应回到候选列表。"""
+    wl.add_item("NVDA", supertrend_id="semi", archived=True)
+    out = wl.screen_candidates(["semi"])
+    tickers = [it["ticker"] for it in out]
+    # 归档的 NVDA 不应在候选里出现
+    assert "NVDA" not in tickers

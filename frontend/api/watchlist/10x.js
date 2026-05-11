@@ -10,8 +10,11 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     const data = await loadData();
+    const includeArchived = req.query?.include_archived === 'true' || req.query?.include_archived === '1';
+    const allItems = data.items || [];
+    const items = includeArchived ? allItems : allItems.filter(it => !it.archived);
     return res.status(200).json({
-      items: data.items || [],
+      items,
       supertrends: mergeSupertrends(data),
     });
   }

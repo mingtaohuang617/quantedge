@@ -21,6 +21,7 @@ import React, { useEffect, useState, useCallback, useMemo } from "react";
 import {
   Target, Layers, Plus, Edit2, Trash2, RefreshCw, Loader, AlertCircle,
   Filter, Search, Database, Star, ChevronRight, Globe, Sparkles, X,
+  Archive, ArchiveRestore,
 } from "lucide-react";
 import { apiFetch } from "../quant-platform.jsx";
 import TenxItemEditor from "../components/TenxItemEditor.jsx";
@@ -43,6 +44,24 @@ function fmtMcap(mc) {
   if (mc >= 1e9) return `${(mc / 1e9).toFixed(2)}B`;
   if (mc >= 1e6) return `${(mc / 1e6).toFixed(0)}M`;
   return `${mc.toFixed(0)}`;
+}
+
+const FIELD_LABEL = { sector: "板块", industry: "行业", name: "名称" };
+
+/** 把候选 item 的 match_reasons[trend_id] 渲染成 hover tooltip 文本。
+ * 输入：[{ field, value, keywords }, ...]
+ * 输出："板块='Semiconductors' 含 Semiconductor | 名称='长飞光纤' 含 光纤"
+ */
+function formatMatchReason(matchReasons, tid) {
+  const reasons = matchReasons?.[tid];
+  if (!Array.isArray(reasons) || reasons.length === 0) return null;
+  return reasons
+    .map((r) => {
+      const fieldLabel = FIELD_LABEL[r.field] || r.field;
+      const kws = (r.keywords || []).join("、");
+      return `${fieldLabel}="${r.value}" 含 ${kws}`;
+    })
+    .join(" | ");
 }
 
 export default function Screener10x() {
@@ -75,10 +94,14 @@ export default function Screener10x() {
   const [pendingCandidate, setPendingCandidate] = useState(null);
   // 添加赛道对话框
   const [addTrendOpen, setAddTrendOpen] = useState(false);
+  // 归档显示开关
+  const [showArchived, setShowArchived] = useState(false);
 
   // ── 拉初始数据（watchlist + universe stats）─────────────
-  const reloadWatchlist = useCallback(async () => {
-    const json = await apiFetch("/watchlist/10x");
+  const reloadWatchlist = useCallback(async (opts = {}) => {
+    const archivedFlag = opts.showArchived ?? showArchived;
+    const url = archivedFlag ? "/watchlist/10x?include_archived=true" : "/watchlist/10x";
+    const json = await apiFetch(url);
     if (json) {
       setSupertrends(json.supertrends || []);
       setItems(json.items || []);
@@ -90,7 +113,7 @@ export default function Screener10x() {
       setItems([]);
       setIsDemoMode(true);
     }
-  }, []);
+  }, [showArchived]);
 
   const reloadUniverseStats = useCallback(async () => {
     const json = await apiFetch("/universe/stats");
@@ -289,11 +312,20 @@ export default function Screener10x() {
   };
 
   const handleDelete = async (ticker) => {
-    if (!window.confirm(`从观察列表删除 ${ticker}？`)) return;
+    if (!window.confirm(`从观察列表删除 ${ticker}？此操作不可撤销。归档（左下"显示归档"按钮）可保留 thesis。`)) return;
     await apiFetch(`/watchlist/10x/${encodeURIComponent(ticker)}`, { method: "DELETE" });
     await reloadWatchlist();
     // 删除后让 ticker 重新进入候选列表
     if (selectedTrends.length > 0) runScreen();
+  };
+
+  const handleToggleArchive = async (ticker, archived) => {
+    await apiFetch(`/watchlist/10x/${encodeURIComponent(ticker)}`, {
+      method: "PUT",
+      body: JSON.stringify({ archived }),
+    });
+    await reloadWatchlist();
+    // 归档/恢复都不影响候选 — 归档项也算"已观察过"
   };
 
   const trendName = (id) => supertrends.find((s) => s.id === id)?.name || id;
@@ -605,9 +637,21 @@ export default function Screener10x() {
                         )}
                         <td className="px-2 py-1.5">
                           <div className="flex flex-wrap gap-0.5">
-                            {(c.matched_supertrends || []).map((t) => (
-                              <span key={t} className="text-[8px] px-1 py-px rounded bg-cyan-500/15 text-cyan-200 border border-cyan-500/30">{trendName(t)}</span>
-                            ))}
+                            {(c.matched_supertrends || []).map((t) => {
+                              const reason = formatMatchReason(c.match_reasons, t);
+                              const tip = reason
+                                ? `${trendName(t)}\n\n命中原因：${reason}`
+                                : trendName(t);
+                              return (
+                                <span
+                                  key={t}
+                                  title={tip}
+                                  className="text-[8px] px-1 py-px rounded bg-cyan-500/15 text-cyan-200 border border-cyan-500/30 cursor-help"
+                                >
+                                  {trendName(t)}
+                                </span>
+                              );
+                            })}
                           </div>
                         </td>
                         <td className="px-2 py-1.5 text-right">
@@ -651,6 +695,22 @@ export default function Screener10x() {
             <Star size={12} className="text-amber-400" />
             <span className="text-[11px] font-semibold text-white">观察列表</span>
             <span className="text-[9px] text-[#a0aec0]">{items.length}</span>
+            <button
+              onClick={async () => {
+                const next = !showArchived;
+                setShowArchived(next);
+                await reloadWatchlist({ showArchived: next });
+              }}
+              className={`ml-auto flex items-center gap-1 px-1.5 py-0.5 text-[9px] rounded border transition ${
+                showArchived
+                  ? "bg-amber-500/20 text-amber-200 border-amber-500/40"
+                  : "bg-white/5 text-[#a0aec0] border-white/15 hover:bg-white/10"
+              }`}
+              title={showArchived ? "当前显示含归档；点击隐藏" : "点击显示归档项"}
+            >
+              <Archive size={9} />
+              {showArchived ? "含归档" : "显示归档"}
+            </button>
           </div>
           <div className="flex-1 overflow-auto p-2 space-y-2">
             {items.length === 0 && (
@@ -665,6 +725,7 @@ export default function Screener10x() {
                 trendName={trendName}
                 onEdit={() => openEdit(it)}
                 onDelete={() => handleDelete(it.ticker)}
+                onToggleArchive={() => handleToggleArchive(it.ticker, !it.archived)}
               />
             ))}
           </div>
@@ -697,14 +758,22 @@ export default function Screener10x() {
 // ─────────────────────────────────────────────────────────────
 // 观察项卡片
 // ─────────────────────────────────────────────────────────────
-function WatchlistCard({ item, trendName, onEdit, onDelete }) {
+function WatchlistCard({ item, trendName, onEdit, onDelete, onToggleArchive }) {
   const moat = item.moat_score || 0;
+  const archived = !!item.archived;
   return (
-    <div className="glass-card p-2 border border-white/10 hover:border-white/20 transition group">
+    <div className={`glass-card p-2 border transition group ${
+      archived
+        ? "border-white/5 opacity-60 hover:opacity-90"
+        : "border-white/10 hover:border-white/20"
+    }`}>
       <div className="flex items-start justify-between gap-2 mb-1">
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
             <span className="font-mono text-[12px] font-semibold text-white">{item.ticker}</span>
+            {archived && (
+              <span className="text-[8px] px-1 py-px rounded bg-white/5 text-[#a0aec0] border border-white/15">归档</span>
+            )}
             {item.bottleneck_layer === 2 && (
               <span className="text-[8px] px-1 py-px rounded bg-violet-500/15 text-violet-200 border border-violet-500/40">L2</span>
             )}
@@ -719,6 +788,13 @@ function WatchlistCard({ item, trendName, onEdit, onDelete }) {
         <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition">
           <button onClick={onEdit} className="p-1 rounded hover:bg-white/10 text-[#a0aec0] hover:text-white" title="编辑">
             <Edit2 size={10} />
+          </button>
+          <button
+            onClick={onToggleArchive}
+            className={`p-1 rounded hover:bg-amber-500/20 text-[#a0aec0] ${archived ? "hover:text-emerald-300" : "hover:text-amber-300"}`}
+            title={archived ? "恢复（取消归档）" : "归档（保留 thesis，不再显示）"}
+          >
+            {archived ? <ArchiveRestore size={10} /> : <Archive size={10} />}
           </button>
           <button onClick={onDelete} className="p-1 rounded hover:bg-red-500/20 text-[#a0aec0] hover:text-red-300" title="删除">
             <Trash2 size={10} />

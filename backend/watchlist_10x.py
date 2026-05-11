@@ -134,7 +134,7 @@ def add_supertrend(
 _VALID_FIELDS = {
     "strategy", "supertrend_id", "bottleneck_layer", "bottleneck_tag",
     "moat_score", "thesis", "target_price", "stop_loss", "tags",
-    "llm_thesis_cached_at",
+    "llm_thesis_cached_at", "archived",
 }
 
 
@@ -176,6 +176,7 @@ def add_item(ticker: str, **fields) -> dict:
         "stop_loss": fields.get("stop_loss"),
         "tags": list(fields.get("tags") or []),
         "llm_thesis_cached_at": None,
+        "archived": bool(fields.get("archived", False)),
     }
     data["items"].append(item)
     save_watchlist(data)
@@ -211,8 +212,17 @@ def remove_item(ticker: str) -> bool:
     return False
 
 
-def list_items() -> list[dict]:
-    return load_watchlist().get("items", [])
+def list_items(include_archived: bool = False) -> list[dict]:
+    """返回观察项；默认仅 active（archived=False）。
+
+    include_archived=True 时返回所有（active + archived），前端需要时给"显示归档"toggle 用。
+
+    注：archived 字段为新增（v1.x），老数据没有这个字段时按 False 处理 — 完全兼容。
+    """
+    items = load_watchlist().get("items", [])
+    if include_archived:
+        return items
+    return [it for it in items if not it.get("archived", False)]
 
 
 # ── 候选筛选 ─────────────────────────────────────────────
@@ -255,6 +265,8 @@ def screen_candidates(
     与 builtin 赛道并行参与匹配。
 
     返回 item: 包含 universe 原字段 + matched_supertrends（命中的赛道集合，list 形式）
+    + match_reasons（dict[trend_id, list[{field, value, keywords}]]，
+      诊断"为啥这只票算这个赛道"用，前端候选卡片展示）
     排序：market cap 升序（小市值优先 — 策略中"小市值卡位公司"原则）；缺市值的排最后。
     """
     wanted = set(supertrend_ids or [])
@@ -274,35 +286,65 @@ def screen_candidates(
     #                 靠名称匹配捞出 IPGP / 长飞光纤 / Optical Cable 等纯种
     if wanted:
         filtered = []
+        mode = "strict" if precise else "broad"
         for it in universe:
-            if precise:
-                sec_strict_match = (
-                    _sm.classify_sector(it.get("sector"), mode="strict",
-                                        extra_user_trends=user_trends)
-                    | _sm.classify_sector(it.get("industry"), mode="strict",
-                                          extra_user_trends=user_trends)
-                ) & wanted
-                name_match = _sm.name_matches_strict(
-                    it.get("name"), wanted, extra_user_trends=user_trends
+            sector_val = it.get("sector")
+            industry_val = it.get("industry")
+            name_val = it.get("name")
+
+            sec_matched, sec_kw = _sm.classify_sector_with_reasons(
+                sector_val, mode=mode, extra_user_trends=user_trends,
+            )
+            ind_matched, ind_kw = _sm.classify_sector_with_reasons(
+                industry_val, mode=mode, extra_user_trends=user_trends,
+            )
+            sec_matched &= wanted
+            ind_matched &= wanted
+
+            # precise 模式 fallback：sec/ind 都不命中时再查名称（保持原有 OR 逻辑）
+            name_reasons: dict[str, list[str]] = {}
+            if precise and not (sec_matched or ind_matched):
+                _, name_reasons = _sm.name_matches_strict_with_reasons(
+                    name_val, wanted, extra_user_trends=user_trends,
                 )
-                if not sec_strict_match and not name_match:
+
+            matched_set = sec_matched | ind_matched | set(name_reasons.keys())
+            if not matched_set:
+                continue
+
+            # 构建 match_reasons：trend_id → list of {field, value, keywords}
+            reasons: dict[str, list[dict]] = {}
+            for tid in sec_matched:
+                reasons.setdefault(tid, []).append({
+                    "field": "sector",
+                    "value": sector_val,
+                    "keywords": sec_kw.get(tid, []),
+                })
+            for tid in ind_matched:
+                # A 股池 sector==industry 常见；避免重复展示
+                if any(r["field"] == "sector" and r["value"] == industry_val
+                       for r in reasons.get(tid, [])):
                     continue
-                matched = sec_strict_match if sec_strict_match else set(wanted)
-            else:
-                matched = (
-                    _sm.classify_sector(it.get("sector"), mode="broad",
-                                        extra_user_trends=user_trends)
-                    | _sm.classify_sector(it.get("industry"), mode="broad",
-                                          extra_user_trends=user_trends)
-                ) & wanted
-                if not matched:
-                    continue
+                reasons.setdefault(tid, []).append({
+                    "field": "industry",
+                    "value": industry_val,
+                    "keywords": ind_kw.get(tid, []),
+                })
+            for tid, kws in name_reasons.items():
+                reasons.setdefault(tid, []).append({
+                    "field": "name",
+                    "value": name_val,
+                    "keywords": kws,
+                })
 
             it_out = dict(it)
-            it_out["matched_supertrends"] = sorted(matched)
+            it_out["matched_supertrends"] = sorted(matched_set)
+            it_out["match_reasons"] = reasons
             filtered.append(it_out)
     else:
-        filtered = [dict(it, matched_supertrends=[]) for it in universe]
+        filtered = [
+            dict(it, matched_supertrends=[], match_reasons={}) for it in universe
+        ]
 
     # 2) ETF 过滤
     if not include_etf:
@@ -366,9 +408,9 @@ def screen_candidates(
                                     min_dividend_yield, max_debt_to_equity)):
         filtered = [it for it in filtered if _fund_ok(it)]
 
-    # 4) 排除已在 watchlist 的
+    # 4) 排除已在 watchlist 的（含归档项 — 归档过的票"已经看过"，不应再回到候选）
     if exclude_in_watchlist:
-        in_wl = {it["ticker"] for it in list_items()}
+        in_wl = {it["ticker"] for it in list_items(include_archived=True)}
         filtered = [it for it in filtered if it["ticker"] not in in_wl]
 
     # 5) 排序：缺市值放最后；其余按市值升序

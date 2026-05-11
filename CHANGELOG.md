@@ -36,6 +36,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - 删除 `useEffect[items.length]` 冗余：`handleSaved` 新增路径本地 splice 候选省 1 次 screen；`handleDelete` 显式 `runScreen` 让 ticker 回到候选
   - LLM `tenx_thesis` 返回结构化数字字段：`瓶颈层级_int` (1-2) 和 `卡位等级_int` (1-5)，前端 `TenxItemEditor` 在"AI 生成草稿"时自动预填到 `bottleneck_layer` / `moat_score`，免去用户手填
   - `backend/llm.py` 新增 `_clamp_int` helper + `backend/tests/test_llm_helpers.py` 7 个 case 覆盖 LLM 数字字段容错
+- **10x 猎手 命中诊断（match_reasons）**：候选股不再只显示"命中了什么赛道"，还能查"因为哪个字段哪个关键词命中"
+  - `backend/sector_mapping.py` 新增 `classify_sector_with_reasons` / `name_matches_strict_with_reasons`（旧函数 delegate，零 behavior change）
+  - `backend/watchlist_10x.py:screen_candidates` 在每个候选 item 加 `match_reasons: dict[trend_id, [{field, value, keywords}]]`；A 股池 `sector==industry` 同值时去重
+  - `frontend/api/_lib/sectorMapping.js` + `watchlist10x.js` 1:1 同步到 JS 移植版
+  - `frontend/src/pages/Screener10x.jsx`：候选行赛道标签加 hover tooltip，鼠标悬停显示 `板块="Semiconductors" 含 Semiconductor` 这种诊断文案 — 用户能立刻验证 AI 算力 / 半导体 / 自定义赛道 keyword 是否命中预期
+  - 新增测试：backend pytest 13 例（`classify_sector_with_reasons` 7 + `name_matches_strict_with_reasons` 5 + `screen_candidates.match_reasons` 7）；frontend vitest 13 例
+- **10x 猎手 观察项归档（archived）**：长期使用的 watchlist 不会无限膨胀；不想看的票"归档"而不是"删除"，保留 thesis / 卡位 / LLM 缓存
+  - `backend/watchlist_10x.py`：item 加 `archived: bool = False`；`list_items(include_archived=False)` 默认仅 active；老数据无字段时按 active 处理（兼容）
+  - `backend/server.py`：`GET /api/watchlist/10x?include_archived=true` 控制返回集；`PUT /{ticker}` 接受 `archived` 字段；`screen_candidates.exclude_in_watchlist` 含归档项（已观察过的票不再回到候选）
+  - `frontend/api/_lib/watchlist10x.js` + `frontend/api/watchlist/10x.js`：JS port + endpoint 透传
+  - `frontend/src/pages/Screener10x.jsx`：右栏顶部「显示归档」toggle；每张观察卡片加「归档」/「恢复」按钮；归档项 opacity-60 + 角标"归档"视觉区分
+  - 测试：backend pytest 8 例 + frontend vitest 7 例
 - **10x 猎手 production backend**（Vercel Serverless + KV + DeepSeek）：让线上完整可用，不再仅"演示模式"
   - **基础 helpers** (`frontend/api/_lib/`)：`kv.js` (Upstash REST) / `auth.js` (referer 白名单) / `sectorMapping.js` (1:1 移植 backend) / `universeLoader.js` (self-fetch + 内存 cache) / `watchlist10x.js` (KV 持久化业务) / `deepseek.js` / `llmCache.js`
   - **Watchlist endpoints**：`/api/watchlist/10x` (GET/POST) / `/api/watchlist/10x/{ticker}` (PUT/DELETE) / `/api/watchlist/10x/screen` (POST) / `/api/watchlist/10x/supertrends` (GET/POST)
