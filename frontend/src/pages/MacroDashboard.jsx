@@ -3,7 +3,7 @@
 // 组件已拆到 ../components/macro/*；本文件只负责数据加载 + 组合 + 路由级 state
 // ─────────────────────────────────────────────────────────────
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { Globe, RefreshCw, AlertCircle, Loader, Search, X, ArrowUp, Download, Maximize2, Minimize2 } from "lucide-react";
+import { Globe, RefreshCw, AlertCircle, Loader, Search, X, ArrowUp, Download, Maximize2, Minimize2, Share2, Check } from "lucide-react";
 import { apiFetch } from "../quant-platform.jsx";
 import { useLang } from "../i18n.jsx";
 
@@ -13,6 +13,7 @@ import macroSnapshot from "../macroSnapshot.json";
 
 import {
   CATEGORY_LABEL, snapshotStaleness, readStarred, writeStarred, factorStarKey,
+  encodeMacroState, decodeMacroState,
 } from "../components/macro/shared.js";
 import NarrativePanel from "../components/macro/NarrativePanel.jsx";
 import CompositePanel from "../components/macro/CompositePanel.jsx";
@@ -93,6 +94,54 @@ export default function MacroDashboard() {
     try { localStorage.setItem("quantedge_macro_compact", compact ? "1" : "0"); } catch {}
   }, [compact]);
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
+  const [shared, setShared] = useState(false);  // "已复制 URL" 短暂提示
+
+  // ─── 视图分享：URL hash ↔ filter state ───────────────────
+  // 首次挂载时：如果 URL 已有 hash，用 hash 的值覆盖 localStorage 默认
+  // 注：必须在 useState 初始化之后再 set；用一个一次性 useEffect
+  const hashAppliedRef = useRef(false);
+  useEffect(() => {
+    if (hashAppliedRef.current) return;
+    hashAppliedRef.current = true;
+    const fromUrl = decodeMacroState(window.location.hash);
+    if (fromUrl.filter !== undefined) setFilter(fromUrl.filter);
+    if (fromUrl.marketFilter !== undefined) setMarketFilter(fromUrl.marketFilter);
+    if (fromUrl.dirFilter !== undefined) setDirFilter(fromUrl.dirFilter);
+    if (fromUrl.search !== undefined) setSearch(fromUrl.search);
+    if (fromUrl.onlyStarred !== undefined) setOnlyStarred(fromUrl.onlyStarred);
+    if (fromUrl.compact !== undefined) setCompact(fromUrl.compact);
+  }, []);
+
+  // 后续：filter 变化时同步到 URL hash（replaceState 避免污染浏览器历史）
+  useEffect(() => {
+    if (!hashAppliedRef.current) return;  // 首次 effect 还没跑完前不写
+    const encoded = encodeMacroState({ filter, marketFilter, dirFilter, search, onlyStarred, compact });
+    const desired = encoded ? `#${encoded}` : "";
+    if (window.location.hash !== desired) {
+      const newUrl = window.location.pathname + window.location.search + desired;
+      window.history.replaceState(null, "", newUrl);
+    }
+  }, [filter, marketFilter, dirFilter, search, onlyStarred, compact]);
+
+  // 复制当前 URL 到剪贴板（分享视图）
+  const shareUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setShared(true);
+      setTimeout(() => setShared(false), 1800);
+    } catch {
+      // fallback for older Safari / non-https
+      const ta = document.createElement("textarea");
+      ta.value = window.location.href;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand("copy"); setShared(true); setTimeout(() => setShared(false), 1800); }
+      catch {}
+      document.body.removeChild(ta);
+    }
+  };
   // scroll-to-top：滚动 >400px 时显示浮动按钮
   const scrollRef = useRef(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -283,6 +332,18 @@ export default function MacroDashboard() {
           })()}
         </div>
         <div className="flex items-center gap-1.5">
+          <button
+            onClick={shareUrl}
+            className={`px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition-colors ${
+              shared
+                ? "bg-emerald-500/15 border border-emerald-400/40 text-emerald-200"
+                : "bg-white/[0.04] hover:bg-white/[0.08] text-white/80"
+            }`}
+            title={shared ? t("已复制 URL") : t("复制视图 URL（含当前筛选）")}
+          >
+            {shared ? <Check className="w-3.5 h-3.5" /> : <Share2 className="w-3.5 h-3.5" />}
+            {shared ? t("已复制") : t("分享视图")}
+          </button>
           <button
             onClick={() => setCompact(v => !v)}
             className={`px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 ${
