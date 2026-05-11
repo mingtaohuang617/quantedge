@@ -5,6 +5,8 @@ import { searchTickers as standaloneSearch, fetchStockData, fetchBenchmarkPrices
 import { LangProvider, useLang } from "./i18n.jsx";
 import { monteCarlo as mcSimulate, navToReturns as mcNavToReturns, hhi as hhiCalc, effectiveN as effN } from "./math/stats.ts";
 import { idbGet, idbSet } from "./lib/idb.js";
+import macroSnapshot from "./macroSnapshot.json";
+import { TEMP_TEXT, TEMP_LABEL } from "./components/macro/shared.js";
 
 // C1/C2: 拆分主文件 + 代码分割 — 各 Tab 按需加载（首屏不打包这些 chunk）
 const Journal = lazy(() => import("./pages/Journal.jsx"));
@@ -2295,6 +2297,25 @@ function QuantPlatformInner() {
             {jpCount > 0 && <> · {t('日股')} {jpCount}</>}
             {' '}· {t('共')} {stocks.length} {t('标的')}
           </span>
+          {/* footer 宏观温度小徽章 — 任何 tab 都能瞥见当前市场基调 */}
+          {(() => {
+            const temp = macroSnapshot?.composite?.market_temperature;
+            if (temp == null) return null;
+            return (
+              <>
+                <span className="hidden md:inline text-white/10">|</span>
+                <button
+                  onClick={() => window.dispatchEvent(new CustomEvent("quantedge:nav", { detail: "macro" }))}
+                  className="hidden md:inline-flex items-center gap-1 hover:opacity-80 transition-opacity cursor-pointer"
+                  title={t('点击查看宏观看板 · 综合 17 因子方向化温度')}
+                >
+                  <span className="text-[#a0aec0] uppercase text-[8px] font-medium">{t('宏观')}</span>
+                  <span className={`font-mono tabular-nums font-bold ${TEMP_TEXT(temp)}`}>{temp.toFixed(0)}</span>
+                  <span className={`text-[9px] ${TEMP_TEXT(temp)}`}>{t(TEMP_LABEL(temp))}</span>
+                </button>
+              </>
+            );
+          })()}
           <button
             onClick={quickPriceRefresh}
             disabled={priceRefreshing}
