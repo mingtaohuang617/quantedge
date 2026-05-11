@@ -3,7 +3,7 @@
 // 组件已拆到 ../components/macro/*；本文件只负责数据加载 + 组合 + 路由级 state
 // ─────────────────────────────────────────────────────────────
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { Globe, RefreshCw, AlertCircle, Loader, ArrowUp, Maximize2, Minimize2, Share2, Check } from "lucide-react";
+import { Globe, RefreshCw, AlertCircle, Loader, ArrowUp, Maximize2, Minimize2, Share2, Check, FileText } from "lucide-react";
 import { apiFetch } from "../quant-platform.jsx";
 import { useLang } from "../i18n.jsx";
 
@@ -27,6 +27,7 @@ import FactorDetailModal from "../components/macro/FactorDetailModal.jsx";
 import TopMovers from "../components/macro/TopMovers.jsx";
 import ShortcutsHelp from "../components/macro/ShortcutsHelp.jsx";
 import FilterBar from "../components/macro/FilterBar.jsx";
+import { buildDigest } from "../components/macro/digestBuilder.js";
 
 const USE_SNAPSHOT = import.meta.env.PROD;
 
@@ -123,6 +124,28 @@ export default function MacroDashboard() {
       window.history.replaceState(null, "", newUrl);
     }
   }, [filter, marketFilter, dirFilter, search, onlyStarred, compact]);
+
+  // 复制宏观日报到剪贴板（一段纯文本，便于邮件/Slack 分享）
+  const [digestCopied, setDigestCopied] = useState(false);
+  const copyDigest = async () => {
+    const text = buildDigest({
+      composite, history, factors,
+      generatedAt: USE_SNAPSHOT ? macroSnapshot.generated_at : null,
+    });
+    try {
+      await navigator.clipboard.writeText(text);
+      setDigestCopied(true);
+      setTimeout(() => setDigestCopied(false), 1800);
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand("copy"); setDigestCopied(true); setTimeout(() => setDigestCopied(false), 1800); }
+      catch {}
+      document.body.removeChild(ta);
+    }
+  };
 
   // 复制当前 URL 到剪贴板（分享视图）
   const shareUrl = async () => {
@@ -333,6 +356,18 @@ export default function MacroDashboard() {
           })()}
         </div>
         <div className="flex items-center gap-1.5">
+          <button
+            onClick={copyDigest}
+            className={`px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition-colors ${
+              digestCopied
+                ? "bg-emerald-500/15 border border-emerald-400/40 text-emerald-200"
+                : "bg-white/[0.04] hover:bg-white/[0.08] text-white/80"
+            }`}
+            title={digestCopied ? t("已复制") : t("复制当前宏观状态为一段文本，便于发送邮件/聊天")}
+          >
+            {digestCopied ? <Check className="w-3.5 h-3.5" /> : <FileText className="w-3.5 h-3.5" />}
+            {digestCopied ? t("已复制") : t("日报")}
+          </button>
           <button
             onClick={shareUrl}
             className={`px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition-colors ${

@@ -470,6 +470,8 @@ const EN = {
   '分享视图': 'Share view',
   '已复制 URL': 'URL copied',
   '复制视图 URL（含当前筛选）': 'Copy view URL (with current filters)',
+  '日报': 'Digest',
+  '复制当前宏观状态为一段文本，便于发送邮件/聊天': 'Copy current macro state as plain text (email / chat friendly)',
   '导出当前筛选结果为 CSV': 'Export current filtered factors as CSV',
   '收藏因子': 'Star factor',
   '取消收藏': 'Remove star',
