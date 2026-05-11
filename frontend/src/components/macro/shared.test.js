@@ -10,6 +10,8 @@ import {
   DIRECTION_BADGE,
   fmtRaw,
   factorStarKey,
+  encodeMacroState,
+  decodeMacroState,
 } from "./shared.js";
 
 // ─── daysSince ──────────────────────────────────────────────
@@ -234,6 +236,86 @@ describe("factorStarKey", () => {
   it("returns factor_id@market composite key", () => {
     expect(factorStarKey({ factor_id: "US_VIX", market: "US" })).toBe("US_VIX@US");
     expect(factorStarKey({ factor_id: "CN_M2_GROWTH", market: "CN" })).toBe("CN_M2_GROWTH@CN");
+  });
+});
+
+// ─── encodeMacroState / decodeMacroState ──────────────────────
+describe("encodeMacroState", () => {
+  it("returns empty string when all defaults", () => {
+    expect(encodeMacroState({
+      filter: "all", marketFilter: "all", dirFilter: "all",
+      search: "", onlyStarred: false, compact: false,
+    })).toBe("");
+  });
+  it("encodes only non-default fields", () => {
+    expect(encodeMacroState({
+      filter: "valuation", marketFilter: "all", dirFilter: "all",
+      search: "", onlyStarred: false, compact: false,
+    })).toBe("m=cat=valuation");
+  });
+  it("encodes multiple fields", () => {
+    const r = encodeMacroState({
+      filter: "valuation", marketFilter: "US", dirFilter: "contrarian",
+      search: "VIX", onlyStarred: true, compact: true,
+    });
+    // 顺序固定（URLSearchParams 按 set 顺序）
+    expect(r).toContain("cat=valuation");
+    expect(r).toContain("mk=US");
+    expect(r).toContain("dir=contrarian");
+    expect(r).toContain("q=VIX");
+    expect(r).toContain("star=1");
+    expect(r).toContain("c=1");
+  });
+  it("URL-encodes search values with special chars", () => {
+    const r = encodeMacroState({
+      filter: "all", marketFilter: "all", dirFilter: "all",
+      search: "VIX & SPX", onlyStarred: false, compact: false,
+    });
+    expect(r).toContain("q=VIX+%26+SPX");
+  });
+});
+
+describe("decodeMacroState", () => {
+  it("returns empty object for empty / non-macro hash", () => {
+    expect(decodeMacroState("")).toEqual({});
+    expect(decodeMacroState("#other=foo")).toEqual({});
+    expect(decodeMacroState(null)).toEqual({});
+  });
+  it("decodes single field", () => {
+    expect(decodeMacroState("#m=cat=valuation")).toEqual({ filter: "valuation" });
+  });
+  it("decodes multiple fields", () => {
+    expect(decodeMacroState("#m=cat=valuation&mk=US&dir=contrarian&q=VIX&star=1&c=1")).toEqual({
+      filter: "valuation", marketFilter: "US", dirFilter: "contrarian",
+      search: "VIX", onlyStarred: true, compact: true,
+    });
+  });
+  it("tolerates no leading #", () => {
+    expect(decodeMacroState("m=cat=liquidity")).toEqual({ filter: "liquidity" });
+  });
+  it("decodes URL-encoded search", () => {
+    expect(decodeMacroState("#m=q=VIX+%26+SPX")).toEqual({ search: "VIX & SPX" });
+  });
+  it("only sets boolean flags when '1' (not 'true' / '0')", () => {
+    expect(decodeMacroState("#m=star=0")).toEqual({});
+    expect(decodeMacroState("#m=c=true")).toEqual({});
+    expect(decodeMacroState("#m=star=1&c=1")).toEqual({ onlyStarred: true, compact: true });
+  });
+});
+
+describe("encode/decode round-trip", () => {
+  it("preserves a complex state", () => {
+    const original = {
+      filter: "sentiment", marketFilter: "CN", dirFilter: "lower",
+      search: "M2 growth", onlyStarred: true, compact: false,
+    };
+    const encoded = encodeMacroState(original);
+    const decoded = decodeMacroState("#" + encoded);
+    expect(decoded).toEqual({
+      filter: "sentiment", marketFilter: "CN", dirFilter: "lower",
+      search: "M2 growth", onlyStarred: true,
+      // compact: false 被默认值过滤，decode 不还原
+    });
   });
 });
 
