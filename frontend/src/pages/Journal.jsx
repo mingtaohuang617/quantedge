@@ -11,6 +11,7 @@ import MonthlyReviewModal from "../components/MonthlyReviewModal.jsx";
 import macroSnapshot from "../macroSnapshot.json";
 import { TEMP_TEXT, TEMP_LABEL } from "../components/macro/shared.js";
 import { macroDelta, macroAdjustExplain, macroAdjustedScore } from "../lib/macroAdjust.js";
+import { buildDigest } from "../components/macro/digestBuilder.js";
 import { searchTickers as standaloneSearch, fetchStockData, STOCK_CN_NAMES } from "../standalone.js";
 import { useLang } from "../i18n.jsx";
 import {
@@ -441,6 +442,27 @@ const Journal = () => {
 - 营收增长: ${stk.revenueGrowth ?? 'N/A'}% · 利润率: ${stk.profitMargin ?? 'N/A'}%
 - 综合评分: ${stk.score?.toFixed(1) ?? 'N/A'}/100
 - 行业: ${stk.sector ?? 'N/A'}` : '';
+    // 宏观背景段 — 让 AI 在做卖出/加仓建议时考虑当前 regime
+    const composite = macroSnapshot?.composite || null;
+    const history = macroSnapshot?.composite_history || null;
+    const macroSection = composite
+      ? "\n## 当前宏观背景\n" +
+        buildDigest({
+          composite,
+          history,
+          factors: macroSnapshot?.factors || null,
+          generatedAt: macroSnapshot?.generated_at,
+        }).split("\n").slice(2).join("\n")  // 跳过标题行 + 空行（避免重复日期）
+      : "";
+
+    // 个股 vs 当前 regime 风格契合度
+    const temp = composite?.market_temperature;
+    const styleDelta = stk ? macroDelta(stk, temp) : null;
+    const styleExplain = stk ? macroAdjustExplain(stk, temp) : null;
+    const styleSection = styleDelta != null && Math.abs(styleDelta) >= 0.5
+      ? `\n## 个股 × 当前 regime 风格契合\n该股在当前 regime 下风格 Δ = ${styleDelta > 0 ? '+' : ''}${styleDelta.toFixed(1)} 分。${t(styleExplain) || ''}\n`
+      : "";
+
     return `# QuantEdge 投资复盘 · ${sel.ticker}
 
 ## 基本信息
@@ -450,7 +472,7 @@ const Journal = () => {
 - 当前价格: ${cur}${sel.currentPrice}
 - 累计收益: ${ret >= 0 ? '+' : ''}${ret}%${sel.shares ? `\n- 持仓股数: ${sel.shares} (成本 ${cur}${sel.costBasis ?? sel.anchorPrice}/股)` : ''}
 ${stkInfo}
-
+${macroSection}${styleSection}
 ## 我当时的投资论点
 ${sel.thesis || '(未填写)'}
 
@@ -461,7 +483,7 @@ ${(sel.tags || []).join(', ') || '(无)'}
 
 ${angleQuestion}
 
-请基于上面的真实数据给出**结构化、可执行**的回答，不要泛泛而谈。如果数据不足以支撑结论，请明确指出需要补充什么信息。`;
+请基于上面的真实数据 + 当前宏观背景给出**结构化、可执行**的回答，不要泛泛而谈。如果数据不足以支撑结论，请明确指出需要补充什么信息。`;
   }, [sel, aiAngle, liveStocks, t]);
 
   const copyPrompt = useCallback(async () => {
