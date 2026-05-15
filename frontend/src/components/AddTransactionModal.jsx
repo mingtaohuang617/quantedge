@@ -1,11 +1,16 @@
 // ─────────────────────────────────────────────────────────────
 // 录入交易弹窗（A6 - Sprint 3）
 // ─────────────────────────────────────────────────────────────
-import React, { useState, useContext } from "react";
-import { X, Loader, Plus } from "lucide-react";
+import React, { useState, useContext, useMemo } from "react";
+import { X, Loader, Plus, AlertTriangle } from "lucide-react";
 import { apiFetch, DataContext } from "../quant-platform.jsx";
+import { useLang } from "../i18n.jsx";
+import macroSnapshot from "../macroSnapshot.json";
+import { TEMP_TEXT, TEMP_LABEL } from "./macro/shared.js";
+import { macroDelta, macroAdjustExplain } from "../lib/macroAdjust.js";
 
 export default function AddTransactionModal({ open, onClose, onAdded, defaultTicker = "" }) {
+  const { t } = useLang();
   const { stocks } = useContext(DataContext) || {};
   const [ticker, setTicker] = useState(defaultTicker);
   const [side, setSide] = useState("buy");
@@ -16,6 +21,27 @@ export default function AddTransactionModal({ open, onClose, onAdded, defaultTic
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+
+  // 宏观风格契合度预警 — 仅在 buy 时显示且 |Δ| ≥ 3 (即"明显逆风/顺风")
+  const macroWarning = useMemo(() => {
+    if (side !== "buy") return null;
+    if (!ticker.trim()) return null;
+    const temp = macroSnapshot?.composite?.market_temperature;
+    if (temp == null) return null;
+    const tk = ticker.trim().toUpperCase();
+    const stk = (stocks || []).find(s => s.ticker === tk || s.ticker?.toUpperCase() === tk);
+    if (!stk || !stk.subScores) return null;
+    const delta = macroDelta(stk, temp);
+    if (delta == null || Math.abs(delta) < 3) return null;
+    return {
+      delta,
+      temp,
+      tempLabel: TEMP_LABEL(temp),
+      tempCls: TEMP_TEXT(temp),
+      explain: macroAdjustExplain(stk, temp),
+      stk,
+    };
+  }, [ticker, side, stocks]);
 
   if (!open) return null;
 
@@ -139,6 +165,28 @@ export default function AddTransactionModal({ open, onClose, onAdded, defaultTic
               className="w-full px-2 py-1.5 mt-0.5 text-xs bg-[var(--bg-input)] border border-[var(--border-default)] rounded outline-none text-white"
             />
           </div>
+
+          {/* 宏观风格契合度预警（buy 时 |Δ| ≥ 3 显示） */}
+          {macroWarning && (
+            <div className={`flex items-start gap-2 px-2 py-1.5 rounded text-[10px] leading-relaxed border ${
+              macroWarning.delta < 0
+                ? 'bg-rose-500/10 border-rose-400/30 text-rose-200'
+                : 'bg-emerald-500/10 border-emerald-400/30 text-emerald-200'
+            }`}>
+              <AlertTriangle size={11} className="shrink-0 mt-0.5 opacity-80" />
+              <div className="min-w-0">
+                <div className="font-medium">
+                  {macroWarning.delta < 0 ? t('风格逆风') : t('风格顺风')}：
+                  <span className="font-mono ml-1">{macroWarning.delta > 0 ? '+' : ''}{macroWarning.delta.toFixed(1)}</span>
+                </div>
+                <div className="opacity-85 mt-0.5">
+                  {t('当前市场温度')} <span className={`font-mono font-bold ${macroWarning.tempCls}`}>{macroWarning.temp.toFixed(0)}</span>
+                  <span className="opacity-70"> {t(macroWarning.tempLabel)}</span>
+                  {macroWarning.explain && <> · {t(macroWarning.explain)}</>}
+                </div>
+              </div>
+            </div>
+          )}
 
           {error && <div className="text-[10px] text-amber-300/90">⚠ {error}</div>}
 
