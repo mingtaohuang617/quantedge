@@ -307,6 +307,8 @@ const EN = {
   '个股调整': 'Stock adj',
   '调整后': 'after adj',
   '当前 regime 与个股风格匹配中性，宏观影响不显著': 'Current regime matches stock style; macro impact minimal',
+  '宏观调整': 'Macro Adj',
+  '按宏观调整后评分排序（评分 + 当前 regime × 风格调整）': 'Sort by macro-adjusted score (base + regime × style adj)',
   '板块-ETF 映射': 'Sector-ETF Mapping',
   '智能预警': 'Smart Alerts',
   '实时数据流': 'Real-time Feed',
