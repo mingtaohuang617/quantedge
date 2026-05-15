@@ -348,6 +348,8 @@ const EN = {
   '无极端信号，做对照基线': 'No extreme signal; baseline comparison',
   '估值子分 ≤ 20；缺 2+ 因子 ≥ 90 校验，仅供参考': 'Valuation score ≤ 20; lacks 2+ factor ≥ 90 confirmation, for reference only',
   '回测仅覆盖 composite-level 规则（temp / 子分），per-factor 信用/VIX 规则未涵盖；触发去抖 5 个交易日': 'Backtest covers composite-level rules only (temp / sub-scores); per-factor credit / VIX rules not included. 5-trading-day dedup.',
+  'L5': 'L5',
+  '宏观温度': 'Macro Temp',
   '宏观调整': 'Macro Adj',
   '按宏观调整后评分排序（评分 + 当前 regime × 风格调整）': 'Sort by macro-adjusted score (base + regime × style adj)',
   '板块-ETF 映射': 'Sector-ETF Mapping',
