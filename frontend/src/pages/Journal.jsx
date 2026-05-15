@@ -9,6 +9,7 @@ import PositionsCard from "../components/PositionsCard.jsx";
 import AddTransactionModal from "../components/AddTransactionModal.jsx";
 import MonthlyReviewModal from "../components/MonthlyReviewModal.jsx";
 import PortfolioMacroSensitivity from "../components/PortfolioMacroSensitivity.jsx";
+import SectorRegimeExposure from "../components/SectorRegimeExposure.jsx";
 import macroSnapshot from "../macroSnapshot.json";
 import { TEMP_TEXT, TEMP_LABEL } from "../components/macro/shared.js";
 import { macroDelta, macroAdjustExplain, macroAdjustedScore } from "../lib/macroAdjust.js";
@@ -722,6 +723,12 @@ ${angleQuestion}
         <PositionsCard key={positionsRefreshKey} onAddClick={() => setShowAddTx(true)} />
         {/* 组合宏观敏感度 — 基于 entries 的 shares + sub-scores 做风格因子敞口估算 */}
         <PortfolioMacroSensitivity
+          entries={entries}
+          liveStocks={liveStocks}
+          temp={macroSnapshot?.composite?.market_temperature}
+        />
+        {/* 板块 × Regime 暴露 — 看哪个板块过重且与当前 regime 冲突 */}
+        <SectorRegimeExposure
           entries={entries}
           liveStocks={liveStocks}
           temp={macroSnapshot?.composite?.market_temperature}
