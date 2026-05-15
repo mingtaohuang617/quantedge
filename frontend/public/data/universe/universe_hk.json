@@ -6,7 +6,9 @@
     "source": "futu OpenD: stock_basicinfo + market_snapshot + owner_plate",
     "enriched": true,
     "enriched_market_cap": 3656,
-    "enriched_industry": 2739
+    "enriched_industry": 2739,
+    "fundamentals_smoke_count": 7,
+    "fundamentals_note": "smoke patch (10-15 representative tickers); 跑 sync_*.py --enrich-fundamentals 获取全市场"
   },
   "items": [
     {
@@ -79,7 +81,12 @@
       "sector": "常规电力",
       "industry": "常规电力",
       "marketCap": 137562837690.7,
-      "listing_date": "1976-08-16"
+      "listing_date": "1976-08-16",
+      "pe": 10.5,
+      "pb": 0.9,
+      "dividend_yield": 0.052,
+      "roe": 0.085,
+      "debt_to_equity": 0.7
     },
     {
       "ticker": "00007.HK",
@@ -3223,7 +3230,12 @@
       "sector": "非酒精饮料",
       "industry": "非酒精饮料",
       "marketCap": 68089117628.8,
-      "listing_date": "1996-02-05"
+      "listing_date": "1996-02-05",
+      "pe": 14.0,
+      "pb": 2.2,
+      "dividend_yield": 0.025,
+      "roe": 0.155,
+      "debt_to_equity": 0.2
     },
     {
       "ticker": "00323.HK",
@@ -3895,7 +3907,12 @@
       "sector": "油气生产商",
       "industry": "油气生产商",
       "marketCap": 557466620563.42,
-      "listing_date": "2000-10-19"
+      "listing_date": "2000-10-19",
+      "pe": 6.0,
+      "pb": 0.55,
+      "dividend_yield": 0.07,
+      "roe": 0.09,
+      "debt_to_equity": 0.45
     },
     {
       "ticker": "00387.HK",
@@ -7927,7 +7944,12 @@
       "sector": "油气生产商",
       "industry": "油气生产商",
       "marketCap": 2143175650248.78,
-      "listing_date": "2000-04-07"
+      "listing_date": "2000-04-07",
+      "pe": 5.5,
+      "pb": 0.55,
+      "dividend_yield": 0.075,
+      "roe": 0.105,
+      "debt_to_equity": 0.28
     },
     {
       "ticker": "00858.HK",
@@ -8683,7 +8705,12 @@
       "sector": "银行",
       "industry": "银行",
       "marketCap": 2317779379726.74,
-      "listing_date": "2005-10-27"
+      "listing_date": "2005-10-27",
+      "pe": 4.2,
+      "pb": 0.45,
+      "dividend_yield": 0.075,
+      "roe": 0.106,
+      "debt_to_equity": 1.0
     },
     {
       "ticker": "00941.HK",
@@ -10147,7 +10174,12 @@
       "sector": "地产发展商",
       "industry": "地产发展商",
       "marketCap": 171839116150.3,
-      "listing_date": "2015-06-03"
+      "listing_date": "2015-06-03",
+      "pe": 11.0,
+      "pb": 1.65,
+      "dividend_yield": 0.038,
+      "roe": 0.15,
+      "debt_to_equity": 0.65
     },
     {
       "ticker": "01114.HK",
@@ -12631,7 +12663,12 @@
       "sector": "银行",
       "industry": "银行",
       "marketCap": 2469895361626.77,
-      "listing_date": "2006-10-27"
+      "listing_date": "2006-10-27",
+      "pe": 4.0,
+      "pb": 0.42,
+      "dividend_yield": 0.078,
+      "roe": 0.105,
+      "debt_to_equity": 1.05
     },
     {
       "ticker": "01399.HK",
