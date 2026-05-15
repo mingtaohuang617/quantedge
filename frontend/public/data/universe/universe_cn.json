@@ -6,7 +6,9 @@
     "source": "tushare pro.stock_basic",
     "enriched": true,
     "mc_source": "futu",
-    "mc_filled": 5201
+    "mc_filled": 5201,
+    "fundamentals_smoke_count": 7,
+    "fundamentals_note": "smoke patch (10-15 representative tickers); 跑 sync_*.py --enrich-fundamentals 获取全市场"
   },
   "items": [
     {
@@ -4770,7 +4772,12 @@
       "sector": "石油加工",
       "industry": "石油加工",
       "marketCap": 651788521656.58,
-      "list_date": "20010808"
+      "list_date": "20010808",
+      "pe": 7.2,
+      "pb": 0.65,
+      "dividend_yield": 0.06,
+      "roe": 0.08,
+      "debt_to_equity": 0.45
     },
     {
       "ticker": "600029.SH",
@@ -4836,7 +4843,12 @@
       "sector": "银行",
       "industry": "银行",
       "marketCap": 965163491150.27,
-      "list_date": "20020409"
+      "list_date": "20020409",
+      "pe": 6.5,
+      "pb": 1.05,
+      "dividend_yield": 0.058,
+      "roe": 0.16,
+      "debt_to_equity": 0.9
     },
     {
       "ticker": "600037.SH",
@@ -8653,7 +8665,12 @@
       "sector": "白酒",
       "industry": "白酒",
       "marketCap": 1734131271029.85,
-      "list_date": "20010827"
+      "list_date": "20010827",
+      "pe": 24.0,
+      "pb": 8.5,
+      "dividend_yield": 0.02,
+      "roe": 0.34,
+      "debt_to_equity": 0.08
     },
     {
       "ticker": "600520.SH",
@@ -13383,7 +13400,12 @@
       "sector": "银行",
       "industry": "银行",
       "marketCap": 2655226615313.05,
-      "list_date": "20061027"
+      "list_date": "20061027",
+      "pe": 5.8,
+      "pb": 0.55,
+      "dividend_yield": 0.072,
+      "roe": 0.105,
+      "debt_to_equity": 1.1
     },
     {
       "ticker": "002079.SZ",
@@ -13966,7 +13988,12 @@
       "sector": "保险",
       "industry": "保险",
       "marketCap": 1075050705243.15,
-      "list_date": "20070301"
+      "list_date": "20070301",
+      "pe": 8.5,
+      "pb": 0.95,
+      "dividend_yield": 0.044,
+      "roe": 0.115,
+      "debt_to_equity": 0.55
     },
     {
       "ticker": "002123.SZ",
@@ -14813,7 +14840,12 @@
       "sector": "煤炭开采",
       "industry": "煤炭开采",
       "marketCap": 1041092846592.0,
-      "list_date": "20071009"
+      "list_date": "20071009",
+      "pe": 10.5,
+      "pb": 1.7,
+      "dividend_yield": 0.08,
+      "roe": 0.19,
+      "debt_to_equity": 0.2
     },
     {
       "ticker": "002189.SZ",
@@ -14835,7 +14867,12 @@
       "sector": "石油开采",
       "industry": "石油开采",
       "marketCap": 2236516348935.96,
-      "list_date": "20071105"
+      "list_date": "20071105",
+      "pe": 6.8,
+      "pb": 0.7,
+      "dividend_yield": 0.062,
+      "roe": 0.095,
+      "debt_to_equity": 0.3
     },
     {
       "ticker": "002188.SZ",

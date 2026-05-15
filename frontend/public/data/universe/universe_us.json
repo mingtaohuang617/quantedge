@@ -7,7 +7,9 @@
     "enriched": true,
     "enrich_source": "futu",
     "enriched_market_cap": 5200,
-    "enriched_industry": 2199
+    "enriched_industry": 2199,
+    "fundamentals_smoke_count": 14,
+    "fundamentals_note": "smoke patch (10-15 representative tickers); 跑 sync_*.py --enrich-fundamentals 获取全市场"
   },
   "items": [
     {
@@ -41144,7 +41146,12 @@
       "is_derivative": false,
       "sector": "半导体",
       "industry": "半导体",
-      "marketCap": 4822335000000.0
+      "marketCap": 4822335000000.0,
+      "pe": 65.0,
+      "pb": 45.0,
+      "dividend_yield": 0.0003,
+      "roe": 1.15,
+      "debt_to_equity": 0.18
     },
     {
       "ticker": "NVDD",
@@ -44562,9 +44569,14 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": "非酒精饮料",
-      "industry": "非酒精饮料",
-      "marketCap": 215143000464.15
+      "sector": "Beverages—Non-Alcoholic",
+      "industry": "Beverages—Non-Alcoholic",
+      "marketCap": 230000000000.0,
+      "pe": 24.0,
+      "pb": 11.5,
+      "dividend_yield": 0.03,
+      "roe": 0.46,
+      "debt_to_equity": 1.98
     },
     {
       "ticker": "PEPG",
@@ -58328,7 +58340,12 @@
       "is_derivative": false,
       "sector": null,
       "industry": null,
-      "marketCap": 1467812003264.22
+      "marketCap": 1467812003264.22,
+      "pe": 70.0,
+      "pb": 12.0,
+      "dividend_yield": 0.0,
+      "roe": 0.18,
+      "debt_to_equity": 0.1
     },
     {
       "ticker": "TSLG",
@@ -71094,9 +71111,14 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Banks—Diversified",
+      "industry": "Banks—Diversified",
+      "marketCap": 280000000000.0,
+      "pe": 12.0,
+      "pb": 1.1,
+      "dividend_yield": 0.025,
+      "roe": 0.095,
+      "debt_to_equity": 0.85
     },
     {
       "ticker": "BAC$B",
@@ -82170,9 +82192,14 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Oil & Gas Integrated",
+      "industry": "Oil & Gas Integrated",
+      "marketCap": 290000000000.0,
+      "pe": 16.0,
+      "pb": 1.6,
+      "dividend_yield": 0.045,
+      "roe": 0.108,
+      "debt_to_equity": 0.16
     },
     {
       "ticker": "CVY",
@@ -107346,9 +107373,14 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Drug Manufacturers—General",
+      "industry": "Drug Manufacturers—General",
+      "marketCap": 380000000000.0,
+      "pe": 22.0,
+      "pb": 5.5,
+      "dividend_yield": 0.03,
+      "roe": 0.26,
+      "debt_to_equity": 0.5
     },
     {
       "ticker": "JNK",
@@ -107574,9 +107606,14 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Banks—Diversified",
+      "industry": "Banks—Diversified",
+      "marketCap": 580000000000.0,
+      "pe": 12.5,
+      "pb": 1.8,
+      "dividend_yield": 0.024,
+      "roe": 0.16,
+      "debt_to_equity": 1.2
     },
     {
       "ticker": "JPM$C",
@@ -109218,9 +109255,14 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Beverages—Non-Alcoholic",
+      "industry": "Beverages—Non-Alcoholic",
+      "marketCap": 270000000000.0,
+      "pe": 25.0,
+      "pb": 9.5,
+      "dividend_yield": 0.029,
+      "roe": 0.47,
+      "debt_to_equity": 1.85
     },
     {
       "ticker": "KOCT",
@@ -114702,9 +114744,14 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Tobacco",
+      "industry": "Tobacco",
+      "marketCap": 92000000000.0,
+      "pe": 9.2,
+      "pb": null,
+      "dividend_yield": 0.075,
+      "roe": null,
+      "debt_to_equity": null
     },
     {
       "ticker": "MOAT",
@@ -123126,9 +123173,14 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Household & Personal Products",
+      "industry": "Household & Personal Products",
+      "marketCap": 380000000000.0,
+      "pe": 26.5,
+      "pb": 8.0,
+      "dividend_yield": 0.025,
+      "roe": 0.3,
+      "debt_to_equity": 0.62
     },
     {
       "ticker": "PGF",
@@ -137298,9 +137350,14 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Telecom Services—Diversified",
+      "industry": "Telecom Services—Diversified",
+      "marketCap": 122000000000.0,
+      "pe": 11.0,
+      "pb": 1.4,
+      "dividend_yield": 0.055,
+      "roe": 0.131,
+      "debt_to_equity": 1.3
     },
     {
       "ticker": "T$A",
@@ -145758,9 +145815,14 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Telecom Services—Diversified",
+      "industry": "Telecom Services—Diversified",
+      "marketCap": 167000000000.0,
+      "pe": 9.5,
+      "pb": 1.7,
+      "dividend_yield": 0.066,
+      "roe": 0.234,
+      "debt_to_equity": 1.62
     },
     {
       "ticker": "VZLA",
@@ -146370,9 +146432,14 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Banks—Diversified",
+      "industry": "Banks—Diversified",
+      "marketCap": 200000000000.0,
+      "pe": 11.8,
+      "pb": 1.3,
+      "dividend_yield": 0.025,
+      "roe": 0.12,
+      "debt_to_equity": 1.0
     },
     {
       "ticker": "WFC$A",
@@ -148578,9 +148645,14 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Oil & Gas Integrated",
+      "industry": "Oil & Gas Integrated",
+      "marketCap": 460000000000.0,
+      "pe": 13.5,
+      "pb": 1.95,
+      "dividend_yield": 0.036,
+      "roe": 0.16,
+      "debt_to_equity": 0.25
     },
     {
       "ticker": "XOMO",
