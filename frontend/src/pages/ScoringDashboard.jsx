@@ -10,8 +10,10 @@ import { useLang } from "../i18n.jsx";
 import { STOCKS } from "../data.js";
 import AIStockSummaryCard from "../components/AIStockSummaryCard.jsx";
 import ScoreExplainCard from "../components/ScoreExplainCard.jsx";
+import MacroAdjustBadge from "../components/MacroAdjustBadge.jsx";
 import macroSnapshot from "../macroSnapshot.json";
 import { TEMP_TEXT, TEMP_LABEL } from "../components/macro/shared.js";
+import { macroAdjustedScore } from "../lib/macroAdjust.js";
 import {
   DataContext,
   useData,
@@ -571,6 +573,14 @@ const ScoringDashboard = () => {
     if (sortBy === "score") return [...list].sort((a, b) => b.score - a.score);
     if (sortBy === "change") return [...list].sort((a, b) => b.change - a.change);
     if (sortBy === "name") return [...list].sort((a, b) => a.ticker.localeCompare(b.ticker));
+    if (sortBy === "macroAdj") {
+      const temp = macroSnapshot?.composite?.market_temperature;
+      // 用 macroAdjustedScore（base + Δ）排；无 sub-scores 的（ETF）回退到 base score
+      return [...list].sort((a, b) =>
+        (macroAdjustedScore(b, temp) ?? b.score ?? 0) -
+        (macroAdjustedScore(a, temp) ?? a.score ?? 0)
+      );
+    }
     return [...list].sort((a, b) => b.score - a.score);
   }, [liveStocks, mkt, typeFilter, searchTerm, sortBy, showFavOnly, favorites]);
 
@@ -1032,8 +1042,17 @@ const ScoringDashboard = () => {
         <div className="flex items-center justify-between px-1">
           <span className="text-[10px] text-[#778] font-mono">{filtered.length} <span className="font-sans">{t('个标的')}</span></span>
           <div className="flex items-center gap-1">
-            {[["score", t("评分")], ["change", t("涨跌")], ["name", t("代码")]].map(([key, label]) => (
-              <button key={key} onClick={() => setSortBy(key)} className={`px-2 py-1 rounded text-[10px] transition-all active:scale-95 ${sortBy === key ? "text-indigo-400 bg-indigo-500/10" : "text-[#778] hover:text-[#a0aec0]"}`}>
+            {[["score", t("评分")], ["macroAdj", t("宏观调整")], ["change", t("涨跌")], ["name", t("代码")]].map(([key, label]) => (
+              <button
+                key={key}
+                onClick={() => setSortBy(key)}
+                className={`px-2 py-1 rounded text-[10px] transition-all active:scale-95 ${
+                  sortBy === key
+                    ? (key === "macroAdj" ? "text-emerald-400 bg-emerald-500/10" : "text-indigo-400 bg-indigo-500/10")
+                    : "text-[#778] hover:text-[#a0aec0]"
+                }`}
+                title={key === "macroAdj" ? t("按宏观调整后评分排序（评分 + 当前 regime × 风格调整）") : undefined}
+              >
                 {label}{sortBy === key && (key === "name" ? " ↑" : " ↓")}
               </button>
             ))}
@@ -1275,7 +1294,10 @@ const ScoringDashboard = () => {
               <div className="flex items-center justify-between gap-2">
                 <span className="text-[10px] text-[#b0b8c4] truncate flex-1 min-w-0"><Highlight text={lang === 'zh' ? (stk.nameCN || STOCK_CN_NAMES[stk.ticker] || stk.name) : stk.name} query={searchTerm} /></span>
                 <MiniSparkline data={get5DSparkData(stk)} w={48} h={14} />
-                <div className="w-20 shrink-0"><ScoreBar score={stk.score} /></div>
+                <div className="flex items-center gap-1 w-20 shrink-0">
+                  <ScoreBar score={stk.score} />
+                  <MacroAdjustBadge stock={stk} temp={macroSnapshot?.composite?.market_temperature} />
+                </div>
               </div>
               </>
               )}
@@ -1351,6 +1373,7 @@ const ScoringDashboard = () => {
                         {(sel.score - sectorMedians.score) >= 0 ? '▲' : '▼'} {Math.abs(sel.score - sectorMedians.score).toFixed(1)}
                       </span>
                     )}
+                    <MacroAdjustBadge stock={sel} temp={macroSnapshot?.composite?.market_temperature} size="sm" />
                   </div>
                   <div className="text-xs text-[#a0aec0]">{lang === 'zh' ? (sel.nameCN || STOCK_CN_NAMES[sel.ticker] || sel.name) : sel.name}</div>
                 </div>
