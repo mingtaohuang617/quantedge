@@ -8,6 +8,7 @@ import { Plus, Search, Loader, Check, Briefcase, Activity, BookOpen, Trash2, Eye
 import PositionsCard from "../components/PositionsCard.jsx";
 import AddTransactionModal from "../components/AddTransactionModal.jsx";
 import MonthlyReviewModal from "../components/MonthlyReviewModal.jsx";
+import PortfolioMacroSensitivity from "../components/PortfolioMacroSensitivity.jsx";
 import macroSnapshot from "../macroSnapshot.json";
 import { TEMP_TEXT, TEMP_LABEL } from "../components/macro/shared.js";
 import { macroDelta, macroAdjustExplain, macroAdjustedScore } from "../lib/macroAdjust.js";
@@ -719,6 +720,12 @@ ${angleQuestion}
         )}
         {/* A6: 我的持仓（基于 SQLite transactions，独立于日志的 entries 估算） */}
         <PositionsCard key={positionsRefreshKey} onAddClick={() => setShowAddTx(true)} />
+        {/* 组合宏观敏感度 — 基于 entries 的 shares + sub-scores 做风格因子敞口估算 */}
+        <PortfolioMacroSensitivity
+          entries={entries}
+          liveStocks={liveStocks}
+          temp={macroSnapshot?.composite?.market_temperature}
+        />
         {/* 持仓汇总卡片（旧：基于日志 entries 估算） */}
         {positionSummary && (
           <div className="glass-card p-3 border border-indigo-500/20 animate-slide-up shrink-0">
