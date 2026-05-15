@@ -8,6 +8,9 @@ import { Plus, Search, Loader, Check, Briefcase, Activity, BookOpen, Trash2, Eye
 import PositionsCard from "../components/PositionsCard.jsx";
 import AddTransactionModal from "../components/AddTransactionModal.jsx";
 import MonthlyReviewModal from "../components/MonthlyReviewModal.jsx";
+import macroSnapshot from "../macroSnapshot.json";
+import { TEMP_TEXT, TEMP_LABEL } from "../components/macro/shared.js";
+import { macroDelta, macroAdjustExplain, macroAdjustedScore } from "../lib/macroAdjust.js";
 import { searchTickers as standaloneSearch, fetchStockData, STOCK_CN_NAMES } from "../standalone.js";
 import { useLang } from "../i18n.jsx";
 import {
@@ -894,6 +897,67 @@ ${angleQuestion}
                   <div className={`text-sm md:text-lg font-bold font-mono tabular-nums ${ret >= 0 ? "text-up" : "text-down"}`}>{ret >= 0 ? "+" : ""}{ret}%</div>
                 </div>
               </div>
+
+              {/* 宏观背景卡：当前 temperature + 这只票在当下 regime 下的风格契合度 */}
+              {(() => {
+                const temp = macroSnapshot?.composite?.market_temperature;
+                if (temp == null || !stk?.subScores) return null;
+                const delta = macroDelta(stk, temp);
+                const adjusted = macroAdjustedScore(stk, temp);
+                const explain = macroAdjustExplain(stk, temp);
+                const tempCls = TEMP_TEXT(temp);
+                const tempLabel = t(TEMP_LABEL(temp));
+                const hasDelta = delta != null && Math.abs(delta) >= 0.5;
+                return (
+                  <div className="glass-card p-3 md:p-4">
+                    <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+                      <div className="flex items-center gap-2">
+                        <Globe size={12} className="text-indigo-400" />
+                        <span className="text-xs font-medium" style={{ color: "var(--text-heading)" }}>
+                          {t('宏观背景')}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => window.dispatchEvent(new CustomEvent("quantedge:nav", { detail: "macro" }))}
+                        className="text-[10px] text-indigo-400 hover:text-indigo-300 transition-colors"
+                        title={t('打开宏观看板')}
+                      >
+                        {t('查看详情')} →
+                      </button>
+                    </div>
+                    <div className="flex items-baseline gap-3 flex-wrap">
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-[10px] text-[#a0aec0]">{t('市场温度')}</span>
+                        <span className={`text-base md:text-lg font-bold font-mono tabular-nums ${tempCls}`}>{temp.toFixed(1)}</span>
+                        <span className="text-[10px] text-[#a0aec0]">/ 100</span>
+                        <span className={`text-[11px] ${tempCls}`}>{tempLabel}</span>
+                      </div>
+                      {hasDelta && (
+                        <div className="flex items-baseline gap-1.5">
+                          <span className="text-white/10">|</span>
+                          <span className="text-[10px] text-[#a0aec0]">{t('个股调整')}</span>
+                          <span className={`text-sm font-mono tabular-nums font-bold ${delta > 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                            {delta > 0 ? "▲" : "▼"} {Math.abs(delta).toFixed(1)}
+                          </span>
+                          <span className="text-[10px] text-white/55">
+                            → {t('调整后')} <span className="font-mono">{adjusted.toFixed(1)}</span>
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    {explain && (
+                      <div className={`text-[11px] mt-1.5 ${delta > 0 ? "text-emerald-300/85" : "text-rose-300/85"}`}>
+                        {t(explain)}
+                      </div>
+                    )}
+                    {!hasDelta && (
+                      <div className="text-[11px] mt-1.5 text-white/45">
+                        {t('当前 regime 与个股风格匹配中性，宏观影响不显著')}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 flex-1 min-h-0">
                 <div className="glass-card p-3">
