@@ -91,6 +91,9 @@ const Monitor = () => {
     try { return new Set(JSON.parse(localStorage.getItem('quantedge_acked_alerts') || '[]')); }
     catch { return new Set(); }
   });
+  // 过滤：severity (high/warning/info/all) + type (macro/price/technical/score/all)
+  const [filterSev, setFilterSev] = useState("all");
+  const [filterType, setFilterType] = useState("all");
   const [mutedTickers, setMutedTickers] = useState(() => {
     try { return JSON.parse(localStorage.getItem('quantedge_muted_tickers') || '{}'); }
     catch { return {}; }
@@ -182,9 +185,33 @@ const Monitor = () => {
   const liveAlerts = mergedAlerts.filter(a => {
     if (isMuted(a.ticker)) return false;
     if (!showAcked && ackedIds.has(a.id)) return false;
+    if (filterSev !== "all" && a.severity !== filterSev) return false;
+    if (filterType !== "all" && a.type !== filterType) return false;
     return true;
   });
   const hiddenCount = mergedAlerts.length - liveAlerts.length;
+
+  // 每个 severity/type 的当前 count（用于 chip badge）
+  const sevCounts = useMemo(() => {
+    const c = { all: 0, high: 0, warning: 0, info: 0 };
+    mergedAlerts.forEach(a => {
+      if (isMuted(a.ticker)) return;
+      if (!showAcked && ackedIds.has(a.id)) return;
+      c.all += 1;
+      if (c[a.severity] != null) c[a.severity] += 1;
+    });
+    return c;
+  }, [mergedAlerts, mutedTickers, ackedIds, showAcked]);
+  const typeCounts = useMemo(() => {
+    const c = { all: 0, macro: 0, price: 0, technical: 0, score: 0 };
+    mergedAlerts.forEach(a => {
+      if (isMuted(a.ticker)) return;
+      if (!showAcked && ackedIds.has(a.id)) return;
+      c.all += 1;
+      if (c[a.type] != null) c[a.type] += 1;
+    });
+    return c;
+  }, [mergedAlerts, mutedTickers, ackedIds, showAcked]);
 
   // ── C6: 浏览器 Notification 桌面通知 ───────────────────────
   const [notifEnabled, setNotifEnabled] = useState(() => {
@@ -410,6 +437,68 @@ const Monitor = () => {
           flex
           className="md:flex-1 flex flex-col md:min-h-0"
         >
+          {/* Severity + type filter chips */}
+          {mergedAlerts.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1 mb-2 px-1">
+              <span className="text-[9px] text-[#778] uppercase mr-1">{t('级别')}:</span>
+              {[
+                ["all", t("全部"), null],
+                ["high", t("严重"), "text-down"],
+                ["warning", t("警示"), "text-amber-400"],
+                ["info", t("提示"), "text-sky-400"],
+              ].map(([key, label, accent]) => {
+                const c = sevCounts[key] ?? 0;
+                const active = filterSev === key;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => setFilterSev(key)}
+                    className={`px-1.5 py-0.5 rounded text-[9px] border transition-colors ${
+                      active
+                        ? "bg-indigo-500/15 border-indigo-400/40 text-indigo-200"
+                        : `bg-white/[0.02] border-white/[0.06] ${accent || "text-[#a0aec0]"} hover:bg-white/[0.06]`
+                    }`}
+                  >
+                    {label} {c > 0 && <span className="opacity-70 font-mono">({c})</span>}
+                  </button>
+                );
+              })}
+              <span className="w-3" />
+              <span className="text-[9px] text-[#778] uppercase mr-1">{t('类型')}:</span>
+              {[
+                ["all", t("全部")],
+                ["macro", t("宏观")],
+                ["price", t("价格")],
+                ["technical", t("技术")],
+                ["score", t("评级")],
+              ].map(([key, label]) => {
+                const c = typeCounts[key] ?? 0;
+                const active = filterType === key;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => setFilterType(key)}
+                    className={`px-1.5 py-0.5 rounded text-[9px] border transition-colors ${
+                      active
+                        ? "bg-cyan-500/15 border-cyan-400/40 text-cyan-200"
+                        : "bg-white/[0.02] border-white/[0.06] text-[#a0aec0] hover:bg-white/[0.06]"
+                    }`}
+                  >
+                    {label} {c > 0 && <span className="opacity-70 font-mono">({c})</span>}
+                  </button>
+                );
+              })}
+              {(filterSev !== "all" || filterType !== "all") && (
+                <button
+                  onClick={() => { setFilterSev("all"); setFilterType("all"); }}
+                  className="ml-1 px-1.5 py-0.5 rounded text-[9px] border bg-rose-500/10 border-rose-400/30 text-rose-300 hover:bg-rose-500/20"
+                >
+                  {t('清除筛选')}
+                </button>
+              )}
+            </div>
+          )}
+
           {(hiddenCount > 0 || Object.keys(mutedTickers).some(k => mutedTickers[k] > now)) && (
             <div className="flex items-center justify-between mb-2 px-1 text-[10px]">
               <button
