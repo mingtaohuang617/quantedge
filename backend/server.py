@@ -1691,6 +1691,139 @@ def llm_value_thesis(req: ValueThesisReq):
     return sanitize(_llm_mod.value_thesis(stock, supertrend))
 
 
+# ── Stock Gene（股性检测 / 牛股特征器） ──────────────────
+try:
+    import stock_gene as _gene_mod
+    HAS_STOCK_GENE = True
+except Exception as _e:
+    HAS_STOCK_GENE = False
+    _gene_mod = None
+    print(f"[WARN] stock_gene module not available: {_e}")
+
+
+class StockGeneAddReq(BaseModel):
+    """加入股性观察列表请求体。"""
+    ticker: str
+    name: str = ""
+    market: str = "US"
+    sector: str = ""
+    notes: str = ""
+    tags: list[str] = []
+
+
+class StockGeneUpdateReq(BaseModel):
+    name: str | None = None
+    market: str | None = None
+    sector: str | None = None
+    notes: str | None = None
+    tags: list[str] | None = None
+
+
+class StockGeneScoreReq(BaseModel):
+    """临时评分（不入库）请求体。"""
+    ticker: str
+    name: str = ""
+    market: str = "US"
+    sector: str = ""
+
+
+class StockGeneComparePeersReq(BaseModel):
+    tickers: list[str]
+    sector: str = ""
+    market: str = "US"
+
+
+@app.get("/api/stock-gene")
+def stock_gene_list():
+    """列出已加入股性检测的观察项（含 last_result 缓存）。"""
+    if not HAS_STOCK_GENE or _gene_mod is None:
+        raise HTTPException(503, "stock_gene 模块未加载")
+    data = _gene_mod.load_watchlist()
+    return sanitize(data)
+
+
+@app.post("/api/stock-gene")
+def stock_gene_add(req: StockGeneAddReq):
+    """加入股性观察列表（已存在则更新元数据）。"""
+    if not HAS_STOCK_GENE or _gene_mod is None:
+        raise HTTPException(503, "stock_gene 模块未加载")
+    try:
+        item = _gene_mod.add_to_watchlist(
+            req.ticker, name=req.name, market=req.market,
+            sector=req.sector, notes=req.notes, tags=req.tags,
+        )
+        return sanitize({"ok": True, "item": item})
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.put("/api/stock-gene/{ticker}")
+def stock_gene_update(ticker: str, req: StockGeneUpdateReq):
+    """编辑观察项元数据。"""
+    if not HAS_STOCK_GENE or _gene_mod is None:
+        raise HTTPException(503, "stock_gene 模块未加载")
+    fields = {k: v for k, v in req.dict().items() if v is not None}
+    item = _gene_mod.update_item(ticker, **fields)
+    if item is None:
+        raise HTTPException(404, f"{ticker} 不在观察列表中")
+    return sanitize({"ok": True, "item": item})
+
+
+@app.delete("/api/stock-gene/{ticker}")
+def stock_gene_delete(ticker: str):
+    """从观察列表删除。"""
+    if not HAS_STOCK_GENE or _gene_mod is None:
+        raise HTTPException(503, "stock_gene 模块未加载")
+    ok = _gene_mod.remove_from_watchlist(ticker)
+    if not ok:
+        raise HTTPException(404, f"{ticker} 不在观察列表中")
+    return {"ok": True}
+
+
+@app.post("/api/stock-gene/score")
+def stock_gene_score(req: StockGeneScoreReq):
+    """对任意 ticker 跑一次评分（不入库），用于"先看看"或对比预览。"""
+    if not HAS_STOCK_GENE or _gene_mod is None:
+        raise HTTPException(503, "stock_gene 模块未加载")
+    return sanitize(_gene_mod.score_stock(
+        req.ticker, name=req.name, market=req.market, sector=req.sector,
+    ))
+
+
+@app.post("/api/stock-gene/{ticker}/score")
+def stock_gene_score_persist(ticker: str):
+    """对 watchlist 里的某项重新评分并写回 last_result。"""
+    if not HAS_STOCK_GENE or _gene_mod is None:
+        raise HTTPException(503, "stock_gene 模块未加载")
+    try:
+        return sanitize(_gene_mod.score_and_persist(ticker))
+    except ValueError as e:
+        raise HTTPException(404, str(e))
+
+
+@app.post("/api/stock-gene/score-all")
+def stock_gene_score_all():
+    """批量评分所有观察项（一次性刷新）。"""
+    if not HAS_STOCK_GENE or _gene_mod is None:
+        raise HTTPException(503, "stock_gene 模块未加载")
+    results = _gene_mod.score_all()
+    return sanitize({"count": len(results), "items": results})
+
+
+@app.post("/api/stock-gene/compare-peers")
+def stock_gene_compare_peers(req: StockGeneComparePeersReq):
+    """横向对比同行业的多只股票（按 8 特征对齐输出）。"""
+    if not HAS_STOCK_GENE or _gene_mod is None:
+        raise HTTPException(503, "stock_gene 模块未加载")
+    if not req.tickers:
+        raise HTTPException(400, "tickers 不能为空")
+    if len(req.tickers) > 10:
+        raise HTTPException(400, "一次最多对比 10 只")
+    return sanitize(_gene_mod.compare_peers(
+        req.tickers, sector=req.sector, market=req.market,
+    ))
+
+
 if __name__ == "__main__":
     # 不在启动时调 health_check —— 它会同步连 Futu OpenD，OpenD 没开会卡住启动。
     # 各源健康状态由 /api/status 端点按需查询（前端拉到才探活）。
