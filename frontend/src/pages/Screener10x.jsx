@@ -5,7 +5,7 @@
 // 三段式工作流：
 //   1) 左栏：勾选超级赛道（AI 算力 / 半导体 / 光通信 / 算力中心）
 //   2) 中栏：根据勾选 + 市值上限筛出候选股，按市值升序（小市值优先）
-//   3) 右栏：用户加入观察的标的，可编辑 thesis / 卡位等级 / 目标价 / 止损
+//   3) 右栏：用户加入观察的标的，可编辑 thesis / 卡位或护城河等级 / 目标价 / 止损
 //
 // 数据来源：
 //   - GET    /api/universe/stats           候选池规模
@@ -609,7 +609,7 @@ export default function Screener10x() {
               />
             </div>
 
-            {/* AI 排序：按 LLM 给的卡位独特性打分，最多 10 只候选 */}
+            {/* AI 排序：按 LLM 给的卡位 / 护城河打分（strategy-aware），最多 10 只候选 */}
             <button
               onClick={handleAiRank}
               disabled={
@@ -620,7 +620,9 @@ export default function Screener10x() {
               title={
                 isDemoMode ? "需要 DEEPSEEK_API_KEY" :
                 selectedTrends.length > 1 ? "用第一个勾选的赛道排序" :
-                "对 top 10 候选用 LLM 打卡位独特性 1-5 分"
+                activeStrategy === "value"
+                  ? "对 top 10 候选用 LLM 打护城河 / 价值确信度 1-5 分（价值型）"
+                  : "对 top 10 候选用 LLM 打卡位独特性 1-5 分（成长型）"
               }
             >
               {aiRankingState.loading ? (
@@ -792,7 +794,12 @@ export default function Screener10x() {
                       </>
                     )}
                     {Object.keys(aiRanking).length > 0 && (
-                      <th className="text-center px-2 py-1.5 text-violet-300">AI 卡位</th>
+                      <th
+                        className="text-center px-2 py-1.5 text-violet-300"
+                        title={activeStrategy === "value" ? "护城河强度 / 价值确信度" : "卡位独特性"}
+                      >
+                        AI {activeStrategy === "value" ? "护城河" : "卡位"}
+                      </th>
                     )}
                     <th className="text-left px-2 py-1.5">命中</th>
                     <th className="px-2 py-1.5"></th>
@@ -969,6 +976,7 @@ export default function Screener10x() {
       <AddSupertrendDialog
         open={addTrendOpen}
         onClose={() => setAddTrendOpen(false)}
+        defaultStrategy={activeStrategy}
         onSaved={async () => {
           setAddTrendOpen(false);
           await reloadWatchlist();   // 刷新 supertrends 列表，新赛道立刻可勾选
@@ -984,6 +992,14 @@ export default function Screener10x() {
 function WatchlistCard({ item, trendName, onEdit, onDelete, onToggleArchive }) {
   const moat = item.moat_score || 0;
   const archived = !!item.archived;
+  // strategy-aware：价值型和成长型 item 在同一 watchlist 里混合显示，
+  // 需要一眼可辨；同时 L1/L2 / 卡位等字段在两种策略下语义不同。
+  const isValue = (item.strategy || "growth") === "value";
+  // L1/L2 颜色按"罕见 / 突出"映射：
+  //   growth: L2 深度认知 = 罕见 → 紫；L1 共识 = 普通 → 蓝
+  //   value:  L1 深度低估 = 罕见 → 紫；L2 合理估值 = 普通 → 蓝
+  const rareTone = "bg-violet-500/15 text-violet-200 border-violet-500/40";
+  const normalTone = "bg-blue-500/15 text-blue-200 border-blue-500/40";
   return (
     <div className={`glass-card p-2 border transition group ${
       archived
@@ -992,16 +1008,33 @@ function WatchlistCard({ item, trendName, onEdit, onDelete, onToggleArchive }) {
     }`}>
       <div className="flex items-start justify-between gap-2 mb-1">
         <div className="min-w-0">
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 flex-wrap">
             <span className="font-mono text-[12px] font-semibold text-white">{item.ticker}</span>
+            {/* strategy badge — 让混合 watchlist 一眼可辨 */}
+            <span
+              className={`text-[8px] px-1 py-px rounded font-medium border ${
+                isValue
+                  ? "bg-emerald-500/15 text-emerald-200 border-emerald-500/40"
+                  : "bg-indigo-500/15 text-indigo-200 border-indigo-500/40"
+              }`}
+              title={isValue ? "价值型 — Graham 安全边际" : "成长型 — 双层瓶颈 / 卡位公司"}
+            >
+              {isValue ? "值" : "成"}
+            </span>
             {archived && (
               <span className="text-[8px] px-1 py-px rounded bg-white/5 text-[#a0aec0] border border-white/15">归档</span>
             )}
             {item.bottleneck_layer === 2 && (
-              <span className="text-[8px] px-1 py-px rounded bg-violet-500/15 text-violet-200 border border-violet-500/40">L2</span>
+              <span
+                className={`text-[8px] px-1 py-px rounded border ${isValue ? normalTone : rareTone}`}
+                title={isValue ? "L2 合理估值 — 安全边际偏薄" : "L2 深度认知 — 跨界看到第二层瓶颈"}
+              >L2</span>
             )}
             {item.bottleneck_layer === 1 && (
-              <span className="text-[8px] px-1 py-px rounded bg-blue-500/15 text-blue-200 border border-blue-500/40">L1</span>
+              <span
+                className={`text-[8px] px-1 py-px rounded border ${isValue ? rareTone : normalTone}`}
+                title={isValue ? "L1 深度低估 — 显著低于内在价值" : "L1 共识层 — 主流认知层瓶颈"}
+              >L1</span>
             )}
           </div>
           {item.supertrend_id && (
@@ -1034,7 +1067,7 @@ function WatchlistCard({ item, trendName, onEdit, onDelete, onToggleArchive }) {
             className={n <= moat ? "text-amber-400 fill-amber-400" : "text-white/15"}
           />
         ))}
-        <span className="text-[8px] text-[#7a8497] ml-1">卡位</span>
+        <span className="text-[8px] text-[#7a8497] ml-1">{isValue ? "护城河" : "卡位"}</span>
       </div>
 
       {item.bottleneck_tag && (

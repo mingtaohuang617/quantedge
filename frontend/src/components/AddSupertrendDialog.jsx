@@ -18,7 +18,9 @@ function slugify(s) {
   return String(s || "").trim().replace(/\s+/g, "_");
 }
 
-export default function AddSupertrendDialog({ open, onClose, onSaved }) {
+export default function AddSupertrendDialog({ open, onClose, onSaved, defaultStrategy = "growth" }) {
+  // defaultStrategy 来自调用方当前 tab，保证用户从哪个 tab 进来就建对应 strategy 的赛道
+  // —— 否则从 value tab 新建赛道会默认成 growth，不出现在当前 tab，造成困惑
   const [form, setForm] = useState(emptyForm());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -90,6 +92,7 @@ export default function AddSupertrendDialog({ open, onClose, onSaved }) {
           note: form.note.trim(),
           keywords_zh: kwZh,
           keywords_en: kwEn,
+          strategy: defaultStrategy,
         }),
       });
       if (!json) throw new Error("后端无响应");
@@ -112,7 +115,21 @@ export default function AddSupertrendDialog({ open, onClose, onSaved }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/8">
-          <span className="text-sm font-semibold text-white">添加自定义赛道</span>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold text-white">添加自定义赛道</span>
+            <span
+              className={`text-[9px] px-1.5 py-0.5 rounded font-medium border ${
+                defaultStrategy === "value"
+                  ? "bg-emerald-500/15 text-emerald-200 border-emerald-500/40"
+                  : "bg-indigo-500/15 text-indigo-200 border-indigo-500/40"
+              }`}
+              title={defaultStrategy === "value"
+                ? "新赛道会归到「价值型」tab"
+                : "新赛道会归到「成长型」tab"}
+            >
+              {defaultStrategy === "value" ? "价值型" : "成长型"}
+            </span>
+          </div>
           <button
             onClick={onClose}
             className="text-[#a0aec0] hover:text-white transition-colors p-1 rounded hover:bg-white/10"
