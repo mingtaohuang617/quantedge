@@ -19,6 +19,8 @@ const VALID_FIELDS = new Set([
   'strategy', 'supertrend_id', 'bottleneck_layer', 'bottleneck_tag',
   'moat_score', 'thesis', 'target_price', 'stop_loss', 'tags',
   'llm_thesis_cached_at', 'archived',
+  // 卡位假设可证伪化（pre-mortem 纪律：假设何时被证伪 → 触发减仓/退出）
+  'falsification_condition',
 ]);
 
 function emptyData() {
@@ -92,6 +94,7 @@ export async function addItem(ticker, fields = {}) {
     bottleneck_tag: fields.bottleneck_tag ?? '',
     moat_score: fields.moat_score ?? null,
     thesis: fields.thesis ?? '',
+    falsification_condition: fields.falsification_condition ?? '',
     target_price: fields.target_price ?? null,
     stop_loss: fields.stop_loss ?? null,
     tags: Array.isArray(fields.tags) ? fields.tags : [],

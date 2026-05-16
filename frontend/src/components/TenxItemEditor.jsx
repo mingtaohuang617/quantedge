@@ -61,6 +61,7 @@ function emptyForm() {
     bottleneck_tag: "",
     moat_score: 3,
     thesis: "",
+    falsification_condition: "",
     target_price: "",
     stop_loss: "",
     tags: "",
@@ -76,6 +77,7 @@ function itemToForm(item) {
     bottleneck_tag: item.bottleneck_tag || "",
     moat_score: item.moat_score ?? 3,
     thesis: item.thesis || "",
+    falsification_condition: item.falsification_condition || "",
     target_price: item.target_price ?? "",
     stop_loss: item.stop_loss ?? "",
     tags: (item.tags || []).join(", "),
@@ -199,6 +201,7 @@ export default function TenxItemEditor({ open, item, candidate, supertrends, onC
       bottleneck_tag: form.bottleneck_tag || "",
       moat_score: Number(form.moat_score) || null,
       thesis: form.thesis || "",
+      falsification_condition: form.falsification_condition || "",
       target_price: toNumberOrNull(form.target_price),
       stop_loss: toNumberOrNull(form.stop_loss),
       tags: form.tags
@@ -354,6 +357,24 @@ export default function TenxItemEditor({ open, item, candidate, supertrends, onC
                 <span className="break-all">{llmState.error}</span>
               </div>
             )}
+          </Field>
+
+          {/* 假设证伪条件（pre-mortem 纪律：什么发生则减仓/退出） */}
+          <Field label="假设证伪条件（何时触发减仓/退出）">
+            <textarea
+              value={form.falsification_condition}
+              onChange={(e) => setField("falsification_condition", e.target.value)}
+              rows={2}
+              className="input-base font-mono text-[11px] leading-relaxed"
+              placeholder={
+                form.strategy === "value"
+                  ? "如：股息率 < 3% / ROE 连续 2 季 < 10% / 业绩负增长 / 高负债爆雷"
+                  : "如：核心客户订单流失 / 产品被替代 / 管理层重大变动 / 行业政策转向"
+              }
+            />
+            <div className="text-[9px] text-[#7a8497] mt-1">
+              💡 写明退出条件能避免持仓时把假设当信仰（Druckenmiller pre-mortem）
+            </div>
           </Field>
 
           {/* row: target / stop */}
