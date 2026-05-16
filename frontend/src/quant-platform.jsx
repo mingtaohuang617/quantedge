@@ -1648,10 +1648,21 @@ const WorkspaceSwitcher = () => {
   );
 };
 
+// 顶栏时钟 — 每分钟刷新一次（之前每秒会触发整个 Header 重 reconcile，浪费 60x）
+// 首次先 setTimeout 对齐到下一个 :00 秒边界，之后 setInterval(60s) 保持精度
 const LiveClock = React.memo(() => {
   const [time, setTime] = useState(new Date());
-  useEffect(() => { const t = setInterval(() => setTime(new Date()), 1000); return () => clearInterval(t); }, []);
-  return <span className="font-mono tabular-nums text-xs text-[#a0aec0]">{time.toLocaleTimeString("en-GB", { hour12: false })}</span>;
+  useEffect(() => {
+    const msToNextMinute = 60_000 - (Date.now() % 60_000);
+    let interval;
+    const align = setTimeout(() => {
+      setTime(new Date());
+      interval = setInterval(() => setTime(new Date()), 60_000);
+    }, msToNextMinute);
+    return () => { clearTimeout(align); if (interval) clearInterval(interval); };
+  }, []);
+  // HH:MM 不带秒（每分钟刷新足够；要看精确秒去看「数据更新于」字段）
+  return <span className="font-mono tabular-nums text-xs text-[#a0aec0]">{time.toLocaleTimeString("en-GB", { hour12: false, hour: "2-digit", minute: "2-digit" })}</span>;
 });
 
 // ─── Main ─────────────────────────────────────────────────
