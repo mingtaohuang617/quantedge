@@ -326,6 +326,12 @@ export default function Screener10x() {
         sector: c.sector,
         industry: c.industry,
         marketCap: c.marketCap,
+        // 价值型场景透传 5 维财务（backend rank-candidates 按 supertrend.strategy 决定是否用上）
+        pe: c.pe ?? null,
+        pb: c.pb ?? null,
+        dividend_yield: c.dividend_yield ?? null,
+        roe: c.roe ?? null,
+        debt_to_equity: c.debt_to_equity ?? null,
       }));
       const json = await apiFetch("/llm/rank-candidates", {
         method: "POST",
