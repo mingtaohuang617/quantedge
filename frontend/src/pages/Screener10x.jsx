@@ -59,6 +59,36 @@ function fmtMcap(mc) {
   return `${mc.toFixed(0)}`;
 }
 
+/** ticker → Yahoo Finance symbol。复用 quant-platform.jsx:fetchYahooPrices 的规则
+ *  + 补 A 股 .SH → .SS。 */
+function _tickerToYahoo(ticker) {
+  if (!ticker) return null;
+  if (ticker.endsWith(".HK")) {
+    const num = ticker.replace(".HK", "").replace(/^0+/, "").padStart(4, "0");
+    return num + ".HK";
+  }
+  if (ticker.endsWith(".SH")) return ticker.replace(".SH", ".SS");
+  // .SZ / .BJ / 美股纯 ticker 保留原样
+  return ticker;
+}
+
+/** 单只 ticker 拉当前价（regularMarketPrice）。失败返回 null。 */
+async function fetchCurrentPrice(ticker) {
+  const yfSym = _tickerToYahoo(ticker);
+  if (!yfSym) return null;
+  const path = `/v8/finance/chart/${encodeURIComponent(yfSym)}?interval=1d&range=1d`;
+  const url = `/api/yahoo?host=query1&path=${encodeURIComponent(path)}`;
+  try {
+    const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    if (!r.ok) return null;
+    const j = await r.json();
+    const px = j?.chart?.result?.[0]?.meta?.regularMarketPrice;
+    return typeof px === "number" ? px : null;
+  } catch {
+    return null;
+  }
+}
+
 const FIELD_LABEL = { sector: "板块", industry: "行业", name: "名称" };
 
 /** 把候选 item 的 match_reasons[trend_id] 渲染成 hover tooltip 文本。
@@ -157,6 +187,8 @@ export default function Screener10x() {
   // 导入/导出 loading
   const [importLoading, setImportLoading] = useState(false);
   const importInputRef = useRef(null);
+  // 当前价（用于 target/stop 预警 badge）；只对设了 target 或 stop 的 item 拉
+  const [pricesByTicker, setPricesByTicker] = useState({});
 
   // ── 拉初始数据（watchlist + universe stats）─────────────
   const reloadWatchlist = useCallback(async (opts = {}) => {
@@ -185,6 +217,38 @@ export default function Screener10x() {
     reloadWatchlist();
     reloadUniverseStats();
   }, [reloadWatchlist, reloadUniverseStats]);
+
+  // ── 价格预警：对设了 target_price / stop_loss 的 active item 拉当前价 ───
+  // 不拉所有票（避免几十只票一起请求 Yahoo）；缓存到 pricesByTicker；items 变化
+  // 时仅补差（已拉过的不重复）
+  useEffect(() => {
+    const need = items.filter(
+      it => !it.archived && (it.target_price != null || it.stop_loss != null)
+    );
+    if (need.length === 0) return;
+    const missing = need.filter(it => !(it.ticker in pricesByTicker));
+    if (missing.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      // 分批 6 并发拉；fetchCurrentPrice 失败时返回 null，不阻塞
+      const chunks = [];
+      for (let i = 0; i < missing.length; i += 6) chunks.push(missing.slice(i, i + 6));
+      for (const chunk of chunks) {
+        if (cancelled) return;
+        const entries = await Promise.all(
+          chunk.map(async it => [it.ticker, await fetchCurrentPrice(it.ticker)])
+        );
+        if (cancelled) return;
+        setPricesByTicker(prev => {
+          const next = { ...prev };
+          for (const [tk, px] of entries) next[tk] = px; // null 也存（避免重复请求）
+          return next;
+        });
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items]);   // pricesByTicker 故意不放依赖（避免循环）；missing 检查会自动跳过已拉的
 
   // ── mcap input debounce（300ms）─────────────────────────
   // 用户在 input 里改数字时实时更新 maxMcapInput；停手 300ms 后才更新 maxMcapB，
@@ -946,6 +1010,7 @@ export default function Screener10x() {
                 key={it.ticker}
                 item={it}
                 trendName={trendName}
+                currentPrice={pricesByTicker[it.ticker]}
                 onEdit={() => openEdit(it)}
                 onDelete={() => handleDelete(it.ticker)}
                 onToggleArchive={() => handleToggleArchive(it.ticker, !it.archived)}
@@ -981,9 +1046,40 @@ export default function Screener10x() {
 // ─────────────────────────────────────────────────────────────
 // 观察项卡片
 // ─────────────────────────────────────────────────────────────
-function WatchlistCard({ item, trendName, onEdit, onDelete, onToggleArchive }) {
+function WatchlistCard({ item, trendName, currentPrice, onEdit, onDelete, onToggleArchive }) {
   const moat = item.moat_score || 0;
   const archived = !!item.archived;
+
+  // 价格预警计算：基于当前价（Yahoo） vs target_price / stop_loss
+  // 用户体验：现价 - target/stop 距离用百分比 + 颜色 + emoji 表达紧迫程度
+  const priceAlerts = useMemo(() => {
+    if (currentPrice == null || typeof currentPrice !== "number") return null;
+    const out = { current: currentPrice, target: null, stop: null };
+    if (item.target_price != null) {
+      const gap = (currentPrice - item.target_price) / item.target_price;
+      // gap > 0：当前价 > target（已超），用户已达预期 → 绿色
+      // -10% < gap < 0：临近目标 → 蓝/青色
+      // gap < -10%：距离目标还远 → 灰色
+      out.target = {
+        gap,
+        tone: gap >= 0 ? "above"
+            : gap >= -0.10 ? "near" : "far",
+      };
+    }
+    if (item.stop_loss != null) {
+      const gap = (currentPrice - item.stop_loss) / item.stop_loss;
+      // gap < 0：已破止损 → 红色
+      // 0 < gap < 10%：临近止损 → 黄色
+      // gap > 10%：安全 → 不强调（灰）
+      out.stop = {
+        gap,
+        tone: gap < 0 ? "below"
+            : gap < 0.10 ? "near" : "safe",
+      };
+    }
+    return out;
+  }, [currentPrice, item.target_price, item.stop_loss]);
+
   return (
     <div className={`glass-card p-2 border transition group ${
       archived
@@ -1051,9 +1147,65 @@ function WatchlistCard({ item, trendName, onEdit, onDelete, onToggleArchive }) {
       )}
 
       {(item.target_price || item.stop_loss) && (
-        <div className="flex items-center gap-2 text-[9px] font-mono">
-          {item.target_price && <span className="text-emerald-300">▲ {item.target_price}</span>}
-          {item.stop_loss && <span className="text-red-300">▼ {item.stop_loss}</span>}
+        <div className="flex items-center gap-2 text-[9px] font-mono flex-wrap">
+          {/* 目标价 + 距当前价 % */}
+          {item.target_price && (
+            <span
+              className={`flex items-center gap-0.5 ${
+                priceAlerts?.target?.tone === "above"
+                  ? "text-emerald-300 font-semibold"
+                  : priceAlerts?.target?.tone === "near"
+                  ? "text-cyan-300"
+                  : "text-emerald-300/60"
+              }`}
+              title={priceAlerts
+                ? `当前价 ${priceAlerts.current.toFixed(2)} vs 目标 ${item.target_price}：${
+                    priceAlerts.target.gap >= 0 ? "已达 +" : "距 "
+                  }${Math.abs(priceAlerts.target.gap * 100).toFixed(1)}%`
+                : "目标价"}
+            >
+              ▲ {item.target_price}
+              {priceAlerts?.target && (
+                <span className="text-[8px] opacity-80">
+                  {priceAlerts.target.gap >= 0
+                    ? ` +${(priceAlerts.target.gap * 100).toFixed(1)}%`
+                    : ` ${(priceAlerts.target.gap * 100).toFixed(1)}%`}
+                </span>
+              )}
+            </span>
+          )}
+          {/* 止损位 + 距当前价 % */}
+          {item.stop_loss && (
+            <span
+              className={`flex items-center gap-0.5 ${
+                priceAlerts?.stop?.tone === "below"
+                  ? "text-red-400 font-semibold animate-pulse"
+                  : priceAlerts?.stop?.tone === "near"
+                  ? "text-amber-300"
+                  : "text-red-300/60"
+              }`}
+              title={priceAlerts
+                ? `当前价 ${priceAlerts.current.toFixed(2)} vs 止损 ${item.stop_loss}：${
+                    priceAlerts.stop.gap < 0 ? "已破 " : "距 +"
+                  }${Math.abs(priceAlerts.stop.gap * 100).toFixed(1)}%`
+                : "止损位"}
+            >
+              ▼ {item.stop_loss}
+              {priceAlerts?.stop && (
+                <span className="text-[8px] opacity-80">
+                  {priceAlerts.stop.gap < 0
+                    ? ` ${(priceAlerts.stop.gap * 100).toFixed(1)}%`
+                    : ` +${(priceAlerts.stop.gap * 100).toFixed(1)}%`}
+                </span>
+              )}
+            </span>
+          )}
+          {/* 当前价小字（仅有 quote 时） */}
+          {priceAlerts && (
+            <span className="text-[8px] text-[#7a8497] ml-auto">
+              ${priceAlerts.current.toFixed(2)}
+            </span>
+          )}
         </div>
       )}
 
