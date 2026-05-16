@@ -9,8 +9,8 @@ import React, { useEffect, useState } from "react";
 import { X, Sparkles, Loader, AlertCircle, Save } from "lucide-react";
 import { apiFetch } from "../quant-platform.jsx";
 
-function emptyForm() {
-  return { id: "", name: "", note: "", keywords_zh: "", keywords_en: "" };
+function emptyForm(strategy = "growth") {
+  return { id: "", name: "", note: "", strategy, keywords_zh: "", keywords_en: "" };
 }
 
 function slugify(s) {
@@ -18,18 +18,20 @@ function slugify(s) {
   return String(s || "").trim().replace(/\s+/g, "_");
 }
 
-export default function AddSupertrendDialog({ open, onClose, onSaved }) {
-  const [form, setForm] = useState(emptyForm());
+export default function AddSupertrendDialog({ open, onClose, onSaved, defaultStrategy = "growth" }) {
+  const [form, setForm] = useState(emptyForm(defaultStrategy));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [llmState, setLlmState] = useState({ loading: false, error: null });
 
   useEffect(() => {
     if (open) {
-      setForm(emptyForm());
+      // 打开时按当前 tab strategy 初始化（用户在 value tab 加自定义赛道时默认 value）
+      setForm(emptyForm(defaultStrategy));
       setError(null);
       setLlmState({ loading: false, error: null });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   if (!open) return null;
@@ -46,7 +48,7 @@ export default function AddSupertrendDialog({ open, onClose, onSaved }) {
       const json = await apiFetch("/llm/generate-keywords", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: form.name, note: form.note }),
+        body: JSON.stringify({ name: form.name, note: form.note, strategy: form.strategy }),
       });
       if (!json) throw new Error("后端无响应（DEEPSEEK_API_KEY 未配置或网络问题）");
       if (!json.ok) throw new Error(json.error || "LLM 生成失败");
@@ -88,6 +90,7 @@ export default function AddSupertrendDialog({ open, onClose, onSaved }) {
           id,
           name: form.name.trim(),
           note: form.note.trim(),
+          strategy: form.strategy,
           keywords_zh: kwZh,
           keywords_en: kwEn,
         }),
@@ -151,6 +154,38 @@ export default function AddSupertrendDialog({ open, onClose, onSaved }) {
               className="input-base"
               placeholder="如 光伏 / 储能 / 风电"
             />
+          </Field>
+
+          {/* 策略归属：决定按 tab 过滤时归到哪一边，以及 AI 关键词生成的 prompt 框架 */}
+          <Field label="策略归属">
+            <div className="flex gap-2">
+              {[
+                { value: "growth", label: "成长型", note: "AI 算力 / 半导体 / 光通信 等产业链" },
+                { value: "value", label: "价值型", note: "高股息 / 周期 / 必需消费 等价值赛道" },
+              ].map((o) => (
+                <label
+                  key={o.value}
+                  className={`flex-1 flex flex-col items-start gap-0.5 px-2 py-1.5 rounded border cursor-pointer transition ${
+                    form.strategy === o.value
+                      ? "bg-cyan-500/15 border-cyan-500/40 text-cyan-100"
+                      : "bg-white/3 border-white/10 text-[#a0aec0] hover:bg-white/5"
+                  }`}
+                >
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="radio"
+                      name="strategy"
+                      value={o.value}
+                      checked={form.strategy === o.value}
+                      onChange={() => setField("strategy", o.value)}
+                      className="accent-cyan-500"
+                    />
+                    <span className="text-[11px] font-medium">{o.label}</span>
+                  </div>
+                  <span className="text-[9px] text-[#7a8497] pl-4">{o.note}</span>
+                </label>
+              ))}
+            </div>
           </Field>
 
           <Field

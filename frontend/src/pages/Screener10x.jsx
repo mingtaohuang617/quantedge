@@ -968,6 +968,7 @@ export default function Screener10x() {
       {/* 添加赛道对话框 */}
       <AddSupertrendDialog
         open={addTrendOpen}
+        defaultStrategy={activeStrategy}   // 跟随当前 tab — value tab 加自定义赛道默认 strategy=value
         onClose={() => setAddTrendOpen(false)}
         onSaved={async () => {
           setAddTrendOpen(false);
