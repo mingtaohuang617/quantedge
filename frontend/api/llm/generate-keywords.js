@@ -1,33 +1,22 @@
 // /api/llm/generate-keywords  —  根据赛道名 + 注释，生成 sector_mapping 关键词列表
 //
 // 用途：用户加新自定义赛道时，让 LLM 起草 keywords_zh / keywords_en，免去手填
-// 输入: { name, note? }
+// 输入: { name, note?, strategy?: "growth" | "value" }
 // 输出: { keywords_zh: [...], keywords_en: [...], reason }
+//
+// v2.0：按 strategy 切 prompt — growth 偏产业链关键词，value 偏防御/周期/必需消费
+// 行业大类。cache key prefix 按 strategy 隔离。
 
 import { requireReferer, readJson } from '../_lib/auth.js';
 import { chat, safeJsonParse, DEFAULT_MODEL } from '../_lib/deepseek.js';
 import { llmCacheGet, llmCachePut } from '../_lib/llmCache.js';
 
-const ENDPOINT = 'generate-keywords';
 const TTL_SEC = 7 * 86400;
 const MAX_KEYWORDS = 25;
 
-export default async function handler(req, res) {
-  res.setHeader('Cache-Control', 'no-store');
-  if (req.method === 'OPTIONS') return res.status(200).end();
-  if (!requireReferer(req, res)) return;
-  if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST');
-    return res.status(405).json({ error: 'method not allowed' });
-  }
-
-  const body = await readJson(req);
-  const name = String(body.name || '').trim();
-  const note = String(body.note || '').trim();
-  if (!name) return res.status(400).json({ ok: false, error: 'name required' });
-
-  const prompt = [
-    "你是产业研究助手。给定一个 '超级赛道' 名称和注释，请生成用于行业字符串匹配的关键词列表（中英文都要）。",
+function buildPromptGrowth(name, note) {
+  return [
+    "你是产业研究助手。给定一个'超级赛道'名称和注释，请生成用于行业字符串匹配的关键词列表（中英文都要）。",
     '',
     `赛道名: ${name}`,
     `注释: ${note || '（无）'}`,
@@ -44,8 +33,53 @@ export default async function handler(req, res) {
     '  "reason": "<≤80 字 解释你为什么选这些>"',
     '}',
   ].join('\n');
+}
 
-  const cached = await llmCacheGet(ENDPOINT, DEFAULT_MODEL, prompt);
+function buildPromptValue(name, note) {
+  return [
+    "你是价值投资研究助手。给定一个'价值赛道'名称和注释，请生成用于行业字符串匹配的关键词列表（中英文都要）。",
+    '',
+    `赛道名: ${name}`,
+    `注释: ${note || '（无）'}`,
+    '',
+    '要求（针对价值投资场景）：',
+    '- 应选稳定/周期性/防御性行业：公用事业、银行、保险、能源、电信、消费必需品、化工、钢铁、有色等。',
+    '- 避免选纯成长行业（AI、半导体、新能源、生物科技）— 这些属于 growth 范畴。',
+    '- 中文关键词：A 股研报常见行业词，如"银行"、"石油"、"煤炭"、"白酒"、"食品饮料"、"公共事业"、"化工"、"钢铁"、"保险"',
+    '- 英文关键词：yfinance / GICS 价值类行业词，如 "Banks—Diversified"、"Oil & Gas Integrated"、"Utilities—Regulated Electric"、"Tobacco"、"Beverages—Non-Alcoholic"、"Insurance"、"Steel"',
+    `- 各语言不超过 ${MAX_KEYWORDS} 个；越精准的关键词越好`,
+    '',
+    '请严格输出 JSON：',
+    '{',
+    '  "keywords_zh": ["<>", ...],',
+    '  "keywords_en": ["<>", ...],',
+    '  "reason": "<≤80 字 解释你为什么选这些，强调防御/周期/必需消费特征>"',
+    '}',
+  ].join('\n');
+}
+
+export default async function handler(req, res) {
+  res.setHeader('Cache-Control', 'no-store');
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (!requireReferer(req, res)) return;
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    return res.status(405).json({ error: 'method not allowed' });
+  }
+
+  const body = await readJson(req);
+  const name = String(body.name || '').trim();
+  const note = String(body.note || '').trim();
+  const strategy = body.strategy === 'value' ? 'value' : 'growth';
+  if (!name) return res.status(400).json({ ok: false, error: 'name required' });
+
+  const prompt = strategy === 'value'
+    ? buildPromptValue(name, note)
+    : buildPromptGrowth(name, note);
+  // cache key prefix 按 strategy 隔离，避免同名赛道在两 strategy 拿错框架缓存
+  const endpoint = strategy === 'value' ? 'generate-keywords-value' : 'generate-keywords';
+
+  const cached = await llmCacheGet(endpoint, DEFAULT_MODEL, prompt);
   if (cached) {
     return res.status(200).json({ ok: true, ...cached.response, cached: true });
   }
@@ -62,7 +96,7 @@ export default async function handler(req, res) {
       .map(k => String(k).trim()).filter(Boolean).slice(0, MAX_KEYWORDS);
     parsed.reason = String(parsed.reason || '').slice(0, 200);
 
-    await llmCachePut(ENDPOINT, DEFAULT_MODEL, prompt, parsed, TTL_SEC, {
+    await llmCachePut(endpoint, DEFAULT_MODEL, prompt, parsed, TTL_SEC, {
       prompt_tokens, completion_tokens,
     });
     return res.status(200).json({ ok: true, ...parsed, cached: false });
