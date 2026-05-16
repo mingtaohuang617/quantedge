@@ -46,9 +46,11 @@ test.describe('主流程冒烟测试', () => {
     const searchInput = page.locator('input[placeholder*="搜索"]').last();
     await expect(searchInput).toBeVisible({ timeout: 3000 });
 
-    // 输入 "动量" 应能触发模板项（模板 / 动量成长）
+    // 输入 "动量" 应能触发模板项（"🚀 动量成长"）。
+    // selector 用完整 "动量成长" 避免匹配到 ScoringDashboard 表头的 "动量" 短词
+    // （那个 span 在 ⌘K 浮层之外、被遮罩 hidden，会让 .first() 拿到 hidden 元素）。
     await searchInput.fill('动量');
-    await expect(page.locator('text=/动量成长|动量/').first()).toBeVisible({ timeout: 3000 });
+    await expect(page.locator('text=动量成长').first()).toBeVisible({ timeout: 3000 });
 
     // ESC 关闭
     await page.keyboard.press('Escape');
