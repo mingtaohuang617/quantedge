@@ -23,6 +23,7 @@ import {
   Filter, Search, Database, Star, ChevronRight, Globe, Sparkles, X,
   Archive, ArchiveRestore,
   Download, Upload,
+  Check,
 } from "lucide-react";
 import { apiFetch } from "../quant-platform.jsx";
 import TenxItemEditor from "../components/TenxItemEditor.jsx";
@@ -396,6 +397,17 @@ export default function Screener10x() {
     });
     await reloadWatchlist();
     // 归档/恢复都不影响候选 — 归档项也算"已观察过"
+  };
+
+  // 一键"已复盘" — 不必 regenerate AI 草稿就能消除 N 天未复盘 badge
+  // 用户简单看一眼觉得 thesis 仍成立 → 标记复盘，badge 重新计时
+  const handleMarkReviewed = async (ticker) => {
+    await apiFetch(`/watchlist/10x/${encodeURIComponent(ticker)}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ llm_thesis_cached_at: new Date().toISOString() }),
+    });
+    await reloadWatchlist();
   };
 
   // 导出整份 watchlist 为 .json 备份文件
@@ -949,6 +961,7 @@ export default function Screener10x() {
                 onEdit={() => openEdit(it)}
                 onDelete={() => handleDelete(it.ticker)}
                 onToggleArchive={() => handleToggleArchive(it.ticker, !it.archived)}
+                onMarkReviewed={() => handleMarkReviewed(it.ticker)}
               />
             ))}
           </div>
@@ -981,7 +994,7 @@ export default function Screener10x() {
 // ─────────────────────────────────────────────────────────────
 // 观察项卡片
 // ─────────────────────────────────────────────────────────────
-function WatchlistCard({ item, trendName, onEdit, onDelete, onToggleArchive }) {
+function WatchlistCard({ item, trendName, onEdit, onDelete, onToggleArchive, onMarkReviewed }) {
   const moat = item.moat_score || 0;
   const archived = !!item.archived;
   return (
@@ -1009,6 +1022,16 @@ function WatchlistCard({ item, trendName, onEdit, onDelete, onToggleArchive }) {
           )}
         </div>
         <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition">
+          {/* 一键已复盘 — 不必 regenerate 草稿就重置「N 天未复盘」badge */}
+          {!archived && onMarkReviewed && (
+            <button
+              onClick={onMarkReviewed}
+              className="p-1 rounded hover:bg-emerald-500/20 text-[#a0aec0] hover:text-emerald-300"
+              title="标记已复盘 — 重置「N 天未复盘」badge（不必重新生成 AI 草稿）"
+            >
+              <Check size={10} />
+            </button>
+          )}
           <button onClick={onEdit} className="p-1 rounded hover:bg-white/10 text-[#a0aec0] hover:text-white" title="编辑">
             <Edit2 size={10} />
           </button>
