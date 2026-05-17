@@ -397,6 +397,12 @@ export default function Screener10x() {
         sector: c.sector,
         industry: c.industry,
         marketCap: c.marketCap,
+        // 价值型场景透传 5 维财务（backend rank-candidates 按 supertrend.strategy 决定是否用上）
+        pe: c.pe ?? null,
+        pb: c.pb ?? null,
+        dividend_yield: c.dividend_yield ?? null,
+        roe: c.roe ?? null,
+        debt_to_equity: c.debt_to_equity ?? null,
       }));
       const json = await apiFetch("/llm/rank-candidates", {
         method: "POST",
@@ -1099,6 +1105,29 @@ function WatchlistCard({ item, trendName, currentPrice, onEdit, onDelete, onTogg
     return out;
   }, [currentPrice, item.target_price, item.stop_loss]);
 
+  // 复盘提醒：从最近一次接触（added_at / llm_thesis_cached_at）算出天数
+  // > 30 天 amber 提醒；> 90 天 red 强警告（建议重看 thesis 是否仍成立）
+  const reviewState = useMemo(() => {
+    if (archived) return null;   // 归档项不提醒
+    const dates = [];
+    if (item.added_at) {
+      const d = new Date(item.added_at);
+      if (!isNaN(d)) dates.push(d.getTime());
+    }
+    if (item.llm_thesis_cached_at) {
+      const d = new Date(item.llm_thesis_cached_at);
+      if (!isNaN(d)) dates.push(d.getTime());
+    }
+    if (dates.length === 0) return null;
+    const lastMs = Math.max(...dates);
+    const daysAgo = Math.floor((Date.now() - lastMs) / 86400000);
+    if (daysAgo < 7) return null;   // < 7 天太新，不显示
+    return {
+      daysAgo,
+      tone: daysAgo >= 90 ? "urgent" : daysAgo >= 30 ? "warn" : "info",
+    };
+  }, [item.added_at, item.llm_thesis_cached_at, archived]);
+
   return (
     <div className={`glass-card p-2 border transition group ${
       archived
@@ -1117,6 +1146,27 @@ function WatchlistCard({ item, trendName, currentPrice, onEdit, onDelete, onTogg
             )}
             {item.bottleneck_layer === 1 && (
               <span className="text-[8px] px-1 py-px rounded bg-blue-500/15 text-blue-200 border border-blue-500/40">L1</span>
+            )}
+            {/* 复盘提醒（≥7 天才显示）— 强提醒用户重看 thesis */}
+            {reviewState && (
+              <span
+                className={`text-[8px] px-1 py-px rounded border ${
+                  reviewState.tone === "urgent"
+                    ? "bg-red-500/15 text-red-300 border-red-500/40 animate-pulse"
+                    : reviewState.tone === "warn"
+                    ? "bg-amber-500/15 text-amber-300 border-amber-500/40"
+                    : "bg-white/5 text-[#a0aec0] border-white/15"
+                }`}
+                title={
+                  reviewState.tone === "urgent"
+                    ? `已 ${reviewState.daysAgo} 天未复盘 — 强烈建议重看 thesis 是否仍成立`
+                    : reviewState.tone === "warn"
+                    ? `已 ${reviewState.daysAgo} 天未复盘 — 建议复盘并 regenerate AI 草稿`
+                    : `${reviewState.daysAgo} 天前观察`
+                }
+              >
+                ⏰ {reviewState.daysAgo}d
+              </span>
             )}
           </div>
           {item.supertrend_id && (
