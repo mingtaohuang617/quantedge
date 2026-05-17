@@ -1461,6 +1461,7 @@ class WatchlistAddReq(BaseModel):
     bottleneck_tag: str = ""
     moat_score: int | None = None
     thesis: str = ""
+    falsification_condition: str = ""
     target_price: float | None = None
     stop_loss: float | None = None
     tags: list[str] = []
@@ -1473,6 +1474,7 @@ class WatchlistUpdateReq(BaseModel):
     bottleneck_tag: str | None = None
     moat_score: int | None = None
     thesis: str | None = None
+    falsification_condition: str | None = None
     target_price: float | None = None
     stop_loss: float | None = None
     tags: list[str] | None = None
@@ -1491,6 +1493,7 @@ def add_watchlist_10x(req: WatchlistAddReq):
             bottleneck_tag=req.bottleneck_tag,
             moat_score=req.moat_score,
             thesis=req.thesis,
+            falsification_condition=req.falsification_condition,
             target_price=req.target_price,
             stop_loss=req.stop_loss,
             tags=req.tags,
