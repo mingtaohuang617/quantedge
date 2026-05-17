@@ -90,6 +90,12 @@ export default function StockGene() {
   // 导入 loading
   const [importLoading, setImportLoading] = useState(false);
   const importInputRef = useRef(null);
+  // AI 解读：key 为 `${ticker}:${engine}`，避免不同股票/引擎相互覆盖
+  const [aiNarratives, setAiNarratives] = useState({});
+  const [aiLoading, setAiLoading] = useState(null); // 当前 loading 的 ticker:engine key
+  // 左栏过滤
+  const [filterText, setFilterText] = useState("");
+  const [filterVerdicts, setFilterVerdicts] = useState(() => new Set()); // 空 = 不过滤
 
   // ── 拉观察列表 ─────────────────────────────────────────
   const reload = useCallback(async () => {
@@ -180,6 +186,42 @@ export default function StockGene() {
       setBatchScoring(false);
     }
   };
+
+  // ── AI 解读评分（LLM 一段话画像）────────────────────────
+  const handleExplain = useCallback(async (item, eng) => {
+    const r = eng === "value" ? item.last_value_result : item.last_result;
+    if (!r) return;
+    const key = `${item.ticker}:${eng}`;
+    setAiLoading(key);
+    try {
+      const res = await apiFetch("/stock-gene/explain", {
+        method: "POST",
+        body: JSON.stringify({
+          ticker: item.ticker,
+          name: item.name || "",
+          market: item.market || "US",
+          sector: item.sector || "",
+          engine: eng,
+          score: r.score,
+          max_score: r.max_score,
+          available: r.available,
+          verdict: r.verdict?.label || "",
+          features: (r.features || []).map(f => ({
+            label: f.label, pass: f.pass, value: f.value,
+            detail: f.detail, available: f.available,
+          })),
+        }),
+      });
+      setAiNarratives(prev => ({
+        ...prev,
+        [key]: res?.ok
+          ? { text: res.narrative, cached: !!res.cached }
+          : { error: res?.error || res?.detail || "AI 解读失败" },
+      }));
+    } finally {
+      setAiLoading(null);
+    }
+  }, []);
 
   // ── 导出 / 导入（备份）──────────────────────────────────
   const handleExport = async () => {
@@ -287,12 +329,26 @@ export default function StockGene() {
     [items, selectedTicker]
   );
 
-  // 排序后的列表（按 sortBy + 当前 engine 一起算）
-  // - "score"：按当前 engine 评分降序，缺评分的排最后
-  // - "added"：按添加时间降序（最近添加优先）
-  // - "ticker"：按 ticker 字母升序
+  // 排序 + 过滤后的列表
+  // 过滤：filterText 匹配 ticker / name / sector（不区分大小写）
+  //       filterVerdicts 多选限制评价等级（空 = 全部通过）
+  // 排序：按 sortBy 在过滤后的子集上排序
   const sortedItems = useMemo(() => {
-    const arr = [...items];
+    const q = filterText.trim().toLowerCase();
+    const arr = items.filter((it) => {
+      // 文本搜索
+      if (q) {
+        const haystack = [it.ticker, it.name, it.sector].join(" ").toLowerCase();
+        if (!haystack.includes(q)) return false;
+      }
+      // 评价过滤（按当前 engine 的 verdict.level）
+      if (filterVerdicts.size > 0) {
+        const r = engine === "value" ? it.last_value_result : it.last_result;
+        const lvl = r?.verdict?.level || "_unscored";
+        if (!filterVerdicts.has(lvl)) return false;
+      }
+      return true;
+    });
     if (sortBy === "score") {
       arr.sort((a, b) => {
         const ra = engine === "value" ? a.last_value_result : a.last_result;
@@ -307,7 +363,7 @@ export default function StockGene() {
       arr.sort((a, b) => a.ticker.localeCompare(b.ticker));
     }
     return arr;
-  }, [items, sortBy, engine]);
+  }, [items, sortBy, engine, filterText, filterVerdicts]);
 
   // ── 渲染 ────────────────────────────────────────────────
   return (
@@ -408,7 +464,9 @@ export default function StockGene() {
           <div className="px-3 py-2 border-b border-white/8 flex items-center gap-2">
             <Layers size={12} className="text-emerald-300" />
             <span className="text-[11px] font-semibold text-white">观察列表</span>
-            <span className="text-[9px] text-[#a0aec0]">{items.length} 只</span>
+            <span className="text-[9px] text-[#a0aec0]">
+              {sortedItems.length}{sortedItems.length !== items.length ? `/${items.length}` : ""} 只
+            </span>
             {/* 排序选择器 */}
             <div className="ml-auto flex items-center gap-1" title="排序方式">
               <ArrowUpDown size={9} className="text-[#7a8497]" />
@@ -424,6 +482,35 @@ export default function StockGene() {
             </div>
           </div>
 
+          {/* 搜索 + verdict 过滤 chips */}
+          {items.length > 0 && (
+            <div className="px-2 py-1.5 border-b border-white/8 space-y-1.5">
+              <div className="relative">
+                <Search size={9} className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[#7a8497]" />
+                <input
+                  value={filterText}
+                  onChange={(e) => setFilterText(e.target.value)}
+                  placeholder="过滤：ticker / 名称 / 行业"
+                  className="w-full pl-5 pr-2 py-1 text-[10px] bg-white/5 border border-white/10 rounded text-white placeholder-[#7a8497] focus:outline-none focus:border-emerald-500/50"
+                />
+                {filterText && (
+                  <button
+                    onClick={() => setFilterText("")}
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[#7a8497] hover:text-white"
+                    title="清空"
+                  >
+                    <X size={9} />
+                  </button>
+                )}
+              </div>
+              <VerdictFilterChips
+                value={filterVerdicts}
+                onChange={setFilterVerdicts}
+                engine={engine}
+              />
+            </div>
+          )}
+
           <div className="flex-1 overflow-auto p-2 space-y-1.5">
             {error && (
               <div className="m-1 p-2 bg-red-500/10 border border-red-500/30 rounded text-[10px] text-red-300/90 flex items-start gap-1">
@@ -434,6 +521,11 @@ export default function StockGene() {
             {!error && items.length === 0 && !loading && (
               <div className="h-full flex items-center justify-center text-[11px] text-[#7a8497] p-4 text-center">
                 还没有观察项 — 下方"添加"按钮加入第一只
+              </div>
+            )}
+            {!error && items.length > 0 && sortedItems.length === 0 && (
+              <div className="h-full flex items-center justify-center text-[11px] text-[#7a8497] p-4 text-center">
+                没有匹配的观察项 — 调整搜索或清空过滤
               </div>
             )}
             {sortedItems.map((it) => {
@@ -580,6 +672,9 @@ export default function StockGene() {
               onRescore={() => handleScore(selectedItem.ticker)}
               onDelete={() => handleDelete(selectedItem.ticker)}
               scoring={scoringTicker === selectedItem.ticker}
+              onExplain={() => handleExplain(selectedItem, engine)}
+              explainLoading={aiLoading === `${selectedItem.ticker}:${engine}`}
+              narrative={aiNarratives[`${selectedItem.ticker}:${engine}`]}
             />
           )}
         </div>
@@ -646,7 +741,7 @@ export default function StockGene() {
 // ─────────────────────────────────────────────────────────────
 // 评分详情面板（中栏）
 // ─────────────────────────────────────────────────────────────
-function ScoreDetail({ item, engine, onRescore, onDelete, scoring }) {
+function ScoreDetail({ item, engine, onRescore, onDelete, scoring, onExplain, explainLoading, narrative }) {
   // engine = "trend" → last_result（8 维）；"value" → last_value_result（6 维）
   const r = engine === "value" ? item.last_value_result : item.last_result;
   const engineLabel = engine === "value" ? "价值" : "趋势";
@@ -698,6 +793,18 @@ function ScoreDetail({ item, engine, onRescore, onDelete, scoring }) {
             {scoring ? <Loader size={10} className="animate-spin" /> : <Sparkles size={10} />}
             {r ? `重新评分（${engineLabel}）` : `立即评分（${engineLabel}）`}
           </button>
+          {/* AI 解读按钮 — 仅当已有评分时可点 */}
+          {r && onExplain && (
+            <button
+              onClick={onExplain}
+              disabled={explainLoading}
+              className="flex items-center gap-1 px-2 py-1 text-[10px] rounded bg-violet-500/15 hover:bg-violet-500/25 text-violet-200 border border-violet-500/40 transition disabled:opacity-40 disabled:cursor-not-allowed"
+              title="让 DeepSeek 用一段话解读这只票的强项 / 弱项 / 建议"
+            >
+              {explainLoading ? <Loader size={10} className="animate-spin" /> : <Sparkles size={10} />}
+              AI 解读
+            </button>
+          )}
           <button
             onClick={onDelete}
             className="flex items-center gap-1 px-2 py-1 text-[10px] rounded bg-white/5 hover:bg-red-500/20 text-[#a0aec0] hover:text-red-300 border border-white/10 hover:border-red-500/30 transition"
@@ -705,6 +812,21 @@ function ScoreDetail({ item, engine, onRescore, onDelete, scoring }) {
             <Trash2 size={10} /> 删除
           </button>
         </div>
+        {/* AI narrative card */}
+        {narrative && (
+          <div className="mt-2 px-2 py-2 bg-violet-500/8 border border-violet-500/30 rounded text-[10px] text-[#d0d7e2] leading-relaxed">
+            <div className="flex items-center gap-1 mb-1 text-[9px] text-violet-300">
+              <Sparkles size={9} />
+              <span>AI 解读（DeepSeek · {engineLabel}）</span>
+              {narrative.cached && <span className="ml-auto text-[8px] text-violet-300/60">cached</span>}
+            </div>
+            {narrative.error ? (
+              <span className="text-amber-300/90">{narrative.error}</span>
+            ) : (
+              <span>{narrative.text}</span>
+            )}
+          </div>
+        )}
         {item.notes && (
           <div className="mt-2 px-2 py-1.5 bg-white/[0.02] border-l-2 border-amber-500/40 rounded text-[10px] text-[#d0d7e2] leading-relaxed">
             {item.notes}
@@ -1044,6 +1166,62 @@ function TickerSearchBox({ ticker, onTickerChange, market, onMarketChange, onPic
             );
           })}
         </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Verdict 过滤 chips — 多选切换 verdict.level，空 set = 不过滤
+// ─────────────────────────────────────────────────────────────
+function VerdictFilterChips({ value, onChange, engine }) {
+  // engine 决定 label 文案：趋势引擎用"牛股潜质 / 中性偏强 / 中性 / 待观察"
+  //                       价值引擎用"优质标的 / 质量合格 / 中性 / 不推荐"
+  const levels = engine === "value"
+    ? [
+        { id: "strong", label: "优质标的", style: VERDICT_STYLE.strong },
+        { id: "moderate", label: "质量合格", style: VERDICT_STYLE.moderate },
+        { id: "neutral", label: "中性", style: VERDICT_STYLE.neutral },
+        { id: "weak", label: "不推荐", style: VERDICT_STYLE.weak },
+      ]
+    : [
+        { id: "strong", label: "牛股潜质", style: VERDICT_STYLE.strong },
+        { id: "moderate", label: "中性偏强", style: VERDICT_STYLE.moderate },
+        { id: "neutral", label: "中性", style: VERDICT_STYLE.neutral },
+        { id: "weak", label: "待观察", style: VERDICT_STYLE.weak },
+      ];
+  const toggle = (id) => {
+    const next = new Set(value);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    onChange(next);
+  };
+  return (
+    <div className="flex items-center gap-1 flex-wrap">
+      {levels.map(lv => {
+        const on = value.has(lv.id);
+        return (
+          <button
+            key={lv.id}
+            onClick={() => toggle(lv.id)}
+            className={`text-[9px] px-1.5 py-px rounded border transition ${
+              on
+                ? `${lv.style.bg} ${lv.style.border} ${lv.style.text}`
+                : "bg-white/[0.02] border-white/10 text-[#7a8497] hover:text-white hover:border-white/20"
+            }`}
+            title={on ? `点击移除 ${lv.label} 过滤` : `点击只看 ${lv.label}`}
+          >
+            {lv.label}
+          </button>
+        );
+      })}
+      {value.size > 0 && (
+        <button
+          onClick={() => onChange(new Set())}
+          className="text-[9px] px-1 text-[#7a8497] hover:text-white"
+          title="清空所有 verdict 过滤"
+        >
+          ×
+        </button>
       )}
     </div>
   );

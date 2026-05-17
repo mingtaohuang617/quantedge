@@ -1910,6 +1910,28 @@ def stock_gene_import(req: StockGeneImportReq):
         raise HTTPException(400, str(e))
 
 
+class StockGeneExplainReq(BaseModel):
+    """AI 解读评分请求体（前端把当前 last_result 直接传过来）。"""
+    ticker: str
+    name: str | None = None
+    market: str | None = None
+    sector: str | None = None
+    engine: str = "trend"            # 'trend' | 'value'
+    score: int | None = None
+    max_score: int | None = None
+    available: int | None = None
+    verdict: str | None = None
+    features: list[dict] = []
+
+
+@app.post("/api/stock-gene/explain")
+def stock_gene_explain(req: StockGeneExplainReq):
+    """让 LLM 用一段话解读这只票的 8/6 维评分画像。命中缓存时 < 50ms。"""
+    if not HAS_LLM or _llm_mod is None:
+        raise HTTPException(503, "llm 模块未加载（DEEPSEEK_API_KEY 未设？）")
+    return sanitize(_llm_mod.explain_gene_score(req.dict()))
+
+
 if __name__ == "__main__":
     # 不在启动时调 health_check —— 它会同步连 Futu OpenD，OpenD 没开会卡住启动。
     # 各源健康状态由 /api/status 端点按需查询（前端拉到才探活）。
