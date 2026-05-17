@@ -292,6 +292,12 @@ export default function Screener10x() {
           industry: candidate.industry,
           // 限定 LLM 只在用户已勾选的赛道里选；候选很广时 LLM 容易胡判
           candidate_ids: selectedTrends,
+          // 价值型场景透传 5 维财务（backend 按 candidates 的 strategy 自动选 prompt 框架）
+          pe: candidate.pe ?? null,
+          pb: candidate.pb ?? null,
+          dividend_yield: candidate.dividend_yield ?? null,
+          roe: candidate.roe ?? null,
+          debt_to_equity: candidate.debt_to_equity ?? null,
         }),
       });
       if (!json) throw new Error("后端无响应");
