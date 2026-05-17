@@ -1881,6 +1881,60 @@ def stock_gene_value_compare_peers(req: StockGeneComparePeersReq):
     ))
 
 
+# ── Stock Gene · Signal engine（短期信号雷达）────────────
+try:
+    import signal_gene as _signal_mod
+    HAS_SIGNAL_GENE = True
+except Exception as _e:
+    HAS_SIGNAL_GENE = False
+    _signal_mod = None
+    print(f"[WARN] signal_gene module not available: {_e}")
+
+
+@app.post("/api/stock-gene/signal/score")
+def stock_gene_signal_score(req: StockGeneScoreReq):
+    """对任意 ticker 跑一次短期信号评分（不入库）。"""
+    if not HAS_SIGNAL_GENE or _signal_mod is None:
+        raise HTTPException(503, "signal_gene 模块未加载")
+    return sanitize(_signal_mod.score_signal(
+        req.ticker, name=req.name, market=req.market, sector=req.sector,
+    ))
+
+
+@app.post("/api/stock-gene/{ticker}/signal-score")
+def stock_gene_signal_score_persist(ticker: str):
+    """对 watchlist 里某项跑短期信号评分并写回 last_signal_result。"""
+    if not HAS_STOCK_GENE or _gene_mod is None:
+        raise HTTPException(503, "stock_gene 模块未加载")
+    try:
+        return sanitize(_gene_mod.score_signal_and_persist(ticker))
+    except ValueError as e:
+        raise HTTPException(404, str(e))
+
+
+@app.post("/api/stock-gene/signal/score-all")
+def stock_gene_signal_score_all():
+    """批量短期信号评分。"""
+    if not HAS_STOCK_GENE or _gene_mod is None:
+        raise HTTPException(503, "stock_gene 模块未加载")
+    results = _gene_mod.score_all_signal()
+    return sanitize({"count": len(results), "items": results})
+
+
+@app.post("/api/stock-gene/signal/compare-peers")
+def stock_gene_signal_compare_peers(req: StockGeneComparePeersReq):
+    """短期信号横向对比。"""
+    if not HAS_STOCK_GENE or _gene_mod is None:
+        raise HTTPException(503, "stock_gene 模块未加载")
+    if not req.tickers:
+        raise HTTPException(400, "tickers 不能为空")
+    if len(req.tickers) > 10:
+        raise HTTPException(400, "一次最多对比 10 只")
+    return sanitize(_gene_mod.compare_peers_signal(
+        req.tickers, sector=req.sector, market=req.market,
+    ))
+
+
 # ── 导入 / 导出（备份）─────────────────────────────────
 class StockGeneImportReq(BaseModel):
     mode: str = "merge"             # 'merge' | 'replace'

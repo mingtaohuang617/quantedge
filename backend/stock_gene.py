@@ -803,6 +803,70 @@ def compare_peers_value(tickers: list[str], sector: str = "",
     }
 
 
+# ── Signal engine 集成（S1—S6 短期入场信号）─────────────
+def score_signal_and_persist(ticker: str) -> dict:
+    """对 watchlist 里的某项跑短期信号评分并写回 last_signal_result + 历史。"""
+    import signal_gene
+    data = load_watchlist()
+    ticker = ticker.strip().upper()
+    item = next((it for it in data["items"] if it["ticker"] == ticker), None)
+    if item is None:
+        raise ValueError(f"{ticker} 不在 stock_gene 观察列表中")
+    result = signal_gene.score_signal(
+        ticker, name=item.get("name", ""),
+        market=item.get("market", "US"),
+        sector=item.get("sector", ""),
+    )
+    item["last_signal_result"] = result
+    item["last_signal_checked_at"] = result["checked_at"]
+    _append_history(item, "signal", result)
+    save_watchlist(data)
+    return result
+
+
+def score_all_signal() -> list[dict]:
+    """批量短期信号评分所有观察项。"""
+    import signal_gene
+    data = load_watchlist()
+    results: list[dict] = []
+    for item in data["items"]:
+        try:
+            r = signal_gene.score_signal(
+                item["ticker"], name=item.get("name", ""),
+                market=item.get("market", "US"),
+                sector=item.get("sector", ""),
+            )
+            item["last_signal_result"] = r
+            item["last_signal_checked_at"] = r["checked_at"]
+            _append_history(item, "signal", r)
+            results.append(r)
+        except Exception as e:
+            results.append({"ticker": item["ticker"], "error": str(e)})
+    save_watchlist(data)
+    return results
+
+
+def compare_peers_signal(tickers: list[str], sector: str = "",
+                         market: str = "US") -> dict:
+    """短期信号横向对比。"""
+    import signal_gene
+    rows = []
+    for t in tickers:
+        try:
+            rows.append(signal_gene.score_signal(
+                t, market=market, sector=sector,
+            ))
+        except Exception as e:
+            rows.append({"ticker": t, "error": str(e)})
+    return {
+        "engine": "signal",
+        "sector": sector,
+        "market": market,
+        "count": len(rows),
+        "items": rows,
+    }
+
+
 # ── 导入 / 导出 ────────────────────────────────────────
 def export_data() -> dict:
     """整份观察列表（含评分历史、双引擎缓存）导出为 dict，前端转 JSON 下载。"""

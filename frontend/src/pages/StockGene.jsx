@@ -33,6 +33,80 @@ const VERDICT_STYLE = {
   unknown: { bg: "bg-white/5", border: "border-white/15", text: "text-[#a0aec0]" },
 };
 
+// ─────────────────────────────────────────────────────────────
+// 引擎配置——所有引擎相关的差异都在这里查表
+// 添加新引擎时：1) 加一行 ENGINES 配置  2) 后端注册对应路由
+// ─────────────────────────────────────────────────────────────
+const ENGINES = {
+  trend: {
+    id: "trend",
+    label: "趋势 · 牛股",
+    short: "T",
+    framework: "牛股趋势",
+    featurePrefix: "F",
+    featureCount: 8,
+    resultKey: "last_result",
+    checkedAtKey: "last_checked_at",
+    scoreRoute: "score",
+    scoreAllRoute: "score-all",
+    comparePeersRoute: "compare-peers",
+    activeBg: "bg-emerald-500/20",
+    activeText: "text-emerald-100",
+    btnBg: "bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-200 border-emerald-500/40",
+    badgeRing: "ring-emerald-400/50",
+    headerTagline: "8 个牛股特征 — 趋势/动量/相对强度",
+    verdictLabels: {
+      strong: "牛股潜质", moderate: "中性偏强", neutral: "中性", weak: "待观察",
+    },
+  },
+  value: {
+    id: "value",
+    label: "价值 · 健康度",
+    short: "V",
+    framework: "价值健康度",
+    featurePrefix: "V",
+    featureCount: 6,
+    resultKey: "last_value_result",
+    checkedAtKey: "last_value_checked_at",
+    scoreRoute: "value-score",
+    scoreAllRoute: "value/score-all",
+    comparePeersRoute: "value/compare-peers",
+    activeBg: "bg-cyan-500/20",
+    activeText: "text-cyan-100",
+    btnBg: "bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-200 border-cyan-500/40",
+    badgeRing: "ring-cyan-400/50",
+    headerTagline: "6 个价值特征 — 估值/盈利/现金流/负债",
+    verdictLabels: {
+      strong: "优质标的", moderate: "质量合格", neutral: "中性", weak: "不推荐",
+    },
+  },
+  signal: {
+    id: "signal",
+    label: "短期 · 信号",
+    short: "S",
+    framework: "短期信号",
+    featurePrefix: "S",
+    featureCount: 6,
+    resultKey: "last_signal_result",
+    checkedAtKey: "last_signal_checked_at",
+    scoreRoute: "signal-score",
+    scoreAllRoute: "signal/score-all",
+    comparePeersRoute: "signal/compare-peers",
+    activeBg: "bg-amber-500/20",
+    activeText: "text-amber-100",
+    btnBg: "bg-amber-500/15 hover:bg-amber-500/25 text-amber-200 border-amber-500/40",
+    badgeRing: "ring-amber-400/50",
+    headerTagline: "6 个短期信号 — 突破/量能/MACD/RSI",
+    verdictLabels: {
+      strong: "入场窗口", moderate: "可关注", neutral: "观望", weak: "暂避",
+    },
+  },
+};
+const ENGINE_IDS = Object.keys(ENGINES);
+const eng = (id) => ENGINES[id] || ENGINES.trend;
+const engResult = (item, id) => item?.[eng(id).resultKey];
+const engCheckedAt = (item, id) => item?.[eng(id).checkedAtKey];
+
 function verdictStyle(verdict) {
   return VERDICT_STYLE[verdict?.level] || VERDICT_STYLE.unknown;
 }
@@ -165,13 +239,15 @@ export default function StockGene() {
     setShowAddForm(false);
     await reload();
     setSelectedTicker(ticker);
-    // 并行跑两个引擎；任一失败不影响另一个，跑完再 reload 一次拿最新
+    // 并行跑所有引擎；任一失败不影响其它
     setScoringTicker(ticker);
     try {
-      await Promise.allSettled([
-        apiFetch(`/stock-gene/${encodeURIComponent(ticker)}/score`, { method: "POST" }),
-        apiFetch(`/stock-gene/${encodeURIComponent(ticker)}/value-score`, { method: "POST" }),
-      ]);
+      await Promise.allSettled(
+        ENGINE_IDS.map(id => apiFetch(
+          `/stock-gene/${encodeURIComponent(ticker)}/${eng(id).scoreRoute}`,
+          { method: "POST" },
+        ))
+      );
       await reload();
     } finally {
       setScoringTicker(null);
@@ -179,14 +255,15 @@ export default function StockGene() {
   };
 
   // ── 评分（单个，持久化） ───────────────────────────────
-  // 根据当前 engine 调用对应路由：趋势 = /score，价值 = /value-score
-  const handleScore = useCallback(async (ticker, eng = engine) => {
+  // 通过 ENGINES 配置查表，避免 if/else 多分支
+  const handleScore = useCallback(async (ticker, engineId = engine) => {
     setScoringTicker(ticker);
     try {
-      const path = eng === "value"
-        ? `/stock-gene/${encodeURIComponent(ticker)}/value-score`
-        : `/stock-gene/${encodeURIComponent(ticker)}/score`;
-      await apiFetch(path, { method: "POST" });
+      const cfg = eng(engineId);
+      await apiFetch(
+        `/stock-gene/${encodeURIComponent(ticker)}/${cfg.scoreRoute}`,
+        { method: "POST" },
+      );
       await reload();
     } finally {
       setScoringTicker(null);
@@ -198,15 +275,14 @@ export default function StockGene() {
     if (items.length === 0) return;
     setBatchScoring(true);
     try {
-      const path = engine === "value" ? "/stock-gene/value/score-all" : "/stock-gene/score-all";
-      await apiFetch(path, { method: "POST" });
+      await apiFetch(`/stock-gene/${eng(engine).scoreAllRoute}`, { method: "POST" });
       await reload();
     } finally {
       setBatchScoring(false);
     }
   };
 
-  // ── 批量加入 ticker（粘贴多行 → 顺序添加 + 并行双评分）──
+  // ── 批量加入 ticker（粘贴多行 → 顺序添加 + 并行所有引擎评分）─
   const handleBatchAdd = useCallback(async () => {
     setBatchError(null);
     const tickers = [...new Set(
@@ -234,14 +310,16 @@ export default function StockGene() {
       setBatchProgress(p => ({ ...p, done: p.done + 1 }));
     }
     await reload();
-    // 2) 仅对成功添加的 ticker 跑双引擎评分（顺序避免 yfinance rate-limit）
+    // 2) 仅对成功添加的 ticker 跑所有引擎评分（同 ticker 内并行，跨 ticker 顺序）
     if (added.length > 0) {
       setBatchProgress({ phase: "scoring", done: 0, total: added.length });
       for (const t of added) {
-        await Promise.allSettled([
-          apiFetch(`/stock-gene/${encodeURIComponent(t)}/score`, { method: "POST" }),
-          apiFetch(`/stock-gene/${encodeURIComponent(t)}/value-score`, { method: "POST" }),
-        ]);
+        await Promise.allSettled(
+          ENGINE_IDS.map(id => apiFetch(
+            `/stock-gene/${encodeURIComponent(t)}/${eng(id).scoreRoute}`,
+            { method: "POST" },
+          ))
+        );
         setBatchProgress(p => ({ ...p, done: p.done + 1 }));
       }
       await reload();
@@ -345,22 +423,23 @@ export default function StockGene() {
       if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
       return s;
     };
+    // 列：基础元数据 + 每个引擎的 score/max/verdict + tags/notes/时间戳
+    const engineCols = ENGINE_IDS.flatMap(id => [
+      `${id}_score`, `${id}_max`, `${id}_verdict`, `${id}_checked_at`,
+    ]);
     const headers = [
       "ticker", "name", "market", "sector",
-      "trend_score", "trend_max", "trend_verdict",
-      "value_score", "value_max", "value_verdict",
-      "tags", "notes", "added_at", "trend_checked_at", "value_checked_at",
+      ...engineCols,
+      "tags", "notes", "added_at",
     ];
     const rows = items.map(it => {
-      const t = it.last_result;
-      const v = it.last_value_result;
-      return [
-        it.ticker, it.name || "", it.market || "", it.sector || "",
-        t?.score ?? "", t?.max_score ?? "", t?.verdict?.label || "",
-        v?.score ?? "", v?.max_score ?? "", v?.verdict?.label || "",
-        (it.tags || []).join("|"), it.notes || "",
-        it.added_at || "", t?.checked_at || "", v?.checked_at || "",
-      ].map(esc).join(",");
+      const base = [it.ticker, it.name || "", it.market || "", it.sector || ""];
+      const engVals = ENGINE_IDS.flatMap(id => {
+        const r = engResult(it, id);
+        return [r?.score ?? "", r?.max_score ?? "", r?.verdict?.label || "", r?.checked_at || ""];
+      });
+      return [...base, ...engVals, (it.tags || []).join("|"), it.notes || "", it.added_at || ""]
+        .map(esc).join(",");
     });
     // BOM 让 Excel 正确识别 UTF-8
     const csv = "﻿" + headers.join(",") + "\n" + rows.join("\n");
@@ -442,10 +521,7 @@ export default function StockGene() {
     try {
       // 默认用当前选中项的 sector / market 作为对比上下文（如有）
       const sel = items.find(i => i.ticker === selectedTicker);
-      const path = engine === "value"
-        ? "/stock-gene/value/compare-peers"
-        : "/stock-gene/compare-peers";
-      const res = await apiFetch(path, {
+      const res = await apiFetch(`/stock-gene/${eng(engine).comparePeersRoute}`, {
         method: "POST",
         body: JSON.stringify({
           tickers: list,
@@ -484,7 +560,7 @@ export default function StockGene() {
       }
       // 评价过滤（按当前 engine 的 verdict.level）
       if (filterVerdicts.size > 0) {
-        const r = engine === "value" ? it.last_value_result : it.last_result;
+        const r = engResult(it, engine);
         const lvl = r?.verdict?.level || "_unscored";
         if (!filterVerdicts.has(lvl)) return false;
       }
@@ -497,10 +573,8 @@ export default function StockGene() {
     });
     if (sortBy === "score") {
       arr.sort((a, b) => {
-        const ra = engine === "value" ? a.last_value_result : a.last_result;
-        const rb = engine === "value" ? b.last_value_result : b.last_result;
-        const sa = ra?.score ?? -1;
-        const sb = rb?.score ?? -1;
+        const sa = engResult(a, engine)?.score ?? -1;
+        const sb = engResult(b, engine)?.score ?? -1;
         return sb - sa;
       });
     } else if (sortBy === "added") {
@@ -577,35 +651,27 @@ export default function StockGene() {
         <div className="flex items-center gap-3">
           <Activity size={16} className="text-emerald-400" />
           <span className="text-sm font-semibold text-white">股性检测 · Stock Gene</span>
-          {/* 引擎切换：牛股特征器（趋势）/ 价值健康度 */}
+          {/* 引擎切换：动态从 ENGINES 渲染 */}
           <div className="flex items-center gap-0.5 bg-white/5 rounded border border-white/10 p-0.5">
-            <button
-              onClick={() => setEngine("trend")}
-              className={`px-2 py-0.5 text-[10px] rounded transition ${
-                engine === "trend"
-                  ? "bg-emerald-500/20 text-emerald-100 font-medium"
-                  : "text-[#a0aec0] hover:text-white"
-              }`}
-              title="牛股特征器：米勒维尼趋势模板 + 欧奈尔 CANSLIM（8 维趋势）"
-            >
-              趋势 · 牛股
-            </button>
-            <button
-              onClick={() => setEngine("value")}
-              className={`px-2 py-0.5 text-[10px] rounded transition ${
-                engine === "value"
-                  ? "bg-cyan-500/20 text-cyan-100 font-medium"
-                  : "text-[#a0aec0] hover:text-white"
-              }`}
-              title="价值健康度：Graham + Buffett（6 维基本面）"
-            >
-              价值 · 健康度
-            </button>
+            {ENGINE_IDS.map(id => {
+              const cfg = eng(id);
+              const active = engine === id;
+              return (
+                <button
+                  key={id}
+                  onClick={() => setEngine(id)}
+                  className={`px-2 py-0.5 text-[10px] rounded transition ${
+                    active ? `${cfg.activeBg} ${cfg.activeText} font-medium` : "text-[#a0aec0] hover:text-white"
+                  }`}
+                  title={`${cfg.framework}（${cfg.featureCount} 维）`}
+                >
+                  {cfg.label}
+                </button>
+              );
+            })}
           </div>
           <span className="text-[10px] text-[#a0aec0] hidden lg:inline">
-            {engine === "trend"
-              ? "8 个牛股特征 — 趋势/动量/相对强度"
-              : "6 个价值特征 — 估值/盈利/现金流/负债"}
+            {eng(engine).headerTagline}
           </span>
           {isDemoMode && (
             <span
@@ -621,7 +687,7 @@ export default function StockGene() {
             onClick={handleScoreAll}
             disabled={isDemoMode || batchScoring || items.length === 0}
             className="flex items-center gap-1 px-2 py-1 rounded bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-200 border border-emerald-500/40 transition disabled:opacity-40 disabled:cursor-not-allowed"
-            title={`对所有观察项跑${engine === "value" ? "价值" : "趋势"}评分`}
+            title={`对所有观察项跑${eng(engine).framework}评分`}
           >
             {batchScoring ? <Loader size={11} className="animate-spin" /> : <Sparkles size={11} />}
             批量评分
@@ -716,7 +782,7 @@ export default function StockGene() {
                 onChange={(e) => setSortBy(e.target.value)}
                 className="text-[9px] bg-white/5 border border-white/10 rounded px-1 py-0.5 text-[#d0d7e2] focus:outline-none focus:border-emerald-500/40"
               >
-                <option value="score">按{engine === "value" ? "价值" : "趋势"}分</option>
+                <option value="score">按{eng(engine).short} 分</option>
                 <option value="added">按添加时间</option>
                 <option value="ticker">按代码</option>
               </select>
@@ -778,13 +844,9 @@ export default function StockGene() {
               </div>
             )}
             {sortedItems.map((it) => {
-              // 双引擎评分：trend = last_result（8 维）/ value = last_value_result（6 维）
-              const tR = it.last_result;
-              const vR = it.last_value_result;
-              const activeR = engine === "value" ? vR : tR;
-              const tStyle = verdictStyle(tR?.verdict);
-              const vStyle = verdictStyle(vR?.verdict);
-              const aStyle = engine === "value" ? vStyle : tStyle;
+              // 各引擎评分一并取出，下面按 ENGINE_IDS 渲染徽章
+              const activeR = engResult(it, engine);
+              const aStyle = verdictStyle(activeR?.verdict);
               const active = it.ticker === selectedTicker;
               return (
                 <button
@@ -799,26 +861,26 @@ export default function StockGene() {
                   <div className="flex items-center gap-2 mb-1">
                     <span className="font-mono text-[12px] font-semibold text-white">{it.ticker}</span>
                     <span className="text-[9px] text-[#7a8497]">{it.market}</span>
-                    {/* 双引擎评分徽章：T = 趋势 / V = 价值 */}
+                    {/* 多引擎评分徽章：每个引擎一个，当前 engine 加 ring 高亮 */}
                     <div className="ml-auto flex items-center gap-1">
-                      <span
-                        className={`px-1 py-0.5 rounded text-[9px] font-mono font-semibold border ${
-                          tR ? `${tStyle.bg} ${tStyle.border} ${tStyle.text}`
-                             : "bg-white/5 text-[#7a8497] border-white/15"
-                        } ${engine === "trend" ? "ring-1 ring-emerald-400/50" : ""}`}
-                        title={tR ? `趋势 ${tR.score}/${tR.max_score} · ${tR.verdict.label}` : "趋势未评分"}
-                      >
-                        T {tR ? `${tR.score}/${tR.max_score}` : "—"}
-                      </span>
-                      <span
-                        className={`px-1 py-0.5 rounded text-[9px] font-mono font-semibold border ${
-                          vR ? `${vStyle.bg} ${vStyle.border} ${vStyle.text}`
-                             : "bg-white/5 text-[#7a8497] border-white/15"
-                        } ${engine === "value" ? "ring-1 ring-cyan-400/50" : ""}`}
-                        title={vR ? `价值 ${vR.score}/${vR.max_score} · ${vR.verdict.label}` : "价值未评分"}
-                      >
-                        V {vR ? `${vR.score}/${vR.max_score}` : "—"}
-                      </span>
+                      {ENGINE_IDS.map(id => {
+                        const cfg = eng(id);
+                        const r = engResult(it, id);
+                        const s = verdictStyle(r?.verdict);
+                        return (
+                          <span
+                            key={id}
+                            className={`px-1 py-0.5 rounded text-[9px] font-mono font-semibold border ${
+                              r ? `${s.bg} ${s.border} ${s.text}` : "bg-white/5 text-[#7a8497] border-white/15"
+                            } ${engine === id ? `ring-1 ${cfg.badgeRing}` : ""}`}
+                            title={r
+                              ? `${cfg.framework} ${r.score}/${r.max_score} · ${r.verdict.label}`
+                              : `${cfg.framework} 未评分`}
+                          >
+                            {cfg.short} {r ? `${r.score}/${r.max_score}` : "—"}
+                          </span>
+                        );
+                      })}
                     </div>
                   </div>
                   {it.name && (
@@ -990,7 +1052,7 @@ export default function StockGene() {
         <div className="glass-card border border-white/10 flex flex-col overflow-hidden">
           {!selectedItem ? (
             <div className="flex-1 flex items-center justify-center text-[11px] text-[#7a8497] p-4 text-center">
-              ← 选择左侧的观察项查看{engine === "value" ? "价值健康度（6 维）" : "牛股特征（8 维）"}评分
+              ← 选择左侧的观察项查看{eng(engine).framework}（{eng(engine).featureCount} 维）评分
             </div>
           ) : (
             <ScoreDetail
@@ -1019,12 +1081,8 @@ export default function StockGene() {
           <div className="px-3 py-2 border-b border-white/8 flex items-center gap-2">
             <BarChart3 size={12} className="text-cyan-300" />
             <span className="text-[11px] font-semibold text-white">同行业横向对比</span>
-            <span className={`text-[9px] px-1 py-px rounded border ${
-              engine === "value"
-                ? "bg-cyan-500/15 text-cyan-200 border-cyan-500/40"
-                : "bg-emerald-500/15 text-emerald-200 border-emerald-500/40"
-            }`}>
-              {engine === "value" ? "价值" : "趋势"}
+            <span className={`text-[9px] px-1 py-px rounded border ${eng(engine).btnBg}`}>
+              {eng(engine).short} · {eng(engine).framework}
             </span>
           </div>
           <div className="px-3 py-2 border-b border-white/8 space-y-1.5">
@@ -1081,9 +1139,9 @@ function ScoreDetail({
   editingNotes, notesDraft, setNotesDraft, onEditNotes, onSaveNotes, onCancelNotes, notesSaving,
   onSaveTags,
 }) {
-  // engine = "trend" → last_result（8 维）；"value" → last_value_result（6 维）
-  const r = engine === "value" ? item.last_value_result : item.last_result;
-  const engineLabel = engine === "value" ? "价值" : "趋势";
+  const cfg = eng(engine);
+  const r = engResult(item, engine);
+  const engineLabel = cfg.framework;
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* 头部：ticker + verdict 大徽章 */}
@@ -1122,12 +1180,8 @@ function ScoreDetail({
           <button
             onClick={onRescore}
             disabled={scoring}
-            className={`flex items-center gap-1 px-2 py-1 text-[10px] rounded border transition disabled:opacity-40 disabled:cursor-not-allowed ${
-              engine === "value"
-                ? "bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-200 border-cyan-500/40"
-                : "bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-200 border-emerald-500/40"
-            }`}
-            title={`重新跑${engineLabel}评分（${engine === "value" ? "6 个价值特征" : "8 个牛股特征"}）`}
+            className={`flex items-center gap-1 px-2 py-1 text-[10px] rounded border transition disabled:opacity-40 disabled:cursor-not-allowed ${cfg.btnBg}`}
+            title={`重新跑${engineLabel}评分（${cfg.featureCount} 个特征）`}
           >
             {scoring ? <Loader size={10} className="animate-spin" /> : <Sparkles size={10} />}
             {r ? `重新评分（${engineLabel}）` : `立即评分（${engineLabel}）`}
@@ -1204,7 +1258,7 @@ function ScoreDetail({
           </div>
         )}
         {r && r.features && r.features.map((f, idx) => (
-          <FeatureRow key={f.id} feature={f} index={idx + 1} prefix={engine === "value" ? "V" : "F"} />
+          <FeatureRow key={f.id} feature={f} index={idx + 1} prefix={cfg.featurePrefix} />
         ))}
       </div>
     </div>
@@ -1329,7 +1383,7 @@ function PeersTable({ result, onAdd, engine = "trend" }) {
   return (
     <div className="space-y-2">
       <div className="text-[10px] text-[#7a8497] px-1">
-        共 {result.count} 只 · 按{engine === "value" ? "价值" : "趋势"}评分降序
+        共 {result.count} 只 · 按{eng(engine).framework}评分降序
       </div>
       {sorted.map((it) => {
         if (it.error) {
@@ -1522,21 +1576,11 @@ function TickerSearchBox({ ticker, onTickerChange, market, onMarketChange, onPic
 // Verdict 过滤 chips — 多选切换 verdict.level，空 set = 不过滤
 // ─────────────────────────────────────────────────────────────
 function VerdictFilterChips({ value, onChange, engine }) {
-  // engine 决定 label 文案：趋势引擎用"牛股潜质 / 中性偏强 / 中性 / 待观察"
-  //                       价值引擎用"优质标的 / 质量合格 / 中性 / 不推荐"
-  const levels = engine === "value"
-    ? [
-        { id: "strong", label: "优质标的", style: VERDICT_STYLE.strong },
-        { id: "moderate", label: "质量合格", style: VERDICT_STYLE.moderate },
-        { id: "neutral", label: "中性", style: VERDICT_STYLE.neutral },
-        { id: "weak", label: "不推荐", style: VERDICT_STYLE.weak },
-      ]
-    : [
-        { id: "strong", label: "牛股潜质", style: VERDICT_STYLE.strong },
-        { id: "moderate", label: "中性偏强", style: VERDICT_STYLE.moderate },
-        { id: "neutral", label: "中性", style: VERDICT_STYLE.neutral },
-        { id: "weak", label: "待观察", style: VERDICT_STYLE.weak },
-      ];
+  // 从 ENGINES 配置读取 verdict label 文案
+  const labels = eng(engine).verdictLabels;
+  const levels = ["strong", "moderate", "neutral", "weak"].map(id => ({
+    id, label: labels[id], style: VERDICT_STYLE[id],
+  }));
   const toggle = (id) => {
     const next = new Set(value);
     if (next.has(id)) next.delete(id); else next.add(id);
