@@ -26,6 +26,13 @@ export default async function handler(req, res) {
       limit: Number.isInteger(body.limit) ? body.limit : 200,
       precise: !!body.precise,
       include_no_mcap: body.include_no_mcap !== false,
+      // 价值型 5 维（v2.0；之前漏透传导致前端 PE/PB/股息/ROE/D/E 过滤完全无效）
+      max_pe: body.max_pe ?? null,
+      max_pb: body.max_pb ?? null,
+      min_roe: body.min_roe ?? null,
+      min_dividend_yield: body.min_dividend_yield ?? null,
+      max_debt_to_equity: body.max_debt_to_equity ?? null,
+      include_no_fundamentals: body.include_no_fundamentals !== false,
     });
     return res.status(200).json({ count: items.length, items });
   } catch (e) {
