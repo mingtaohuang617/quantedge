@@ -1152,6 +1152,17 @@ function WatchlistCard({ item, trendName, currentPrice, onEdit, onDelete, onTogg
         </div>
       )}
 
+      {/* 假设证伪条件（pre-mortem）— 红色警示色，写了就立刻能看到 */}
+      {item.falsification_condition && (
+        <div
+          className="text-[10px] text-amber-200/90 leading-relaxed mb-1 flex items-start gap-1 px-1.5 py-1 bg-amber-500/8 border border-amber-500/25 rounded"
+          title={`证伪条件：${item.falsification_condition}`}
+        >
+          <span className="text-amber-400 shrink-0">⚠</span>
+          <span className="break-words line-clamp-2">{item.falsification_condition}</span>
+        </div>
+      )}
+
       {(item.target_price || item.stop_loss) && (
         <div className="flex items-center gap-2 text-[9px] font-mono flex-wrap">
           {/* 目标价 + 距当前价 % */}
