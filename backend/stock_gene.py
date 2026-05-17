@@ -693,3 +693,80 @@ def compare_peers(tickers: list[str], sector: str = "", market: str = "US") -> d
         "count": len(rows),
         "items": rows,
     }
+
+
+# ── Value engine 集成（V1—V6 价值健康度）────────────────
+def _get_cached_stock(ticker: str) -> dict | None:
+    """从 server.cache.stocks 里查同 ticker 的快照（pe/roe/profitMargin 已 pipeline 计算）。
+    用作 yfinance .info 失败时的兜底。导入失败（如脱离 server 运行）返回 None。"""
+    try:
+        import server  # type: ignore
+        return next((s for s in server.cache.stocks if s.get("ticker") == ticker), None)
+    except Exception:
+        return None
+
+
+def score_value_and_persist(ticker: str) -> dict:
+    """对 watchlist 里的某项跑价值评分并写回 last_value_result。"""
+    import value_gene
+    data = load_watchlist()
+    ticker = ticker.strip().upper()
+    item = next((it for it in data["items"] if it["ticker"] == ticker), None)
+    if item is None:
+        raise ValueError(f"{ticker} 不在 stock_gene 观察列表中")
+    cached = _get_cached_stock(ticker)
+    result = value_gene.score_value(
+        ticker, name=item.get("name", ""),
+        market=item.get("market", "US"),
+        sector=item.get("sector", ""),
+        cached_stock=cached,
+    )
+    item["last_value_result"] = result
+    item["last_value_checked_at"] = result["checked_at"]
+    save_watchlist(data)
+    return result
+
+
+def score_all_value() -> list[dict]:
+    """批量价值评分所有观察项。"""
+    import value_gene
+    data = load_watchlist()
+    results: list[dict] = []
+    for item in data["items"]:
+        try:
+            cached = _get_cached_stock(item["ticker"])
+            r = value_gene.score_value(
+                item["ticker"], name=item.get("name", ""),
+                market=item.get("market", "US"),
+                sector=item.get("sector", ""),
+                cached_stock=cached,
+            )
+            item["last_value_result"] = r
+            item["last_value_checked_at"] = r["checked_at"]
+            results.append(r)
+        except Exception as e:
+            results.append({"ticker": item["ticker"], "error": str(e)})
+    save_watchlist(data)
+    return results
+
+
+def compare_peers_value(tickers: list[str], sector: str = "",
+                        market: str = "US") -> dict:
+    """横向价值对比。"""
+    import value_gene
+    rows = []
+    for t in tickers:
+        try:
+            cached = _get_cached_stock(t)
+            rows.append(value_gene.score_value(
+                t, market=market, sector=sector, cached_stock=cached,
+            ))
+        except Exception as e:
+            rows.append({"ticker": t, "error": str(e)})
+    return {
+        "engine": "value",
+        "sector": sector,
+        "market": market,
+        "count": len(rows),
+        "items": rows,
+    }

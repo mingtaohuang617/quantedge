@@ -1824,6 +1824,63 @@ def stock_gene_compare_peers(req: StockGeneComparePeersReq):
     ))
 
 
+# ── Stock Gene · Value engine（价值健康度评估器）─────────
+try:
+    import value_gene as _value_mod
+    HAS_VALUE_GENE = True
+except Exception as _e:
+    HAS_VALUE_GENE = False
+    _value_mod = None
+    print(f"[WARN] value_gene module not available: {_e}")
+
+
+@app.post("/api/stock-gene/value/score")
+def stock_gene_value_score(req: StockGeneScoreReq):
+    """对任意 ticker 跑一次价值评分（不入库）。"""
+    if not HAS_VALUE_GENE or _value_mod is None:
+        raise HTTPException(503, "value_gene 模块未加载")
+    # 找 server cache 里的兜底数据（pe/roe/profitMargin 等）
+    cached = next((s for s in cache.stocks if s.get("ticker") == req.ticker.upper()), None)
+    return sanitize(_value_mod.score_value(
+        req.ticker, name=req.name, market=req.market, sector=req.sector,
+        cached_stock=cached,
+    ))
+
+
+@app.post("/api/stock-gene/{ticker}/value-score")
+def stock_gene_value_score_persist(ticker: str):
+    """对 watchlist 里某项跑价值评分并写回 last_value_result。"""
+    if not HAS_STOCK_GENE or _gene_mod is None:
+        raise HTTPException(503, "stock_gene 模块未加载")
+    try:
+        return sanitize(_gene_mod.score_value_and_persist(ticker))
+    except ValueError as e:
+        raise HTTPException(404, str(e))
+
+
+@app.post("/api/stock-gene/value/score-all")
+def stock_gene_value_score_all():
+    """批量价值评分所有观察项。"""
+    if not HAS_STOCK_GENE or _gene_mod is None:
+        raise HTTPException(503, "stock_gene 模块未加载")
+    results = _gene_mod.score_all_value()
+    return sanitize({"count": len(results), "items": results})
+
+
+@app.post("/api/stock-gene/value/compare-peers")
+def stock_gene_value_compare_peers(req: StockGeneComparePeersReq):
+    """横向价值对比。"""
+    if not HAS_STOCK_GENE or _gene_mod is None:
+        raise HTTPException(503, "stock_gene 模块未加载")
+    if not req.tickers:
+        raise HTTPException(400, "tickers 不能为空")
+    if len(req.tickers) > 10:
+        raise HTTPException(400, "一次最多对比 10 只")
+    return sanitize(_gene_mod.compare_peers_value(
+        req.tickers, sector=req.sector, market=req.market,
+    ))
+
+
 if __name__ == "__main__":
     # 不在启动时调 health_check —— 它会同步连 Futu OpenD，OpenD 没开会卡住启动。
     # 各源健康状态由 /api/status 端点按需查询（前端拉到才探活）。

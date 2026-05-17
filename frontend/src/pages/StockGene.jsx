@@ -53,6 +53,8 @@ export default function StockGene() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isDemoMode, setIsDemoMode] = useState(false);
+  // 引擎切换："trend" = 牛股特征器（8 维趋势）/"value" = 价值健康度（6 维）
+  const [engine, setEngine] = useState("trend");
   // 当前选中
   const [selectedTicker, setSelectedTicker] = useState(null);
   // 评分中的 ticker（loading 状态）
@@ -125,22 +127,27 @@ export default function StockGene() {
   };
 
   // ── 评分（单个，持久化） ───────────────────────────────
-  const handleScore = useCallback(async (ticker) => {
+  // 根据当前 engine 调用对应路由：趋势 = /score，价值 = /value-score
+  const handleScore = useCallback(async (ticker, eng = engine) => {
     setScoringTicker(ticker);
     try {
-      await apiFetch(`/stock-gene/${encodeURIComponent(ticker)}/score`, { method: "POST" });
+      const path = eng === "value"
+        ? `/stock-gene/${encodeURIComponent(ticker)}/value-score`
+        : `/stock-gene/${encodeURIComponent(ticker)}/score`;
+      await apiFetch(path, { method: "POST" });
       await reload();
     } finally {
       setScoringTicker(null);
     }
-  }, [reload]);
+  }, [reload, engine]);
 
   // ── 批量评分 ────────────────────────────────────────────
   const handleScoreAll = async () => {
     if (items.length === 0) return;
     setBatchScoring(true);
     try {
-      await apiFetch("/stock-gene/score-all", { method: "POST" });
+      const path = engine === "value" ? "/stock-gene/value/score-all" : "/stock-gene/score-all";
+      await apiFetch(path, { method: "POST" });
       await reload();
     } finally {
       setBatchScoring(false);
@@ -175,7 +182,10 @@ export default function StockGene() {
     try {
       // 默认用当前选中项的 sector / market 作为对比上下文（如有）
       const sel = items.find(i => i.ticker === selectedTicker);
-      const res = await apiFetch("/stock-gene/compare-peers", {
+      const path = engine === "value"
+        ? "/stock-gene/value/compare-peers"
+        : "/stock-gene/compare-peers";
+      const res = await apiFetch(path, {
         method: "POST",
         body: JSON.stringify({
           tickers: list,
@@ -208,8 +218,35 @@ export default function StockGene() {
         <div className="flex items-center gap-3">
           <Activity size={16} className="text-emerald-400" />
           <span className="text-sm font-semibold text-white">股性检测 · Stock Gene</span>
-          <span className="text-[10px] text-[#a0aec0] hidden md:inline">
-            按 8 个牛股特征评分 — 米勒维尼趋势模板 + 欧奈尔 CANSLIM
+          {/* 引擎切换：牛股特征器（趋势）/ 价值健康度 */}
+          <div className="flex items-center gap-0.5 bg-white/5 rounded border border-white/10 p-0.5">
+            <button
+              onClick={() => setEngine("trend")}
+              className={`px-2 py-0.5 text-[10px] rounded transition ${
+                engine === "trend"
+                  ? "bg-emerald-500/20 text-emerald-100 font-medium"
+                  : "text-[#a0aec0] hover:text-white"
+              }`}
+              title="牛股特征器：米勒维尼趋势模板 + 欧奈尔 CANSLIM（8 维趋势）"
+            >
+              趋势 · 牛股
+            </button>
+            <button
+              onClick={() => setEngine("value")}
+              className={`px-2 py-0.5 text-[10px] rounded transition ${
+                engine === "value"
+                  ? "bg-cyan-500/20 text-cyan-100 font-medium"
+                  : "text-[#a0aec0] hover:text-white"
+              }`}
+              title="价值健康度：Graham + Buffett（6 维基本面）"
+            >
+              价值 · 健康度
+            </button>
+          </div>
+          <span className="text-[10px] text-[#a0aec0] hidden lg:inline">
+            {engine === "trend"
+              ? "8 个牛股特征 — 趋势/动量/相对强度"
+              : "6 个价值特征 — 估值/盈利/现金流/负债"}
           </span>
           {isDemoMode && (
             <span
@@ -225,7 +262,7 @@ export default function StockGene() {
             onClick={handleScoreAll}
             disabled={isDemoMode || batchScoring || items.length === 0}
             className="flex items-center gap-1 px-2 py-1 rounded bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-200 border border-emerald-500/40 transition disabled:opacity-40 disabled:cursor-not-allowed"
-            title="对所有观察项重新评分（首次或数据陈旧时用）"
+            title={`对所有观察项跑${engine === "value" ? "价值" : "趋势"}评分`}
           >
             {batchScoring ? <Loader size={11} className="animate-spin" /> : <Sparkles size={11} />}
             批量评分
@@ -263,8 +300,13 @@ export default function StockGene() {
               </div>
             )}
             {items.map((it) => {
-              const r = it.last_result;
-              const v = verdictStyle(r?.verdict);
+              // 双引擎评分：trend = last_result（8 维）/ value = last_value_result（6 维）
+              const tR = it.last_result;
+              const vR = it.last_value_result;
+              const activeR = engine === "value" ? vR : tR;
+              const tStyle = verdictStyle(tR?.verdict);
+              const vStyle = verdictStyle(vR?.verdict);
+              const aStyle = engine === "value" ? vStyle : tStyle;
               const active = it.ticker === selectedTicker;
               return (
                 <button
@@ -279,21 +321,33 @@ export default function StockGene() {
                   <div className="flex items-center gap-2 mb-1">
                     <span className="font-mono text-[12px] font-semibold text-white">{it.ticker}</span>
                     <span className="text-[9px] text-[#7a8497]">{it.market}</span>
-                    {r ? (
-                      <span className={`ml-auto px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold border ${v.bg} ${v.border} ${v.text}`}>
-                        {r.score}/{r.max_score}
+                    {/* 双引擎评分徽章：T = 趋势 / V = 价值 */}
+                    <div className="ml-auto flex items-center gap-1">
+                      <span
+                        className={`px-1 py-0.5 rounded text-[9px] font-mono font-semibold border ${
+                          tR ? `${tStyle.bg} ${tStyle.border} ${tStyle.text}`
+                             : "bg-white/5 text-[#7a8497] border-white/15"
+                        } ${engine === "trend" ? "ring-1 ring-emerald-400/50" : ""}`}
+                        title={tR ? `趋势 ${tR.score}/${tR.max_score} · ${tR.verdict.label}` : "趋势未评分"}
+                      >
+                        T {tR ? `${tR.score}/${tR.max_score}` : "—"}
                       </span>
-                    ) : (
-                      <span className="ml-auto px-1.5 py-0.5 rounded text-[10px] bg-white/5 text-[#7a8497] border border-white/15">
-                        未评分
+                      <span
+                        className={`px-1 py-0.5 rounded text-[9px] font-mono font-semibold border ${
+                          vR ? `${vStyle.bg} ${vStyle.border} ${vStyle.text}`
+                             : "bg-white/5 text-[#7a8497] border-white/15"
+                        } ${engine === "value" ? "ring-1 ring-cyan-400/50" : ""}`}
+                        title={vR ? `价值 ${vR.score}/${vR.max_score} · ${vR.verdict.label}` : "价值未评分"}
+                      >
+                        V {vR ? `${vR.score}/${vR.max_score}` : "—"}
                       </span>
-                    )}
+                    </div>
                   </div>
                   {it.name && (
                     <div className="text-[10px] text-[#d0d7e2] truncate">{it.name}</div>
                   )}
-                  {r?.verdict && (
-                    <div className={`text-[9px] mt-0.5 ${v.text}`}>{r.verdict.label}</div>
+                  {activeR?.verdict && (
+                    <div className={`text-[9px] mt-0.5 ${aStyle.text}`}>{activeR.verdict.label}</div>
                   )}
                   {it.sector && (
                     <div className="text-[9px] text-[#7a8497] mt-0.5 truncate">行业：{it.sector}</div>
@@ -378,11 +432,12 @@ export default function StockGene() {
         <div className="glass-card border border-white/10 flex flex-col overflow-hidden">
           {!selectedItem ? (
             <div className="flex-1 flex items-center justify-center text-[11px] text-[#7a8497] p-4 text-center">
-              ← 选择左侧的观察项查看 8 维特征评分
+              ← 选择左侧的观察项查看{engine === "value" ? "价值健康度（6 维）" : "牛股特征（8 维）"}评分
             </div>
           ) : (
             <ScoreDetail
               item={selectedItem}
+              engine={engine}
               onRescore={() => handleScore(selectedItem.ticker)}
               onDelete={() => handleDelete(selectedItem.ticker)}
               scoring={scoringTicker === selectedItem.ticker}
@@ -395,12 +450,19 @@ export default function StockGene() {
           <div className="px-3 py-2 border-b border-white/8 flex items-center gap-2">
             <BarChart3 size={12} className="text-cyan-300" />
             <span className="text-[11px] font-semibold text-white">同行业横向对比</span>
+            <span className={`text-[9px] px-1 py-px rounded border ${
+              engine === "value"
+                ? "bg-cyan-500/15 text-cyan-200 border-cyan-500/40"
+                : "bg-emerald-500/15 text-emerald-200 border-emerald-500/40"
+            }`}>
+              {engine === "value" ? "价值" : "趋势"}
+            </span>
           </div>
           <div className="px-3 py-2 border-b border-white/8 space-y-1.5">
             <div className="text-[10px] text-[#a0aec0]">
-              输入 2-10 个 ticker（逗号 / 空格分隔），用当前选中的行业上下文打分
+              输入 2-10 个 ticker（逗号 / 空格分隔），按当前引擎和选中项的行业上下文打分
               {selectedItem?.sector && (
-                <span className="text-emerald-300/80"> · 当前行业：{selectedItem.sector}</span>
+                <span className="text-emerald-300/80"> · 行业：{selectedItem.sector}</span>
               )}
             </div>
             <textarea
@@ -431,7 +493,7 @@ export default function StockGene() {
                 对比结果将在此显示
               </div>
             )}
-            {peersResults && <PeersTable result={peersResults} onAdd={(t, n, m, s) => {
+            {peersResults && <PeersTable result={peersResults} engine={engine} onAdd={(t, n, m, s) => {
               setNewTicker(t); setNewName(n); setNewMarket(m); setNewSector(s);
               setShowAddForm(true);
             }} />}
@@ -445,8 +507,10 @@ export default function StockGene() {
 // ─────────────────────────────────────────────────────────────
 // 评分详情面板（中栏）
 // ─────────────────────────────────────────────────────────────
-function ScoreDetail({ item, onRescore, onDelete, scoring }) {
-  const r = item.last_result;
+function ScoreDetail({ item, engine, onRescore, onDelete, scoring }) {
+  // engine = "trend" → last_result（8 维）；"value" → last_value_result（6 维）
+  const r = engine === "value" ? item.last_value_result : item.last_result;
+  const engineLabel = engine === "value" ? "价值" : "趋势";
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* 头部：ticker + verdict 大徽章 */}
@@ -477,10 +541,15 @@ function ScoreDetail({ item, onRescore, onDelete, scoring }) {
           <button
             onClick={onRescore}
             disabled={scoring}
-            className="flex items-center gap-1 px-2 py-1 text-[10px] rounded bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-200 border border-emerald-500/40 transition disabled:opacity-40 disabled:cursor-not-allowed"
+            className={`flex items-center gap-1 px-2 py-1 text-[10px] rounded border transition disabled:opacity-40 disabled:cursor-not-allowed ${
+              engine === "value"
+                ? "bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-200 border-cyan-500/40"
+                : "bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-200 border-emerald-500/40"
+            }`}
+            title={`重新跑${engineLabel}评分（${engine === "value" ? "6 个价值特征" : "8 个牛股特征"}）`}
           >
             {scoring ? <Loader size={10} className="animate-spin" /> : <Sparkles size={10} />}
-            {r ? "重新评分" : "立即评分"}
+            {r ? `重新评分（${engineLabel}）` : `立即评分（${engineLabel}）`}
           </button>
           <button
             onClick={onDelete}
@@ -496,11 +565,11 @@ function ScoreDetail({ item, onRescore, onDelete, scoring }) {
         )}
       </div>
 
-      {/* 8 维特征列表 */}
+      {/* 特征列表（趋势 8 维 / 价值 6 维） */}
       <div className="flex-1 overflow-auto p-3">
         {!r && (
           <div className="h-full flex items-center justify-center text-[11px] text-[#7a8497] text-center">
-            尚未评分 — 点击上方"立即评分"按钮
+            尚未评分（{engineLabel}） — 点击上方"立即评分"按钮
           </div>
         )}
         {r && r.warnings && r.warnings.length > 0 && (
@@ -519,7 +588,7 @@ function ScoreDetail({ item, onRescore, onDelete, scoring }) {
           </div>
         )}
         {r && r.features && r.features.map((f, idx) => (
-          <FeatureRow key={f.id} feature={f} index={idx + 1} />
+          <FeatureRow key={f.id} feature={f} index={idx + 1} prefix={engine === "value" ? "V" : "F"} />
         ))}
       </div>
     </div>
@@ -547,7 +616,7 @@ function VerdictBadge({ verdict, score, maxScore, available }) {
   );
 }
 
-function FeatureRow({ feature, index }) {
+function FeatureRow({ feature, index, prefix = "F" }) {
   const passed = feature.pass;
   const unavailable = feature.available === false;
   const Icon = passed ? Check : (unavailable ? AlertCircle : X);
@@ -562,7 +631,7 @@ function FeatureRow({ feature, index }) {
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-[9px] text-[#7a8497] font-mono">F{index}</span>
+            <span className="text-[9px] text-[#7a8497] font-mono">{prefix}{index}</span>
             <span className={`text-[11px] font-medium ${passed ? "text-emerald-200" : (unavailable ? "text-amber-300/80" : "text-[#d0d7e2]")}`}>
               {feature.label}
             </span>
@@ -586,7 +655,7 @@ function FeatureRow({ feature, index }) {
 // ─────────────────────────────────────────────────────────────
 // 横向对比表格（右栏结果）
 // ─────────────────────────────────────────────────────────────
-function PeersTable({ result, onAdd }) {
+function PeersTable({ result, onAdd, engine = "trend" }) {
   const items = result.items || [];
   // 按评分降序
   const sorted = [...items].sort((a, b) => {
@@ -597,7 +666,7 @@ function PeersTable({ result, onAdd }) {
   return (
     <div className="space-y-2">
       <div className="text-[10px] text-[#7a8497] px-1">
-        共 {result.count} 只 · 按评分降序
+        共 {result.count} 只 · 按{engine === "value" ? "价值" : "趋势"}评分降序
       </div>
       {sorted.map((it) => {
         if (it.error) {
@@ -628,7 +697,7 @@ function PeersTable({ result, onAdd }) {
               </button>
             </div>
             <div className={`text-[9px] ${v.text}`}>{it.verdict?.label}</div>
-            {/* 8 个特征的迷你 pass/fail 指示器 */}
+            {/* 8/6 个特征的迷你 pass/fail 指示器（按 engine 自适应） */}
             <div className="flex items-center gap-0.5 mt-1.5">
               {(it.features || []).map((f) => (
                 <div
