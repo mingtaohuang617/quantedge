@@ -867,6 +867,75 @@ def compare_peers_signal(tickers: list[str], sector: str = "",
     }
 
 
+# ── Risk engine 集成（R1—R6 风险画像）───────────────────
+def score_risk_and_persist(ticker: str) -> dict:
+    """对 watchlist 里的某项跑风险画像评分并写回 last_risk_result + 历史。"""
+    import risk_gene
+    data = load_watchlist()
+    ticker = ticker.strip().upper()
+    item = next((it for it in data["items"] if it["ticker"] == ticker), None)
+    if item is None:
+        raise ValueError(f"{ticker} 不在 stock_gene 观察列表中")
+    cached = _get_cached_stock(ticker)
+    result = risk_gene.score_risk(
+        ticker, name=item.get("name", ""),
+        market=item.get("market", "US"),
+        sector=item.get("sector", ""),
+        cached_stock=cached,
+    )
+    item["last_risk_result"] = result
+    item["last_risk_checked_at"] = result["checked_at"]
+    _append_history(item, "risk", result)
+    save_watchlist(data)
+    return result
+
+
+def score_all_risk() -> list[dict]:
+    """批量风险评分所有观察项。"""
+    import risk_gene
+    data = load_watchlist()
+    results: list[dict] = []
+    for item in data["items"]:
+        try:
+            cached = _get_cached_stock(item["ticker"])
+            r = risk_gene.score_risk(
+                item["ticker"], name=item.get("name", ""),
+                market=item.get("market", "US"),
+                sector=item.get("sector", ""),
+                cached_stock=cached,
+            )
+            item["last_risk_result"] = r
+            item["last_risk_checked_at"] = r["checked_at"]
+            _append_history(item, "risk", r)
+            results.append(r)
+        except Exception as e:
+            results.append({"ticker": item["ticker"], "error": str(e)})
+    save_watchlist(data)
+    return results
+
+
+def compare_peers_risk(tickers: list[str], sector: str = "",
+                       market: str = "US") -> dict:
+    """风险横向对比。"""
+    import risk_gene
+    rows = []
+    for t in tickers:
+        try:
+            cached = _get_cached_stock(t)
+            rows.append(risk_gene.score_risk(
+                t, market=market, sector=sector, cached_stock=cached,
+            ))
+        except Exception as e:
+            rows.append({"ticker": t, "error": str(e)})
+    return {
+        "engine": "risk",
+        "sector": sector,
+        "market": market,
+        "count": len(rows),
+        "items": rows,
+    }
+
+
 # ── 导入 / 导出 ────────────────────────────────────────
 def export_data() -> dict:
     """整份观察列表（含评分历史、双引擎缓存）导出为 dict，前端转 JSON 下载。"""

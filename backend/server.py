@@ -40,7 +40,7 @@ import logging_config  # noqa: F401  — 副作用：配置轮转日志
 
 
 def sanitize(obj):
-    """Recursively replace NaN/Inf with None for JSON serialization."""
+    """Recursively replace NaN/Inf with None and convert numpy scalars for JSON."""
     if isinstance(obj, dict):
         return {k: sanitize(v) for k, v in obj.items()}
     if isinstance(obj, list):
@@ -55,6 +55,9 @@ def sanitize(obj):
         return v
     if isinstance(obj, (np.integer,)):
         return int(obj)
+    # numpy.bool_ → Python bool（json 模块不识别 np.bool_）
+    if isinstance(obj, np.bool_):
+        return bool(obj)
     return obj
 
 try:
@@ -1934,6 +1937,62 @@ def stock_gene_signal_compare_peers(req: StockGeneComparePeersReq):
     if len(req.tickers) > 10:
         raise HTTPException(400, "一次最多对比 10 只")
     return sanitize(_gene_mod.compare_peers_signal(
+        req.tickers, sector=req.sector, market=req.market,
+    ))
+
+
+# ── Stock Gene · Risk engine（风险画像）──────────────────
+try:
+    import risk_gene as _risk_mod
+    HAS_RISK_GENE = True
+except Exception as _e:
+    HAS_RISK_GENE = False
+    _risk_mod = None
+    print(f"[WARN] risk_gene module not available: {_e}")
+
+
+@app.post("/api/stock-gene/risk/score")
+def stock_gene_risk_score(req: StockGeneScoreReq):
+    """对任意 ticker 跑一次风险画像评分（不入库）。"""
+    if not HAS_RISK_GENE or _risk_mod is None:
+        raise HTTPException(503, "risk_gene 模块未加载")
+    cached = next((s for s in cache.stocks if s.get("ticker") == req.ticker.upper()), None)
+    return sanitize(_risk_mod.score_risk(
+        req.ticker, name=req.name, market=req.market, sector=req.sector,
+        cached_stock=cached,
+    ))
+
+
+@app.post("/api/stock-gene/{ticker}/risk-score")
+def stock_gene_risk_score_persist(ticker: str):
+    """对 watchlist 里某项跑风险评分并写回 last_risk_result。"""
+    if not HAS_STOCK_GENE or _gene_mod is None:
+        raise HTTPException(503, "stock_gene 模块未加载")
+    try:
+        return sanitize(_gene_mod.score_risk_and_persist(ticker))
+    except ValueError as e:
+        raise HTTPException(404, str(e))
+
+
+@app.post("/api/stock-gene/risk/score-all")
+def stock_gene_risk_score_all():
+    """批量风险评分。"""
+    if not HAS_STOCK_GENE or _gene_mod is None:
+        raise HTTPException(503, "stock_gene 模块未加载")
+    results = _gene_mod.score_all_risk()
+    return sanitize({"count": len(results), "items": results})
+
+
+@app.post("/api/stock-gene/risk/compare-peers")
+def stock_gene_risk_compare_peers(req: StockGeneComparePeersReq):
+    """风险横向对比。"""
+    if not HAS_STOCK_GENE or _gene_mod is None:
+        raise HTTPException(503, "stock_gene 模块未加载")
+    if not req.tickers:
+        raise HTTPException(400, "tickers 不能为空")
+    if len(req.tickers) > 10:
+        raise HTTPException(400, "一次最多对比 10 只")
+    return sanitize(_gene_mod.compare_peers_risk(
         req.tickers, sector=req.sector, market=req.market,
     ))
 

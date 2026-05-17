@@ -101,6 +101,27 @@ const ENGINES = {
       strong: "入场窗口", moderate: "可关注", neutral: "观望", weak: "暂避",
     },
   },
+  risk: {
+    id: "risk",
+    label: "风险 · 画像",
+    short: "R",
+    framework: "风险画像",
+    featurePrefix: "R",
+    featureCount: 6,
+    resultKey: "last_risk_result",
+    checkedAtKey: "last_risk_checked_at",
+    scoreRoute: "risk-score",
+    scoreAllRoute: "risk/score-all",
+    comparePeersRoute: "risk/compare-peers",
+    activeBg: "bg-violet-500/20",
+    activeText: "text-violet-100",
+    btnBg: "bg-violet-500/15 hover:bg-violet-500/25 text-violet-200 border-violet-500/40",
+    badgeRing: "ring-violet-400/50",
+    headerTagline: "6 个风险维度 — 回撤/波动/Beta/流动性",
+    verdictLabels: {
+      strong: "低风险", moderate: "风险可控", neutral: "中等风险", weak: "高风险",
+    },
+  },
 };
 const ENGINE_IDS = Object.keys(ENGINES);
 const eng = (id) => ENGINES[id] || ENGINES.trend;
