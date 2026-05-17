@@ -6,6 +6,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- **10x 猎手 strategy 字段语义统一 + UI 清理**（v2.0 polish）：让混合 watchlist 上 growth/value item 一眼可辨；修 value tab 加自定义赛道时新赛道默认 strategy=growth 不显示的 bug
+  - `frontend/src/components/AddSupertrendDialog.jsx`：接 `defaultStrategy` prop；POST `/supertrends` 透传 `strategy` 字段（backend / serverless 早已支持，只是前端原来漏传）；头部加 strategy 标识 chip（与 WatchlistCard badge 同款配色）
+  - `frontend/src/pages/Screener10x.jsx`：
+    - WatchlistCard 加 strategy badge 「成」/「值」（indigo / emerald 颜色区分）
+    - L1/L2 badge tooltip 按 strategy 切：成长 = 共识层 / 深度认知；价值 = 深度低估 / 合理估值
+    - L1/L2 颜色按"稀有度"映射：罕见的层级（growth-L2 / value-L1）= 紫色突出；普通 = 蓝色
+    - 「卡位」label 按 strategy 全场切「卡位」/「护城河」：WatchlistCard 底部 star meter + 候选股表头 AI 列 + AI 排序按钮 tooltip
+    - AddSupertrendDialog 调用传 `defaultStrategy={activeStrategy}`
+  - 测试：vitest 272 pass / audit / build / preview eval 验证 tab 切换 → dialog badge → AI 排序 tooltip 全部按 strategy 切换
 - **10x 猎手 价值型 PR-B UI + LLM**（v2.0 第二阶段）：完成成长/价值同页 tab 切换 + 价值型 LLM thesis
   - `backend/llm.py:value_thesis`：Graham 安全边际框架 LLM prompt — 8 字段（价值赛道 / 估值点位 / 估值点位_int / 内在价值 / 护城河 / 卡位等级_int / 风险 / 推演结论）；cache key prefix `value-thesis` 与成长型 `10x-thesis` 隔离；额外把 PE/PB/股息率/ROE/D/E 5 维数字喂给 LLM
   - `backend/server.py`：新增 `POST /api/llm/value-thesis` endpoint + `ValueThesisReq` 含 5 维财务字段
