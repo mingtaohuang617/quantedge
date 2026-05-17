@@ -85,6 +85,10 @@ export default function StockGene() {
   const [addError, setAddError] = useState(null);
   // 快捷键帮助 overlay
   const [showShortcuts, setShowShortcuts] = useState(false);
+  // Tag 过滤（OR 逻辑）
+  const [filterTags, setFilterTags] = useState(() => new Set());
+  // 确认对话框：{ title, message, onConfirm } | null
+  const [confirmDialog, setConfirmDialog] = useState(null);
   // 横向对比
   const [peersInput, setPeersInput] = useState("");
   const [peersResults, setPeersResults] = useState(null);
@@ -331,6 +335,46 @@ export default function StockGene() {
     URL.revokeObjectURL(url);
   };
 
+  // ── CSV 导出（前端转换，无需新后端路由）─────────────────
+  const handleExportCsv = () => {
+    if (items.length === 0) return;
+    const esc = (v) => {
+      if (v == null) return "";
+      const s = String(v);
+      // 含逗号 / 引号 / 换行需用双引号包裹，内部引号转义为 ""
+      if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+      return s;
+    };
+    const headers = [
+      "ticker", "name", "market", "sector",
+      "trend_score", "trend_max", "trend_verdict",
+      "value_score", "value_max", "value_verdict",
+      "tags", "notes", "added_at", "trend_checked_at", "value_checked_at",
+    ];
+    const rows = items.map(it => {
+      const t = it.last_result;
+      const v = it.last_value_result;
+      return [
+        it.ticker, it.name || "", it.market || "", it.sector || "",
+        t?.score ?? "", t?.max_score ?? "", t?.verdict?.label || "",
+        v?.score ?? "", v?.max_score ?? "", v?.verdict?.label || "",
+        (it.tags || []).join("|"), it.notes || "",
+        it.added_at || "", t?.checked_at || "", v?.checked_at || "",
+      ].map(esc).join(",");
+    });
+    // BOM 让 Excel 正确识别 UTF-8
+    const csv = "﻿" + headers.join(",") + "\n" + rows.join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `stock-gene-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
   const handleImportFile = async (file) => {
     if (!file) return;
     let payload;
@@ -363,12 +407,19 @@ export default function StockGene() {
     }
   };
 
-  // ── 删除 ────────────────────────────────────────────────
-  const handleDelete = async (ticker) => {
-    if (!window.confirm(`从股性观察列表删除 ${ticker}？`)) return;
-    await apiFetch(`/stock-gene/${encodeURIComponent(ticker)}`, { method: "DELETE" });
-    if (selectedTicker === ticker) setSelectedTicker(null);
-    await reload();
+  // ── 删除（用 ConfirmDialog 替换 window.confirm）─────────
+  const handleDelete = (ticker) => {
+    setConfirmDialog({
+      title: "删除观察项",
+      message: `确定从股性观察列表删除 ${ticker}？同时清除 8/6 维评分、历史记录、备注与标签。`,
+      confirmLabel: "删除",
+      danger: true,
+      onConfirm: async () => {
+        await apiFetch(`/stock-gene/${encodeURIComponent(ticker)}`, { method: "DELETE" });
+        if (selectedTicker === ticker) setSelectedTicker(null);
+        await reload();
+      },
+    });
   };
 
   // ── 横向对比 ────────────────────────────────────────────
@@ -437,6 +488,11 @@ export default function StockGene() {
         const lvl = r?.verdict?.level || "_unscored";
         if (!filterVerdicts.has(lvl)) return false;
       }
+      // Tag 过滤（OR 逻辑：标的有任一选中 tag 即通过）
+      if (filterTags.size > 0) {
+        const itemTags = it.tags || [];
+        if (!itemTags.some(t => filterTags.has(t))) return false;
+      }
       return true;
     });
     if (sortBy === "score") {
@@ -453,7 +509,14 @@ export default function StockGene() {
       arr.sort((a, b) => a.ticker.localeCompare(b.ticker));
     }
     return arr;
-  }, [items, sortBy, engine, filterText, filterVerdicts]);
+  }, [items, sortBy, engine, filterText, filterVerdicts, filterTags]);
+
+  // 所有 items 已存在的 unique tags（用于 tag 过滤 chips）
+  const allTags = useMemo(() => {
+    const s = new Set();
+    items.forEach(it => (it.tags || []).forEach(t => s.add(t)));
+    return [...s].sort();
+  }, [items]);
 
   // ── 快捷键 ────────────────────────────────────────────────
   // j/k 选择上下条 · / 聚焦搜索 · t/v 切换引擎 · r 刷新 · esc 清过滤 · ? 帮助
@@ -472,11 +535,13 @@ export default function StockGene() {
         return;
       }
       if (e.key === "Escape") {
+        if (confirmDialog) { setConfirmDialog(null); return; }
         if (showShortcuts) { setShowShortcuts(false); return; }
         if (inField) return;
-        if (filterText || filterVerdicts.size > 0) {
+        if (filterText || filterVerdicts.size > 0 || filterTags.size > 0) {
           setFilterText("");
           setFilterVerdicts(new Set());
+          setFilterTags(new Set());
           return;
         }
       }
@@ -502,7 +567,7 @@ export default function StockGene() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [sortedItems, selectedTicker, filterText, filterVerdicts, showShortcuts, reload]);
+  }, [sortedItems, selectedTicker, filterText, filterVerdicts, filterTags, showShortcuts, confirmDialog, reload]);
 
   // ── 渲染 ────────────────────────────────────────────────
   return (
@@ -570,6 +635,15 @@ export default function StockGene() {
           >
             <Download size={11} />
           </button>
+          {/* 导出 CSV（Excel 友好） */}
+          <button
+            onClick={handleExportCsv}
+            disabled={items.length === 0}
+            className="flex items-center justify-center px-1.5 h-7 rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white transition border border-white/10 disabled:opacity-40 disabled:cursor-not-allowed text-[9px] font-mono"
+            title="导出 CSV（Excel 友好，含 trend/value 双评分 + 标签 + 备注）"
+          >
+            CSV
+          </button>
           {/* 导入 JSON 备份 */}
           <button
             onClick={() => importInputRef.current?.click()}
@@ -606,6 +680,22 @@ export default function StockGene() {
 
       {/* 快捷键帮助 overlay */}
       {showShortcuts && <ShortcutsHelp onClose={() => setShowShortcuts(false)} />}
+
+      {/* 确认对话框（删除等不可逆操作） */}
+      {confirmDialog && (
+        <ConfirmDialog
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          confirmLabel={confirmDialog.confirmLabel}
+          danger={confirmDialog.danger}
+          onConfirm={async () => {
+            const cb = confirmDialog.onConfirm;
+            setConfirmDialog(null);
+            if (cb) await cb();
+          }}
+          onCancel={() => setConfirmDialog(null)}
+        />
+      )}
 
       {/* 三栏 grid */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-[280px_1fr_340px] gap-3 overflow-hidden min-h-0">
@@ -659,6 +749,14 @@ export default function StockGene() {
                 onChange={setFilterVerdicts}
                 engine={engine}
               />
+              {/* Tag 过滤 chips：仅当有标签时显示 */}
+              {allTags.length > 0 && (
+                <TagFilterChips
+                  allTags={allTags}
+                  value={filterTags}
+                  onChange={setFilterTags}
+                />
+              )}
             </div>
           )}
 
@@ -1675,6 +1773,108 @@ function ShortcutsHelp({ onClose }) {
         </div>
         <div className="mt-3 pt-2 border-t border-white/10 text-[9px] text-[#7a8497]">
           ⓘ 焦点在输入框 / 弹层内时快捷键不触发
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+// ─────────────────────────────────────────────────────────────
+// TagFilterChips — 与 VerdictFilterChips 并列，按现有 tag 动态渲染
+// ─────────────────────────────────────────────────────────────
+function TagFilterChips({ allTags, value, onChange }) {
+  const toggle = (t) => {
+    const next = new Set(value);
+    if (next.has(t)) next.delete(t); else next.add(t);
+    onChange(next);
+  };
+  return (
+    <div className="flex items-center gap-1 flex-wrap">
+      <span className="text-[9px] text-[#7a8497] mr-1">tag</span>
+      {allTags.slice(0, 12).map(t => {
+        const on = value.has(t);
+        return (
+          <button
+            key={t}
+            onClick={() => toggle(t)}
+            className={`text-[9px] px-1.5 py-px rounded border transition ${
+              on
+                ? "bg-violet-500/15 border-violet-500/40 text-violet-200"
+                : "bg-white/[0.02] border-white/10 text-[#7a8497] hover:text-white hover:border-white/20"
+            }`}
+            title={on ? `点击取消 #${t} 过滤` : `点击只看有 #${t} 的`}
+          >
+            #{t}
+          </button>
+        );
+      })}
+      {allTags.length > 12 && (
+        <span className="text-[9px] text-[#7a8497]">+{allTags.length - 12}</span>
+      )}
+      {value.size > 0 && (
+        <button
+          onClick={() => onChange(new Set())}
+          className="text-[9px] px-1 text-[#7a8497] hover:text-white"
+          title="清空所有 tag 过滤"
+        >
+          ×
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// ConfirmDialog — 不可逆操作确认弹层（替代 window.confirm）
+// ─────────────────────────────────────────────────────────────
+function ConfirmDialog({ title, message, confirmLabel = "确认", danger = false, onConfirm, onCancel }) {
+  const [busy, setBusy] = useState(false);
+  const handle = async () => {
+    setBusy(true);
+    try { await onConfirm(); } finally { setBusy(false); }
+  };
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+      onClick={onCancel}
+      role="dialog"
+      aria-modal="true"
+    >
+      <div
+        className="glass-card border border-white/15 rounded-lg p-4 min-w-[300px] max-w-[420px] shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center gap-2 mb-2">
+          {danger
+            ? <AlertCircle size={14} className="text-rose-400" />
+            : <AlertCircle size={14} className="text-amber-400" />}
+          <span className="text-[12px] font-semibold text-white">{title}</span>
+        </div>
+        <div className="text-[11px] text-[#d0d7e2] leading-relaxed mb-3">
+          {message}
+        </div>
+        <div className="flex items-center justify-end gap-1">
+          <button
+            onClick={onCancel}
+            disabled={busy}
+            className="px-3 py-1 text-[10px] rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white border border-white/10 disabled:opacity-40"
+          >
+            取消
+          </button>
+          <button
+            onClick={handle}
+            disabled={busy}
+            className={`flex items-center gap-1 px-3 py-1 text-[10px] rounded border transition disabled:opacity-40 ${
+              danger
+                ? "bg-rose-500/15 hover:bg-rose-500/25 text-rose-200 border-rose-500/40"
+                : "bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-200 border-emerald-500/40"
+            }`}
+            autoFocus
+          >
+            {busy ? <Loader size={9} className="animate-spin" /> : null}
+            {confirmLabel}
+          </button>
         </div>
       </div>
     </div>
