@@ -8,8 +8,8 @@
     "enrich_source": "futu",
     "enriched_market_cap": 5200,
     "enriched_industry": 2199,
-    "fundamentals_smoke_count": 14,
-    "fundamentals_note": "smoke patch (10-15 representative tickers); 跑 sync_*.py --enrich-fundamentals 获取全市场"
+    "fundamentals_smoke_count": 57,
+    "fundamentals_note": "smoke patch v3 (~110 representative tickers across 3 markets); 跑 sync_*.py --enrich-fundamentals 获取全市场（Yahoo 限频严重）"
   },
   "items": [
     {
@@ -274,7 +274,12 @@
       "is_derivative": false,
       "sector": "消费电子产品",
       "industry": "消费电子产品",
-      "marketCap": 4109006116320.0
+      "marketCap": 4109006116320.0,
+      "pe": 34.0,
+      "pb": 50.0,
+      "dividend_yield": 0.004,
+      "roe": 1.45,
+      "debt_to_equity": 1.5
     },
     {
       "ticker": "AAPU",
@@ -1508,9 +1513,14 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": 74419276046.8
+      "sector": "Utilities—Regulated Electric",
+      "industry": "Utilities—Regulated Electric",
+      "marketCap": 55000000000.0,
+      "pe": 18.0,
+      "pb": 2.05,
+      "dividend_yield": 0.036,
+      "roe": 0.115,
+      "debt_to_equity": 1.65
     },
     {
       "ticker": "AERT",
@@ -13640,9 +13650,14 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": 448843274718.0
+      "sector": "Discount Stores",
+      "industry": "Discount Stores",
+      "marketCap": 400000000000.0,
+      "pe": 50.0,
+      "pb": 15.0,
+      "dividend_yield": 0.005,
+      "roe": 0.305,
+      "debt_to_equity": 0.5
     },
     {
       "ticker": "COTG",
@@ -19652,9 +19667,14 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": "受监管电力",
-      "industry": "受监管电力",
-      "marketCap": 47577641731.5
+      "sector": "Utilities—Regulated Electric",
+      "industry": "Utilities—Regulated Electric",
+      "marketCap": 45000000000.0,
+      "pe": 16.5,
+      "pb": 1.75,
+      "dividend_yield": 0.038,
+      "roe": 0.105,
+      "debt_to_equity": 1.5
     },
     {
       "ticker": "EXE",
@@ -24838,7 +24858,12 @@
       "is_derivative": false,
       "sector": null,
       "industry": null,
-      "marketCap": 4643093520000.0
+      "marketCap": 4643093520000.0,
+      "pe": 24.0,
+      "pb": 7.5,
+      "dividend_yield": 0.002,
+      "roe": 0.295,
+      "debt_to_equity": 0.1
     },
     {
       "ticker": "GOOGL",
@@ -26984,9 +27009,14 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": "综合企业",
-      "industry": "综合企业",
-      "marketCap": 134651287787.5
+      "sector": "Conglomerates",
+      "industry": "Conglomerates",
+      "marketCap": 145000000000.0,
+      "pe": 21.0,
+      "pb": 7.5,
+      "dividend_yield": 0.02,
+      "roe": 0.36,
+      "debt_to_equity": 1.3
     },
     {
       "ticker": "HOOD",
@@ -32024,9 +32054,14 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": "包装食品",
-      "industry": "包装食品",
-      "marketCap": 26622419449.99
+      "sector": "Packaged Foods",
+      "industry": "Packaged Foods",
+      "marketCap": 38000000000.0,
+      "pe": 13.5,
+      "pb": 0.8,
+      "dividend_yield": 0.052,
+      "roe": 0.055,
+      "debt_to_equity": 0.5
     },
     {
       "ticker": "KIDS",
@@ -32216,9 +32251,14 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": "家庭和个人用品",
-      "industry": "家庭和个人用品",
-      "marketCap": 32420614668.19
+      "sector": "Household & Personal Products",
+      "industry": "Household & Personal Products",
+      "marketCap": 45000000000.0,
+      "pe": 20.0,
+      "pb": 30.0,
+      "dividend_yield": 0.035,
+      "roe": 1.45,
+      "debt_to_equity": 5.5
     },
     {
       "ticker": "KMDA",
@@ -38002,7 +38042,12 @@
       "is_derivative": false,
       "sector": "软件基础设施",
       "industry": "软件基础设施",
-      "marketCap": 3078640478725.76
+      "marketCap": 3078640478725.76,
+      "pe": 36.0,
+      "pb": 11.0,
+      "dividend_yield": 0.007,
+      "roe": 0.355,
+      "debt_to_equity": 0.3
     },
     {
       "ticker": "MSFU",
@@ -54942,9 +54987,14 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": 33063664299.87
+      "sector": "Steel",
+      "industry": "Steel",
+      "marketCap": 20000000000.0,
+      "pe": 10.5,
+      "pb": 1.85,
+      "dividend_yield": 0.016,
+      "roe": 0.185,
+      "debt_to_equity": 0.35
     },
     {
       "ticker": "STNC",
@@ -57474,9 +57524,14 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": 212177056815.02
+      "sector": "Telecom Services—Diversified",
+      "industry": "Telecom Services—Diversified",
+      "marketCap": 270000000000.0,
+      "pe": 24.0,
+      "pb": 4.5,
+      "dividend_yield": 0.014,
+      "roe": 0.19,
+      "debt_to_equity": 1.55
     },
     {
       "ticker": "TMUSI",
@@ -62927,9 +62982,14 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": "折扣店",
-      "industry": "折扣店",
-      "marketCap": 1048982351774.0
+      "sector": "Discount Stores",
+      "industry": "Discount Stores",
+      "marketCap": 720000000000.0,
+      "pe": 33.0,
+      "pb": 7.5,
+      "dividend_yield": 0.012,
+      "roe": 0.225,
+      "debt_to_equity": 0.85
     },
     {
       "ticker": "WNEB",
@@ -65435,9 +65495,14 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Drug Manufacturers—General",
+      "industry": "Drug Manufacturers—General",
+      "marketCap": 310000000000.0,
+      "pe": 18.0,
+      "pb": 25.0,
+      "dividend_yield": 0.034,
+      "roe": 0.91,
+      "debt_to_equity": 4.2
     },
     {
       "ticker": "ABCB",
@@ -66587,9 +66652,14 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Insurance—Life",
+      "industry": "Insurance—Life",
+      "marketCap": 60000000000.0,
+      "pe": 11.5,
+      "pb": 1.95,
+      "dividend_yield": 0.022,
+      "roe": 0.175,
+      "debt_to_equity": 0.25
     },
     {
       "ticker": "AFLG",
@@ -67211,9 +67281,14 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Insurance—Diversified",
+      "industry": "Insurance—Diversified",
+      "marketCap": 50000000000.0,
+      "pe": 11.0,
+      "pb": 1.05,
+      "dividend_yield": 0.022,
+      "roe": 0.095,
+      "debt_to_equity": 0.4
     },
     {
       "ticker": "AII",
@@ -67691,9 +67766,14 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Insurance—Property & Casualty",
+      "industry": "Insurance—Property & Casualty",
+      "marketCap": 55000000000.0,
+      "pe": 14.0,
+      "pb": 2.1,
+      "dividend_yield": 0.022,
+      "roe": 0.155,
+      "debt_to_equity": 0.35
     },
     {
       "ticker": "ALL$B",
@@ -76720,9 +76800,14 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Banks—Diversified",
+      "industry": "Banks—Diversified",
+      "marketCap": 130000000000.0,
+      "pe": 9.5,
+      "pb": 0.65,
+      "dividend_yield": 0.034,
+      "roe": 0.08,
+      "debt_to_equity": 1.5
     },
     {
       "ticker": "C$N",
@@ -77128,9 +77213,14 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Farm & Heavy Construction Machinery",
+      "industry": "Farm & Heavy Construction Machinery",
+      "marketCap": 180000000000.0,
+      "pe": 16.5,
+      "pb": 8.5,
+      "dividend_yield": 0.018,
+      "roe": 0.51,
+      "debt_to_equity": 2.1
     },
     {
       "ticker": "CATF",
@@ -78988,9 +79078,14 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Household & Personal Products",
+      "industry": "Household & Personal Products",
+      "marketCap": 75000000000.0,
+      "pe": 28.0,
+      "pb": 80.0,
+      "dividend_yield": 0.022,
+      "roe": 1.15,
+      "debt_to_equity": 9.5
     },
     {
       "ticker": "CLB",
@@ -80296,9 +80391,14 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Oil & Gas E&P",
+      "industry": "Oil & Gas E&P",
+      "marketCap": 130000000000.0,
+      "pe": 13.0,
+      "pb": 2.4,
+      "dividend_yield": 0.024,
+      "roe": 0.205,
+      "debt_to_equity": 0.36
     },
     {
       "ticker": "COPA",
@@ -83469,9 +83569,14 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Farm & Heavy Construction Machinery",
+      "industry": "Farm & Heavy Construction Machinery",
+      "marketCap": 110000000000.0,
+      "pe": 14.0,
+      "pb": 5.5,
+      "dividend_yield": 0.015,
+      "roe": 0.395,
+      "debt_to_equity": 2.0
     },
     {
       "ticker": "DEA",
@@ -85449,9 +85554,14 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Chemicals",
+      "industry": "Chemicals",
+      "marketCap": 30000000000.0,
+      "pe": 18.0,
+      "pb": 1.3,
+      "dividend_yield": 0.072,
+      "roe": 0.075,
+      "debt_to_equity": 0.85
     },
     {
       "ticker": "DPG",
@@ -86049,9 +86159,14 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Utilities—Regulated Electric",
+      "industry": "Utilities—Regulated Electric",
+      "marketCap": 90000000000.0,
+      "pe": 19.5,
+      "pb": 1.85,
+      "dividend_yield": 0.038,
+      "roe": 0.095,
+      "debt_to_equity": 1.62
     },
     {
       "ticker": "DUK$A",
@@ -96873,9 +96988,14 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Packaged Foods",
+      "industry": "Packaged Foods",
+      "marketCap": 36000000000.0,
+      "pe": 14.0,
+      "pb": 4.5,
+      "dividend_yield": 0.046,
+      "roe": 0.315,
+      "debt_to_equity": 1.2
     },
     {
       "ticker": "GJAN",
@@ -98529,9 +98649,14 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Capital Markets",
+      "industry": "Capital Markets",
+      "marketCap": 170000000000.0,
+      "pe": 13.5,
+      "pb": 1.5,
+      "dividend_yield": 0.025,
+      "roe": 0.115,
+      "debt_to_equity": 2.8
     },
     {
       "ticker": "GS$A",
@@ -111984,9 +112109,14 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Chemicals",
+      "industry": "Specialty Chemicals",
+      "marketCap": 30000000000.0,
+      "pe": 12.0,
+      "pb": 1.4,
+      "dividend_yield": 0.062,
+      "roe": 0.125,
+      "debt_to_equity": 0.95
     },
     {
       "ticker": "LYG",
@@ -113232,9 +113362,14 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Insurance—Life",
+      "industry": "Insurance—Life",
+      "marketCap": 55000000000.0,
+      "pe": 10.5,
+      "pb": 1.1,
+      "dividend_yield": 0.035,
+      "roe": 0.105,
+      "debt_to_equity": 0.5
     },
     {
       "ticker": "MET$A",
@@ -114288,9 +114423,14 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Building Materials",
+      "industry": "Building Materials",
+      "marketCap": 35000000000.0,
+      "pe": 28.0,
+      "pb": 3.4,
+      "dividend_yield": 0.007,
+      "roe": 0.125,
+      "debt_to_equity": 0.5
     },
     {
       "ticker": "MLN",
@@ -115109,9 +115249,14 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Drug Manufacturers—General",
+      "industry": "Drug Manufacturers—General",
+      "marketCap": 270000000000.0,
+      "pe": 14.5,
+      "pb": 6.5,
+      "dividend_yield": 0.034,
+      "roe": 0.405,
+      "debt_to_equity": 0.85
     },
     {
       "ticker": "MRNX",
@@ -115193,9 +115338,14 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Capital Markets",
+      "industry": "Capital Markets",
+      "marketCap": 165000000000.0,
+      "pe": 15.0,
+      "pb": 1.85,
+      "dividend_yield": 0.03,
+      "roe": 0.135,
+      "debt_to_equity": 2.5
     },
     {
       "ticker": "MS$A",
@@ -117245,9 +117395,14 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Utilities—Regulated Electric",
+      "industry": "Utilities—Regulated Electric",
+      "marketCap": 160000000000.0,
+      "pe": 22.0,
+      "pb": 3.0,
+      "dividend_yield": 0.03,
+      "roe": 0.14,
+      "debt_to_equity": 1.4
     },
     {
       "ticker": "NEE$N",
@@ -119033,9 +119188,14 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Steel",
+      "industry": "Steel",
+      "marketCap": 30000000000.0,
+      "pe": 11.5,
+      "pb": 1.65,
+      "dividend_yield": 0.018,
+      "roe": 0.155,
+      "debt_to_equity": 0.3
     },
     {
       "ticker": "NUEM",
@@ -121385,9 +121545,14 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Oil & Gas E&P",
+      "industry": "Oil & Gas E&P",
+      "marketCap": 50000000000.0,
+      "pe": 15.0,
+      "pb": 2.1,
+      "dividend_yield": 0.018,
+      "roe": 0.15,
+      "debt_to_equity": 0.65
     },
     {
       "ticker": "OXY.W",
@@ -122921,9 +123086,14 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Drug Manufacturers—General",
+      "industry": "Drug Manufacturers—General",
+      "marketCap": 165000000000.0,
+      "pe": 16.0,
+      "pb": 1.95,
+      "dividend_yield": 0.058,
+      "roe": 0.115,
+      "debt_to_equity": 0.65
     },
     {
       "ticker": "PFEB",
@@ -124030,9 +124200,14 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Tobacco",
+      "industry": "Tobacco",
+      "marketCap": 200000000000.0,
+      "pe": 22.0,
+      "pb": null,
+      "dividend_yield": 0.043,
+      "roe": null,
+      "debt_to_equity": null
     },
     {
       "ticker": "PMAP",
@@ -124378,9 +124553,14 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Banks—Regional",
+      "industry": "Banks—Regional",
+      "marketCap": 75000000000.0,
+      "pe": 12.5,
+      "pb": 1.25,
+      "dividend_yield": 0.039,
+      "roe": 0.105,
+      "debt_to_equity": 0.85
     },
     {
       "ticker": "PNFP",
@@ -125098,9 +125278,14 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Insurance—Life",
+      "industry": "Insurance—Life",
+      "marketCap": 45000000000.0,
+      "pe": 9.5,
+      "pb": 0.95,
+      "dividend_yield": 0.046,
+      "roe": 0.1,
+      "debt_to_equity": 0.55
     },
     {
       "ticker": "PRVS",
@@ -134566,9 +134751,14 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Utilities—Regulated Electric",
+      "industry": "Utilities—Regulated Electric",
+      "marketCap": 100000000000.0,
+      "pe": 21.0,
+      "pb": 2.35,
+      "dividend_yield": 0.034,
+      "roe": 0.115,
+      "debt_to_equity": 1.75
     },
     {
       "ticker": "SOAR",
@@ -138519,9 +138709,14 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Banks—Regional",
+      "industry": "Banks—Regional",
+      "marketCap": 55000000000.0,
+      "pe": 11.0,
+      "pb": 0.95,
+      "dividend_yield": 0.052,
+      "roe": 0.085,
+      "debt_to_equity": 0.95
     },
     {
       "ticker": "TFC$I",
@@ -140727,9 +140922,14 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Insurance—Property & Casualty",
+      "industry": "Insurance—Property & Casualty",
+      "marketCap": 60000000000.0,
+      "pe": 13.5,
+      "pb": 1.95,
+      "dividend_yield": 0.018,
+      "roe": 0.165,
+      "debt_to_equity": 0.3
     },
     {
       "ticker": "TRX",
@@ -142539,9 +142739,14 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Railroads",
+      "industry": "Railroads",
+      "marketCap": 150000000000.0,
+      "pe": 20.5,
+      "pb": 7.0,
+      "dividend_yield": 0.022,
+      "roe": 0.34,
+      "debt_to_equity": 1.65
     },
     {
       "ticker": "UNX",
@@ -142887,9 +143092,14 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Banks—Regional",
+      "industry": "Banks—Regional",
+      "marketCap": 70000000000.0,
+      "pe": 11.0,
+      "pb": 1.2,
+      "dividend_yield": 0.046,
+      "roe": 0.115,
+      "debt_to_equity": 0.95
     },
     {
       "ticker": "USB$A",
@@ -144783,9 +144993,14 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Building Materials",
+      "industry": "Building Materials",
+      "marketCap": 35000000000.0,
+      "pe": 30.0,
+      "pb": 3.5,
+      "dividend_yield": 0.008,
+      "roe": 0.115,
+      "debt_to_equity": 0.55
     },
     {
       "ticker": "VMI",
