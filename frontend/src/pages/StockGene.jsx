@@ -17,11 +17,11 @@
 //   - POST   /api/stock-gene/score-all           批量评分
 //   - POST   /api/stock-gene/compare-peers       横向对比
 // ─────────────────────────────────────────────────────────────
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import {
   Activity, Plus, Trash2, RefreshCw, Loader, AlertCircle, Check, X,
   Sparkles, Target, BarChart3, TrendingUp, Layers, ChevronRight,
-  Edit2, Award,
+  Edit2, Award, Search, ArrowUpDown,
 } from "lucide-react";
 import { apiFetch } from "../quant-platform.jsx";
 
@@ -47,6 +47,18 @@ function formatChecked(iso) {
   }
 }
 
+// 评分新鲜度：用相对时间标签，让用户一眼知道数据多旧
+function formatFreshness(iso) {
+  if (!iso) return null;
+  const t = new Date(iso).getTime();
+  if (!Number.isFinite(t)) return null;
+  const diffMin = (Date.now() - t) / 60000;
+  if (diffMin < 60) return `${Math.max(1, Math.round(diffMin))}分钟前`;
+  if (diffMin < 60 * 24) return `${Math.round(diffMin / 60)}小时前`;
+  if (diffMin < 60 * 24 * 30) return `${Math.round(diffMin / (60 * 24))}天前`;
+  return new Date(iso).toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" });
+}
+
 export default function StockGene() {
   // 观察列表
   const [items, setItems] = useState([]);
@@ -55,6 +67,8 @@ export default function StockGene() {
   const [isDemoMode, setIsDemoMode] = useState(false);
   // 引擎切换："trend" = 牛股特征器（8 维趋势）/"value" = 价值健康度（6 维）
   const [engine, setEngine] = useState("trend");
+  // 排序方式：当前引擎评分 / 添加时间 / ticker 字母
+  const [sortBy, setSortBy] = useState("score");
   // 当前选中
   const [selectedTicker, setSelectedTicker] = useState(null);
   // 评分中的 ticker（loading 状态）
@@ -99,6 +113,7 @@ export default function StockGene() {
   useEffect(() => { reload(); }, [reload]);
 
   // ── 添加 ───────────────────────────────────────────────
+  // 加入观察后同时跑两个引擎（趋势 + 价值），一次点击双评分齐全
   const handleAdd = async () => {
     setAddError(null);
     const ticker = newTicker.trim().toUpperCase();
@@ -122,8 +137,17 @@ export default function StockGene() {
     setShowAddForm(false);
     await reload();
     setSelectedTicker(ticker);
-    // 自动跑一次评分
-    handleScore(ticker);
+    // 并行跑两个引擎；任一失败不影响另一个，跑完再 reload 一次拿最新
+    setScoringTicker(ticker);
+    try {
+      await Promise.allSettled([
+        apiFetch(`/stock-gene/${encodeURIComponent(ticker)}/score`, { method: "POST" }),
+        apiFetch(`/stock-gene/${encodeURIComponent(ticker)}/value-score`, { method: "POST" }),
+      ]);
+      await reload();
+    } finally {
+      setScoringTicker(null);
+    }
   };
 
   // ── 评分（单个，持久化） ───────────────────────────────
@@ -210,6 +234,28 @@ export default function StockGene() {
     [items, selectedTicker]
   );
 
+  // 排序后的列表（按 sortBy + 当前 engine 一起算）
+  // - "score"：按当前 engine 评分降序，缺评分的排最后
+  // - "added"：按添加时间降序（最近添加优先）
+  // - "ticker"：按 ticker 字母升序
+  const sortedItems = useMemo(() => {
+    const arr = [...items];
+    if (sortBy === "score") {
+      arr.sort((a, b) => {
+        const ra = engine === "value" ? a.last_value_result : a.last_result;
+        const rb = engine === "value" ? b.last_value_result : b.last_result;
+        const sa = ra?.score ?? -1;
+        const sb = rb?.score ?? -1;
+        return sb - sa;
+      });
+    } else if (sortBy === "added") {
+      arr.sort((a, b) => (b.added_at || "").localeCompare(a.added_at || ""));
+    } else if (sortBy === "ticker") {
+      arr.sort((a, b) => a.ticker.localeCompare(b.ticker));
+    }
+    return arr;
+  }, [items, sortBy, engine]);
+
   // ── 渲染 ────────────────────────────────────────────────
   return (
     <div className="h-full flex flex-col gap-3 overflow-hidden">
@@ -284,7 +330,20 @@ export default function StockGene() {
           <div className="px-3 py-2 border-b border-white/8 flex items-center gap-2">
             <Layers size={12} className="text-emerald-300" />
             <span className="text-[11px] font-semibold text-white">观察列表</span>
-            <span className="text-[9px] text-[#a0aec0] ml-auto">{items.length} 只</span>
+            <span className="text-[9px] text-[#a0aec0]">{items.length} 只</span>
+            {/* 排序选择器 */}
+            <div className="ml-auto flex items-center gap-1" title="排序方式">
+              <ArrowUpDown size={9} className="text-[#7a8497]" />
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="text-[9px] bg-white/5 border border-white/10 rounded px-1 py-0.5 text-[#d0d7e2] focus:outline-none focus:border-emerald-500/40"
+              >
+                <option value="score">按{engine === "value" ? "价值" : "趋势"}分</option>
+                <option value="added">按添加时间</option>
+                <option value="ticker">按代码</option>
+              </select>
+            </div>
           </div>
 
           <div className="flex-1 overflow-auto p-2 space-y-1.5">
@@ -299,7 +358,7 @@ export default function StockGene() {
                 还没有观察项 — 下方"添加"按钮加入第一只
               </div>
             )}
-            {items.map((it) => {
+            {sortedItems.map((it) => {
               // 双引擎评分：trend = last_result（8 维）/ value = last_value_result（6 维）
               const tR = it.last_result;
               const vR = it.last_value_result;
@@ -352,6 +411,12 @@ export default function StockGene() {
                   {it.sector && (
                     <div className="text-[9px] text-[#7a8497] mt-0.5 truncate">行业：{it.sector}</div>
                   )}
+                  {/* 评分新鲜度：显示当前 engine 的最近评分时间 */}
+                  {(activeR?.checked_at) && (
+                    <div className="text-[8px] text-[#5a6477] mt-0.5">
+                      评分 {formatFreshness(activeR.checked_at)}
+                    </div>
+                  )}
                 </button>
               );
             })}
@@ -360,34 +425,30 @@ export default function StockGene() {
           <div className="px-3 py-2 border-t border-white/8">
             {showAddForm ? (
               <div className="space-y-1.5">
-                <div className="flex items-center gap-1">
-                  <input
-                    value={newTicker}
-                    onChange={(e) => setNewTicker(e.target.value)}
-                    placeholder="ticker (AAPL)"
-                    className="flex-1 px-2 py-1 text-[10px] bg-white/5 border border-white/10 rounded text-white placeholder-[#7a8497] focus:outline-none focus:border-emerald-500/50"
-                    autoFocus
-                  />
-                  <select
-                    value={newMarket}
-                    onChange={(e) => setNewMarket(e.target.value)}
-                    className="px-1 py-1 text-[10px] bg-white/5 border border-white/10 rounded text-white"
-                  >
-                    <option value="US">US</option>
-                    <option value="HK">HK</option>
-                    <option value="CN">CN</option>
-                  </select>
-                </div>
+                {/* Ticker 搜索框：选中后自动填名称 / 市场 / 行业 */}
+                <TickerSearchBox
+                  ticker={newTicker}
+                  onTickerChange={setNewTicker}
+                  market={newMarket}
+                  onMarketChange={setNewMarket}
+                  onPick={(r) => {
+                    setNewTicker(r.symbol);
+                    setNewName(r.name || "");
+                    if (r.market) setNewMarket(r.market);
+                    if (r.sector) setNewSector(r.sector);
+                  }}
+                  existingTickers={items.map(i => i.ticker)}
+                />
                 <input
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  placeholder="名称（可选）"
+                  placeholder="名称（搜索选中后自动填）"
                   className="w-full px-2 py-1 text-[10px] bg-white/5 border border-white/10 rounded text-white placeholder-[#7a8497] focus:outline-none focus:border-emerald-500/50"
                 />
                 <input
                   value={newSector}
                   onChange={(e) => setNewSector(e.target.value)}
-                  placeholder="行业（如 半导体 / Technology）"
+                  placeholder="行业（搜索选中后自动填）"
                   className="w-full px-2 py-1 text-[10px] bg-white/5 border border-white/10 rounded text-white placeholder-[#7a8497] focus:outline-none focus:border-emerald-500/50"
                   title="用于『行业走强』特征判断，可填中文或 yfinance 英文"
                 />
@@ -718,6 +779,139 @@ function PeersTable({ result, onAdd, engine = "trend" }) {
           </div>
         );
       })}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Ticker 搜索自动补全（debounced 300ms，命中 /api/search）
+// ─────────────────────────────────────────────────────────────
+function TickerSearchBox({ ticker, onTickerChange, market, onMarketChange, onPick, existingTickers }) {
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [highlight, setHighlight] = useState(0);
+  const boxRef = useRef(null);
+  const reqIdRef = useRef(0);
+
+  // 点外面关下拉
+  useEffect(() => {
+    const onClick = (e) => {
+      if (boxRef.current && !boxRef.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, []);
+
+  // debounce 搜索：用户停手 300ms 才发请求；竞态用 reqId 守护
+  useEffect(() => {
+    const q = ticker.trim();
+    if (q.length < 1) {
+      setResults([]); setOpen(false); return;
+    }
+    setLoading(true);
+    const myReq = ++reqIdRef.current;
+    const timer = setTimeout(async () => {
+      const res = await apiFetch(`/search?q=${encodeURIComponent(q)}`);
+      if (myReq !== reqIdRef.current) return;   // 过期请求丢弃
+      setLoading(false);
+      if (res?.results) {
+        setResults(res.results);
+        setOpen(res.results.length > 0);
+        setHighlight(0);
+      } else {
+        setResults([]); setOpen(false);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [ticker]);
+
+  const handlePick = (r) => {
+    onPick(r);
+    setOpen(false);
+  };
+
+  const handleKey = (e) => {
+    if (!open || results.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setHighlight((h) => Math.min(results.length - 1, h + 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHighlight((h) => Math.max(0, h - 1));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      handlePick(results[highlight]);
+    } else if (e.key === "Escape") {
+      setOpen(false);
+    }
+  };
+
+  return (
+    <div ref={boxRef} className="relative">
+      <div className="flex items-center gap-1">
+        <div className="relative flex-1">
+          <Search size={9} className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[#7a8497]" />
+          <input
+            value={ticker}
+            onChange={(e) => onTickerChange(e.target.value)}
+            onFocus={() => results.length > 0 && setOpen(true)}
+            onKeyDown={handleKey}
+            placeholder="ticker / 中文名 / 港股代码"
+            className="w-full pl-5 pr-7 py-1 text-[10px] bg-white/5 border border-white/10 rounded text-white placeholder-[#7a8497] focus:outline-none focus:border-emerald-500/50"
+            autoFocus
+            autoComplete="off"
+          />
+          {loading && (
+            <Loader size={9} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[#7a8497] animate-spin" />
+          )}
+        </div>
+        <select
+          value={market}
+          onChange={(e) => onMarketChange(e.target.value)}
+          className="px-1 py-1 text-[10px] bg-white/5 border border-white/10 rounded text-white"
+        >
+          <option value="US">US</option>
+          <option value="HK">HK</option>
+          <option value="CN">CN</option>
+        </select>
+      </div>
+      {/* 搜索结果下拉 */}
+      {open && results.length > 0 && (
+        <div className="absolute z-30 left-0 right-0 mt-1 max-h-56 overflow-auto rounded border border-white/15 bg-[var(--surface,#1a1f2e)] shadow-2xl">
+          {results.map((r, i) => {
+            const already = existingTickers?.includes(r.symbol) || r.alreadyAdded;
+            const active = i === highlight;
+            return (
+              <button
+                key={r.symbol}
+                onClick={() => handlePick(r)}
+                onMouseEnter={() => setHighlight(i)}
+                className={`w-full text-left px-2 py-1.5 text-[10px] border-b border-white/5 last:border-b-0 transition ${
+                  active ? "bg-emerald-500/15" : "hover:bg-white/5"
+                }`}
+              >
+                <div className="flex items-center gap-1.5">
+                  <span className="font-mono text-[11px] text-white">{r.symbol}</span>
+                  <span className="text-[9px] text-[#7a8497]">{r.market}</span>
+                  {already && (
+                    <span className="text-[8px] px-1 py-px rounded bg-amber-500/15 text-amber-300 border border-amber-500/30">已在观察</span>
+                  )}
+                  {r.price > 0 && (
+                    <span className="ml-auto text-[9px] font-mono text-[#a0aec0]">
+                      {r.currency === "HKD" ? "HK$" : "$"}{r.price}
+                    </span>
+                  )}
+                </div>
+                <div className="text-[10px] text-[#d0d7e2] truncate">{r.name}</div>
+                {r.sector && (
+                  <div className="text-[9px] text-[#7a8497]">{r.sector}</div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
