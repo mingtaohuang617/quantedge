@@ -21,7 +21,7 @@ import React, { useEffect, useState, useCallback, useMemo, useRef } from "react"
 import {
   Activity, Plus, Trash2, RefreshCw, Loader, AlertCircle, Check, X,
   Sparkles, Target, BarChart3, TrendingUp, Layers, ChevronRight,
-  Edit2, Award, Search, ArrowUpDown,
+  Edit2, Award, Search, ArrowUpDown, Download, Upload,
 } from "lucide-react";
 import { apiFetch } from "../quant-platform.jsx";
 
@@ -87,6 +87,9 @@ export default function StockGene() {
   const [peersResults, setPeersResults] = useState(null);
   const [peersLoading, setPeersLoading] = useState(false);
   const [peersError, setPeersError] = useState(null);
+  // 导入 loading
+  const [importLoading, setImportLoading] = useState(false);
+  const importInputRef = useRef(null);
 
   // ── 拉观察列表 ─────────────────────────────────────────
   const reload = useCallback(async () => {
@@ -175,6 +178,56 @@ export default function StockGene() {
       await reload();
     } finally {
       setBatchScoring(false);
+    }
+  };
+
+  // ── 导出 / 导入（备份）──────────────────────────────────
+  const handleExport = async () => {
+    const json = await apiFetch("/stock-gene/export");
+    if (!json) {
+      window.alert("导出失败：后端不可用");
+      return;
+    }
+    const blob = new Blob([JSON.stringify(json, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `stock-gene-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportFile = async (file) => {
+    if (!file) return;
+    let payload;
+    try {
+      payload = JSON.parse(await file.text());
+    } catch (e) {
+      window.alert(`文件解析失败：${e.message}`);
+      return;
+    }
+    if (!payload?.items || !Array.isArray(payload.items)) {
+      window.alert("文件格式不对：应为 { items: [...], version }");
+      return;
+    }
+    const mode = window.prompt(
+      `观察项 ${payload.items.length} 条。\n\n输入 'merge'：同 ticker 跳过，新增 append（推荐）\n输入 'replace'：清空后导入（不可撤销）\n其他取消。`,
+      "merge",
+    );
+    if (mode !== "merge" && mode !== "replace") return;
+    setImportLoading(true);
+    const res = await apiFetch("/stock-gene/import", {
+      method: "POST",
+      body: JSON.stringify({ mode, items: payload.items, version: payload.version }),
+    });
+    setImportLoading(false);
+    if (res?.ok) {
+      window.alert(`导入成功（${res.mode}）\n新增 ${res.items_added} · 跳过 ${res.items_skipped}`);
+      await reload();
+    } else {
+      window.alert(`导入失败：${res?.detail || "未知错误"}`);
     }
   };
 
@@ -313,6 +366,31 @@ export default function StockGene() {
             {batchScoring ? <Loader size={11} className="animate-spin" /> : <Sparkles size={11} />}
             批量评分
           </button>
+          {/* 导出 JSON 备份 */}
+          <button
+            onClick={handleExport}
+            disabled={isDemoMode || items.length === 0}
+            className="flex items-center justify-center w-7 h-7 rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white transition border border-white/10 disabled:opacity-40 disabled:cursor-not-allowed"
+            title="导出 JSON 备份（含所有观察项 + 双引擎评分 + 历史）"
+          >
+            <Download size={11} />
+          </button>
+          {/* 导入 JSON 备份 */}
+          <button
+            onClick={() => importInputRef.current?.click()}
+            disabled={isDemoMode || importLoading}
+            className="flex items-center justify-center w-7 h-7 rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white transition border border-white/10 disabled:opacity-40 disabled:cursor-not-allowed"
+            title="从备份恢复（merge / replace 可选）"
+          >
+            {importLoading ? <Loader size={11} className="animate-spin" /> : <Upload size={11} />}
+          </button>
+          <input
+            ref={importInputRef}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            onChange={(e) => { handleImportFile(e.target.files?.[0]); e.target.value = ""; }}
+          />
           <button
             onClick={reload}
             className="flex items-center gap-1 px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white transition border border-white/10"
@@ -590,10 +668,18 @@ function ScoreDetail({ item, engine, onRescore, onDelete, scoring }) {
             )}
           </div>
           {r && (
-            <div className="text-right">
-              <VerdictBadge verdict={r.verdict} score={r.score} maxScore={r.max_score} available={r.available} />
-              <div className="text-[9px] text-[#7a8497] mt-1">
-                {formatChecked(r.checked_at)}
+            <div className="flex items-end gap-2">
+              {/* 评分历史 sparkline（仅当前 engine，≥2 条才有意义） */}
+              <ScoreSparkline
+                history={item.score_history}
+                engine={engine}
+                maxScore={r.max_score}
+              />
+              <div className="text-right">
+                <VerdictBadge verdict={r.verdict} score={r.score} maxScore={r.max_score} available={r.available} />
+                <div className="text-[9px] text-[#7a8497] mt-1">
+                  {formatChecked(r.checked_at)}
+                </div>
               </div>
             </div>
           )}
@@ -673,6 +759,53 @@ function VerdictBadge({ verdict, score, maxScore, available }) {
           {available} 项可判断
         </div>
       )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// 评分历史 sparkline — 显示当前 engine 最近评分的走势
+// ─────────────────────────────────────────────────────────────
+function ScoreSparkline({ history, engine, maxScore }) {
+  // 过滤当前 engine 的历史评分；不足 2 条不画
+  const data = (history || []).filter(h => h.engine === engine && h.score != null);
+  if (data.length < 2) return null;
+  const last = data.slice(-12);             // 最多显示最近 12 次
+  const w = 64, h = 22, pad = 2;
+  const minS = 0;
+  const maxS = maxScore || Math.max(...last.map(d => d.max_score || 8));
+  const range = maxS - minS || 1;
+  let pts = "";
+  for (let i = 0; i < last.length; i++) {
+    const x = pad + (i / (last.length - 1)) * (w - 2 * pad);
+    const y = h - pad - ((last[i].score - minS) / range) * (h - 2 * pad);
+    pts += (i ? " " : "") + x.toFixed(1) + "," + y.toFixed(1);
+  }
+  const first = last[0].score, end = last[last.length - 1].score;
+  const trend = end > first ? "up" : end < first ? "down" : "flat";
+  const color = trend === "up" ? "#00E5A0" : trend === "down" ? "#FF6B6B" : "#888";
+  const arrow = trend === "up" ? "↑" : trend === "down" ? "↓" : "→";
+  const fmtDate = (iso) => {
+    try { return new Date(iso).toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" }); }
+    catch { return iso; }
+  };
+  const tooltip = `${last.length} 次历史评分：\n${last.map(d => `${fmtDate(d.checked_at)}: ${d.score}/${d.max_score}`).join("\n")}`;
+  return (
+    <div title={tooltip} className="flex flex-col items-end">
+      <svg width={w} height={h} className="opacity-90">
+        {/* 顶/底基准线 */}
+        <line x1={pad} y1={pad} x2={w - pad} y2={pad} stroke="rgba(255,255,255,0.05)" strokeWidth="0.5" />
+        <line x1={pad} y1={h - pad} x2={w - pad} y2={h - pad} stroke="rgba(255,255,255,0.05)" strokeWidth="0.5" />
+        <polyline fill="none" stroke={color} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" points={pts} />
+        {/* 末点小圆 */}
+        <circle
+          cx={pad + (w - 2 * pad)} cy={h - pad - ((end - minS) / range) * (h - 2 * pad)}
+          r="1.5" fill={color}
+        />
+      </svg>
+      <div className="text-[8px] mt-0.5" style={{ color }}>
+        {arrow} {first} → {end} · {last.length}次
+      </div>
     </div>
   );
 }

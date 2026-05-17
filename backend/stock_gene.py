@@ -637,8 +637,35 @@ def score_stock(ticker: str, name: str = "", market: str = "US",
     }
 
 
+def _append_history(item: dict, engine: str, result: dict, cap: int = 60) -> None:
+    """评分历史追加：紧凑形式（避免 JSON 文件膨胀），按时间倒序裁剪 cap 条。
+
+    cap=60 默认允许两个引擎各保留约 30 条历史，足以覆盖几个月的周频评分。
+    """
+    if not result or "checked_at" not in result:
+        return
+    history = item.setdefault("score_history", [])
+    entry = {
+        "engine": engine,
+        "checked_at": result.get("checked_at"),
+        "score": result.get("score"),
+        "max_score": result.get("max_score"),
+        "available": result.get("available"),
+        "verdict_level": (result.get("verdict") or {}).get("level"),
+    }
+    # 同一分钟重复点"评分"时去重（覆盖最后一条）
+    if history and history[-1].get("engine") == engine and \
+            history[-1].get("checked_at", "")[:16] == entry["checked_at"][:16]:
+        history[-1] = entry
+    else:
+        history.append(entry)
+    # 控制大小
+    if len(history) > cap:
+        item["score_history"] = history[-cap:]
+
+
 def score_and_persist(ticker: str) -> dict:
-    """对 watchlist 里的某项重新评分并把结果写回 last_result。"""
+    """对 watchlist 里的某项重新评分并把结果写回 last_result + 历史。"""
     data = load_watchlist()
     ticker = ticker.strip().upper()
     item = next((it for it in data["items"] if it["ticker"] == ticker), None)
@@ -651,6 +678,7 @@ def score_and_persist(ticker: str) -> dict:
     )
     item["last_result"] = result
     item["last_checked_at"] = result["checked_at"]
+    _append_history(item, "trend", result)
     save_watchlist(data)
     return result
 
@@ -668,6 +696,7 @@ def score_all() -> list[dict]:
             )
             item["last_result"] = r
             item["last_checked_at"] = r["checked_at"]
+            _append_history(item, "trend", r)
             results.append(r)
         except Exception as e:
             results.append({
@@ -707,7 +736,7 @@ def _get_cached_stock(ticker: str) -> dict | None:
 
 
 def score_value_and_persist(ticker: str) -> dict:
-    """对 watchlist 里的某项跑价值评分并写回 last_value_result。"""
+    """对 watchlist 里的某项跑价值评分并写回 last_value_result + 历史。"""
     import value_gene
     data = load_watchlist()
     ticker = ticker.strip().upper()
@@ -723,6 +752,7 @@ def score_value_and_persist(ticker: str) -> dict:
     )
     item["last_value_result"] = result
     item["last_value_checked_at"] = result["checked_at"]
+    _append_history(item, "value", result)
     save_watchlist(data)
     return result
 
@@ -743,6 +773,7 @@ def score_all_value() -> list[dict]:
             )
             item["last_value_result"] = r
             item["last_value_checked_at"] = r["checked_at"]
+            _append_history(item, "value", r)
             results.append(r)
         except Exception as e:
             results.append({"ticker": item["ticker"], "error": str(e)})
@@ -769,4 +800,75 @@ def compare_peers_value(tickers: list[str], sector: str = "",
         "market": market,
         "count": len(rows),
         "items": rows,
+    }
+
+
+# ── 导入 / 导出 ────────────────────────────────────────
+def export_data() -> dict:
+    """整份观察列表（含评分历史、双引擎缓存）导出为 dict，前端转 JSON 下载。"""
+    data = load_watchlist()
+    return {
+        "version": data.get("version", 1),
+        "exported_at": datetime.utcnow().isoformat() + "Z",
+        "items": data.get("items", []),
+    }
+
+
+def import_data(payload: dict, mode: str = "merge") -> dict:
+    """
+    从备份 payload 导入。
+      - mode='merge'：同 ticker 跳过；新增项 append（推荐）
+      - mode='replace'：清空 items 后导入（不可撤销）
+
+    返回 {ok, mode, items_added, items_skipped}。
+    """
+    if mode not in ("merge", "replace"):
+        raise ValueError("mode 必须是 'merge' 或 'replace'")
+    if not isinstance(payload, dict):
+        raise ValueError("payload 必须是 dict")
+    incoming = payload.get("items") or []
+    if not isinstance(incoming, list):
+        raise ValueError("payload.items 必须是 list")
+
+    data = load_watchlist()
+    added = 0
+    skipped = 0
+    if mode == "replace":
+        data["items"] = []
+    existing_tickers = {it["ticker"] for it in data["items"]}
+
+    for raw in incoming:
+        if not isinstance(raw, dict):
+            continue
+        t = (raw.get("ticker") or "").strip().upper()
+        if not t:
+            continue
+        if t in existing_tickers:
+            skipped += 1
+            continue
+        # 仅白名单字段，避免恶意 payload 污染
+        item = {
+            "ticker": t,
+            "name": raw.get("name", ""),
+            "market": raw.get("market", "US"),
+            "sector": raw.get("sector", ""),
+            "notes": raw.get("notes", ""),
+            "tags": raw.get("tags") or [],
+            "added_at": raw.get("added_at") or date.today().isoformat(),
+            "last_result": raw.get("last_result"),
+            "last_value_result": raw.get("last_value_result"),
+            "last_checked_at": raw.get("last_checked_at"),
+            "last_value_checked_at": raw.get("last_value_checked_at"),
+            "score_history": raw.get("score_history") or [],
+        }
+        data["items"].append(item)
+        existing_tickers.add(t)
+        added += 1
+
+    save_watchlist(data)
+    return {
+        "ok": True,
+        "mode": mode,
+        "items_added": added,
+        "items_skipped": skipped,
     }

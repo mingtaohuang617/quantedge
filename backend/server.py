@@ -1881,6 +1881,35 @@ def stock_gene_value_compare_peers(req: StockGeneComparePeersReq):
     ))
 
 
+# ── 导入 / 导出（备份）─────────────────────────────────
+class StockGeneImportReq(BaseModel):
+    mode: str = "merge"             # 'merge' | 'replace'
+    items: list[dict] = []
+    version: int | None = None
+
+
+@app.get("/api/stock-gene/export")
+def stock_gene_export():
+    """导出整份观察列表为 JSON 备份（含双引擎评分、历史）。"""
+    if not HAS_STOCK_GENE or _gene_mod is None:
+        raise HTTPException(503, "stock_gene 模块未加载")
+    return sanitize(_gene_mod.export_data())
+
+
+@app.post("/api/stock-gene/import")
+def stock_gene_import(req: StockGeneImportReq):
+    """从备份 payload 导入。mode='merge' 同 ticker 跳过；'replace' 清空后导入。"""
+    if not HAS_STOCK_GENE or _gene_mod is None:
+        raise HTTPException(503, "stock_gene 模块未加载")
+    try:
+        return sanitize(_gene_mod.import_data(
+            {"items": req.items, "version": req.version},
+            mode=req.mode,
+        ))
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
 if __name__ == "__main__":
     # 不在启动时调 health_check —— 它会同步连 Futu OpenD，OpenD 没开会卡住启动。
     # 各源健康状态由 /api/status 端点按需查询（前端拉到才探活）。
