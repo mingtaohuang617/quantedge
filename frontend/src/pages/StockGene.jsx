@@ -21,7 +21,7 @@ import React, { useEffect, useState, useCallback, useMemo, useRef } from "react"
 import {
   Activity, Plus, Trash2, RefreshCw, Loader, AlertCircle, Check, X,
   Sparkles, Target, BarChart3, TrendingUp, Layers, ChevronRight,
-  Edit2, Award, Search, ArrowUpDown, Download, Upload,
+  Edit2, Award, Search, ArrowUpDown, Download, Upload, Sliders,
 } from "lucide-react";
 import { apiFetch } from "../quant-platform.jsx";
 
@@ -128,6 +128,44 @@ const eng = (id) => ENGINES[id] || ENGINES.trend;
 const engResult = (item, id) => item?.[eng(id).resultKey];
 const engCheckedAt = (item, id) => item?.[eng(id).checkedAtKey];
 
+// 默认权重：trend 30 + value 30 + risk 30 + signal 10（长期质量重于短期入场时机）
+const DEFAULT_WEIGHTS = { trend: 30, value: 30, signal: 10, risk: 30 };
+const WEIGHTS_STORAGE_KEY = "stockgene.weights";
+
+/**
+ * 计算综合分（0-100）。
+ *   - 每个引擎归一化到 0-1：r.score / r.max_score
+ *   - 加权平均（仅计入有评分的引擎）
+ *   - 返回：{ composite: 0-100 整数, scored: 评分引擎数 }；全无评分时 composite = null
+ */
+function compositeScore(item, weights = DEFAULT_WEIGHTS) {
+  let weightedSum = 0;
+  let weightTotal = 0;
+  let scoredCount = 0;
+  for (const id of ENGINE_IDS) {
+    const r = engResult(item, id);
+    if (!r || r.max_score === 0 || r.score == null) continue;
+    const w = weights[id] ?? 0;
+    if (w <= 0) continue;
+    weightedSum += w * (r.score / r.max_score);
+    weightTotal += w;
+    scoredCount += 1;
+  }
+  if (weightTotal === 0) return { composite: null, scored: 0 };
+  return { composite: Math.round((weightedSum / weightTotal) * 100), scored: scoredCount };
+}
+
+/**
+ * 综合分配色：80+ 绿 / 60+ 琥珀 / 40+ 灰 / <40 红
+ */
+function compositeStyle(composite) {
+  if (composite == null) return VERDICT_STYLE.unknown;
+  if (composite >= 80) return VERDICT_STYLE.strong;
+  if (composite >= 60) return VERDICT_STYLE.moderate;
+  if (composite >= 40) return VERDICT_STYLE.neutral;
+  return VERDICT_STYLE.weak;
+}
+
 function verdictStyle(verdict) {
   return VERDICT_STYLE[verdict?.level] || VERDICT_STYLE.unknown;
 }
@@ -182,6 +220,22 @@ export default function StockGene() {
   const [showShortcuts, setShowShortcuts] = useState(false);
   // Tag 过滤（OR 逻辑）
   const [filterTags, setFilterTags] = useState(() => new Set());
+  // 综合分阈值过滤（0 = 不过滤）
+  const [minComposite, setMinComposite] = useState(0);
+  // 引擎权重（localStorage 持久化）
+  const [weights, setWeights] = useState(() => {
+    try {
+      const raw = localStorage.getItem(WEIGHTS_STORAGE_KEY);
+      if (raw) return { ...DEFAULT_WEIGHTS, ...JSON.parse(raw) };
+    } catch {}
+    return DEFAULT_WEIGHTS;
+  });
+  // 权重设置面板
+  const [showWeightsPanel, setShowWeightsPanel] = useState(false);
+  // 同步 weights 到 localStorage
+  useEffect(() => {
+    try { localStorage.setItem(WEIGHTS_STORAGE_KEY, JSON.stringify(weights)); } catch {}
+  }, [weights]);
   // 确认对话框：{ title, message, onConfirm } | null
   const [confirmDialog, setConfirmDialog] = useState(null);
   // 横向对比
@@ -590,9 +644,20 @@ export default function StockGene() {
         const itemTags = it.tags || [];
         if (!itemTags.some(t => filterTags.has(t))) return false;
       }
+      // 综合分阈值：minComposite > 0 时仅显示综合分 ≥ 阈值的
+      if (minComposite > 0) {
+        const { composite } = compositeScore(it, weights);
+        if (composite == null || composite < minComposite) return false;
+      }
       return true;
     });
-    if (sortBy === "score") {
+    if (sortBy === "composite") {
+      arr.sort((a, b) => {
+        const sa = compositeScore(a, weights).composite ?? -1;
+        const sb = compositeScore(b, weights).composite ?? -1;
+        return sb - sa;
+      });
+    } else if (sortBy === "score") {
       arr.sort((a, b) => {
         const sa = engResult(a, engine)?.score ?? -1;
         const sb = engResult(b, engine)?.score ?? -1;
@@ -604,7 +669,7 @@ export default function StockGene() {
       arr.sort((a, b) => a.ticker.localeCompare(b.ticker));
     }
     return arr;
-  }, [items, sortBy, engine, filterText, filterVerdicts, filterTags]);
+  }, [items, sortBy, engine, filterText, filterVerdicts, filterTags, minComposite, weights]);
 
   // 所有 items 已存在的 unique tags（用于 tag 过滤 chips）
   const allTags = useMemo(() => {
@@ -754,6 +819,14 @@ export default function StockGene() {
           >
             <RefreshCw size={10} /> 刷新
           </button>
+          {/* 权重设置 */}
+          <button
+            onClick={() => setShowWeightsPanel(true)}
+            className="flex items-center justify-center w-7 h-7 rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white transition border border-white/10"
+            title={`综合分权重：${ENGINE_IDS.map(id => `${eng(id).short}${weights[id]}`).join("/")}`}
+          >
+            <Sliders size={11} />
+          </button>
           {/* 快捷键帮助 */}
           <button
             onClick={() => setShowShortcuts(true)}
@@ -767,6 +840,16 @@ export default function StockGene() {
 
       {/* 快捷键帮助 overlay */}
       {showShortcuts && <ShortcutsHelp onClose={() => setShowShortcuts(false)} />}
+
+      {/* 权重设置面板 */}
+      {showWeightsPanel && (
+        <WeightsPanel
+          weights={weights}
+          onChange={setWeights}
+          onClose={() => setShowWeightsPanel(false)}
+          onReset={() => setWeights(DEFAULT_WEIGHTS)}
+        />
+      )}
 
       {/* 确认对话框（删除等不可逆操作） */}
       {confirmDialog && (
@@ -803,6 +886,7 @@ export default function StockGene() {
                 onChange={(e) => setSortBy(e.target.value)}
                 className="text-[9px] bg-white/5 border border-white/10 rounded px-1 py-0.5 text-[#d0d7e2] focus:outline-none focus:border-emerald-500/40"
               >
+                <option value="composite">按综合分</option>
                 <option value="score">按{eng(engine).short} 分</option>
                 <option value="added">按添加时间</option>
                 <option value="ticker">按代码</option>
@@ -844,6 +928,31 @@ export default function StockGene() {
                   onChange={setFilterTags}
                 />
               )}
+              {/* 综合分阈值滑块 */}
+              <div className="flex items-center gap-1.5 text-[9px] text-[#7a8497]">
+                <span className="shrink-0">综合分 ≥</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={5}
+                  value={minComposite}
+                  onChange={(e) => setMinComposite(Number(e.target.value))}
+                  className="flex-1 h-1 accent-emerald-500 cursor-pointer"
+                />
+                <span className={`font-mono font-semibold w-7 text-right ${minComposite > 0 ? "text-emerald-300" : "text-[#5a6477]"}`}>
+                  {minComposite}
+                </span>
+                {minComposite > 0 && (
+                  <button
+                    onClick={() => setMinComposite(0)}
+                    className="text-[#7a8497] hover:text-white"
+                    title="清空阈值"
+                  >
+                    <X size={9} />
+                  </button>
+                )}
+              </div>
             </div>
           )}
 
@@ -868,6 +977,8 @@ export default function StockGene() {
               // 各引擎评分一并取出，下面按 ENGINE_IDS 渲染徽章
               const activeR = engResult(it, engine);
               const aStyle = verdictStyle(activeR?.verdict);
+              const { composite, scored } = compositeScore(it, weights);
+              const cStyle = compositeStyle(composite);
               const active = it.ticker === selectedTicker;
               return (
                 <button
@@ -910,12 +1021,24 @@ export default function StockGene() {
                   {activeR?.verdict && (
                     <div className={`text-[9px] mt-0.5 ${aStyle.text}`}>{activeR.verdict.label}</div>
                   )}
+                  {/* 综合分（4 引擎加权平均，0-100）*/}
+                  {composite != null && (
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <span className={`text-[9px] px-1 py-px rounded border font-mono font-semibold ${cStyle.bg} ${cStyle.border} ${cStyle.text}`}
+                        title={`综合分（按权重 ${ENGINE_IDS.map(id => `${eng(id).short}${weights[id]}`).join("/")}，${scored}/${ENGINE_IDS.length} 引擎有评分）`}>
+                        综合 {composite}
+                      </span>
+                      {scored < ENGINE_IDS.length && (
+                        <span className="text-[8px] text-[#5a6477]" title="部分引擎未评分">部分</span>
+                      )}
+                    </div>
+                  )}
                   {it.sector && (
                     <div className="text-[9px] text-[#7a8497] mt-0.5 truncate">行业：{it.sector}</div>
                   )}
                   {/* 评分新鲜度：显示当前 engine 的最近评分时间 */}
                   {(activeR?.checked_at) && (
-                    <div className="text-[8px] text-[#5a6477] mt-0.5">
+                    <div className="text-[9px] text-[#5a6477] mt-0.5">
                       评分 {formatFreshness(activeR.checked_at)}
                     </div>
                   )}
@@ -923,12 +1046,12 @@ export default function StockGene() {
                   {it.tags && it.tags.length > 0 && (
                     <div className="flex flex-wrap gap-0.5 mt-1">
                       {it.tags.slice(0, 5).map(t => (
-                        <span key={t} className="text-[8px] px-1 py-px rounded bg-violet-500/10 text-violet-300 border border-violet-500/20">
+                        <span key={t} className="text-[9px] px-1 py-px rounded bg-violet-500/10 text-violet-300 border border-violet-500/20">
                           #{t}
                         </span>
                       ))}
                       {it.tags.length > 5 && (
-                        <span className="text-[8px] text-[#5a6477]">+{it.tags.length - 5}</span>
+                        <span className="text-[9px] text-[#5a6477]">+{it.tags.length - 5}</span>
                       )}
                     </div>
                   )}
@@ -1093,6 +1216,7 @@ export default function StockGene() {
               onCancelNotes={() => setEditingNotesTicker(null)}
               notesSaving={notesSaving}
               onSaveTags={(nextTags) => handleSaveTags(selectedItem.ticker, nextTags)}
+              weights={weights}
             />
           )}
         </div>
@@ -1158,11 +1282,12 @@ export default function StockGene() {
 function ScoreDetail({
   item, engine, onRescore, onDelete, scoring, onExplain, explainLoading, narrative,
   editingNotes, notesDraft, setNotesDraft, onEditNotes, onSaveNotes, onCancelNotes, notesSaving,
-  onSaveTags,
+  onSaveTags, weights,
 }) {
   const cfg = eng(engine);
   const r = engResult(item, engine);
   const engineLabel = cfg.framework;
+  const { composite, scored } = compositeScore(item, weights);
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* 头部：ticker + verdict 大徽章 */}
@@ -1182,6 +1307,8 @@ function ScoreDetail({
           </div>
           {r && (
             <div className="flex items-end gap-2">
+              {/* 4 维雷达图（综合 trend/value/signal/risk）*/}
+              <EngineRadar item={item} />
               {/* 评分历史 sparkline（仅当前 engine，≥2 条才有意义） */}
               <ScoreSparkline
                 history={item.score_history}
@@ -1193,6 +1320,15 @@ function ScoreDetail({
                 <div className="text-[9px] text-[#7a8497] mt-1">
                   {formatChecked(r.checked_at)}
                 </div>
+                {composite != null && (
+                  <div className="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded border bg-white/5 border-white/15">
+                    <span className="text-[8px] text-[#7a8497]">综合</span>
+                    <span className={`text-[11px] font-mono font-bold ${compositeStyle(composite).text}`}>
+                      {composite}
+                    </span>
+                    <span className="text-[8px] text-[#7a8497]">/100</span>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -1232,7 +1368,7 @@ function ScoreDetail({
             <div className="flex items-center gap-1 mb-1 text-[9px] text-violet-300">
               <Sparkles size={9} />
               <span>AI 解读（DeepSeek · {engineLabel}）</span>
-              {narrative.cached && <span className="ml-auto text-[8px] text-violet-300/60">cached</span>}
+              {narrative.cached && <span className="ml-auto text-[9px] text-violet-300/60">cached</span>}
             </div>
             {narrative.error ? (
               <span className="text-amber-300/90">{narrative.error}</span>
@@ -1299,7 +1435,7 @@ function VerdictBadge({ verdict, score, maxScore, available }) {
         <span className="text-[10px] text-[#a0aec0]">/ {maxScore}</span>
       </div>
       {available != null && available < maxScore && (
-        <div className="text-[8px] text-[#7a8497] mt-0.5">
+        <div className="text-[9px] text-[#7a8497] mt-0.5">
           {available} 项可判断
         </div>
       )}
@@ -1347,7 +1483,7 @@ function ScoreSparkline({ history, engine, maxScore }) {
           r="1.5" fill={color}
         />
       </svg>
-      <div className="text-[8px] mt-0.5" style={{ color }}>
+      <div className="text-[9px] mt-0.5" style={{ color }}>
         {arrow} {first} → {end} · {last.length}次
       </div>
     </div>
@@ -1441,7 +1577,7 @@ function PeersTable({ result, onAdd, engine = "trend" }) {
                 <div
                   key={f.id}
                   title={`${f.label}: ${f.pass ? "PASS" : (f.available === false ? "N/A" : "FAIL")} — ${f.value || ""}`}
-                  className={`w-3.5 h-3.5 rounded-sm flex items-center justify-center text-[8px] ${
+                  className={`w-3.5 h-3.5 rounded-sm flex items-center justify-center text-[9px] ${
                     f.pass
                       ? "bg-emerald-500/30 text-emerald-200"
                       : f.available === false
@@ -1572,7 +1708,7 @@ function TickerSearchBox({ ticker, onTickerChange, market, onMarketChange, onPic
                   <span className="font-mono text-[11px] text-white">{r.symbol}</span>
                   <span className="text-[9px] text-[#7a8497]">{r.market}</span>
                   {already && (
-                    <span className="text-[8px] px-1 py-px rounded bg-amber-500/15 text-amber-300 border border-amber-500/30">已在观察</span>
+                    <span className="text-[9px] px-1 py-px rounded bg-amber-500/15 text-amber-300 border border-amber-500/30">已在观察</span>
                   )}
                   {r.price > 0 && (
                     <span className="ml-auto text-[9px] font-mono text-[#a0aec0]">
@@ -1939,6 +2075,135 @@ function ConfirmDialog({ title, message, confirmLabel = "确认", danger = false
           >
             {busy ? <Loader size={9} className="animate-spin" /> : null}
             {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// EngineRadar — 4 维雷达图（trend / value / signal / risk）
+// ─────────────────────────────────────────────────────────────
+function EngineRadar({ item }) {
+  const size = 78;
+  const cx = size / 2, cy = size / 2;
+  const radius = size / 2 - 9;
+  const N = ENGINE_IDS.length;
+  // 按 ENGINE_IDS 顺序算每个点的归一化分（0-1）
+  const points = ENGINE_IDS.map((id, i) => {
+    const r = engResult(item, id);
+    const ratio = r && r.max_score ? r.score / r.max_score : 0;
+    const angle = -Math.PI / 2 + (i * 2 * Math.PI) / N; // 从顶开始顺时针
+    return {
+      id,
+      ratio,
+      angle,
+      x: cx + Math.cos(angle) * radius * ratio,
+      y: cy + Math.sin(angle) * radius * ratio,
+      ax: cx + Math.cos(angle) * radius,
+      ay: cy + Math.sin(angle) * radius,
+      label: eng(id).short,
+    };
+  });
+  const anyScored = points.some(p => p.ratio > 0);
+  if (!anyScored) {
+    return (
+      <div className="flex items-center justify-center" style={{ width: size, height: size }}>
+        <span className="text-[8px] text-[#5a6477]">雷达</span>
+      </div>
+    );
+  }
+  const polygon = points.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
+  const tooltip = ENGINE_IDS.map(id => {
+    const r = engResult(item, id);
+    return r ? `${eng(id).short} ${r.score}/${r.max_score}` : `${eng(id).short} —`;
+  }).join(" · ");
+  return (
+    <div title={tooltip} className="shrink-0">
+      <svg width={size} height={size}>
+        {[1.0, 0.66, 0.33].map((scale, i) => {
+          const pts = points.map(p => {
+            const x = cx + Math.cos(p.angle) * radius * scale;
+            const y = cy + Math.sin(p.angle) * radius * scale;
+            return `${x.toFixed(1)},${y.toFixed(1)}`;
+          }).join(" ");
+          return (
+            <polygon key={i} points={pts} fill="none"
+              stroke={i === 0 ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.06)"}
+              strokeWidth="0.5"/>
+          );
+        })}
+        {points.map(p => (
+          <line key={`ax-${p.id}`} x1={cx} y1={cy} x2={p.ax} y2={p.ay}
+            stroke="rgba(255,255,255,0.08)" strokeWidth="0.5" />
+        ))}
+        <polygon points={polygon} fill="rgba(99,102,241,0.18)"
+          stroke="rgba(129,140,248,0.85)" strokeWidth="1.2" strokeLinejoin="round" />
+        {points.map(p => (
+          <g key={`pt-${p.id}`}>
+            <circle cx={p.x} cy={p.y} r="1.6" fill="rgba(165,180,252,0.95)" />
+            <text x={p.ax + Math.cos(p.angle) * 5} y={p.ay + Math.sin(p.angle) * 5}
+              textAnchor="middle" dominantBaseline="middle"
+              fontSize="7" fill="rgba(160,170,192,0.9)"
+              fontFamily="ui-monospace, monospace">
+              {p.label}
+            </text>
+          </g>
+        ))}
+      </svg>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// WeightsPanel — 调节综合分权重（localStorage 持久化）
+// ─────────────────────────────────────────────────────────────
+function WeightsPanel({ weights, onChange, onReset, onClose }) {
+  const total = ENGINE_IDS.reduce((s, id) => s + (weights[id] || 0), 0);
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={onClose}>
+      <div className="glass-card border border-white/15 rounded-lg p-4 min-w-[340px] max-w-[440px] shadow-2xl"
+        onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <Sliders size={13} className="text-indigo-300" />
+            <span className="text-[12px] font-semibold text-white">综合分权重</span>
+          </div>
+          <button onClick={onClose} className="text-[#a0aec0] hover:text-white" title="关闭"><X size={12} /></button>
+        </div>
+        <div className="text-[10px] text-[#7a8497] mb-3 leading-relaxed">
+          各引擎在综合分里的权重（总和不需等于 100，会自动归一化）。调整会立即重算所有综合分 + 重新排序。
+        </div>
+        <div className="space-y-2.5">
+          {ENGINE_IDS.map(id => {
+            const cfg = eng(id);
+            const w = weights[id] || 0;
+            return (
+              <div key={id} className="flex items-center gap-2">
+                <span className={`text-[10px] w-20 shrink-0 ${cfg.activeText || "text-white"}`}>{cfg.label}</span>
+                <input
+                  type="range" min={0} max={100} step={5}
+                  value={w}
+                  onChange={(e) => onChange({ ...weights, [id]: Number(e.target.value) })}
+                  className="flex-1 h-1 accent-indigo-500 cursor-pointer"
+                />
+                <span className="font-mono text-[10px] text-white w-10 text-right">{w}</span>
+                <span className="text-[9px] text-[#7a8497] w-10 text-right">
+                  {total > 0 ? `${Math.round(w / total * 100)}%` : "0%"}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+        <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between">
+          <button onClick={onReset}
+            className="px-2 py-1 text-[10px] rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white border border-white/10">
+            恢复默认
+          </button>
+          <button onClick={onClose}
+            className="px-3 py-1 text-[10px] rounded bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-200 border border-indigo-500/40">
+            完成
           </button>
         </div>
       </div>
