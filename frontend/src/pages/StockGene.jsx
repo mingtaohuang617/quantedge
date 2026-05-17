@@ -96,6 +96,17 @@ export default function StockGene() {
   // 左栏过滤
   const [filterText, setFilterText] = useState("");
   const [filterVerdicts, setFilterVerdicts] = useState(() => new Set()); // 空 = 不过滤
+  // 批量加入
+  const [showBatchForm, setShowBatchForm] = useState(false);
+  const [batchInput, setBatchInput] = useState("");
+  const [batchMarket, setBatchMarket] = useState("US");
+  const [batchError, setBatchError] = useState(null);
+  // {phase: 'adding'|'scoring', done, total} | null
+  const [batchProgress, setBatchProgress] = useState(null);
+  // Notes 内联编辑
+  const [editingNotesTicker, setEditingNotesTicker] = useState(null);
+  const [notesDraft, setNotesDraft] = useState("");
+  const [notesSaving, setNotesSaving] = useState(false);
 
   // ── 拉观察列表 ─────────────────────────────────────────
   const reload = useCallback(async () => {
@@ -184,6 +195,72 @@ export default function StockGene() {
       await reload();
     } finally {
       setBatchScoring(false);
+    }
+  };
+
+  // ── 批量加入 ticker（粘贴多行 → 顺序添加 + 并行双评分）──
+  const handleBatchAdd = useCallback(async () => {
+    setBatchError(null);
+    const tickers = [...new Set(
+      batchInput.split(/[\s,，、;\n]+/)
+        .map(s => s.trim().toUpperCase())
+        .filter(Boolean)
+    )];
+    if (tickers.length === 0) {
+      setBatchError("请输入至少 1 个 ticker");
+      return;
+    }
+    if (tickers.length > 30) {
+      setBatchError("一次最多 30 只");
+      return;
+    }
+    // 1) 顺序添加（避免后端文件 IO 冲突）
+    setBatchProgress({ phase: "adding", done: 0, total: tickers.length });
+    const added = [];
+    for (const t of tickers) {
+      const res = await apiFetch("/stock-gene", {
+        method: "POST",
+        body: JSON.stringify({ ticker: t, market: batchMarket }),
+      });
+      if (res?.ok) added.push(t);
+      setBatchProgress(p => ({ ...p, done: p.done + 1 }));
+    }
+    await reload();
+    // 2) 仅对成功添加的 ticker 跑双引擎评分（顺序避免 yfinance rate-limit）
+    if (added.length > 0) {
+      setBatchProgress({ phase: "scoring", done: 0, total: added.length });
+      for (const t of added) {
+        await Promise.allSettled([
+          apiFetch(`/stock-gene/${encodeURIComponent(t)}/score`, { method: "POST" }),
+          apiFetch(`/stock-gene/${encodeURIComponent(t)}/value-score`, { method: "POST" }),
+        ]);
+        setBatchProgress(p => ({ ...p, done: p.done + 1 }));
+      }
+      await reload();
+    }
+    setBatchProgress(null);
+    setBatchInput("");
+    setShowBatchForm(false);
+  }, [batchInput, batchMarket, reload]);
+
+  // ── Notes 内联编辑（PUT /api/stock-gene/{ticker}）────────
+  const handleEditNotes = (item) => {
+    setEditingNotesTicker(item.ticker);
+    setNotesDraft(item.notes || "");
+  };
+  const handleSaveNotes = async (ticker) => {
+    setNotesSaving(true);
+    try {
+      const res = await apiFetch(`/stock-gene/${encodeURIComponent(ticker)}`, {
+        method: "PUT",
+        body: JSON.stringify({ notes: notesDraft }),
+      });
+      if (res?.ok) {
+        await reload();
+        setEditingNotesTicker(null);
+      }
+    } finally {
+      setNotesSaving(false);
     }
   };
 
@@ -647,14 +724,74 @@ export default function StockGene() {
                   </button>
                 </div>
               </div>
+            ) : showBatchForm ? (
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-1 mb-1">
+                  <Layers size={10} className="text-emerald-300" />
+                  <span className="text-[10px] font-semibold text-white">批量加入</span>
+                  <select
+                    value={batchMarket}
+                    onChange={(e) => setBatchMarket(e.target.value)}
+                    className="ml-auto px-1 py-0.5 text-[9px] bg-white/5 border border-white/10 rounded text-white"
+                    disabled={!!batchProgress}
+                  >
+                    <option value="US">US</option>
+                    <option value="HK">HK</option>
+                    <option value="CN">CN</option>
+                  </select>
+                </div>
+                <textarea
+                  value={batchInput}
+                  onChange={(e) => setBatchInput(e.target.value)}
+                  placeholder="一行一个 ticker（或逗号/空格分隔），最多 30 个"
+                  rows={4}
+                  disabled={!!batchProgress}
+                  className="w-full px-2 py-1 text-[10px] bg-white/5 border border-white/10 rounded text-white placeholder-[#7a8497] focus:outline-none focus:border-emerald-500/50 resize-none font-mono disabled:opacity-50"
+                />
+                {batchError && (
+                  <div className="text-[10px] text-red-300">{batchError}</div>
+                )}
+                {batchProgress && (
+                  <div className="text-[10px] text-emerald-300/90 flex items-center gap-1">
+                    <Loader size={10} className="animate-spin" />
+                    {batchProgress.phase === "adding" ? "加入" : "评分"} {batchProgress.done}/{batchProgress.total} ...
+                  </div>
+                )}
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={handleBatchAdd}
+                    disabled={!!batchProgress || !batchInput.trim()}
+                    className="flex-1 flex items-center justify-center gap-1 px-2 py-1 text-[10px] rounded bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 border border-emerald-500/40 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <Check size={10} /> 全部加入 + 评分
+                  </button>
+                  <button
+                    onClick={() => { setShowBatchForm(false); setBatchError(null); setBatchInput(""); }}
+                    disabled={!!batchProgress}
+                    className="px-2 py-1 text-[10px] rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] border border-white/10 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    取消
+                  </button>
+                </div>
+              </div>
             ) : (
-              <button
-                onClick={() => setShowAddForm(true)}
-                disabled={isDemoMode}
-                className="w-full flex items-center justify-center gap-1 px-2 py-1.5 text-[11px] rounded bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-200 border border-emerald-500/40 transition disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <Plus size={11} /> 添加观察
-              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setShowAddForm(true)}
+                  disabled={isDemoMode}
+                  className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-[11px] rounded bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-200 border border-emerald-500/40 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <Plus size={11} /> 添加观察
+                </button>
+                <button
+                  onClick={() => setShowBatchForm(true)}
+                  disabled={isDemoMode}
+                  className="flex items-center justify-center gap-1 px-2 py-1.5 text-[11px] rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white border border-white/10 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                  title="批量粘贴 ticker 列表，一键加入 + 双引擎评分"
+                >
+                  <Layers size={11} />
+                </button>
+              </div>
             )}
           </div>
         </div>
@@ -675,6 +812,13 @@ export default function StockGene() {
               onExplain={() => handleExplain(selectedItem, engine)}
               explainLoading={aiLoading === `${selectedItem.ticker}:${engine}`}
               narrative={aiNarratives[`${selectedItem.ticker}:${engine}`]}
+              editingNotes={editingNotesTicker}
+              notesDraft={notesDraft}
+              setNotesDraft={setNotesDraft}
+              onEditNotes={handleEditNotes}
+              onSaveNotes={handleSaveNotes}
+              onCancelNotes={() => setEditingNotesTicker(null)}
+              notesSaving={notesSaving}
             />
           )}
         </div>
@@ -741,7 +885,10 @@ export default function StockGene() {
 // ─────────────────────────────────────────────────────────────
 // 评分详情面板（中栏）
 // ─────────────────────────────────────────────────────────────
-function ScoreDetail({ item, engine, onRescore, onDelete, scoring, onExplain, explainLoading, narrative }) {
+function ScoreDetail({
+  item, engine, onRescore, onDelete, scoring, onExplain, explainLoading, narrative,
+  editingNotes, notesDraft, setNotesDraft, onEditNotes, onSaveNotes, onCancelNotes, notesSaving,
+}) {
   // engine = "trend" → last_result（8 维）；"value" → last_value_result（6 维）
   const r = engine === "value" ? item.last_value_result : item.last_result;
   const engineLabel = engine === "value" ? "价值" : "趋势";
@@ -827,11 +974,17 @@ function ScoreDetail({ item, engine, onRescore, onDelete, scoring, onExplain, ex
             )}
           </div>
         )}
-        {item.notes && (
-          <div className="mt-2 px-2 py-1.5 bg-white/[0.02] border-l-2 border-amber-500/40 rounded text-[10px] text-[#d0d7e2] leading-relaxed">
-            {item.notes}
-          </div>
-        )}
+        {/* 备注：hover 显示编辑按钮 / 点击进入内联编辑 */}
+        <NotesBlock
+          item={item}
+          editing={editingNotes === item.ticker}
+          draft={notesDraft}
+          onDraftChange={setNotesDraft}
+          onEdit={() => onEditNotes(item)}
+          onSave={() => onSaveNotes(item.ticker)}
+          onCancel={onCancelNotes}
+          saving={notesSaving}
+        />
       </div>
 
       {/* 特征列表（趋势 8 维 / 价值 6 维） */}
@@ -1224,5 +1377,65 @@ function VerdictFilterChips({ value, onChange, engine }) {
         </button>
       )}
     </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Notes block — 默认显示 / hover 出编辑按钮 / 点击进入 textarea 编辑
+// ─────────────────────────────────────────────────────────────
+function NotesBlock({ item, editing, draft, onDraftChange, onEdit, onSave, onCancel, saving }) {
+  if (editing) {
+    return (
+      <div className="mt-2 px-2 py-1.5 bg-amber-500/5 border border-amber-500/30 rounded space-y-1">
+        <textarea
+          value={draft}
+          onChange={(e) => onDraftChange(e.target.value)}
+          placeholder="备注（空字符串可清除）"
+          rows={3}
+          autoFocus
+          className="w-full px-1.5 py-1 text-[10px] bg-white/5 border border-white/10 rounded text-[#d0d7e2] focus:outline-none focus:border-amber-500/50 resize-none leading-relaxed"
+        />
+        <div className="flex items-center gap-1">
+          <button
+            onClick={onSave}
+            disabled={saving}
+            className="flex items-center gap-1 px-2 py-0.5 text-[10px] rounded bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-200 border border-emerald-500/40 transition disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {saving ? <Loader size={9} className="animate-spin" /> : <Check size={9} />} 保存
+          </button>
+          <button
+            onClick={onCancel}
+            disabled={saving}
+            className="px-2 py-0.5 text-[10px] rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] border border-white/10 disabled:opacity-40"
+          >
+            取消
+          </button>
+        </div>
+      </div>
+    );
+  }
+  // 显示模式：有 notes 渲染卡片，无 notes 渲染"添加备注"占位
+  if (item.notes) {
+    return (
+      <div className="mt-2 px-2 py-1.5 bg-white/[0.02] border-l-2 border-amber-500/40 rounded text-[10px] text-[#d0d7e2] leading-relaxed group/notes relative">
+        <span className="whitespace-pre-line">{item.notes}</span>
+        <button
+          onClick={onEdit}
+          className="absolute top-1 right-1 opacity-0 group-hover/notes:opacity-100 p-0.5 rounded hover:bg-white/10 text-[#a0aec0] hover:text-white transition"
+          title="编辑备注"
+        >
+          <Edit2 size={9} />
+        </button>
+      </div>
+    );
+  }
+  return (
+    <button
+      onClick={onEdit}
+      className="mt-2 px-2 py-1 text-[9px] text-[#7a8497] hover:text-white hover:bg-white/5 rounded transition flex items-center gap-1"
+      title="添加备注"
+    >
+      <Edit2 size={9} /> 添加备注
+    </button>
   );
 }
