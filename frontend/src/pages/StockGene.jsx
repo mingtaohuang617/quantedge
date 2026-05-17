@@ -81,7 +81,10 @@ export default function StockGene() {
   const [newMarket, setNewMarket] = useState("US");
   const [newSector, setNewSector] = useState("");
   const [newNotes, setNewNotes] = useState("");
+  const [newTags, setNewTags] = useState([]);
   const [addError, setAddError] = useState(null);
+  // 快捷键帮助 overlay
+  const [showShortcuts, setShowShortcuts] = useState(false);
   // 横向对比
   const [peersInput, setPeersInput] = useState("");
   const [peersResults, setPeersResults] = useState(null);
@@ -146,6 +149,7 @@ export default function StockGene() {
       body: JSON.stringify({
         ticker, name: newName.trim(),
         market: newMarket, sector: newSector.trim(), notes: newNotes.trim(),
+        tags: newTags,
       }),
     });
     if (!res?.ok) {
@@ -153,7 +157,7 @@ export default function StockGene() {
       return;
     }
     // 重置表单
-    setNewTicker(""); setNewName(""); setNewSector(""); setNewNotes("");
+    setNewTicker(""); setNewName(""); setNewSector(""); setNewNotes(""); setNewTags([]);
     setShowAddForm(false);
     await reload();
     setSelectedTicker(ticker);
@@ -242,6 +246,15 @@ export default function StockGene() {
     setBatchInput("");
     setShowBatchForm(false);
   }, [batchInput, batchMarket, reload]);
+
+  // ── Tags 编辑（PUT /api/stock-gene/{ticker}）─────────────
+  const handleSaveTags = useCallback(async (ticker, nextTags) => {
+    const res = await apiFetch(`/stock-gene/${encodeURIComponent(ticker)}`, {
+      method: "PUT",
+      body: JSON.stringify({ tags: nextTags }),
+    });
+    if (res?.ok) await reload();
+  }, [reload]);
 
   // ── Notes 内联编辑（PUT /api/stock-gene/{ticker}）────────
   const handleEditNotes = (item) => {
@@ -442,6 +455,55 @@ export default function StockGene() {
     return arr;
   }, [items, sortBy, engine, filterText, filterVerdicts]);
 
+  // ── 快捷键 ────────────────────────────────────────────────
+  // j/k 选择上下条 · / 聚焦搜索 · t/v 切换引擎 · r 刷新 · esc 清过滤 · ? 帮助
+  useEffect(() => {
+    const onKey = (e) => {
+      // 输入框 / textarea / 选择框 / Modal 内不触发（除 Esc 之外）
+      // 注意 e.target 可能是 window（dispatchEvent 时），需 guard
+      const inField = e.target && typeof e.target.closest === "function"
+        ? e.target.closest('input, textarea, select')
+        : null;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      // ? 帮助：?  或  Shift + /
+      if (e.key === "?" && !inField) {
+        e.preventDefault();
+        setShowShortcuts(s => !s);
+        return;
+      }
+      if (e.key === "Escape") {
+        if (showShortcuts) { setShowShortcuts(false); return; }
+        if (inField) return;
+        if (filterText || filterVerdicts.size > 0) {
+          setFilterText("");
+          setFilterVerdicts(new Set());
+          return;
+        }
+      }
+      if (inField) return;
+      if (e.key === "/") {
+        e.preventDefault();
+        document.querySelector('input[placeholder*="过滤"]')?.focus();
+        return;
+      }
+      if (e.key === "j" || e.key === "k" || e.key === "ArrowDown" || e.key === "ArrowUp") {
+        if (sortedItems.length === 0) return;
+        e.preventDefault();
+        const idx = sortedItems.findIndex(it => it.ticker === selectedTicker);
+        const next = (e.key === "j" || e.key === "ArrowDown")
+          ? Math.min(sortedItems.length - 1, idx < 0 ? 0 : idx + 1)
+          : Math.max(0, idx < 0 ? 0 : idx - 1);
+        setSelectedTicker(sortedItems[next].ticker);
+        return;
+      }
+      if (e.key === "t") { setEngine("trend"); return; }
+      if (e.key === "v") { setEngine("value"); return; }
+      if (e.key === "r") { e.preventDefault(); reload(); return; }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [sortedItems, selectedTicker, filterText, filterVerdicts, showShortcuts, reload]);
+
   // ── 渲染 ────────────────────────────────────────────────
   return (
     <div className="h-full flex flex-col gap-3 overflow-hidden">
@@ -527,11 +589,23 @@ export default function StockGene() {
           <button
             onClick={reload}
             className="flex items-center gap-1 px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white transition border border-white/10"
+            title="刷新（快捷键：r）"
           >
             <RefreshCw size={10} /> 刷新
           </button>
+          {/* 快捷键帮助 */}
+          <button
+            onClick={() => setShowShortcuts(true)}
+            className="flex items-center justify-center w-7 h-7 rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white transition border border-white/10 font-mono text-[11px]"
+            title="键盘快捷键（?）"
+          >
+            ?
+          </button>
         </div>
       </div>
+
+      {/* 快捷键帮助 overlay */}
+      {showShortcuts && <ShortcutsHelp onClose={() => setShowShortcuts(false)} />}
 
       {/* 三栏 grid */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-[280px_1fr_340px] gap-3 overflow-hidden min-h-0">
@@ -664,6 +738,19 @@ export default function StockGene() {
                       评分 {formatFreshness(activeR.checked_at)}
                     </div>
                   )}
+                  {/* 用户自定义标签 */}
+                  {it.tags && it.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-0.5 mt-1">
+                      {it.tags.slice(0, 5).map(t => (
+                        <span key={t} className="text-[8px] px-1 py-px rounded bg-violet-500/10 text-violet-300 border border-violet-500/20">
+                          #{t}
+                        </span>
+                      ))}
+                      {it.tags.length > 5 && (
+                        <span className="text-[8px] text-[#5a6477]">+{it.tags.length - 5}</span>
+                      )}
+                    </div>
+                  )}
                 </button>
               );
             })}
@@ -705,6 +792,11 @@ export default function StockGene() {
                   placeholder="备注（可选）"
                   rows={2}
                   className="w-full px-2 py-1 text-[10px] bg-white/5 border border-white/10 rounded text-white placeholder-[#7a8497] focus:outline-none focus:border-emerald-500/50 resize-none"
+                />
+                <TagsInput
+                  tags={newTags}
+                  onChange={setNewTags}
+                  placeholder="标签：核心 / 投机 / 长持 …"
                 />
                 {addError && (
                   <div className="text-[10px] text-red-300">{addError}</div>
@@ -819,6 +911,7 @@ export default function StockGene() {
               onSaveNotes={handleSaveNotes}
               onCancelNotes={() => setEditingNotesTicker(null)}
               notesSaving={notesSaving}
+              onSaveTags={(nextTags) => handleSaveTags(selectedItem.ticker, nextTags)}
             />
           )}
         </div>
@@ -888,6 +981,7 @@ export default function StockGene() {
 function ScoreDetail({
   item, engine, onRescore, onDelete, scoring, onExplain, explainLoading, narrative,
   editingNotes, notesDraft, setNotesDraft, onEditNotes, onSaveNotes, onCancelNotes, notesSaving,
+  onSaveTags,
 }) {
   // engine = "trend" → last_result（8 维）；"value" → last_value_result（6 维）
   const r = engine === "value" ? item.last_value_result : item.last_result;
@@ -985,6 +1079,8 @@ function ScoreDetail({
           onCancel={onCancelNotes}
           saving={notesSaving}
         />
+        {/* Tags 行：紧凑展示 + 直接增删 */}
+        <TagsRow tags={item.tags || []} onChange={onSaveTags} />
       </div>
 
       {/* 特征列表（趋势 8 维 / 价值 6 维） */}
@@ -1437,5 +1533,150 @@ function NotesBlock({ item, editing, draft, onDraftChange, onEdit, onSave, onCan
     >
       <Edit2 size={9} /> 添加备注
     </button>
+  );
+}
+
+
+// ─────────────────────────────────────────────────────────────
+// TagsInput — 多 chip 输入：Enter / 逗号 / 空格添加；Backspace 删最后一个
+// ─────────────────────────────────────────────────────────────
+function TagsInput({ tags = [], onChange, placeholder = "标签" }) {
+  const [input, setInput] = useState("");
+  const add = (t) => {
+    const v = t.trim().replace(/^#+/, "");
+    if (!v || tags.includes(v)) return;
+    onChange([...tags, v]);
+    setInput("");
+  };
+  const remove = (t) => onChange(tags.filter(x => x !== t));
+  return (
+    <div className="w-full px-1.5 py-1 bg-white/5 border border-white/10 rounded focus-within:border-emerald-500/50 transition">
+      <div className="flex flex-wrap items-center gap-1">
+        {tags.map(t => (
+          <span key={t} className="inline-flex items-center gap-0.5 text-[9px] px-1 py-px rounded bg-violet-500/15 text-violet-200 border border-violet-500/40">
+            #{t}
+            <button onClick={() => remove(t)} className="text-violet-300/70 hover:text-white" title="删除">
+              <X size={8} />
+            </button>
+          </span>
+        ))}
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === "," || e.key === " ") {
+              e.preventDefault();
+              add(input);
+            } else if (e.key === "Backspace" && !input && tags.length > 0) {
+              remove(tags[tags.length - 1]);
+            }
+          }}
+          onBlur={() => input.trim() && add(input)}
+          placeholder={tags.length === 0 ? placeholder : ""}
+          className="flex-1 min-w-[60px] bg-transparent text-[10px] text-white placeholder-[#7a8497] focus:outline-none"
+        />
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// TagsRow — 详情面板的紧凑 tags 行（直接增删，自动 PUT 保存）
+// ─────────────────────────────────────────────────────────────
+function TagsRow({ tags, onChange }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(tags);
+  useEffect(() => { setDraft(tags); }, [tags]);
+  if (!editing && tags.length === 0) {
+    return (
+      <button
+        onClick={() => { setDraft([]); setEditing(true); }}
+        className="mt-2 px-2 py-1 text-[9px] text-[#7a8497] hover:text-violet-300 hover:bg-violet-500/10 rounded transition flex items-center gap-1"
+        title="添加标签"
+      >
+        <Plus size={9} /> 添加标签
+      </button>
+    );
+  }
+  if (editing) {
+    return (
+      <div className="mt-2 space-y-1">
+        <TagsInput tags={draft} onChange={setDraft} placeholder="回车 / 逗号 / 空格添加" />
+        <div className="flex items-center gap-1">
+          <button
+            onClick={async () => { await onChange(draft); setEditing(false); }}
+            className="flex items-center gap-1 px-2 py-0.5 text-[10px] rounded bg-violet-500/15 hover:bg-violet-500/25 text-violet-200 border border-violet-500/40 transition"
+          >
+            <Check size={9} /> 保存
+          </button>
+          <button
+            onClick={() => { setDraft(tags); setEditing(false); }}
+            className="px-2 py-0.5 text-[10px] rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] border border-white/10"
+          >
+            取消
+          </button>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-1 group/tags">
+      {tags.map(t => (
+        <span key={t} className="text-[9px] px-1 py-px rounded bg-violet-500/10 text-violet-300 border border-violet-500/20">
+          #{t}
+        </span>
+      ))}
+      <button
+        onClick={() => { setDraft(tags); setEditing(true); }}
+        className="opacity-0 group-hover/tags:opacity-100 transition p-0.5 rounded hover:bg-white/10 text-[#7a8497] hover:text-white"
+        title="编辑标签"
+      >
+        <Edit2 size={9} />
+      </button>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// 快捷键帮助 overlay
+// ─────────────────────────────────────────────────────────────
+function ShortcutsHelp({ onClose }) {
+  const rows = [
+    { keys: ["j", "↓"], desc: "选择下一只" },
+    { keys: ["k", "↑"], desc: "选择上一只" },
+    { keys: ["/"], desc: "聚焦搜索框" },
+    { keys: ["t"], desc: "切到趋势引擎" },
+    { keys: ["v"], desc: "切到价值引擎" },
+    { keys: ["r"], desc: "刷新列表" },
+    { keys: ["Esc"], desc: "清过滤 / 关弹层" },
+    { keys: ["?"], desc: "显示此帮助" },
+  ];
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={onClose}>
+      <div
+        className="glass-card border border-white/15 rounded-lg p-4 min-w-[280px] shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-[12px] font-semibold text-white">键盘快捷键</span>
+          <button onClick={onClose} className="text-[#a0aec0] hover:text-white" title="关闭"><X size={12} /></button>
+        </div>
+        <div className="space-y-1.5">
+          {rows.map(r => (
+            <div key={r.desc} className="flex items-center justify-between text-[11px]">
+              <span className="text-[#d0d7e2]">{r.desc}</span>
+              <span className="flex items-center gap-1">
+                {r.keys.map(k => (
+                  <kbd key={k} className="px-1.5 py-0.5 rounded bg-white/10 border border-white/15 text-[10px] font-mono text-white">{k}</kbd>
+                ))}
+              </span>
+            </div>
+          ))}
+        </div>
+        <div className="mt-3 pt-2 border-t border-white/10 text-[9px] text-[#7a8497]">
+          ⓘ 焦点在输入框 / 弹层内时快捷键不触发
+        </div>
+      </div>
+    </div>
   );
 }
