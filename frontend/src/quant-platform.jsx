@@ -15,6 +15,7 @@ const BacktestEngine = lazy(() => import("./pages/BacktestEngine.jsx"));
 const ScoringDashboard = lazy(() => import("./pages/ScoringDashboard.jsx"));
 const MacroDashboard = lazy(() => import("./pages/MacroDashboard.jsx"));
 const Screener10x = lazy(() => import("./pages/Screener10x.jsx"));
+const StockGene = lazy(() => import("./pages/StockGene.jsx"));
 
 let STATIC_STOCKS = [];
 let STATIC_ALERTS = [];
@@ -1224,6 +1225,7 @@ const TAB_CFG = [
   { id: "journal", label: "投资日志", icon: BookOpen },
   { id: "macro", label: "宏观看板", icon: Globe },
   { id: "screener10x", label: "10x 猎手", icon: Target },
+  { id: "stockgene", label: "股性检测", icon: Zap },
 ];
 
 // ─── Scoring ──────────────────────────────────────────────
@@ -2212,6 +2214,7 @@ function QuantPlatformInner() {
           {tab === "journal" && <Journal />}
           {tab === "macro" && <MacroDashboard />}
           {tab === "screener10x" && <Screener10x />}
+          {tab === "stockgene" && <StockGene />}
         </Suspense>
       </main>
 
