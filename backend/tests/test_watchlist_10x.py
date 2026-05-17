@@ -711,3 +711,34 @@ def test_export_then_import_roundtrip(tmp_watchlist):
 
     items = wl.list_items()
     assert any(it["ticker"] == "NVDA" and it["thesis"] == "HBM" for it in items)
+
+
+
+# ── falsification_condition (pre-mortem 纪律) ─────────────
+def test_add_item_default_empty_falsification(tmp_watchlist):
+    """默认 falsification_condition 为空串"""
+    item = wl.add_item("NVDA", supertrend_id="semi")
+    assert item["falsification_condition"] == ""
+
+
+def test_add_item_with_falsification(tmp_watchlist):
+    """add_item 接受 falsification_condition 字段"""
+    item = wl.add_item(
+        "NVDA", supertrend_id="semi",
+        falsification_condition="HBM 失去定价权 / 客户订单流失 30%+",
+    )
+    assert item["falsification_condition"] == "HBM 失去定价权 / 客户订单流失 30%+"
+
+
+def test_update_item_set_falsification(tmp_watchlist):
+    """update_item 可设/改 falsification_condition"""
+    wl.add_item("NVDA", supertrend_id="semi")
+    updated = wl.update_item("NVDA", falsification_condition="毛利率 < 60%")
+    assert updated["falsification_condition"] == "毛利率 < 60%"
+
+
+def test_falsification_persists_through_save_load(tmp_watchlist):
+    """字段穿过文件 IO 持久化"""
+    wl.add_item("NVDA", supertrend_id="semi", falsification_condition="测试条件")
+    items = wl.list_items()
+    assert items[0]["falsification_condition"] == "测试条件"
