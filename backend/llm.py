@@ -309,6 +309,93 @@ def explain_score(stock: dict, weights: dict, ttl_seconds: int = 86400) -> dict:
         return {"ok": False, "ticker": ticker, "error": str(e)}
 
 
+def explain_gene_score(payload: dict, ttl_seconds: int = 86400) -> dict:
+    """
+    Stock Gene 评分解读 — 把 8 维趋势或 6 维价值的特征结果丢给 LLM，给一段话画像。
+
+    payload: {
+      ticker, name?, market?, sector?,
+      engine: 'trend' | 'value',
+      score, max_score, available?, verdict (str),
+      features: [{label, pass, value?, detail?, available?}, ...]
+    }
+
+    返回 {ok, ticker, engine, narrative: str (≤4 句), cached, error?}
+    """
+    ticker = payload.get("ticker", "?")
+    engine = payload.get("engine", "trend")
+    score = payload.get("score")
+    max_score = payload.get("max_score")
+    available = payload.get("available")
+    verdict = payload.get("verdict") or ""
+    features = payload.get("features") or []
+    name = payload.get("name") or ""
+    sector = payload.get("sector") or ""
+
+    engine_label = "价值健康度" if engine == "value" else "牛股趋势"
+    framework = ("Graham 安全边际 + Buffett 质量过滤" if engine == "value"
+                 else "米勒维尼趋势模板 + 欧奈尔 CANSLIM")
+
+    # 把每个特征压成 "[PASS|FAIL|N/A] label: value" 一行
+    def _row(f):
+        if not f.get("available"):
+            tag = "N/A"
+        elif f.get("pass"):
+            tag = "PASS"
+        else:
+            tag = "FAIL"
+        val = f.get("value") or ""
+        return f"  [{tag}] {f.get('label', '?')}: {val}"
+
+    feature_block = "\n".join(_row(f) for f in features)
+
+    header = f"{ticker}"
+    if name:
+        header += f"（{name}）"
+    if sector:
+        header += f" · 行业 {sector}"
+
+    prompt = (
+        f"{header}\n"
+        f"框架：{framework}（{engine_label} {len(features)} 维）\n"
+        f"得分：{score}/{max_score}"
+        + (f"（{available} 项可判断）" if available is not None else "")
+        + (f" · 评价：{verdict}" if verdict else "") + "\n"
+        f"各特征：\n{feature_block}\n\n"
+        "请用 2-4 句中文，先指出最强的 1-2 项与最弱的 1-2 项，"
+        "再给一句操作建议（关注/观察/暂避）。≤120 字，纯文本不要 JSON、不要列表。"
+    )
+
+    cache_key = _db.llm_cache_key("stock-gene-explain", DEFAULT_MODEL, prompt)
+    cached = _db.llm_cache_get(cache_key)
+    if cached:
+        return {
+            "ok": True, "ticker": ticker, "engine": engine,
+            "narrative": cached["response"].get("text", ""),
+            "cached": True,
+        }
+
+    try:
+        content, p_tok, c_tok = _chat(
+            [{"role": "user", "content": prompt}],
+            json_mode=False,
+            max_tokens=240,
+            temperature=0.4,
+        )
+        text = (content or "").strip()
+        _db.llm_cache_put(
+            cache_key, "stock-gene-explain", DEFAULT_MODEL, {"text": text},
+            ticker=ticker, prompt_tokens=p_tok, completion_tokens=c_tok,
+            ttl_seconds=ttl_seconds,
+        )
+        return {
+            "ok": True, "ticker": ticker, "engine": engine,
+            "narrative": text, "cached": False,
+        }
+    except LLMError as e:
+        return {"ok": False, "ticker": ticker, "engine": engine, "error": str(e)}
+
+
 def backtest_narrate(payload: dict, ttl_seconds: int = 1800) -> dict:
     """
     B4: 回测结果 AI 解读。
