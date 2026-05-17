@@ -3,7 +3,7 @@
 // 从 quant-platform.jsx 抽出（C1 重构第二步），通过 React.lazy 懒加载
 // ─────────────────────────────────────────────────────────────
 import React, { useState, useEffect, useMemo, useContext, useCallback, useRef } from "react";
-import { Activity, Bell, BellOff, Check } from "lucide-react";
+import { Activity, Bell, BellOff, Check, Globe } from "lucide-react";
 import { useLang } from "../i18n.jsx";
 import {
   DataContext,
@@ -17,6 +17,8 @@ import {
   get5DSparkData,
   currencySymbol,
 } from "../quant-platform.jsx";
+import macroSnapshot from "../macroSnapshot.json";
+import { TEMP_TEXT, TEMP_LABEL } from "../components/macro/shared.js";
 
 const ALERT_RULES_KEY = "quantedge_alert_rules";
 
@@ -89,6 +91,9 @@ const Monitor = () => {
     try { return new Set(JSON.parse(localStorage.getItem('quantedge_acked_alerts') || '[]')); }
     catch { return new Set(); }
   });
+  // 过滤：severity (high/warning/info/all) + type (macro/price/technical/score/all)
+  const [filterSev, setFilterSev] = useState("all");
+  const [filterType, setFilterType] = useState("all");
   const [mutedTickers, setMutedTickers] = useState(() => {
     try { return JSON.parse(localStorage.getItem('quantedge_muted_tickers') || '{}'); }
     catch { return {}; }
@@ -157,13 +162,56 @@ const Monitor = () => {
     return alerts.slice(0, 20);
   }, [liveStocks, t]);
 
-  const mergedAlerts = allAlerts.length > 0 ? allAlerts : dynamicAlerts;
+  // 把 macro L5 alerts 转成 Monitor 同形 shape，注入到 alerts 流首部
+  // critical → high, warning → warning, info → info
+  const macroAlertsAsItems = useMemo(() => {
+    const ml = macroSnapshot?.composite?.alerts || [];
+    return ml.map(a => ({
+      id: `macro_${a.id}`,
+      ticker: "MACRO",
+      type: "macro",
+      severity: a.level === "critical" ? "high" : a.level === "warning" ? "warning" : "info",
+      message: a.summary ? `${a.title} — ${a.summary}` : a.title,
+      time: macroSnapshot?.generated_at?.slice(11, 16) || "—",
+      kind: a.kind,
+      action: a.action,
+    }));
+  }, []);
+
+  const mergedAlerts = useMemo(() => {
+    const base = allAlerts.length > 0 ? allAlerts : dynamicAlerts;
+    return [...macroAlertsAsItems, ...base];
+  }, [allAlerts, dynamicAlerts, macroAlertsAsItems]);
   const liveAlerts = mergedAlerts.filter(a => {
     if (isMuted(a.ticker)) return false;
     if (!showAcked && ackedIds.has(a.id)) return false;
+    if (filterSev !== "all" && a.severity !== filterSev) return false;
+    if (filterType !== "all" && a.type !== filterType) return false;
     return true;
   });
   const hiddenCount = mergedAlerts.length - liveAlerts.length;
+
+  // 每个 severity/type 的当前 count（用于 chip badge）
+  const sevCounts = useMemo(() => {
+    const c = { all: 0, high: 0, warning: 0, info: 0 };
+    mergedAlerts.forEach(a => {
+      if (isMuted(a.ticker)) return;
+      if (!showAcked && ackedIds.has(a.id)) return;
+      c.all += 1;
+      if (c[a.severity] != null) c[a.severity] += 1;
+    });
+    return c;
+  }, [mergedAlerts, mutedTickers, ackedIds, showAcked]);
+  const typeCounts = useMemo(() => {
+    const c = { all: 0, macro: 0, price: 0, technical: 0, score: 0 };
+    mergedAlerts.forEach(a => {
+      if (isMuted(a.ticker)) return;
+      if (!showAcked && ackedIds.has(a.id)) return;
+      c.all += 1;
+      if (c[a.type] != null) c[a.type] += 1;
+    });
+    return c;
+  }, [mergedAlerts, mutedTickers, ackedIds, showAcked]);
 
   // ── C6: 浏览器 Notification 桌面通知 ───────────────────────
   const [notifEnabled, setNotifEnabled] = useState(() => {
@@ -293,6 +341,26 @@ const Monitor = () => {
           <div className="text-[9px] mt-3 pt-2 border-t border-white/5 text-center" style={{ color: "var(--text-dim)" }}>
             {t('基于 {n} 个标的的平均涨跌幅和市场宽度计算', {n: liveStocks.length})}
           </div>
+          {/* 宏观温度对比 — F&G 是同日 watchlist 的情绪，macro temp 是 17 因子综合视角 */}
+          {(() => {
+            const temp = macroSnapshot?.composite?.market_temperature;
+            if (temp == null) return null;
+            return (
+              <div className="mt-2 pt-2 border-t border-white/5 flex items-center justify-between">
+                <button
+                  onClick={() => window.dispatchEvent(new CustomEvent("quantedge:nav", { detail: "macro" }))}
+                  className="flex items-center gap-1.5 hover:opacity-80 transition-opacity"
+                  title={t('点击查看宏观看板 · 综合 17 因子方向化温度')}
+                >
+                  <Globe size={10} className="text-indigo-400" />
+                  <span className="text-[10px] text-[#a0aec0]">{t('宏观温度')}</span>
+                  <span className={`text-sm font-bold font-mono tabular-nums ${TEMP_TEXT(temp)}`}>{temp.toFixed(0)}</span>
+                  <span className={`text-[10px] ${TEMP_TEXT(temp)}`}>{t(TEMP_LABEL(temp))}</span>
+                </button>
+                <span className="text-[9px] text-[#778] font-mono">L3</span>
+              </div>
+            );
+          })()}
         </div>
 
         <MobileAccordion title={t("关注板块表现 (今日)")}>
@@ -369,6 +437,68 @@ const Monitor = () => {
           flex
           className="md:flex-1 flex flex-col md:min-h-0"
         >
+          {/* Severity + type filter chips */}
+          {mergedAlerts.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1 mb-2 px-1">
+              <span className="text-[9px] text-[#778] uppercase mr-1">{t('级别')}:</span>
+              {[
+                ["all", t("全部"), null],
+                ["high", t("严重"), "text-down"],
+                ["warning", t("警示"), "text-amber-400"],
+                ["info", t("提示"), "text-sky-400"],
+              ].map(([key, label, accent]) => {
+                const c = sevCounts[key] ?? 0;
+                const active = filterSev === key;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => setFilterSev(key)}
+                    className={`px-1.5 py-0.5 rounded text-[9px] border transition-colors ${
+                      active
+                        ? "bg-indigo-500/15 border-indigo-400/40 text-indigo-200"
+                        : `bg-white/[0.02] border-white/[0.06] ${accent || "text-[#a0aec0]"} hover:bg-white/[0.06]`
+                    }`}
+                  >
+                    {label} {c > 0 && <span className="opacity-70 font-mono">({c})</span>}
+                  </button>
+                );
+              })}
+              <span className="w-3" />
+              <span className="text-[9px] text-[#778] uppercase mr-1">{t('类型')}:</span>
+              {[
+                ["all", t("全部")],
+                ["macro", t("宏观")],
+                ["price", t("价格")],
+                ["technical", t("技术")],
+                ["score", t("评级")],
+              ].map(([key, label]) => {
+                const c = typeCounts[key] ?? 0;
+                const active = filterType === key;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => setFilterType(key)}
+                    className={`px-1.5 py-0.5 rounded text-[9px] border transition-colors ${
+                      active
+                        ? "bg-cyan-500/15 border-cyan-400/40 text-cyan-200"
+                        : "bg-white/[0.02] border-white/[0.06] text-[#a0aec0] hover:bg-white/[0.06]"
+                    }`}
+                  >
+                    {label} {c > 0 && <span className="opacity-70 font-mono">({c})</span>}
+                  </button>
+                );
+              })}
+              {(filterSev !== "all" || filterType !== "all") && (
+                <button
+                  onClick={() => { setFilterSev("all"); setFilterType("all"); }}
+                  className="ml-1 px-1.5 py-0.5 rounded text-[9px] border bg-rose-500/10 border-rose-400/30 text-rose-300 hover:bg-rose-500/20"
+                >
+                  {t('清除筛选')}
+                </button>
+              )}
+            </div>
+          )}
+
           {(hiddenCount > 0 || Object.keys(mutedTickers).some(k => mutedTickers[k] > now)) && (
             <div className="flex items-center justify-between mb-2 px-1 text-[10px]">
               <button
@@ -407,16 +537,42 @@ const Monitor = () => {
                 {a.severity === "high" && !isAcked && <div className="absolute left-0 top-2 bottom-2 w-[3px] rounded-full bg-down animate-breathe" />}
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-white" title={a.ticker}>{alertLabel}</span>
-                    <Badge variant={a.type === "score" ? "accent" : a.type === "technical" ? "warning" : a.type === "price" ? "danger" : "info"}>
-                      {a.type === "score" ? t("评级") : a.type === "technical" ? t("技术") : a.type === "price" ? t("价格") : t("新闻")}
+                    {a.type === "macro" ? (
+                      <span className="flex items-center gap-1 text-sm font-semibold text-violet-300">
+                        <Globe size={11} /> {t("宏观")}
+                      </span>
+                    ) : (
+                      <span className="text-sm font-semibold text-white" title={a.ticker}>{alertLabel}</span>
+                    )}
+                    <Badge variant={
+                      a.type === "macro" ? "accent" :
+                      a.type === "score" ? "accent" :
+                      a.type === "technical" ? "warning" :
+                      a.type === "price" ? "danger" : "info"
+                    }>
+                      {a.type === "macro" ? t("L5") :
+                       a.type === "score" ? t("评级") :
+                       a.type === "technical" ? t("技术") :
+                       a.type === "price" ? t("价格") : t("新闻")}
                     </Badge>
                     {isAcked && <span className="text-[9px] text-[#778]">✓ {t('已处理')}</span>}
                   </div>
                   <span className="text-[10px] text-[#a0aec0] font-mono">{a.time}</span>
                 </div>
                 <p className="text-xs text-[#a0aec0] leading-relaxed">{a.message}</p>
+                {a.action && (
+                  <p className="text-[10px] text-violet-300/80 leading-relaxed mt-1 pt-1 border-t border-white/[0.04]">
+                    {t('建议')}：{a.action}
+                  </p>
+                )}
                 <div className="flex items-center gap-2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {a.type === "macro" && (
+                    <button onClick={() => window.dispatchEvent(new CustomEvent("quantedge:nav", { detail: "macro" }))}
+                      aria-label={t('打开宏观看板')}
+                      className="text-[9px] px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/10 text-violet-300 hover:bg-violet-500/10 hover:border-violet-400/30 transition-all">
+                      → {t('打开宏观看板')}
+                    </button>
+                  )}
                   {!isAcked ? (
                     <button onClick={() => ackAlert(a.id)} aria-label={t('标记为已处理')}
                       className="text-[9px] px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/10 text-[#a0aec0] hover:bg-up/10 hover:text-up hover:border-up/30 transition-all">
@@ -428,10 +584,12 @@ const Monitor = () => {
                       ↶ {t('撤销')}
                     </button>
                   )}
-                  <button onClick={() => muteTicker(a.ticker)} aria-label={`${t('静音')} ${a.ticker} 24h`}
-                    className="text-[9px] px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/10 text-[#a0aec0] hover:bg-amber-400/10 hover:text-amber-300 hover:border-amber-400/30 transition-all">
-                    🔕 {t('静音')} 24h
-                  </button>
+                  {a.type !== "macro" && (
+                    <button onClick={() => muteTicker(a.ticker)} aria-label={`${t('静音')} ${a.ticker} 24h`}
+                      className="text-[9px] px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/10 text-[#a0aec0] hover:bg-amber-400/10 hover:text-amber-300 hover:border-amber-400/30 transition-all">
+                      🔕 {t('静音')} 24h
+                    </button>
+                  )}
                 </div>
               </div>
               );
