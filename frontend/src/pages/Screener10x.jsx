@@ -143,9 +143,12 @@ export default function Screener10x() {
   // AI 排序：{ ticker: { moat_score, reason } }
   const [aiRanking, setAiRanking] = useState({});
   const [aiRankingState, setAiRankingState] = useState({ loading: false, error: null });
-  // AI 赛道校验：最近一次结果
+  // AI 赛道校验：最近一次结果（单行点击）
   const [aiMatchResult, setAiMatchResult] = useState(null); // { ticker, matched, reason, confidence, error? }
   const [aiMatchLoading, setAiMatchLoading] = useState(null); // 当前 loading 的 ticker
+  // AI 一键串联：批量 match 结果 + 全局进度
+  const [aiMatchMap, setAiMatchMap] = useState({}); // { ticker: { matched, confidence, error? } }
+  const [aiPipelineState, setAiPipelineState] = useState({ loading: false, matched: 0, total: 0, error: null });
   // 编辑器
   const [editorOpen, setEditorOpen] = useState(false);
   const [editing, setEditing] = useState(null);             // null = 新增
@@ -347,6 +350,55 @@ export default function Screener10x() {
       setAiRankingState({ loading: false, error: String(e.message || e) });
     }
   }, [selectedTrends, candidates]);
+
+  // ── AI 一键串联：批量校验 top 5 + 排序 top 10（并发） ───
+  // 一次点击代替"AI 校验逐行点 5 次 + AI 排序"两步操作；适合 screen 完
+  // 想快速看 top 候选的场景。结果：aiMatchMap 填 5 个 ticker 的 match
+  // 结果（每行行内显示），aiRanking 填 10 个 ticker 的卡位/护城河分。
+  const AI_PIPELINE_MATCH_TOP = 5;
+  const handleAiPipeline = useCallback(async () => {
+    if (selectedTrends.length === 0 || candidates.length === 0) return;
+    const matchTargets = candidates.slice(0, AI_PIPELINE_MATCH_TOP);
+    setAiPipelineState({ loading: true, matched: 0, total: matchTargets.length, error: null });
+    setAiMatchMap({});
+
+    // rank 并发触发（独立 promise，不阻塞 match 进度）
+    const rankPromise = handleAiRank();
+
+    // match 并发：每只候选独立调，进度计数
+    let matchedCount = 0;
+    const matchPromises = matchTargets.map(async (c) => {
+      try {
+        const json = await apiFetch("/llm/match-supertrend", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ticker: c.ticker, name: c.name,
+            sector: c.sector, industry: c.industry,
+            candidate_ids: selectedTrends,
+          }),
+        });
+        if (!json) throw new Error("后端无响应");
+        if (!json.ok) throw new Error(json.error || "AI 校验失败");
+        setAiMatchMap((prev) => ({
+          ...prev,
+          [c.ticker]: {
+            matched: json.matched || [],
+            confidence: json.confidence ?? 0,
+            cached: !!json.cached,
+          },
+        }));
+      } catch (e) {
+        setAiMatchMap((prev) => ({ ...prev, [c.ticker]: { error: String(e.message || e) } }));
+      } finally {
+        matchedCount += 1;
+        setAiPipelineState((s) => ({ ...s, matched: matchedCount }));
+      }
+    });
+
+    await Promise.allSettled([rankPromise, ...matchPromises]);
+    setAiPipelineState((s) => ({ ...s, loading: false }));
+  }, [selectedTrends, candidates, handleAiRank]);
 
   // ── 交互 ────────────────────────────────────────────
   const toggleTrend = (id) => {
@@ -609,6 +661,26 @@ export default function Screener10x() {
               />
             </div>
 
+            {/* AI 一键：批量 match top 5 + rank top 10（并发）— 替代两步点击 */}
+            <button
+              onClick={handleAiPipeline}
+              disabled={
+                aiPipelineState.loading || aiRankingState.loading || isDemoMode ||
+                selectedTrends.length === 0 || candidates.length === 0
+              }
+              className="flex items-center gap-1 px-2 py-0.5 text-[10px] rounded bg-amber-500/15 hover:bg-amber-500/25 text-amber-200 border border-amber-500/40 transition disabled:opacity-40 disabled:cursor-not-allowed"
+              title={
+                isDemoMode ? "需要 DEEPSEEK_API_KEY" :
+                `AI 一键：并发跑 top ${AI_PIPELINE_MATCH_TOP} 校验 + top 10 排序（${selectedTrends.length > 1 ? '排序用第一个勾选赛道' : '当前赛道'}）`
+              }
+            >
+              {aiPipelineState.loading ? (
+                <><Loader size={10} className="animate-spin" /> 一键 {aiPipelineState.matched}/{aiPipelineState.total}</>
+              ) : (
+                <><Sparkles size={10} /> AI 一键</>
+              )}
+            </button>
+
             {/* AI 排序：按 LLM 给的卡位独特性打分，最多 10 只候选 */}
             <button
               onClick={handleAiRank}
@@ -794,6 +866,12 @@ export default function Screener10x() {
                     {Object.keys(aiRanking).length > 0 && (
                       <th className="text-center px-2 py-1.5 text-violet-300">AI 卡位</th>
                     )}
+                    {Object.keys(aiMatchMap).length > 0 && (
+                      <th
+                        className="text-center px-2 py-1.5 text-amber-300"
+                        title="AI 一键校验：是否真的属于勾选的赛道（绿=是 / 红=否）"
+                      >AI 校验</th>
+                    )}
                     <th className="text-left px-2 py-1.5">命中</th>
                     <th className="px-2 py-1.5"></th>
                   </tr>
@@ -830,6 +908,27 @@ export default function Screener10x() {
                             )}
                           </td>
                         )}
+                        {Object.keys(aiMatchMap).length > 0 && (() => {
+                          const m = aiMatchMap[c.ticker];
+                          const tip = !m ? "未校验"
+                            : m.error ? `错误：${m.error}`
+                            : (m.matched?.length > 0
+                                ? `命中：${m.matched.map(trendName).join(", ")}（置信度 ${((m.confidence || 0) * 100).toFixed(0)}%）`
+                                : `未命中所选赛道（置信度 ${((m.confidence || 0) * 100).toFixed(0)}%）`);
+                          return (
+                            <td className="px-2 py-1.5 text-center" title={tip}>
+                              {!m ? (
+                                <span className="text-[9px] text-[#5a6477]">—</span>
+                              ) : m.error ? (
+                                <span className="text-[10px] text-red-300/80" title={m.error}>!</span>
+                              ) : m.matched?.length > 0 ? (
+                                <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-emerald-500/20 text-emerald-200 border border-emerald-500/40">✓</span>
+                              ) : (
+                                <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-red-500/15 text-red-300 border border-red-500/40">✗</span>
+                              )}
+                            </td>
+                          );
+                        })()}
                         <td className="px-2 py-1.5">
                           <div className="flex flex-wrap gap-0.5">
                             {(c.matched_supertrends || []).map((t) => {
