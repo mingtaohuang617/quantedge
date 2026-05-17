@@ -7,8 +7,8 @@
     "enriched": true,
     "enriched_market_cap": 3656,
     "enriched_industry": 2739,
-    "fundamentals_smoke_count": 7,
-    "fundamentals_note": "smoke patch (10-15 representative tickers); 跑 sync_*.py --enrich-fundamentals 获取全市场"
+    "fundamentals_smoke_count": 24,
+    "fundamentals_note": "smoke patch v3 (~110 representative tickers across 3 markets); 跑 sync_*.py --enrich-fundamentals 获取全市场（Yahoo 限频严重）"
   },
   "items": [
     {
@@ -33,7 +33,12 @@
       "sector": "常规电力",
       "industry": "常规电力",
       "marketCap": 189610115278.5,
-      "listing_date": "1970-01-01"
+      "listing_date": "1970-01-01",
+      "pe": 12.5,
+      "pb": 1.55,
+      "dividend_yield": 0.062,
+      "roe": 0.125,
+      "debt_to_equity": 1.2
     },
     {
       "ticker": "00003.HK",
@@ -69,7 +74,12 @@
       "sector": "银行",
       "industry": "银行",
       "marketCap": 2460685867896.0,
-      "listing_date": "1970-01-01"
+      "listing_date": "1970-01-01",
+      "pe": 7.5,
+      "pb": 0.95,
+      "dividend_yield": 0.066,
+      "roe": 0.13,
+      "debt_to_equity": 0.65
     },
     {
       "ticker": "00006.HK",
@@ -170,7 +180,12 @@
       "sector": "地产发展商",
       "industry": "地产发展商",
       "marketCap": 401052789921.6,
-      "listing_date": "1972-09-08"
+      "listing_date": "1972-09-08",
+      "pe": 12.0,
+      "pb": 0.55,
+      "dividend_yield": 0.062,
+      "roe": 0.045,
+      "debt_to_equity": 0.2
     },
     {
       "ticker": "00017.HK",
@@ -2906,7 +2921,12 @@
       "sector": "酒精饮料",
       "industry": "酒精饮料",
       "marketCap": 87592776435.0,
-      "listing_date": "1970-01-01"
+      "listing_date": "1970-01-01",
+      "pe": 19.0,
+      "pb": 2.55,
+      "dividend_yield": 0.03,
+      "roe": 0.135,
+      "debt_to_equity": 0.2
     },
     {
       "ticker": "00293.HK",
@@ -3936,7 +3956,12 @@
       "sector": "其他金融",
       "industry": "其他金融",
       "marketCap": 527927283078.0,
-      "listing_date": "2000-06-27"
+      "listing_date": "2000-06-27",
+      "pe": 30.0,
+      "pb": 8.5,
+      "dividend_yield": 0.022,
+      "roe": 0.255,
+      "debt_to_equity": 0.5
     },
     {
       "ticker": "00389.HK",
@@ -6600,7 +6625,12 @@
       "sector": "数码解决方案服务",
       "industry": "数码解决方案服务",
       "marketCap": 4329183518518.4,
-      "listing_date": "2004-06-16"
+      "listing_date": "2004-06-16",
+      "pe": 22.0,
+      "pb": 5.5,
+      "dividend_yield": 0.008,
+      "roe": 0.255,
+      "debt_to_equity": 0.3
     },
     {
       "ticker": "00701.HK",
@@ -7164,7 +7194,12 @@
       "sector": "电讯服务",
       "industry": "电讯服务",
       "marketCap": 223366307718.5,
-      "listing_date": "2000-06-22"
+      "listing_date": "2000-06-22",
+      "pe": 12.5,
+      "pb": 0.95,
+      "dividend_yield": 0.038,
+      "roe": 0.072,
+      "debt_to_equity": 0.2
     },
     {
       "ticker": "00763.HK",
@@ -8213,7 +8248,12 @@
       "sector": "油气生产商",
       "industry": "油气生产商",
       "marketCap": 1359356683942.4,
-      "listing_date": "2001-02-28"
+      "listing_date": "2001-02-28",
+      "pe": 6.0,
+      "pb": 1.15,
+      "dividend_yield": 0.082,
+      "roe": 0.205,
+      "debt_to_equity": 0.2
     },
     {
       "ticker": "00884.HK",
@@ -8722,7 +8762,12 @@
       "sector": "电讯服务",
       "industry": "电讯服务",
       "marketCap": 1821390668005.2,
-      "listing_date": "1997-10-23"
+      "listing_date": "1997-10-23",
+      "pe": 10.0,
+      "pb": 1.1,
+      "dividend_yield": 0.062,
+      "roe": 0.115,
+      "debt_to_equity": 0.1
     },
     {
       "ticker": "00943.HK",
@@ -9382,7 +9427,12 @@
       "sector": "互动媒体及服务",
       "industry": "互动媒体及服务",
       "marketCap": 193799988221.58,
-      "listing_date": "2021-02-05"
+      "listing_date": "2021-02-05",
+      "pe": 32.0,
+      "pb": 6.5,
+      "dividend_yield": 0.0,
+      "roe": 0.205,
+      "debt_to_equity": 0.55
     },
     {
       "ticker": "01025.HK",
@@ -11859,7 +11909,12 @@
       "sector": "保险",
       "industry": "保险",
       "marketCap": 911069514976.8,
-      "listing_date": "2010-10-29"
+      "listing_date": "2010-10-29",
+      "pe": 15.5,
+      "pb": 1.75,
+      "dividend_yield": 0.024,
+      "roe": 0.115,
+      "debt_to_equity": 0.3
     },
     {
       "ticker": "01300.HK",
@@ -20228,7 +20283,12 @@
       "sector": "保险",
       "industry": "保险",
       "marketCap": 1153456795081.5,
-      "listing_date": "2004-06-24"
+      "listing_date": "2004-06-24",
+      "pe": 7.5,
+      "pb": 0.85,
+      "dividend_yield": 0.05,
+      "roe": 0.118,
+      "debt_to_equity": 0.55
     },
     {
       "ticker": "02319.HK",
@@ -20240,7 +20300,12 @@
       "sector": "乳制品",
       "industry": "乳制品",
       "marketCap": 66872279324.12,
-      "listing_date": "2004-06-10"
+      "listing_date": "2004-06-10",
+      "pe": 15.0,
+      "pb": 2.05,
+      "dividend_yield": 0.038,
+      "roe": 0.13,
+      "debt_to_equity": 0.45
     },
     {
       "ticker": "02320.HK",
@@ -20852,7 +20917,12 @@
       "sector": "银行",
       "industry": "银行",
       "marketCap": 474929289548.72,
-      "listing_date": "2002-07-25"
+      "listing_date": "2002-07-25",
+      "pe": 8.5,
+      "pb": 0.85,
+      "dividend_yield": 0.075,
+      "roe": 0.1,
+      "debt_to_equity": 0.7
     },
     {
       "ticker": "02389.HK",
@@ -25844,7 +25914,12 @@
       "sector": "银行",
       "industry": "银行",
       "marketCap": 1643283300251.4,
-      "listing_date": "2006-06-01"
+      "listing_date": "2006-06-01",
+      "pe": 4.5,
+      "pb": 0.4,
+      "dividend_yield": 0.075,
+      "roe": 0.09,
+      "debt_to_equity": 1.15
     },
     {
       "ticker": "03989.HK",
@@ -32120,7 +32195,12 @@
       "sector": "线上零售商",
       "industry": "线上零售商",
       "marketCap": 320148379698.0,
-      "listing_date": "2020-06-18"
+      "listing_date": "2020-06-18",
+      "pe": 11.0,
+      "pb": 2.0,
+      "dividend_yield": 0.025,
+      "roe": 0.18,
+      "debt_to_equity": 0.35
     },
     {
       "ticker": "09626.HK",
@@ -33164,7 +33244,12 @@
       "sector": "线上零售商",
       "industry": "线上零售商",
       "marketCap": 2544910907370.0,
-      "listing_date": "2019-11-26"
+      "listing_date": "2019-11-26",
+      "pe": 16.0,
+      "pb": 2.2,
+      "dividend_yield": 0.012,
+      "roe": 0.14,
+      "debt_to_equity": 0.2
     },
     {
       "ticker": "09989.HK",
