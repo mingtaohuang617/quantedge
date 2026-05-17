@@ -30,6 +30,9 @@ function configureYahooProxy(proxy) {
 export default defineConfig(({ command }) => ({
   plugins: [react()],
   base: command === 'build' ? './' : '/',
+  // vitest 用 rolldown 而 plugin-react 的 esbuild JSX 配置被忽略；
+  // 显式给 oxc 加 JSX automatic，让 .jsx 测试文件能解析
+  oxc: { jsx: { runtime: 'automatic' } },
   server: {
     port: 5173,
     host: true,
@@ -89,5 +92,8 @@ export default defineConfig(({ command }) => ({
   // H6: vitest 排除 Playwright E2E 目录（避免 vitest 误跑 .spec.ts）
   test: {
     exclude: ['node_modules', 'dist', 'tests-e2e/**'],
+    // 组件渲染测试在文件顶部用 `// @vitest-environment jsdom` 注释切换
+    // （vitest 4 移除了 environmentMatchGlobs；setupFile 仍在全局 setup jest-dom matchers）
+    setupFiles: ['./src/test-setup.js'],
   },
 }));
