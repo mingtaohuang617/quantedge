@@ -1,6 +1,6 @@
-// Stock Gene 弹层组件：ConfirmDialog / ShortcutsHelp / WeightsPanel / ListDialog / AlertsPanel
+// Stock Gene 弹层组件：ConfirmDialog / ShortcutsHelp / WeightsPanel / ListDialog / AlertsPanel / SchedulerPanel
 import React, { useState } from "react";
-import { AlertCircle, Bell, BellOff, Layers, Loader, Sliders, X } from "lucide-react";
+import { AlertCircle, Bell, BellOff, Clock, Layers, Loader, RefreshCw, Sliders, X } from "lucide-react";
 import { ENGINE_IDS, eng, LIST_COLORS, formatFreshness } from "./helpers.js";
 
 // ─── ConfirmDialog — 不可逆操作确认弹层（替代 window.confirm）─────────
@@ -321,3 +321,128 @@ export function AlertsPanel({ alerts, onSelect, onClose, onRequestNotify }) {
     </div>
   );
 }
+
+// ─── SchedulerPanel — 评分定时刷新设置 ──────────────────────────────
+export function SchedulerPanel({ status, onToggle, onSetSchedule, onRunNow, onClose }) {
+  const enabled = status?.enabled || false;
+  const sched = status?.schedule || { hour_utc: 6, minute_utc: 0 };
+  const [hour, setHour] = useState(sched.hour_utc);
+  const [minute, setMinute] = useState(sched.minute_utc);
+  const [running, setRunning] = useState(false);
+  // UTC → Beijing 时区显示提示（北京 = UTC+8）
+  const beijingHour = (hour + 8) % 24;
+  const beijingDayShift = hour + 8 >= 24 ? "+1 天" : "";
+  const lastRun = status?.last_run_at;
+  const nextRun = status?.next_run_at;
+  const lastSummary = status?.last_summary;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={onClose}>
+      <div className="glass-card border border-white/15 rounded-lg p-4 min-w-[400px] max-w-[480px] shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Clock size={13} className="text-cyan-300" />
+            <span className="text-[12px] font-semibold text-white">评分定时刷新</span>
+          </div>
+          <button onClick={onClose} className="text-[#a0aec0] hover:text-white"><X size={12} /></button>
+        </div>
+
+        {/* 开关 */}
+        <div className="flex items-center justify-between p-2 rounded bg-white/5 border border-white/10 mb-3">
+          <div>
+            <div className="text-[11px] text-white font-semibold">每日自动评分</div>
+            <div className="text-[10px] text-[#7a8497] mt-0.5">
+              {enabled ? "已启用 — 后台每天定时跑所有 4 个引擎" : "已关闭 — 仅手动评分"}
+            </div>
+          </div>
+          <button
+            onClick={() => onToggle(!enabled)}
+            className={`relative w-9 h-5 rounded-full transition ${enabled ? "bg-emerald-500/60" : "bg-white/15"}`}
+            title={enabled ? "点击关闭" : "点击开启"}
+          >
+            <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition ${enabled ? "left-4" : "left-0.5"}`} />
+          </button>
+        </div>
+
+        {/* 时刻设置 */}
+        <div className="space-y-2 mb-3">
+          <div className="text-[10px] text-[#7a8497]">每天 UTC 时刻（默认 06:00 = 北京 14:00 美股盘后）</div>
+          <div className="flex items-center gap-2">
+            <input
+              type="number" min={0} max={23}
+              value={hour}
+              onChange={(e) => setHour(Math.max(0, Math.min(23, Number(e.target.value))))}
+              className="w-14 px-2 py-1 text-[11px] bg-white/5 border border-white/10 rounded text-white font-mono text-center focus:outline-none focus:border-cyan-500/50"
+            />
+            <span className="text-[11px] text-[#a0aec0]">：</span>
+            <input
+              type="number" min={0} max={59} step={5}
+              value={minute}
+              onChange={(e) => setMinute(Math.max(0, Math.min(59, Number(e.target.value))))}
+              className="w-14 px-2 py-1 text-[11px] bg-white/5 border border-white/10 rounded text-white font-mono text-center focus:outline-none focus:border-cyan-500/50"
+            />
+            <span className="text-[10px] text-[#7a8497]">UTC</span>
+            <button
+              onClick={() => onSetSchedule(hour, minute)}
+              disabled={hour === sched.hour_utc && minute === sched.minute_utc}
+              className="ml-auto px-2 py-1 text-[10px] rounded bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-200 border border-cyan-500/40 transition disabled:opacity-40"
+            >
+              保存时间
+            </button>
+          </div>
+          <div className="text-[9px] text-cyan-300/80">
+            北京时间 {String(beijingHour).padStart(2, "0")}:{String(minute).padStart(2, "0")} {beijingDayShift}
+          </div>
+        </div>
+
+        {/* 状态显示 */}
+        <div className="space-y-1 mb-3 text-[10px]">
+          <div className="flex justify-between">
+            <span className="text-[#7a8497]">下次运行</span>
+            <span className="font-mono text-cyan-300">
+              {nextRun ? new Date(nextRun).toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-[#7a8497]">上次运行</span>
+            <span className="font-mono text-[#a0aec0]">
+              {lastRun ? `${formatFreshness(lastRun)}（${new Date(lastRun).toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}）` : "从未"}
+            </span>
+          </div>
+          {lastSummary?.engines && (
+            <div className="pt-1 mt-1 border-t border-white/8">
+              <div className="text-[9px] text-[#7a8497] mb-0.5">上次结果（{lastSummary.items_scanned} 只）</div>
+              <div className="flex flex-wrap gap-1">
+                {Object.entries(lastSummary.engines).map(([id, r]) => (
+                  <span key={id} className="text-[9px] px-1 py-px rounded bg-white/5 border border-white/10 font-mono">
+                    {eng(id).short}
+                    {r.error
+                      ? <span className="text-rose-300 ml-1">err</span>
+                      : <span className="text-emerald-300 ml-1">{r.ok}</span>}
+                    {r.fail > 0 && <span className="text-rose-300/70 ml-0.5">/{r.fail}</span>}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* 立即运行 */}
+        <div className="pt-3 border-t border-white/10 flex items-center justify-between">
+          <button
+            onClick={async () => { setRunning(true); try { await onRunNow(); } finally { setRunning(false); } }}
+            disabled={running}
+            className="flex items-center gap-1 px-3 py-1 text-[10px] rounded bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-200 border border-emerald-500/40 transition disabled:opacity-40"
+          >
+            {running ? <Loader size={10} className="animate-spin" /> : <RefreshCw size={10} />}
+            立即跑一次
+          </button>
+          <button onClick={onClose}
+            className="px-3 py-1 text-[10px] rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white border border-white/10">
+            完成
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+

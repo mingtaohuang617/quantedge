@@ -21,7 +21,7 @@ import React, { useEffect, useState, useCallback, useMemo, useRef } from "react"
 import {
   Activity, Plus, Trash2, RefreshCw, Loader, AlertCircle, Check, X,
   Sparkles, BarChart3, TrendingUp, Layers, Search,
-  ArrowUpDown, Download, Upload, Sliders, Briefcase, Bell,
+  ArrowUpDown, Download, Upload, Sliders, Briefcase, Bell, Clock,
 } from "lucide-react";
 import { apiFetch } from "../quant-platform.jsx";
 import {
@@ -30,7 +30,7 @@ import {
   verdictStyle, formatChecked, formatFreshness,
   ACTIVE_LIST_STORAGE_KEY, LAST_SEEN_ALERTS_KEY, NOTIFY_PERMISSION_KEY,
 } from "../components/stock-gene/helpers.js";
-import { ConfirmDialog, ShortcutsHelp, WeightsPanel, ListDialog, AlertsPanel } from "../components/stock-gene/dialogs.jsx";
+import { ConfirmDialog, ShortcutsHelp, WeightsPanel, ListDialog, AlertsPanel, SchedulerPanel } from "../components/stock-gene/dialogs.jsx";
 import { VerdictFilterChips, TagFilterChips } from "../components/stock-gene/filters.jsx";
 import { PeersTable } from "../components/stock-gene/cards.jsx";
 import { ListsTabBar } from "../components/stock-gene/ListsTabBar.jsx";
@@ -55,6 +55,9 @@ export default function StockGene() {
   // 评分变化 alerts
   const [alerts, setAlerts] = useState([]);
   const [showAlerts, setShowAlerts] = useState(false);
+  // 评分定时刷新 scheduler
+  const [schedulerStatus, setSchedulerStatus] = useState(null);
+  const [showScheduler, setShowScheduler] = useState(false);
   // 上次看过 alerts 的时间戳（localStorage），用于计算未读
   const [lastSeenAlertsAt, setLastSeenAlertsAt] = useState(() => {
     try { return localStorage.getItem(LAST_SEEN_ALERTS_KEY) || ""; }
@@ -197,6 +200,36 @@ export default function StockGene() {
     }
   }, []);
   useEffect(() => { reloadAlerts(); }, [reloadAlerts]);
+
+  // ── Scheduler 控制 ───────────────────────────────────────
+  const reloadSchedulerStatus = useCallback(async () => {
+    const json = await apiFetch("/stock-gene/scheduler/status");
+    if (json && typeof json.enabled !== "undefined") setSchedulerStatus(json);
+  }, []);
+  useEffect(() => { reloadSchedulerStatus(); }, [reloadSchedulerStatus]);
+
+  const handleToggleScheduler = useCallback(async (enabled) => {
+    const json = await apiFetch("/stock-gene/scheduler/enabled", {
+      method: "POST",
+      body: JSON.stringify({ enabled }),
+    });
+    if (json) setSchedulerStatus(json);
+  }, []);
+
+  const handleSetSchedule = useCallback(async (hour_utc, minute_utc) => {
+    const json = await apiFetch("/stock-gene/scheduler/schedule", {
+      method: "POST",
+      body: JSON.stringify({ hour_utc, minute_utc }),
+    });
+    if (json) setSchedulerStatus(json);
+  }, []);
+
+  const handleSchedulerRunNow = useCallback(async () => {
+    const json = await apiFetch("/stock-gene/scheduler/run-now", { method: "POST" });
+    if (json) setSchedulerStatus(json);
+    await reload();
+    await reloadAlerts();
+  }, [reload, reloadAlerts]);
 
   // 未读 alerts 数量（checked_at 晚于 lastSeenAlertsAt 的）
   const unreadAlertsCount = useMemo(
@@ -854,6 +887,25 @@ export default function StockGene() {
             className="hidden"
             onChange={(e) => { handleImportFile(e.target.files?.[0]); e.target.value = ""; }}
           />
+          {/* 评分定时刷新 调度器 */}
+          <button
+            onClick={() => setShowScheduler(true)}
+            className={`relative flex items-center justify-center w-7 h-7 rounded transition border ${
+              schedulerStatus?.enabled
+                ? "bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-200 border-cyan-500/40"
+                : "bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white border-white/10"
+            }`}
+            title={
+              schedulerStatus?.enabled
+                ? `每日 ${String(schedulerStatus.schedule?.hour_utc ?? 6).padStart(2, "0")}:${String(schedulerStatus.schedule?.minute_utc ?? 0).padStart(2, "0")} UTC 自动评分`
+                : "评分定时刷新（已关闭）"
+            }
+          >
+            <Clock size={11} />
+            {schedulerStatus?.enabled && (
+              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400 ring-1 ring-[#1a1f2e]" />
+            )}
+          </button>
           {/* 评分变化预警 铃铛 */}
           <button
             onClick={handleOpenAlerts}
@@ -924,6 +976,17 @@ export default function StockGene() {
           onChange={setWeights}
           onClose={() => setShowWeightsPanel(false)}
           onReset={() => setWeights(DEFAULT_WEIGHTS)}
+        />
+      )}
+
+      {/* 评分定时刷新 scheduler panel */}
+      {showScheduler && (
+        <SchedulerPanel
+          status={schedulerStatus}
+          onToggle={handleToggleScheduler}
+          onSetSchedule={handleSetSchedule}
+          onRunNow={handleSchedulerRunNow}
+          onClose={() => setShowScheduler(false)}
         />
       )}
 

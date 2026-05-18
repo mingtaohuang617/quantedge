@@ -1056,6 +1056,31 @@ def compare_peers_risk(tickers: list[str], sector: str = "",
     }
 
 
+# ── 全引擎批量评分（scheduler 用）────────────────────────
+def score_all_engines() -> dict:
+    """跑全部 4 个引擎的 score-all，返回每个引擎的成功/失败计数。"""
+    summary = {"started_at": datetime.utcnow().isoformat() + "Z", "engines": {}}
+    # 每个引擎独立 try，单一失败不影响其它
+    runs = [
+        ("trend", score_all),
+        ("value", score_all_value),
+        ("signal", score_all_signal),
+        ("risk", score_all_risk),
+    ]
+    total_items = len(load_watchlist().get("items", []))
+    for name, fn in runs:
+        try:
+            results = fn()
+            ok = sum(1 for r in results if not r.get("error"))
+            fail = len(results) - ok
+            summary["engines"][name] = {"ok": ok, "fail": fail}
+        except Exception as e:
+            summary["engines"][name] = {"error": str(e)}
+    summary["finished_at"] = datetime.utcnow().isoformat() + "Z"
+    summary["items_scanned"] = total_items
+    return summary
+
+
 # ── 评分变化预警 ────────────────────────────────────────
 def get_alerts(days: int = 30, min_delta: int = 1) -> list[dict]:
     """

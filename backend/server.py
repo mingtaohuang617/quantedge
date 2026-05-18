@@ -598,6 +598,14 @@ async def lifespan(_app):
     if HAS_DB:
         threading.Thread(target=_bg_run_incremental_sync, daemon=True).start()
 
+    # Stock Gene 评分定时刷新（守护线程，默认禁用直到用户启用）
+    try:
+        import stock_gene_scheduler
+        stock_gene_scheduler.start_scheduler()
+        print("[OK] stock-gene scheduler thread started")
+    except Exception as e:
+        print(f"[WARN] stock-gene scheduler failed to start: {e}")
+
     yield  # ── 此前 = startup, 此后 = shutdown ──
     # （目前没有需要 shutdown 清理的资源；如果未来加，写在 yield 之后）
 
@@ -2084,6 +2092,57 @@ def stock_gene_lists_delete(list_id: str):
         return {"ok": True, "items_moved": moved}
     except ValueError as e:
         raise HTTPException(400, str(e))
+
+
+# ── Scheduler 控制 ─────────────────────────────────────
+try:
+    import stock_gene_scheduler as _sched_mod
+    HAS_SCHEDULER = True
+except Exception as _e:
+    HAS_SCHEDULER = False
+    _sched_mod = None
+    print(f"[WARN] stock_gene_scheduler unavailable: {_e}")
+
+
+class SchedulerSetEnabledReq(BaseModel):
+    enabled: bool
+
+
+class SchedulerSetScheduleReq(BaseModel):
+    hour_utc: int       # 0-23
+    minute_utc: int     # 0-59
+
+
+@app.get("/api/stock-gene/scheduler/status")
+def stock_gene_scheduler_status():
+    """查看调度器状态：enabled / schedule / last_run / next_run / last_summary。"""
+    if not HAS_SCHEDULER or _sched_mod is None:
+        raise HTTPException(503, "scheduler 不可用")
+    return sanitize(_sched_mod.get_status())
+
+
+@app.post("/api/stock-gene/scheduler/enabled")
+def stock_gene_scheduler_enabled(req: SchedulerSetEnabledReq):
+    """开启 / 关闭定时刷新。"""
+    if not HAS_SCHEDULER or _sched_mod is None:
+        raise HTTPException(503, "scheduler 不可用")
+    return sanitize(_sched_mod.set_enabled(req.enabled))
+
+
+@app.post("/api/stock-gene/scheduler/schedule")
+def stock_gene_scheduler_schedule(req: SchedulerSetScheduleReq):
+    """设置每日运行的 UTC 时刻。"""
+    if not HAS_SCHEDULER or _sched_mod is None:
+        raise HTTPException(503, "scheduler 不可用")
+    return sanitize(_sched_mod.set_schedule(req.hour_utc, req.minute_utc))
+
+
+@app.post("/api/stock-gene/scheduler/run-now")
+def stock_gene_scheduler_run_now():
+    """立即手动触发一次全引擎评分。"""
+    if not HAS_SCHEDULER or _sched_mod is None:
+        raise HTTPException(503, "scheduler 不可用")
+    return sanitize(_sched_mod.run_now())
 
 
 @app.get("/api/stock-gene/alerts")
