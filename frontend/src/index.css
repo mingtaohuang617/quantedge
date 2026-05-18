@@ -446,6 +446,18 @@ select option {
   color: var(--text-primary);
 }
 
+/* 隐藏 <input type="number"> 的原生上下箭头 spinner（Chrome/Safari/Firefox） */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
 input[type="range"] {
   height: 4px;
   -webkit-appearance: none;

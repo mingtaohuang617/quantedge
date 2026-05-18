@@ -72,6 +72,11 @@ export default {
           '0%':   { backgroundPosition: '-200% 0' },
           '100%': { backgroundPosition: '200% 0' },
         },
+        // ── Phase 1.1：标的列表选中态 2px 光条 scaleY 入场
+        'scaleY-in': {
+          '0%':   { transform: 'scaleY(0)', opacity: '0' },
+          '100%': { transform: 'scaleY(1)', opacity: '1' },
+        },
       },
       animation: {
         skeleton: 'skeleton-flow 1.5s ease-in-out infinite',
