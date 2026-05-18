@@ -2086,6 +2086,16 @@ def stock_gene_lists_delete(list_id: str):
         raise HTTPException(400, str(e))
 
 
+@app.get("/api/stock-gene/alerts")
+def stock_gene_alerts(days: int = 30, min_delta: int = 1):
+    """从 score_history 计算评分变化 alerts。"""
+    if not HAS_STOCK_GENE or _gene_mod is None:
+        raise HTTPException(503, "stock_gene 模块未加载")
+    days = max(1, min(days, 365))
+    min_delta = max(1, min(min_delta, 8))
+    return sanitize({"alerts": _gene_mod.get_alerts(days=days, min_delta=min_delta)})
+
+
 @app.put("/api/stock-gene/{ticker}/move")
 def stock_gene_move(ticker: str, req: StockGeneMoveReq):
     """把 item 移到指定 list。"""

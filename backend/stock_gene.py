@@ -1056,6 +1056,61 @@ def compare_peers_risk(tickers: list[str], sector: str = "",
     }
 
 
+# ── 评分变化预警 ────────────────────────────────────────
+def get_alerts(days: int = 30, min_delta: int = 1) -> list[dict]:
+    """
+    从 score_history 计算评分变化 alerts。
+    对每个 item 的每个 engine，看最近 2 条历史的 score 差，|delta| ≥ min_delta 算 alert。
+    返回按 checked_at 倒序的 alerts 列表。
+    """
+    from datetime import datetime, timedelta
+    data = load_watchlist()
+    cutoff = (datetime.utcnow() - timedelta(days=days)).isoformat() + "Z"
+    out = []
+    for item in data.get("items", []):
+        history = item.get("score_history") or []
+        if len(history) < 2:
+            continue
+        by_engine: dict[str, list[dict]] = {}
+        for h in history:
+            eng = h.get("engine")
+            if not eng:
+                continue
+            by_engine.setdefault(eng, []).append(h)
+        for eng_id, hs in by_engine.items():
+            if len(hs) < 2:
+                continue
+            # 按 checked_at 排序，取最后两条
+            hs_sorted = sorted(hs, key=lambda x: x.get("checked_at", ""))
+            latest = hs_sorted[-1]
+            prev = hs_sorted[-2]
+            if not latest.get("checked_at") or latest["checked_at"] < cutoff:
+                continue
+            cur_score = latest.get("score")
+            prev_score = prev.get("score")
+            if cur_score is None or prev_score is None:
+                continue
+            delta = cur_score - prev_score
+            if abs(delta) < min_delta:
+                continue
+            out.append({
+                "ticker": item["ticker"],
+                "name": item.get("name", ""),
+                "engine": eng_id,
+                "from_score": prev_score,
+                "to_score": cur_score,
+                "delta": delta,
+                "max_score": latest.get("max_score"),
+                "from_verdict": prev.get("verdict_level"),
+                "to_verdict": latest.get("verdict_level"),
+                "checked_at": latest["checked_at"],
+                "prev_checked_at": prev.get("checked_at"),
+                "list_id": item.get("list_id", "default"),
+            })
+    out.sort(key=lambda x: x["checked_at"], reverse=True)
+    return out
+
+
 # ── 导入 / 导出 ────────────────────────────────────────
 def export_data() -> dict:
     """整份观察列表（含评分历史、各引擎缓存、lists 分组）导出为 dict。"""

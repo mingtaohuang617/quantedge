@@ -22,6 +22,7 @@ import {
   Activity, Plus, Trash2, RefreshCw, Loader, AlertCircle, Check, X,
   Sparkles, Target, BarChart3, TrendingUp, Layers, ChevronRight,
   Edit2, Award, Search, ArrowUpDown, Download, Upload, Sliders, Briefcase,
+  Bell, BellOff,
 } from "lucide-react";
 import { apiFetch } from "../quant-platform.jsx";
 
@@ -204,6 +205,8 @@ const LIST_COLORS = [
 ];
 const listColor = (id) => LIST_COLORS.find(c => c.id === id) || LIST_COLORS[6];
 const ACTIVE_LIST_STORAGE_KEY = "stockgene.activeListId";
+const LAST_SEEN_ALERTS_KEY = "stockgene.lastSeenAlertsAt";
+const NOTIFY_PERMISSION_KEY = "stockgene.notifyPermission";
 
 export default function StockGene() {
   // 观察列表
@@ -219,6 +222,14 @@ export default function StockGene() {
   });
   // List 管理 modal: { mode: 'create' | 'rename' | 'delete', list? }
   const [listDialog, setListDialog] = useState(null);
+  // 评分变化 alerts
+  const [alerts, setAlerts] = useState([]);
+  const [showAlerts, setShowAlerts] = useState(false);
+  // 上次看过 alerts 的时间戳（localStorage），用于计算未读
+  const [lastSeenAlertsAt, setLastSeenAlertsAt] = useState(() => {
+    try { return localStorage.getItem(LAST_SEEN_ALERTS_KEY) || ""; }
+    catch { return ""; }
+  });
   // 持久化 activeListId
   useEffect(() => {
     try { localStorage.setItem(ACTIVE_LIST_STORAGE_KEY, activeListId); } catch {}
@@ -331,6 +342,65 @@ export default function StockGene() {
     }
   }, []);
   useEffect(() => { reloadPositions(); }, [reloadPositions]);
+
+  // ── 拉评分变化 alerts ──────────────────────────────────
+  const reloadAlerts = useCallback(async () => {
+    const json = await apiFetch("/stock-gene/alerts?days=30&min_delta=1");
+    if (json && Array.isArray(json.alerts)) {
+      setAlerts(json.alerts);
+      // 浏览器通知：仅给"未读"alerts 触发，避免重复打扰
+      if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+        try {
+          const lastSeen = localStorage.getItem(LAST_SEEN_ALERTS_KEY) || "";
+          const fresh = json.alerts.filter(a => a.checked_at > lastSeen);
+          // 单条通知概括多个 alerts，避免轰炸
+          if (fresh.length > 0) {
+            const up = fresh.filter(a => a.delta > 0).length;
+            const down = fresh.filter(a => a.delta < 0).length;
+            new Notification("Stock Gene 评分变化", {
+              body: `${fresh.length} 条新预警：↑${up} · ↓${down}\n${fresh.slice(0, 3).map(a => `${a.ticker} ${a.engine} ${a.from_score}→${a.to_score}`).join(" · ")}`,
+              tag: "stockgene-alerts",
+            });
+          }
+        } catch {}
+      }
+    }
+  }, []);
+  useEffect(() => { reloadAlerts(); }, [reloadAlerts]);
+
+  // 未读 alerts 数量（checked_at 晚于 lastSeenAlertsAt 的）
+  const unreadAlertsCount = useMemo(
+    () => alerts.filter(a => a.checked_at > lastSeenAlertsAt).length,
+    [alerts, lastSeenAlertsAt],
+  );
+
+  // 打开 alerts panel → 把"已读时间"推到最新一条之后
+  const handleOpenAlerts = useCallback(() => {
+    setShowAlerts(true);
+    if (alerts.length > 0) {
+      const latest = alerts[0].checked_at;  // alerts 已按 checked_at desc
+      setLastSeenAlertsAt(latest);
+      try { localStorage.setItem(LAST_SEEN_ALERTS_KEY, latest); } catch {}
+    }
+  }, [alerts]);
+
+  // 请求浏览器通知权限
+  const handleRequestNotifyPermission = useCallback(async () => {
+    if (typeof Notification === "undefined") {
+      window.alert("当前浏览器不支持桌面通知");
+      return;
+    }
+    if (Notification.permission === "granted") return;
+    if (Notification.permission === "denied") {
+      window.alert("通知权限已被拒绝。请到浏览器设置里手动开启。");
+      return;
+    }
+    const perm = await Notification.requestPermission();
+    try { localStorage.setItem(NOTIFY_PERMISSION_KEY, perm); } catch {}
+    if (perm === "granted") {
+      new Notification("Stock Gene", { body: "桌面通知已启用 — 评分变化会主动推送", tag: "stockgene-welcome" });
+    }
+  }, []);
 
   // 持仓但未在观察列表里的 ticker（用于建议导入 banner）
   const untrackedHoldings = useMemo(() => {
@@ -954,8 +1024,21 @@ export default function StockGene() {
             className="hidden"
             onChange={(e) => { handleImportFile(e.target.files?.[0]); e.target.value = ""; }}
           />
+          {/* 评分变化预警 铃铛 */}
           <button
-            onClick={() => { reload(); reloadPositions(); }}
+            onClick={handleOpenAlerts}
+            className="relative flex items-center justify-center w-7 h-7 rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white transition border border-white/10"
+            title={`评分变化预警（${alerts.length} 条，${unreadAlertsCount} 未读）`}
+          >
+            <Bell size={11} />
+            {unreadAlertsCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[14px] h-[14px] px-1 rounded-full bg-rose-500 text-white text-[8px] font-mono font-bold flex items-center justify-center">
+                {unreadAlertsCount > 9 ? "9+" : unreadAlertsCount}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => { reload(); reloadPositions(); reloadAlerts(); }}
             className="flex items-center gap-1 px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white transition border border-white/10"
             title="刷新（快捷键：r）"
           >
@@ -1011,6 +1094,23 @@ export default function StockGene() {
           onChange={setWeights}
           onClose={() => setShowWeightsPanel(false)}
           onReset={() => setWeights(DEFAULT_WEIGHTS)}
+        />
+      )}
+
+      {/* 评分变化 alerts panel */}
+      {showAlerts && (
+        <AlertsPanel
+          alerts={alerts}
+          onSelect={(ticker, list_id) => {
+            // 切到对应 list + 选中 ticker
+            if (list_id && lists.some(l => l.id === list_id)) {
+              setActiveListId(list_id);
+            }
+            setSelectedTicker(ticker);
+            setShowAlerts(false);
+          }}
+          onClose={() => setShowAlerts(false)}
+          onRequestNotify={handleRequestNotifyPermission}
         />
       )}
 
@@ -2509,6 +2609,104 @@ function PositionCard({ position }) {
             </span>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// AlertsPanel — 评分变化预警弹层（最近 30 天 score 变化 ≥1）
+// ─────────────────────────────────────────────────────────────
+function AlertsPanel({ alerts, onSelect, onClose, onRequestNotify }) {
+  const notifPerm = typeof Notification !== "undefined" ? Notification.permission : "unsupported";
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 bg-black/40 backdrop-blur-sm" onClick={onClose}>
+      <div
+        className="glass-card border border-white/15 rounded-lg shadow-2xl w-[520px] max-w-[90vw] max-h-[80vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+          <div className="flex items-center gap-2">
+            <Bell size={13} className="text-amber-400" />
+            <span className="text-[12px] font-semibold text-white">评分变化预警</span>
+            <span className="text-[10px] text-[#7a8497]">近 30 天 · {alerts.length} 条</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {/* 通知权限按钮 */}
+            {notifPerm === "default" && (
+              <button
+                onClick={onRequestNotify}
+                className="flex items-center gap-1 px-2 py-0.5 text-[10px] rounded bg-amber-500/15 hover:bg-amber-500/25 text-amber-200 border border-amber-500/40"
+                title="允许浏览器在评分变化时主动推送"
+              >
+                <Bell size={10} /> 启用桌面通知
+              </button>
+            )}
+            {notifPerm === "granted" && (
+              <span
+                className="flex items-center gap-1 px-2 py-0.5 text-[10px] rounded bg-emerald-500/10 text-emerald-300/80 border border-emerald-500/20"
+                title="桌面通知已启用"
+              >
+                <Bell size={10} /> 已启用
+              </span>
+            )}
+            {notifPerm === "denied" && (
+              <span
+                className="flex items-center gap-1 px-2 py-0.5 text-[10px] rounded bg-rose-500/10 text-rose-300/80 border border-rose-500/20"
+                title="浏览器已拒绝通知权限。需要到浏览器设置手动开启"
+              >
+                <BellOff size={10} /> 已拒绝
+              </span>
+            )}
+            <button onClick={onClose} className="text-[#a0aec0] hover:text-white"><X size={12} /></button>
+          </div>
+        </div>
+        <div className="flex-1 overflow-auto p-2">
+          {alerts.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-10 text-[11px] text-[#7a8497]">
+              <Bell size={20} className="text-[#5a6477] mb-2" />
+              <span>暂无评分变化</span>
+              <span className="text-[9px] mt-1">每次评分会跟历史比对，分差 ≥1 时生成预警</span>
+            </div>
+          )}
+          {alerts.map((a, idx) => {
+            const cfg = eng(a.engine);
+            const arrow = a.delta > 0 ? "▲" : "▼";
+            const color = a.delta > 0 ? "text-emerald-300" : "text-rose-300";
+            const bgColor = a.delta > 0 ? "bg-emerald-500/5" : "bg-rose-500/5";
+            const verdictChanged = a.from_verdict !== a.to_verdict;
+            return (
+              <button
+                key={`${a.ticker}-${a.engine}-${a.checked_at}-${idx}`}
+                onClick={() => onSelect(a.ticker, a.list_id)}
+                className={`w-full text-left p-2 mb-1 rounded border border-white/8 hover:border-white/20 transition ${bgColor}`}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="font-mono text-[11px] font-semibold text-white">{a.ticker}</span>
+                  {a.name && <span className="text-[10px] text-[#a0aec0] truncate flex-1">{a.name}</span>}
+                  <span className={`text-[9px] px-1 py-px rounded border ${cfg.btnBg}`}>
+                    {cfg.short} {cfg.framework}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-[10px]">
+                  <span className={`font-mono font-semibold ${color}`}>
+                    {arrow} {a.from_score} → {a.to_score} <span className="text-[9px] opacity-70">/ {a.max_score}</span>
+                  </span>
+                  {verdictChanged && a.from_verdict && a.to_verdict && (
+                    <span className="text-[9px] text-[#a0aec0]">
+                      ({cfg.verdictLabels[a.from_verdict] || a.from_verdict}
+                      {" → "}
+                      {cfg.verdictLabels[a.to_verdict] || a.to_verdict})
+                    </span>
+                  )}
+                  <span className="text-[9px] text-[#5a6477] ml-auto">
+                    {formatFreshness(a.checked_at)}
+                  </span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
