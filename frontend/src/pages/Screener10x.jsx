@@ -23,7 +23,7 @@ import {
   Filter, Search, Database, Star, ChevronRight, Globe, Sparkles, X,
   Archive, ArchiveRestore,
   Download, Upload,
-  Check,
+  Check, Activity,
 } from "lucide-react";
 import { apiFetch } from "../quant-platform.jsx";
 import TenxItemEditor from "../components/TenxItemEditor.jsx";
@@ -510,6 +510,54 @@ export default function Screener10x() {
     }
   };
 
+  // 一键加入 Stock Gene 观察列表（共享标的研究流程）
+  // 自动带上当前赛道作为 tag，加入后并行跑 4 引擎评分
+  // 返回 { added: bool, alreadyExists: bool, error?: str }
+  const [geneAdding, setGeneAdding] = useState(null); // 当前正在加的 ticker
+  const [geneToast, setGeneToast] = useState(null);   // { ticker, ok, msg }
+  const handleAddToGene = useCallback(async (candidate) => {
+    if (!candidate?.ticker) return;
+    setGeneAdding(candidate.ticker);
+    setGeneToast(null);
+    try {
+      // 把命中的赛道名作为初始标签（直接查 supertrends，避免闭包过期）
+      const trendTags = (candidate.matched_supertrends || [])
+        .map(id => supertrends.find(s => s.id === id)?.name || id)
+        .filter(Boolean);
+      const tags = [...new Set(["10x候选", ...trendTags])];
+      const addRes = await apiFetch("/stock-gene", {
+        method: "POST",
+        body: JSON.stringify({
+          ticker: candidate.ticker,
+          name: candidate.name || "",
+          market: candidate.market || "US",
+          sector: candidate.sector || candidate.industry || "",
+          tags,
+          notes: `来自 10x 猎手：${trendTags.join(" / ") || "未命中赛道"}`,
+        }),
+      });
+      if (!addRes?.ok) {
+        setGeneToast({ ticker: candidate.ticker, ok: false, msg: addRes?.detail || "加入失败" });
+        return;
+      }
+      // 并行跑 4 个引擎评分（注：trend / value / signal / risk 4 个路由）
+      const SCORE_ROUTES = ["score", "value-score", "signal-score", "risk-score"];
+      await Promise.allSettled(
+        SCORE_ROUTES.map(p => apiFetch(
+          `/stock-gene/${encodeURIComponent(candidate.ticker)}/${p}`,
+          { method: "POST" },
+        ))
+      );
+      setGeneToast({ ticker: candidate.ticker, ok: true, msg: "已加入 + 4 引擎评分" });
+      // 5 秒后自动消失
+      setTimeout(() => setGeneToast(cur => (cur?.ticker === candidate.ticker ? null : cur)), 5000);
+    } catch (e) {
+      setGeneToast({ ticker: candidate.ticker, ok: false, msg: String(e.message || e) });
+    } finally {
+      setGeneAdding(null);
+    }
+  }, [supertrends]);
+
   const handleDelete = async (ticker) => {
     if (!window.confirm(`从观察列表删除 ${ticker}？此操作不可撤销。归档（左下"显示归档"按钮）可保留 thesis。`)) return;
     await apiFetch(`/watchlist/10x/${encodeURIComponent(ticker)}`, { method: "DELETE" });
@@ -708,7 +756,7 @@ export default function Screener10x() {
                     <span className="text-[9px] text-[#7a8497] block truncate">{s.note || ""}</span>
                   </span>
                   {s.source === "user" && (
-                    <span className="text-[8px] text-violet-300/80">user</span>
+                    <span className="text-[9px] text-violet-300/80">user</span>
                   )}
                 </button>
               );
@@ -877,6 +925,27 @@ export default function Screener10x() {
                 <span>AI 排序：{aiRankingState.error}</span>
               </div>
             )}
+            {/* 加入股性检测的成功 / 失败 toast */}
+            {geneToast && (
+              <div className={`m-3 p-2 rounded text-[10px] flex items-start gap-2 ${
+                geneToast.ok
+                  ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-100"
+                  : "bg-red-500/10 border border-red-500/30 text-red-300/90"
+              }`}>
+                {geneToast.ok
+                  ? <Activity size={11} className="text-emerald-400 shrink-0 mt-0.5" />
+                  : <AlertCircle size={11} className="text-red-400 shrink-0 mt-0.5" />}
+                <div className="flex-1">
+                  <span className="font-mono text-white">{geneToast.ticker}</span>
+                  <span className="ml-1">→ 股性检测：{geneToast.msg}</span>
+                  {geneToast.ok && (
+                    <span className="ml-1 text-[9px] text-emerald-300/70">（去"股性检测"tab 查看评分）</span>
+                  )}
+                </div>
+                <button onClick={() => setGeneToast(null)}
+                  className="text-[#7a8497] hover:text-white p-0.5 rounded hover:bg-white/5"><X size={10} /></button>
+              </div>
+            )}
             {aiMatchResult && (
               <div className="m-3 p-2 bg-violet-500/10 border border-violet-500/30 rounded text-[10px] text-violet-100/90 flex items-start gap-2">
                 <Sparkles size={11} className="text-violet-400 shrink-0 mt-0.5" />
@@ -886,7 +955,7 @@ export default function Screener10x() {
                     {aiMatchResult.name && (
                       <span className="text-[9px] text-[#a0aec0] truncate">{aiMatchResult.name}</span>
                     )}
-                    {aiMatchResult.cached && <span className="text-[8px] text-amber-300/70">cached</span>}
+                    {aiMatchResult.cached && <span className="text-[9px] text-amber-300/70">cached</span>}
                   </div>
                   {aiMatchResult.error ? (
                     <div className="text-amber-300/90">{aiMatchResult.error}</div>
@@ -899,7 +968,7 @@ export default function Screener10x() {
                             {trendName(t)}
                           </span>
                         ))}
-                        <span className="text-[8px] text-[#7a8497] ml-1">
+                        <span className="text-[9px] text-[#7a8497] ml-1">
                           置信度 {(aiMatchResult.confidence * 100).toFixed(0)}%
                         </span>
                       </div>
@@ -911,7 +980,7 @@ export default function Screener10x() {
                     <div className="text-amber-300/90">
                       AI 不认为这只票属于已勾选的赛道
                       {aiMatchResult.confidence != null && (
-                        <span className="text-[8px] text-[#7a8497] ml-2">
+                        <span className="text-[9px] text-[#7a8497] ml-2">
                           置信度 {(aiMatchResult.confidence * 100).toFixed(0)}%
                         </span>
                       )}
@@ -975,7 +1044,7 @@ export default function Screener10x() {
                   {filteredCandidates.map((c) => {
                     const ai = aiRanking[c.ticker];
                     return (
-                      <tr key={c.ticker} className="border-t border-white/5 hover:bg-white/[0.02] transition">
+                      <tr key={c.ticker} className="border-t border-white/5 hover:bg-white/[0.04] transition">
                         <td className="px-2 py-1.5 font-mono text-[10px] text-white">{c.ticker}</td>
                         <td className="px-2 py-1.5 text-[10px] text-[#d0d7e2] truncate max-w-[140px]" title={c.name}>{c.name}</td>
                         <td className="px-2 py-1.5 text-[9px] text-[#a0aec0]">{c.market}{c.exchange && `·${c.exchange}`}</td>
@@ -1035,7 +1104,7 @@ export default function Screener10x() {
                                 <span
                                   key={t}
                                   title={tip}
-                                  className="text-[8px] px-1 py-px rounded bg-cyan-500/15 text-cyan-200 border border-cyan-500/30 cursor-help"
+                                  className="text-[9px] px-1 py-px rounded bg-cyan-500/15 text-cyan-200 border border-cyan-500/30 cursor-help"
                                 >
                                   {trendName(t)}
                                 </span>
@@ -1063,9 +1132,20 @@ export default function Screener10x() {
                             <button
                               onClick={() => openAdd(c)}
                               className="flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] rounded bg-indigo-500/15 hover:bg-indigo-500/30 text-indigo-200 border border-indigo-500/40 transition"
-                              title="加入观察"
+                              title="加入 10x 猎手观察列表（带 thesis / 卡位 / 目标价）"
                             >
                               <Plus size={9} /> 观察
+                            </button>
+                            <button
+                              onClick={() => handleAddToGene(c)}
+                              disabled={geneAdding === c.ticker}
+                              className="flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] rounded bg-emerald-500/15 hover:bg-emerald-500/30 text-emerald-200 border border-emerald-500/40 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                              title="加入股性检测：自动跑 4 引擎评分（趋势/价值/短期/风险）+ 带赛道标签"
+                            >
+                              {geneAdding === c.ticker
+                                ? <Loader size={9} className="animate-spin" />
+                                : <Activity size={9} />}
+                              股性
                             </button>
                           </div>
                         </td>
@@ -1167,7 +1247,6 @@ export default function Screener10x() {
         open={addTrendOpen}
         defaultStrategy={activeStrategy}   // 跟随当前 tab — value tab 加自定义赛道默认 strategy=value
         onClose={() => setAddTrendOpen(false)}
-        defaultStrategy={activeStrategy}
         onSaved={async () => {
           setAddTrendOpen(false);
           await reloadWatchlist();   // 刷新 supertrends 列表，新赛道立刻可勾选
@@ -1267,24 +1346,24 @@ function WatchlistCard({ item, trendName, currentPrice, onEdit, onDelete, onTogg
               {isValue ? "值" : "成"}
             </span>
             {archived && (
-              <span className="text-[8px] px-1 py-px rounded bg-white/5 text-[#a0aec0] border border-white/15">归档</span>
+              <span className="text-[9px] px-1 py-px rounded bg-white/5 text-[#a0aec0] border border-white/15">归档</span>
             )}
             {item.bottleneck_layer === 2 && (
               <span
-                className={`text-[8px] px-1 py-px rounded border ${isValue ? normalTone : rareTone}`}
+                className={`text-[9px] px-1 py-px rounded border ${isValue ? normalTone : rareTone}`}
                 title={isValue ? "L2 合理估值 — 安全边际偏薄" : "L2 深度认知 — 跨界看到第二层瓶颈"}
               >L2</span>
             )}
             {item.bottleneck_layer === 1 && (
               <span
-                className={`text-[8px] px-1 py-px rounded border ${isValue ? rareTone : normalTone}`}
+                className={`text-[9px] px-1 py-px rounded border ${isValue ? rareTone : normalTone}`}
                 title={isValue ? "L1 深度低估 — 显著低于内在价值" : "L1 共识层 — 主流认知层瓶颈"}
               >L1</span>
             )}
             {/* 复盘提醒（≥7 天才显示）— 强提醒用户重看 thesis */}
             {reviewState && (
               <span
-                className={`text-[8px] px-1 py-px rounded border ${
+                className={`text-[9px] px-1 py-px rounded border ${
                   reviewState.tone === "urgent"
                     ? "bg-red-500/15 text-red-300 border-red-500/40 animate-pulse"
                     : reviewState.tone === "warn"
@@ -1343,7 +1422,7 @@ function WatchlistCard({ item, trendName, currentPrice, onEdit, onDelete, onTogg
             className={n <= moat ? "text-amber-400 fill-amber-400" : "text-white/15"}
           />
         ))}
-        <span className="text-[8px] text-[#7a8497] ml-1">{isValue ? "护城河" : "卡位"}</span>
+        <span className="text-[9px] text-[#7a8497] ml-1">{isValue ? "护城河" : "卡位"}</span>
       </div>
 
       {item.bottleneck_tag && (
@@ -1390,7 +1469,7 @@ function WatchlistCard({ item, trendName, currentPrice, onEdit, onDelete, onTogg
             >
               ▲ {item.target_price}
               {priceAlerts?.target && (
-                <span className="text-[8px] opacity-80">
+                <span className="text-[9px] opacity-80">
                   {priceAlerts.target.gap >= 0
                     ? ` +${(priceAlerts.target.gap * 100).toFixed(1)}%`
                     : ` ${(priceAlerts.target.gap * 100).toFixed(1)}%`}
@@ -1416,7 +1495,7 @@ function WatchlistCard({ item, trendName, currentPrice, onEdit, onDelete, onTogg
             >
               ▼ {item.stop_loss}
               {priceAlerts?.stop && (
-                <span className="text-[8px] opacity-80">
+                <span className="text-[9px] opacity-80">
                   {priceAlerts.stop.gap < 0
                     ? ` ${(priceAlerts.stop.gap * 100).toFixed(1)}%`
                     : ` +${(priceAlerts.stop.gap * 100).toFixed(1)}%`}
@@ -1426,7 +1505,7 @@ function WatchlistCard({ item, trendName, currentPrice, onEdit, onDelete, onTogg
           )}
           {/* 当前价小字（仅有 quote 时） */}
           {priceAlerts && (
-            <span className="text-[8px] text-[#7a8497] ml-auto">
+            <span className="text-[9px] text-[#7a8497] ml-auto">
               ${priceAlerts.current.toFixed(2)}
             </span>
           )}
@@ -1436,7 +1515,7 @@ function WatchlistCard({ item, trendName, currentPrice, onEdit, onDelete, onTogg
       {item.tags && item.tags.length > 0 && (
         <div className="flex flex-wrap gap-0.5 mt-1">
           {item.tags.map((t) => (
-            <span key={t} className="text-[8px] px-1 py-px rounded bg-white/5 text-[#a0aec0] border border-white/10">#{t}</span>
+            <span key={t} className="text-[9px] px-1 py-px rounded bg-white/5 text-[#a0aec0] border border-white/10">#{t}</span>
           ))}
         </div>
       )}
