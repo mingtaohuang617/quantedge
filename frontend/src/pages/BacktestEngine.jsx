@@ -1531,13 +1531,13 @@ const BacktestEngine = () => {
               <div className="mt-1.5 space-y-1">
                 <div className="flex gap-1.5 items-center">
                   <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)}
-                    className="flex-1 bg-white/5 border border-white/10 rounded-md px-1.5 py-1 text-[10px] outline-none"
+                    className="flex-1 bg-white/5 border border-white/10 rounded-md px-1.5 py-1 text-[10px] outline-none focus:border-indigo-500/50 focus:bg-white/[0.07] focus:ring-1 focus:ring-indigo-500/25 transition-colors"
                     style={{ color: "var(--text-primary)", colorScheme: "dark" }}
                     max={customEnd || new Date().toISOString().slice(0, 10)}
                   />
                   <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>{t('至')}</span>
                   <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)}
-                    className="flex-1 bg-white/5 border border-white/10 rounded-md px-1.5 py-1 text-[10px] outline-none"
+                    className="flex-1 bg-white/5 border border-white/10 rounded-md px-1.5 py-1 text-[10px] outline-none focus:border-indigo-500/50 focus:bg-white/[0.07] focus:ring-1 focus:ring-indigo-500/25 transition-colors"
                     style={{ color: "var(--text-primary)", colorScheme: "dark" }}
                     min={customStart} max={new Date().toISOString().slice(0, 10)}
                   />

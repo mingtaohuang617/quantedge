@@ -151,7 +151,8 @@ export default function AddTransactionModal({ open, onClose, onAdded, defaultTic
               <label className="text-[9px] text-[#778] uppercase tracking-wider">交易日期</label>
               <input
                 type="date" value={tradedAt} onChange={e => setTradedAt(e.target.value)}
-                className="w-full px-2 py-1.5 mt-0.5 text-xs bg-[var(--bg-input)] border border-[var(--border-default)] rounded outline-none text-white"
+                style={{ colorScheme: "dark" }}
+                className="w-full px-2 py-1.5 mt-0.5 text-xs bg-[var(--bg-input)] border border-[var(--border-default)] rounded outline-none text-white focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/25 transition-colors"
               />
             </div>
           </div>
