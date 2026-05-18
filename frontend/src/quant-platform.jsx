@@ -15,6 +15,7 @@ const BacktestEngine = lazy(() => import("./pages/BacktestEngine.jsx"));
 const ScoringDashboard = lazy(() => import("./pages/ScoringDashboard.jsx"));
 const MacroDashboard = lazy(() => import("./pages/MacroDashboard.jsx"));
 const Screener10x = lazy(() => import("./pages/Screener10x.jsx"));
+const MiningAlpha = lazy(() => import("./pages/MiningAlpha.jsx"));
 
 let STATIC_STOCKS = [];
 let STATIC_ALERTS = [];
@@ -1220,6 +1221,7 @@ export const ScoreBar = ({ score, max = 100 }) => {
 const TAB_CFG = [
   { id: "scoring", label: "量化评分", icon: BarChart3 },
   { id: "backtest", label: "组合回测", icon: Activity },
+  { id: "miningAlpha", label: "Mining Alpha", icon: Zap },
   { id: "monitor", label: "实时监控", icon: Bell },
   { id: "journal", label: "投资日志", icon: BookOpen },
   { id: "macro", label: "宏观看板", icon: Globe },
@@ -2201,6 +2203,7 @@ function QuantPlatformInner() {
           {tab === "journal" && <Journal />}
           {tab === "macro" && <MacroDashboard />}
           {tab === "screener10x" && <Screener10x />}
+          {tab === "miningAlpha" && <MiningAlpha />}
         </Suspense>
       </main>
 

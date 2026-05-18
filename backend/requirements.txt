@@ -12,3 +12,12 @@ duckdb
 hmmlearn
 openai
 akshare
+# alpha191 因子库 + ML + 回测
+lightgbm
+scikit-learn
+matplotlib
+optuna
+xgboost           # ensemble: 多模型集成
+catboost          # ensemble: 多模型集成
+shap              # explain: SHAP 因子贡献度
+numba             # operators_jit: 大窗口算子加速
