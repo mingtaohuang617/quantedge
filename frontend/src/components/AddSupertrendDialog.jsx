@@ -95,7 +95,6 @@ export default function AddSupertrendDialog({ open, onClose, onSaved, defaultStr
           strategy: form.strategy,
           keywords_zh: kwZh,
           keywords_en: kwEn,
-          strategy: defaultStrategy,
         }),
       });
       if (!json) throw new Error("后端无响应");

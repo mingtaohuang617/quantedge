@@ -1246,7 +1246,6 @@ export default function Screener10x() {
         open={addTrendOpen}
         defaultStrategy={activeStrategy}   // 跟随当前 tab — value tab 加自定义赛道默认 strategy=value
         onClose={() => setAddTrendOpen(false)}
-        defaultStrategy={activeStrategy}
         onSaved={async () => {
           setAddTrendOpen(false);
           await reloadWatchlist();   // 刷新 supertrends 列表，新赛道立刻可勾选
