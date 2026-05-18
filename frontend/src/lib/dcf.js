@@ -113,4 +113,55 @@ export function marginOfSafety(intrinsicValue, currentPrice) {
   return (intrinsicValue - currentPrice) / intrinsicValue;
 }
 
+/**
+ * 敏感性分析矩阵：基准参数上下浮动 (折现率 r ± rDelta) × (短期增速 g1 ± gDelta)
+ * 输出 3×3 网格，每格是该 (r, g1) 组合下的内在价值；输入非法的格子 = null。
+ *
+ * 用途：用户看到 base case 后想知道"假设变 ±1% 内在价值会变多少"——
+ * 矩阵告诉他这套模型对哪个参数最敏感。
+ *
+ * @param {object} baseParams 同 calcDCF 的参数（含 fcfPerShare/.../discountRate）
+ * @param {object} [opts]
+ * @param {number} [opts.rDelta=0.01]  折现率上下浮动幅度（默认 ±1%）
+ * @param {number} [opts.gDelta=0.02]  短期增速上下浮动幅度（默认 ±2%）
+ *
+ * @returns {object} {
+ *   matrix: number|null[][],  // 3x3；matrix[i][j] = 内在价值（行=r、列=g1）
+ *   rValues: number[],        // 3 个 r 实际值（base ± rDelta）
+ *   gValues: number[],        // 3 个 g1 实际值
+ *   min: number|null,         // 有效格中的最小内在价值
+ *   max: number|null,         // 有效格中的最大内在价值
+ * }
+ */
+export function calcSensitivityMatrix(baseParams, opts = {}) {
+  const rDelta = opts.rDelta ?? 0.01;
+  const gDelta = opts.gDelta ?? 0.02;
+  const baseR = baseParams.discountRate ?? DEFAULTS.discountRate;
+  const baseG = baseParams.shortTermGrowth;
+
+  // 行 = r 三档（base-Δ / base / base+Δ）；列 = g1 三档
+  const rValues = [baseR - rDelta, baseR, baseR + rDelta];
+  const gValues = [baseG - gDelta, baseG, baseG + gDelta];
+
+  const matrix = rValues.map((r) =>
+    gValues.map((g) => {
+      const res = calcDCF({
+        ...baseParams,
+        discountRate: r,
+        shortTermGrowth: g,
+      });
+      return res.error ? null : res.intrinsicValue;
+    })
+  );
+
+  const valid = matrix.flat().filter((v) => Number.isFinite(v));
+  return {
+    matrix,
+    rValues,
+    gValues,
+    min: valid.length ? Math.min(...valid) : null,
+    max: valid.length ? Math.max(...valid) : null,
+  };
+}
+
 export const DCF_DEFAULTS = DEFAULTS;

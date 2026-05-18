@@ -13,8 +13,8 @@
 //                                  字段（点击「应用」按钮触发）
 // ─────────────────────────────────────────────────────────────
 import React, { useState, useMemo } from 'react';
-import { Calculator, ChevronDown, ChevronRight, Check, AlertCircle } from 'lucide-react';
-import { calcDCF, marginOfSafety, DCF_DEFAULTS } from '../lib/dcf.js';
+import { Calculator, ChevronDown, ChevronRight, Check, AlertCircle, Grid3x3 } from 'lucide-react';
+import { calcDCF, marginOfSafety, calcSensitivityMatrix, DCF_DEFAULTS } from '../lib/dcf.js';
 
 const INPUT_DEFAULTS = {
   fcfPerShare: '',
@@ -26,24 +26,33 @@ const INPUT_DEFAULTS = {
 
 export default function ValueDCFCalculator({ currentPrice, onApplyTarget }) {
   const [expanded, setExpanded] = useState(false);
+  const [showSensitivity, setShowSensitivity] = useState(false);
   const [inputs, setInputs] = useState(INPUT_DEFAULTS);
 
+  // 解析后的参数（统一 Number 化）
+  const parsed = useMemo(() => ({
+    fcfPerShare: Number(inputs.fcfPerShare),
+    shortTermGrowth: Number(inputs.shortTermGrowth),
+    shortTermYears: Number(inputs.shortTermYears),
+    terminalGrowth: Number(inputs.terminalGrowth),
+    discountRate: Number(inputs.discountRate),
+  }), [inputs]);
+
   const result = useMemo(() => {
-    const fcf = Number(inputs.fcfPerShare);
-    if (!fcf || fcf <= 0) return null;
-    return calcDCF({
-      fcfPerShare: fcf,
-      shortTermGrowth: Number(inputs.shortTermGrowth),
-      shortTermYears: Number(inputs.shortTermYears),
-      terminalGrowth: Number(inputs.terminalGrowth),
-      discountRate: Number(inputs.discountRate),
-    });
-  }, [inputs]);
+    if (!parsed.fcfPerShare || parsed.fcfPerShare <= 0) return null;
+    return calcDCF(parsed);
+  }, [parsed]);
 
   const safety = useMemo(() => {
     if (!result || result.error) return null;
     return marginOfSafety(result.intrinsicValue, currentPrice);
   }, [result, currentPrice]);
+
+  // 敏感性矩阵：r ± 1% × g1 ± 2%（仅在 toggle 打开且有 result 时算）
+  const sensitivity = useMemo(() => {
+    if (!showSensitivity || !result || result.error) return null;
+    return calcSensitivityMatrix(parsed, { rDelta: 0.01, gDelta: 0.02 });
+  }, [showSensitivity, parsed, result]);
 
   const set = (k, v) => setInputs((prev) => ({ ...prev, [k]: v }));
 
@@ -162,6 +171,31 @@ export default function ValueDCFCalculator({ currentPrice, onApplyTarget }) {
                 </div>
               )}
 
+              {/* 敏感性矩阵 toggle */}
+              <button
+                type="button"
+                onClick={() => setShowSensitivity(!showSensitivity)}
+                className="w-full flex items-center justify-between px-2 py-1 text-[10px] rounded bg-white/[0.03] hover:bg-white/5 text-[#a0aec0] border border-white/10 transition"
+                title="敏感性分析：折现率 ± 1% × 短期增速 ± 2% 共 9 种情境"
+              >
+                <span className="flex items-center gap-1">
+                  <Grid3x3 size={10} /> 敏感性矩阵（r ± 1%, g1 ± 2%）
+                </span>
+                {showSensitivity
+                  ? <ChevronDown size={10} />
+                  : <ChevronRight size={10} />
+                }
+              </button>
+
+              {showSensitivity && sensitivity && (
+                <SensitivityMatrix
+                  matrix={sensitivity.matrix}
+                  rValues={sensitivity.rValues}
+                  gValues={sensitivity.gValues}
+                  baseValue={result.intrinsicValue}
+                />
+              )}
+
               {/* 一键应用到目标价 */}
               {onApplyTarget && (
                 <button
@@ -182,6 +216,82 @@ export default function ValueDCFCalculator({ currentPrice, onApplyTarget }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/** 3×3 敏感性矩阵
+ *   行 = r（折现率）三档：上=低 r、中=base、下=高 r
+ *   列 = g1（短期增速）三档：左=低 g、中=base、右=高 g
+ *   配色：相对 baseValue 浮动 — > +10% emerald / 0~+10% cyan / 0~-10% gray / < -10% amber
+ *   中心格 [1][1] = base case，加 ring 标识
+ */
+function SensitivityMatrix({ matrix, rValues, gValues, baseValue }) {
+  // 配色函数：相对 base 的偏差
+  const toneClass = (val) => {
+    if (val == null) return 'bg-white/[0.02] text-[#5a6477] border-white/5';
+    const delta = (val - baseValue) / baseValue;
+    if (delta > 0.10) return 'bg-emerald-500/15 text-emerald-200 border-emerald-500/30';
+    if (delta > 0)    return 'bg-cyan-500/10 text-cyan-200 border-cyan-500/25';
+    if (delta > -0.10) return 'bg-white/5 text-[#a0aec0] border-white/15';
+    return 'bg-amber-500/10 text-amber-200 border-amber-500/30';
+  };
+
+  const fmtPct = (n) => `${(n * 100).toFixed(0)}%`;
+
+  return (
+    <div className="px-1 py-1 border border-white/10 rounded bg-white/[0.02]">
+      <table className="w-full text-[9px] font-mono">
+        <thead>
+          <tr>
+            <th className="text-[8px] font-normal text-[#5a6477] py-0.5 pr-1 text-right">r ↓ / g1 →</th>
+            {gValues.map((g, j) => (
+              <th
+                key={j}
+                className="text-[8px] font-normal text-[#7a8497] py-0.5 text-center"
+                title={`短期增速 = ${fmtPct(g)}`}
+              >
+                {fmtPct(g)}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {matrix.map((row, i) => (
+            <tr key={i}>
+              <td
+                className="text-[8px] text-[#7a8497] pr-1 text-right"
+                title={`折现率 = ${fmtPct(rValues[i])}`}
+              >
+                {fmtPct(rValues[i])}
+              </td>
+              {row.map((val, j) => {
+                const isBase = i === 1 && j === 1;
+                const delta = val != null ? (val - baseValue) / baseValue : null;
+                return (
+                  <td key={j} className="p-0.5">
+                    <div
+                      className={`px-1 py-0.5 rounded border text-center ${toneClass(val)} ${isBase ? 'ring-1 ring-emerald-400/60' : ''}`}
+                      title={
+                        val == null
+                          ? 'r ≤ g_terminal — Gordon 发散'
+                          : isBase
+                          ? `基准: ${val.toFixed(2)}`
+                          : `${val.toFixed(2)} (${delta >= 0 ? '+' : ''}${(delta * 100).toFixed(0)}% vs base)`
+                      }
+                    >
+                      {val == null ? '—' : val.toFixed(1)}
+                    </div>
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="text-[8px] text-[#5a6477] mt-1 px-1">
+        💡 数字大幅波动 = 模型对该参数敏感；建议保守取值
+      </div>
     </div>
   );
 }

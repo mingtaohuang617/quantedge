@@ -1,6 +1,6 @@
 // 两阶段 DCF 计算测试 — 纯函数，验证数学正确性 + 边界条件
 import { describe, it, expect } from 'vitest';
-import { calcDCF, marginOfSafety, DCF_DEFAULTS } from './dcf.js';
+import { calcDCF, marginOfSafety, calcSensitivityMatrix, DCF_DEFAULTS } from './dcf.js';
 
 describe('calcDCF — 输入校验', () => {
   it('fcfPerShare <= 0 返回 error', () => {
@@ -138,5 +138,80 @@ describe('marginOfSafety', () => {
 
   it('currentPrice = 0 → null', () => {
     expect(marginOfSafety(100, 0)).toBeNull();
+  });
+});
+
+describe('calcSensitivityMatrix', () => {
+  const baseParams = {
+    fcfPerShare: 3,
+    shortTermGrowth: 0.08,
+    shortTermYears: 5,
+    terminalGrowth: 0.025,
+    discountRate: 0.10,
+  };
+
+  it('返回 3x3 矩阵', () => {
+    const s = calcSensitivityMatrix(baseParams);
+    expect(s.matrix.length).toBe(3);
+    expect(s.matrix[0].length).toBe(3);
+    expect(s.rValues.length).toBe(3);
+    expect(s.gValues.length).toBe(3);
+  });
+
+  it('中心格 [1][1] = base case', () => {
+    const s = calcSensitivityMatrix(baseParams);
+    const base = calcDCF(baseParams);
+    expect(s.matrix[1][1]).toBeCloseTo(base.intrinsicValue, 6);
+  });
+
+  it('r 上下 ± rDelta；g1 上下 ± gDelta（默认 0.01 / 0.02）', () => {
+    const s = calcSensitivityMatrix(baseParams);
+    expect(s.rValues[0]).toBeCloseTo(0.09, 10);
+    expect(s.rValues[1]).toBeCloseTo(0.10, 10);
+    expect(s.rValues[2]).toBeCloseTo(0.11, 10);
+    expect(s.gValues[0]).toBeCloseTo(0.06, 10);
+    expect(s.gValues[1]).toBeCloseTo(0.08, 10);
+    expect(s.gValues[2]).toBeCloseTo(0.10, 10);
+  });
+
+  it('折现率越低 + 增速越高 → 内在价值越大（左上角 < 右下角）', () => {
+    const s = calcSensitivityMatrix(baseParams);
+    // 行=r：低 r 在 [0][*]，高 r 在 [2][*]
+    // 列=g：低 g 在 [*][0]，高 g 在 [*][2]
+    // 低 r + 高 g（[0][2]）应是最大；高 r + 低 g（[2][0]）最小
+    expect(s.matrix[0][2]).toBeGreaterThan(s.matrix[2][0]);
+    // 同 r 下：g 越大价值越大
+    expect(s.matrix[1][2]).toBeGreaterThan(s.matrix[1][0]);
+    // 同 g 下：r 越大价值越小
+    expect(s.matrix[0][1]).toBeGreaterThan(s.matrix[2][1]);
+  });
+
+  it('Gordon 发散（r ≤ g_terminal）的格子返回 null', () => {
+    // 让 r-rDelta 跌破 terminalGrowth：base r=0.025，rDelta=0.01 → r-Δ = 0.015 < g=0.025
+    const s = calcSensitivityMatrix({
+      ...baseParams,
+      discountRate: 0.025,
+      terminalGrowth: 0.024,
+    });
+    // 行 0 = r = 0.015 < terminalGrowth 0.024 → error → null
+    expect(s.matrix[0].every((v) => v === null)).toBe(true);
+    // 行 1 = r = 0.025 > 0.024 → OK
+    expect(s.matrix[1].every(Number.isFinite)).toBe(true);
+  });
+
+  it('min / max 反映有效格的实际范围', () => {
+    const s = calcSensitivityMatrix(baseParams);
+    const valid = s.matrix.flat().filter(Number.isFinite);
+    expect(s.min).toBeCloseTo(Math.min(...valid), 6);
+    expect(s.max).toBeCloseTo(Math.max(...valid), 6);
+    expect(s.min).toBeLessThan(s.max);
+  });
+
+  it('opts 自定义 rDelta / gDelta', () => {
+    const s = calcSensitivityMatrix(baseParams, { rDelta: 0.02, gDelta: 0.03 });
+    expect(s.rValues[0]).toBeCloseTo(0.08, 10);
+    expect(s.rValues[1]).toBeCloseTo(0.10, 10);
+    expect(s.rValues[2]).toBeCloseTo(0.12, 10);
+    expect(s.gValues[2] - s.gValues[1]).toBeCloseTo(0.03, 10);
   });
 });
