@@ -27,6 +27,7 @@ import FactorDetailModal from "../components/macro/FactorDetailModal.jsx";
 import TopMovers from "../components/macro/TopMovers.jsx";
 import ShortcutsHelp from "../components/macro/ShortcutsHelp.jsx";
 import FilterBar from "../components/macro/FilterBar.jsx";
+import AlertBacktestPanel from "../components/macro/AlertBacktestPanel.jsx";
 import { buildDigest } from "../components/macro/digestBuilder.js";
 
 const USE_SNAPSHOT = import.meta.env.PROD;
@@ -415,6 +416,8 @@ export default function MacroDashboard() {
       <CompositePanel data={composite} history={history} />
 
       <AlertsPanel alerts={composite?.alerts} />
+
+      {!compact && <AlertBacktestPanel history={history} />}
 
       {!compact && (
         <>

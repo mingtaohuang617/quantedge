@@ -14,13 +14,15 @@ Item schema:
     "added_at": "YYYY-MM-DD",
     "strategy": "growth" | "value",
     "supertrend_id": str,           # 必须存在于 list_supertrends() 返回的 id
-    "bottleneck_layer": 1 | 2,      # 1=共识 / 2=深度认知
+    "bottleneck_layer": 1 | 2,      # 1=共识 / 2=深度认知（growth）；1=深度低估 / 2=合理估值（value）
     "bottleneck_tag": str,
     "moat_score": int,              # 1-5
     "thesis": str,
+    "falsification_condition": str, # 假设何时被证伪 → 触发减仓/退出（pre-mortem 纪律）
     "target_price": float | None,
     "stop_loss": float | None,
     "tags": list[str],
+    "archived": bool,
     "llm_thesis_cached_at": str | None
   }
 """
@@ -135,6 +137,9 @@ _VALID_FIELDS = {
     "strategy", "supertrend_id", "bottleneck_layer", "bottleneck_tag",
     "moat_score", "thesis", "target_price", "stop_loss", "tags",
     "llm_thesis_cached_at", "archived",
+    # 卡位假设可证伪化（Druckenmiller / 桥水 pre-mortem 原则）：
+    # 强制用户写明"什么事件发生则减仓/退出"，避免持仓时把假设当信仰
+    "falsification_condition",
 }
 
 
@@ -177,6 +182,7 @@ def add_item(ticker: str, **fields) -> dict:
         "tags": list(fields.get("tags") or []),
         "llm_thesis_cached_at": None,
         "archived": bool(fields.get("archived", False)),
+        "falsification_condition": fields.get("falsification_condition", ""),
     }
     data["items"].append(item)
     save_watchlist(data)

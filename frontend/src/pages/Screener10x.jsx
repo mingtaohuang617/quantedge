@@ -5,7 +5,7 @@
 // 三段式工作流：
 //   1) 左栏：勾选超级赛道（AI 算力 / 半导体 / 光通信 / 算力中心）
 //   2) 中栏：根据勾选 + 市值上限筛出候选股，按市值升序（小市值优先）
-//   3) 右栏：用户加入观察的标的，可编辑 thesis / 卡位等级 / 目标价 / 止损
+//   3) 右栏：用户加入观察的标的，可编辑 thesis / 卡位或护城河等级 / 目标价 / 止损
 //
 // 数据来源：
 //   - GET    /api/universe/stats           候选池规模
@@ -23,6 +23,7 @@ import {
   Filter, Search, Database, Star, ChevronRight, Globe, Sparkles, X,
   Archive, ArchiveRestore,
   Download, Upload,
+  Check,
 } from "lucide-react";
 import { apiFetch } from "../quant-platform.jsx";
 import TenxItemEditor from "../components/TenxItemEditor.jsx";
@@ -57,6 +58,36 @@ function fmtMcap(mc) {
   if (mc >= 1e9) return `${(mc / 1e9).toFixed(2)}B`;
   if (mc >= 1e6) return `${(mc / 1e6).toFixed(0)}M`;
   return `${mc.toFixed(0)}`;
+}
+
+/** ticker → Yahoo Finance symbol。复用 quant-platform.jsx:fetchYahooPrices 的规则
+ *  + 补 A 股 .SH → .SS。 */
+function _tickerToYahoo(ticker) {
+  if (!ticker) return null;
+  if (ticker.endsWith(".HK")) {
+    const num = ticker.replace(".HK", "").replace(/^0+/, "").padStart(4, "0");
+    return num + ".HK";
+  }
+  if (ticker.endsWith(".SH")) return ticker.replace(".SH", ".SS");
+  // .SZ / .BJ / 美股纯 ticker 保留原样
+  return ticker;
+}
+
+/** 单只 ticker 拉当前价（regularMarketPrice）。失败返回 null。 */
+async function fetchCurrentPrice(ticker) {
+  const yfSym = _tickerToYahoo(ticker);
+  if (!yfSym) return null;
+  const path = `/v8/finance/chart/${encodeURIComponent(yfSym)}?interval=1d&range=1d`;
+  const url = `/api/yahoo?host=query1&path=${encodeURIComponent(path)}`;
+  try {
+    const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    if (!r.ok) return null;
+    const j = await r.json();
+    const px = j?.chart?.result?.[0]?.meta?.regularMarketPrice;
+    return typeof px === "number" ? px : null;
+  } catch {
+    return null;
+  }
 }
 
 const FIELD_LABEL = { sector: "板块", industry: "行业", name: "名称" };
@@ -143,9 +174,12 @@ export default function Screener10x() {
   // AI 排序：{ ticker: { moat_score, reason } }
   const [aiRanking, setAiRanking] = useState({});
   const [aiRankingState, setAiRankingState] = useState({ loading: false, error: null });
-  // AI 赛道校验：最近一次结果
+  // AI 赛道校验：最近一次结果（单行点击）
   const [aiMatchResult, setAiMatchResult] = useState(null); // { ticker, matched, reason, confidence, error? }
   const [aiMatchLoading, setAiMatchLoading] = useState(null); // 当前 loading 的 ticker
+  // AI 一键串联：批量 match 结果 + 全局进度
+  const [aiMatchMap, setAiMatchMap] = useState({}); // { ticker: { matched, confidence, error? } }
+  const [aiPipelineState, setAiPipelineState] = useState({ loading: false, matched: 0, total: 0, error: null });
   // 编辑器
   const [editorOpen, setEditorOpen] = useState(false);
   const [editing, setEditing] = useState(null);             // null = 新增
@@ -157,6 +191,8 @@ export default function Screener10x() {
   // 导入/导出 loading
   const [importLoading, setImportLoading] = useState(false);
   const importInputRef = useRef(null);
+  // 当前价（用于 target/stop 预警 badge）；只对设了 target 或 stop 的 item 拉
+  const [pricesByTicker, setPricesByTicker] = useState({});
 
   // ── 拉初始数据（watchlist + universe stats）─────────────
   const reloadWatchlist = useCallback(async (opts = {}) => {
@@ -185,6 +221,38 @@ export default function Screener10x() {
     reloadWatchlist();
     reloadUniverseStats();
   }, [reloadWatchlist, reloadUniverseStats]);
+
+  // ── 价格预警：对设了 target_price / stop_loss 的 active item 拉当前价 ───
+  // 不拉所有票（避免几十只票一起请求 Yahoo）；缓存到 pricesByTicker；items 变化
+  // 时仅补差（已拉过的不重复）
+  useEffect(() => {
+    const need = items.filter(
+      it => !it.archived && (it.target_price != null || it.stop_loss != null)
+    );
+    if (need.length === 0) return;
+    const missing = need.filter(it => !(it.ticker in pricesByTicker));
+    if (missing.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      // 分批 6 并发拉；fetchCurrentPrice 失败时返回 null，不阻塞
+      const chunks = [];
+      for (let i = 0; i < missing.length; i += 6) chunks.push(missing.slice(i, i + 6));
+      for (const chunk of chunks) {
+        if (cancelled) return;
+        const entries = await Promise.all(
+          chunk.map(async it => [it.ticker, await fetchCurrentPrice(it.ticker)])
+        );
+        if (cancelled) return;
+        setPricesByTicker(prev => {
+          const next = { ...prev };
+          for (const [tk, px] of entries) next[tk] = px; // null 也存（避免重复请求）
+          return next;
+        });
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items]);   // pricesByTicker 故意不放依赖（避免循环）；missing 检查会自动跳过已拉的
 
   // ── mcap input debounce（300ms）─────────────────────────
   // 用户在 input 里改数字时实时更新 maxMcapInput；停手 300ms 后才更新 maxMcapB，
@@ -292,6 +360,12 @@ export default function Screener10x() {
           industry: candidate.industry,
           // 限定 LLM 只在用户已勾选的赛道里选；候选很广时 LLM 容易胡判
           candidate_ids: selectedTrends,
+          // 价值型场景透传 5 维财务（backend 按 candidates 的 strategy 自动选 prompt 框架）
+          pe: candidate.pe ?? null,
+          pb: candidate.pb ?? null,
+          dividend_yield: candidate.dividend_yield ?? null,
+          roe: candidate.roe ?? null,
+          debt_to_equity: candidate.debt_to_equity ?? null,
         }),
       });
       if (!json) throw new Error("后端无响应");
@@ -326,6 +400,12 @@ export default function Screener10x() {
         sector: c.sector,
         industry: c.industry,
         marketCap: c.marketCap,
+        // 价值型场景透传 5 维财务（backend rank-candidates 按 supertrend.strategy 决定是否用上）
+        pe: c.pe ?? null,
+        pb: c.pb ?? null,
+        dividend_yield: c.dividend_yield ?? null,
+        roe: c.roe ?? null,
+        debt_to_equity: c.debt_to_equity ?? null,
       }));
       const json = await apiFetch("/llm/rank-candidates", {
         method: "POST",
@@ -347,6 +427,55 @@ export default function Screener10x() {
       setAiRankingState({ loading: false, error: String(e.message || e) });
     }
   }, [selectedTrends, candidates]);
+
+  // ── AI 一键串联：批量校验 top 5 + 排序 top 10（并发） ───
+  // 一次点击代替"AI 校验逐行点 5 次 + AI 排序"两步操作；适合 screen 完
+  // 想快速看 top 候选的场景。结果：aiMatchMap 填 5 个 ticker 的 match
+  // 结果（每行行内显示），aiRanking 填 10 个 ticker 的卡位/护城河分。
+  const AI_PIPELINE_MATCH_TOP = 5;
+  const handleAiPipeline = useCallback(async () => {
+    if (selectedTrends.length === 0 || candidates.length === 0) return;
+    const matchTargets = candidates.slice(0, AI_PIPELINE_MATCH_TOP);
+    setAiPipelineState({ loading: true, matched: 0, total: matchTargets.length, error: null });
+    setAiMatchMap({});
+
+    // rank 并发触发（独立 promise，不阻塞 match 进度）
+    const rankPromise = handleAiRank();
+
+    // match 并发：每只候选独立调，进度计数
+    let matchedCount = 0;
+    const matchPromises = matchTargets.map(async (c) => {
+      try {
+        const json = await apiFetch("/llm/match-supertrend", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ticker: c.ticker, name: c.name,
+            sector: c.sector, industry: c.industry,
+            candidate_ids: selectedTrends,
+          }),
+        });
+        if (!json) throw new Error("后端无响应");
+        if (!json.ok) throw new Error(json.error || "AI 校验失败");
+        setAiMatchMap((prev) => ({
+          ...prev,
+          [c.ticker]: {
+            matched: json.matched || [],
+            confidence: json.confidence ?? 0,
+            cached: !!json.cached,
+          },
+        }));
+      } catch (e) {
+        setAiMatchMap((prev) => ({ ...prev, [c.ticker]: { error: String(e.message || e) } }));
+      } finally {
+        matchedCount += 1;
+        setAiPipelineState((s) => ({ ...s, matched: matchedCount }));
+      }
+    });
+
+    await Promise.allSettled([rankPromise, ...matchPromises]);
+    setAiPipelineState((s) => ({ ...s, loading: false }));
+  }, [selectedTrends, candidates, handleAiRank]);
 
   // ── 交互 ────────────────────────────────────────────
   const toggleTrend = (id) => {
@@ -396,6 +525,17 @@ export default function Screener10x() {
     });
     await reloadWatchlist();
     // 归档/恢复都不影响候选 — 归档项也算"已观察过"
+  };
+
+  // 一键"已复盘" — 不必 regenerate AI 草稿就能消除 N 天未复盘 badge
+  // 用户简单看一眼觉得 thesis 仍成立 → 标记复盘，badge 重新计时
+  const handleMarkReviewed = async (ticker) => {
+    await apiFetch(`/watchlist/10x/${encodeURIComponent(ticker)}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ llm_thesis_cached_at: new Date().toISOString() }),
+    });
+    await reloadWatchlist();
   };
 
   // 导出整份 watchlist 为 .json 备份文件
@@ -609,7 +749,27 @@ export default function Screener10x() {
               />
             </div>
 
-            {/* AI 排序：按 LLM 给的卡位独特性打分，最多 10 只候选 */}
+            {/* AI 一键：批量 match top 5 + rank top 10（并发）— 替代两步点击 */}
+            <button
+              onClick={handleAiPipeline}
+              disabled={
+                aiPipelineState.loading || aiRankingState.loading || isDemoMode ||
+                selectedTrends.length === 0 || candidates.length === 0
+              }
+              className="flex items-center gap-1 px-2 py-0.5 text-[10px] rounded bg-amber-500/15 hover:bg-amber-500/25 text-amber-200 border border-amber-500/40 transition disabled:opacity-40 disabled:cursor-not-allowed"
+              title={
+                isDemoMode ? "需要 DEEPSEEK_API_KEY" :
+                `AI 一键：并发跑 top ${AI_PIPELINE_MATCH_TOP} 校验 + top 10 排序（${selectedTrends.length > 1 ? '排序用第一个勾选赛道' : '当前赛道'}）`
+              }
+            >
+              {aiPipelineState.loading ? (
+                <><Loader size={10} className="animate-spin" /> 一键 {aiPipelineState.matched}/{aiPipelineState.total}</>
+              ) : (
+                <><Sparkles size={10} /> AI 一键</>
+              )}
+            </button>
+
+            {/* AI 排序：按 LLM 给的卡位 / 护城河打分（strategy-aware），最多 10 只候选 */}
             <button
               onClick={handleAiRank}
               disabled={
@@ -620,7 +780,9 @@ export default function Screener10x() {
               title={
                 isDemoMode ? "需要 DEEPSEEK_API_KEY" :
                 selectedTrends.length > 1 ? "用第一个勾选的赛道排序" :
-                "对 top 10 候选用 LLM 打卡位独特性 1-5 分"
+                activeStrategy === "value"
+                  ? "对 top 10 候选用 LLM 打护城河 / 价值确信度 1-5 分（价值型）"
+                  : "对 top 10 候选用 LLM 打卡位独特性 1-5 分（成长型）"
               }
             >
               {aiRankingState.loading ? (
@@ -792,7 +954,18 @@ export default function Screener10x() {
                       </>
                     )}
                     {Object.keys(aiRanking).length > 0 && (
-                      <th className="text-center px-2 py-1.5 text-violet-300">AI 卡位</th>
+                      <th
+                        className="text-center px-2 py-1.5 text-violet-300"
+                        title={activeStrategy === "value" ? "护城河强度 / 价值确信度" : "卡位独特性"}
+                      >
+                        AI {activeStrategy === "value" ? "护城河" : "卡位"}
+                      </th>
+                    )}
+                    {Object.keys(aiMatchMap).length > 0 && (
+                      <th
+                        className="text-center px-2 py-1.5 text-amber-300"
+                        title="AI 一键校验：是否真的属于勾选的赛道（绿=是 / 红=否）"
+                      >AI 校验</th>
                     )}
                     <th className="text-left px-2 py-1.5">命中</th>
                     <th className="px-2 py-1.5"></th>
@@ -830,6 +1003,27 @@ export default function Screener10x() {
                             )}
                           </td>
                         )}
+                        {Object.keys(aiMatchMap).length > 0 && (() => {
+                          const m = aiMatchMap[c.ticker];
+                          const tip = !m ? "未校验"
+                            : m.error ? `错误：${m.error}`
+                            : (m.matched?.length > 0
+                                ? `命中：${m.matched.map(trendName).join(", ")}（置信度 ${((m.confidence || 0) * 100).toFixed(0)}%）`
+                                : `未命中所选赛道（置信度 ${((m.confidence || 0) * 100).toFixed(0)}%）`);
+                          return (
+                            <td className="px-2 py-1.5 text-center" title={tip}>
+                              {!m ? (
+                                <span className="text-[9px] text-[#5a6477]">—</span>
+                              ) : m.error ? (
+                                <span className="text-[10px] text-red-300/80" title={m.error}>!</span>
+                              ) : m.matched?.length > 0 ? (
+                                <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-emerald-500/20 text-emerald-200 border border-emerald-500/40">✓</span>
+                              ) : (
+                                <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-red-500/15 text-red-300 border border-red-500/40">✗</span>
+                              )}
+                            </td>
+                          );
+                        })()}
                         <td className="px-2 py-1.5">
                           <div className="flex flex-wrap gap-0.5">
                             {(c.matched_supertrends || []).map((t) => {
@@ -946,9 +1140,11 @@ export default function Screener10x() {
                 key={it.ticker}
                 item={it}
                 trendName={trendName}
+                currentPrice={pricesByTicker[it.ticker]}
                 onEdit={() => openEdit(it)}
                 onDelete={() => handleDelete(it.ticker)}
                 onToggleArchive={() => handleToggleArchive(it.ticker, !it.archived)}
+                onMarkReviewed={() => handleMarkReviewed(it.ticker)}
               />
             ))}
           </div>
@@ -968,7 +1164,9 @@ export default function Screener10x() {
       {/* 添加赛道对话框 */}
       <AddSupertrendDialog
         open={addTrendOpen}
+        defaultStrategy={activeStrategy}   // 跟随当前 tab — value tab 加自定义赛道默认 strategy=value
         onClose={() => setAddTrendOpen(false)}
+        defaultStrategy={activeStrategy}
         onSaved={async () => {
           setAddTrendOpen(false);
           await reloadWatchlist();   // 刷新 supertrends 列表，新赛道立刻可勾选
@@ -981,9 +1179,71 @@ export default function Screener10x() {
 // ─────────────────────────────────────────────────────────────
 // 观察项卡片
 // ─────────────────────────────────────────────────────────────
-function WatchlistCard({ item, trendName, onEdit, onDelete, onToggleArchive }) {
+function WatchlistCard({ item, trendName, currentPrice, onEdit, onDelete, onToggleArchive, onMarkReviewed }) {
   const moat = item.moat_score || 0;
   const archived = !!item.archived;
+  // strategy-aware：价值型和成长型 item 在同一 watchlist 里混合显示，
+  // 需要一眼可辨；同时 L1/L2 / 卡位等字段在两种策略下语义不同。
+  const isValue = (item.strategy || "growth") === "value";
+  // L1/L2 颜色按"罕见 / 突出"映射：
+  //   growth: L2 深度认知 = 罕见 → 紫；L1 共识 = 普通 → 蓝
+  //   value:  L1 深度低估 = 罕见 → 紫；L2 合理估值 = 普通 → 蓝
+  const rareTone = "bg-violet-500/15 text-violet-200 border-violet-500/40";
+  const normalTone = "bg-blue-500/15 text-blue-200 border-blue-500/40";
+
+  // 价格预警计算：基于当前价（Yahoo） vs target_price / stop_loss
+  // 用户体验：现价 - target/stop 距离用百分比 + 颜色 + emoji 表达紧迫程度
+  const priceAlerts = useMemo(() => {
+    if (currentPrice == null || typeof currentPrice !== "number") return null;
+    const out = { current: currentPrice, target: null, stop: null };
+    if (item.target_price != null) {
+      const gap = (currentPrice - item.target_price) / item.target_price;
+      // gap > 0：当前价 > target（已超），用户已达预期 → 绿色
+      // -10% < gap < 0：临近目标 → 蓝/青色
+      // gap < -10%：距离目标还远 → 灰色
+      out.target = {
+        gap,
+        tone: gap >= 0 ? "above"
+            : gap >= -0.10 ? "near" : "far",
+      };
+    }
+    if (item.stop_loss != null) {
+      const gap = (currentPrice - item.stop_loss) / item.stop_loss;
+      // gap < 0：已破止损 → 红色
+      // 0 < gap < 10%：临近止损 → 黄色
+      // gap > 10%：安全 → 不强调（灰）
+      out.stop = {
+        gap,
+        tone: gap < 0 ? "below"
+            : gap < 0.10 ? "near" : "safe",
+      };
+    }
+    return out;
+  }, [currentPrice, item.target_price, item.stop_loss]);
+
+  // 复盘提醒：从最近一次接触（added_at / llm_thesis_cached_at）算出天数
+  // > 30 天 amber 提醒；> 90 天 red 强警告（建议重看 thesis 是否仍成立）
+  const reviewState = useMemo(() => {
+    if (archived) return null;   // 归档项不提醒
+    const dates = [];
+    if (item.added_at) {
+      const d = new Date(item.added_at);
+      if (!isNaN(d)) dates.push(d.getTime());
+    }
+    if (item.llm_thesis_cached_at) {
+      const d = new Date(item.llm_thesis_cached_at);
+      if (!isNaN(d)) dates.push(d.getTime());
+    }
+    if (dates.length === 0) return null;
+    const lastMs = Math.max(...dates);
+    const daysAgo = Math.floor((Date.now() - lastMs) / 86400000);
+    if (daysAgo < 7) return null;   // < 7 天太新，不显示
+    return {
+      daysAgo,
+      tone: daysAgo >= 90 ? "urgent" : daysAgo >= 30 ? "warn" : "info",
+    };
+  }, [item.added_at, item.llm_thesis_cached_at, archived]);
+
   return (
     <div className={`glass-card p-2 border transition group ${
       archived
@@ -992,16 +1252,54 @@ function WatchlistCard({ item, trendName, onEdit, onDelete, onToggleArchive }) {
     }`}>
       <div className="flex items-start justify-between gap-2 mb-1">
         <div className="min-w-0">
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 flex-wrap">
             <span className="font-mono text-[12px] font-semibold text-white">{item.ticker}</span>
+            {/* strategy badge — 让混合 watchlist 一眼可辨 */}
+            <span
+              className={`text-[8px] px-1 py-px rounded font-medium border ${
+                isValue
+                  ? "bg-emerald-500/15 text-emerald-200 border-emerald-500/40"
+                  : "bg-indigo-500/15 text-indigo-200 border-indigo-500/40"
+              }`}
+              title={isValue ? "价值型 — Graham 安全边际" : "成长型 — 双层瓶颈 / 卡位公司"}
+            >
+              {isValue ? "值" : "成"}
+            </span>
             {archived && (
               <span className="text-[8px] px-1 py-px rounded bg-white/5 text-[#a0aec0] border border-white/15">归档</span>
             )}
             {item.bottleneck_layer === 2 && (
-              <span className="text-[8px] px-1 py-px rounded bg-violet-500/15 text-violet-200 border border-violet-500/40">L2</span>
+              <span
+                className={`text-[8px] px-1 py-px rounded border ${isValue ? normalTone : rareTone}`}
+                title={isValue ? "L2 合理估值 — 安全边际偏薄" : "L2 深度认知 — 跨界看到第二层瓶颈"}
+              >L2</span>
             )}
             {item.bottleneck_layer === 1 && (
-              <span className="text-[8px] px-1 py-px rounded bg-blue-500/15 text-blue-200 border border-blue-500/40">L1</span>
+              <span
+                className={`text-[8px] px-1 py-px rounded border ${isValue ? rareTone : normalTone}`}
+                title={isValue ? "L1 深度低估 — 显著低于内在价值" : "L1 共识层 — 主流认知层瓶颈"}
+              >L1</span>
+            )}
+            {/* 复盘提醒（≥7 天才显示）— 强提醒用户重看 thesis */}
+            {reviewState && (
+              <span
+                className={`text-[8px] px-1 py-px rounded border ${
+                  reviewState.tone === "urgent"
+                    ? "bg-red-500/15 text-red-300 border-red-500/40 animate-pulse"
+                    : reviewState.tone === "warn"
+                    ? "bg-amber-500/15 text-amber-300 border-amber-500/40"
+                    : "bg-white/5 text-[#a0aec0] border-white/15"
+                }`}
+                title={
+                  reviewState.tone === "urgent"
+                    ? `已 ${reviewState.daysAgo} 天未复盘 — 强烈建议重看 thesis 是否仍成立`
+                    : reviewState.tone === "warn"
+                    ? `已 ${reviewState.daysAgo} 天未复盘 — 建议复盘并 regenerate AI 草稿`
+                    : `${reviewState.daysAgo} 天前观察`
+                }
+              >
+                ⏰ {reviewState.daysAgo}d
+              </span>
             )}
           </div>
           {item.supertrend_id && (
@@ -1009,6 +1307,16 @@ function WatchlistCard({ item, trendName, onEdit, onDelete, onToggleArchive }) {
           )}
         </div>
         <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition">
+          {/* 一键已复盘 — 不必 regenerate 草稿就重置「N 天未复盘」badge */}
+          {!archived && onMarkReviewed && (
+            <button
+              onClick={onMarkReviewed}
+              className="p-1 rounded hover:bg-emerald-500/20 text-[#a0aec0] hover:text-emerald-300"
+              title="标记已复盘 — 重置「N 天未复盘」badge（不必重新生成 AI 草稿）"
+            >
+              <Check size={10} />
+            </button>
+          )}
           <button onClick={onEdit} className="p-1 rounded hover:bg-white/10 text-[#a0aec0] hover:text-white" title="编辑">
             <Edit2 size={10} />
           </button>
@@ -1034,7 +1342,7 @@ function WatchlistCard({ item, trendName, onEdit, onDelete, onToggleArchive }) {
             className={n <= moat ? "text-amber-400 fill-amber-400" : "text-white/15"}
           />
         ))}
-        <span className="text-[8px] text-[#7a8497] ml-1">卡位</span>
+        <span className="text-[8px] text-[#7a8497] ml-1">{isValue ? "护城河" : "卡位"}</span>
       </div>
 
       {item.bottleneck_tag && (
@@ -1050,10 +1358,77 @@ function WatchlistCard({ item, trendName, onEdit, onDelete, onToggleArchive }) {
         </div>
       )}
 
+      {/* 假设证伪条件（pre-mortem）— 红色警示色，写了就立刻能看到 */}
+      {item.falsification_condition && (
+        <div
+          className="text-[10px] text-amber-200/90 leading-relaxed mb-1 flex items-start gap-1 px-1.5 py-1 bg-amber-500/8 border border-amber-500/25 rounded"
+          title={`证伪条件：${item.falsification_condition}`}
+        >
+          <span className="text-amber-400 shrink-0">⚠</span>
+          <span className="break-words line-clamp-2">{item.falsification_condition}</span>
+        </div>
+      )}
+
       {(item.target_price || item.stop_loss) && (
-        <div className="flex items-center gap-2 text-[9px] font-mono">
-          {item.target_price && <span className="text-emerald-300">▲ {item.target_price}</span>}
-          {item.stop_loss && <span className="text-red-300">▼ {item.stop_loss}</span>}
+        <div className="flex items-center gap-2 text-[9px] font-mono flex-wrap">
+          {/* 目标价 + 距当前价 % */}
+          {item.target_price && (
+            <span
+              className={`flex items-center gap-0.5 ${
+                priceAlerts?.target?.tone === "above"
+                  ? "text-emerald-300 font-semibold"
+                  : priceAlerts?.target?.tone === "near"
+                  ? "text-cyan-300"
+                  : "text-emerald-300/60"
+              }`}
+              title={priceAlerts
+                ? `当前价 ${priceAlerts.current.toFixed(2)} vs 目标 ${item.target_price}：${
+                    priceAlerts.target.gap >= 0 ? "已达 +" : "距 "
+                  }${Math.abs(priceAlerts.target.gap * 100).toFixed(1)}%`
+                : "目标价"}
+            >
+              ▲ {item.target_price}
+              {priceAlerts?.target && (
+                <span className="text-[8px] opacity-80">
+                  {priceAlerts.target.gap >= 0
+                    ? ` +${(priceAlerts.target.gap * 100).toFixed(1)}%`
+                    : ` ${(priceAlerts.target.gap * 100).toFixed(1)}%`}
+                </span>
+              )}
+            </span>
+          )}
+          {/* 止损位 + 距当前价 % */}
+          {item.stop_loss && (
+            <span
+              className={`flex items-center gap-0.5 ${
+                priceAlerts?.stop?.tone === "below"
+                  ? "text-red-400 font-semibold animate-pulse"
+                  : priceAlerts?.stop?.tone === "near"
+                  ? "text-amber-300"
+                  : "text-red-300/60"
+              }`}
+              title={priceAlerts
+                ? `当前价 ${priceAlerts.current.toFixed(2)} vs 止损 ${item.stop_loss}：${
+                    priceAlerts.stop.gap < 0 ? "已破 " : "距 +"
+                  }${Math.abs(priceAlerts.stop.gap * 100).toFixed(1)}%`
+                : "止损位"}
+            >
+              ▼ {item.stop_loss}
+              {priceAlerts?.stop && (
+                <span className="text-[8px] opacity-80">
+                  {priceAlerts.stop.gap < 0
+                    ? ` ${(priceAlerts.stop.gap * 100).toFixed(1)}%`
+                    : ` +${(priceAlerts.stop.gap * 100).toFixed(1)}%`}
+                </span>
+              )}
+            </span>
+          )}
+          {/* 当前价小字（仅有 quote 时） */}
+          {priceAlerts && (
+            <span className="text-[8px] text-[#7a8497] ml-auto">
+              ${priceAlerts.current.toFixed(2)}
+            </span>
+          )}
         </div>
       )}
 

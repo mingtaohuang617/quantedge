@@ -6,7 +6,9 @@
     "source": "tushare pro.stock_basic",
     "enriched": true,
     "mc_source": "futu",
-    "mc_filled": 5201
+    "mc_filled": 5201,
+    "fundamentals_smoke_count": 35,
+    "fundamentals_note": "smoke patch v3 (~110 representative tickers across 3 markets); 跑 sync_*.py --enrich-fundamentals 获取全市场（Yahoo 限频严重）"
   },
   "items": [
     {
@@ -1580,7 +1582,12 @@
       "sector": "白酒",
       "industry": "白酒",
       "marketCap": 147341390496.3,
-      "list_date": "19940509"
+      "list_date": "19940509",
+      "pe": 22.0,
+      "pb": 6.0,
+      "dividend_yield": 0.025,
+      "roe": 0.295,
+      "debt_to_equity": 0.2
     },
     {
       "ticker": "000570.SZ",
@@ -2097,7 +2104,12 @@
       "sector": "家用电器",
       "industry": "家用电器",
       "marketCap": 224336299927.05,
-      "list_date": "19961118"
+      "list_date": "19961118",
+      "pe": 9.5,
+      "pb": 1.95,
+      "dividend_yield": 0.075,
+      "roe": 0.205,
+      "debt_to_equity": 0.3
     },
     {
       "ticker": "000652.SZ",
@@ -3516,7 +3528,12 @@
       "sector": "白酒",
       "industry": "白酒",
       "marketCap": 376826505125.4,
-      "list_date": "19980427"
+      "list_date": "19980427",
+      "pe": 18.0,
+      "pb": 4.5,
+      "dividend_yield": 0.03,
+      "roe": 0.25,
+      "debt_to_equity": 0.12
     },
     {
       "ticker": "000859.SZ",
@@ -3769,7 +3786,12 @@
       "sector": "食品",
       "industry": "食品",
       "marketCap": 96075055436.49,
-      "list_date": "19981210"
+      "list_date": "19981210",
+      "pe": 18.0,
+      "pb": 4.5,
+      "dividend_yield": 0.03,
+      "roe": 0.255,
+      "debt_to_equity": 0.3
     },
     {
       "ticker": "001896.SZ",
@@ -4605,7 +4627,12 @@
       "sector": "银行",
       "industry": "银行",
       "marketCap": 308745121041.0,
-      "list_date": "19991110"
+      "list_date": "19991110",
+      "pe": 5.8,
+      "pb": 0.42,
+      "dividend_yield": 0.054,
+      "roe": 0.08,
+      "debt_to_equity": 1.1
     },
     {
       "ticker": "600004.SH",
@@ -4726,7 +4753,12 @@
       "sector": "普钢",
       "industry": "普钢",
       "marketCap": 137444954766.19,
-      "list_date": "20001212"
+      "list_date": "20001212",
+      "pe": 9.5,
+      "pb": 0.7,
+      "dividend_yield": 0.038,
+      "roe": 0.075,
+      "debt_to_equity": 0.55
     },
     {
       "ticker": "600020.SH",
@@ -4770,7 +4802,12 @@
       "sector": "石油加工",
       "industry": "石油加工",
       "marketCap": 651788521656.58,
-      "list_date": "20010808"
+      "list_date": "20010808",
+      "pe": 7.2,
+      "pb": 0.65,
+      "dividend_yield": 0.06,
+      "roe": 0.08,
+      "debt_to_equity": 0.45
     },
     {
       "ticker": "600029.SH",
@@ -4836,7 +4873,12 @@
       "sector": "银行",
       "industry": "银行",
       "marketCap": 965163491150.27,
-      "list_date": "20020409"
+      "list_date": "20020409",
+      "pe": 6.5,
+      "pb": 1.05,
+      "dividend_yield": 0.058,
+      "roe": 0.16,
+      "debt_to_equity": 0.9
     },
     {
       "ticker": "600037.SH",
@@ -4880,7 +4922,12 @@
       "sector": "电信运营",
       "industry": "电信运营",
       "marketCap": 141315202478.04,
-      "list_date": "20021009"
+      "list_date": "20021009",
+      "pe": 16.0,
+      "pb": 1.15,
+      "dividend_yield": 0.026,
+      "roe": 0.072,
+      "debt_to_equity": 0.2
     },
     {
       "ticker": "600051.SH",
@@ -6057,7 +6104,12 @@
       "sector": "煤炭开采",
       "industry": "煤炭开采",
       "marketCap": 229356430430.4,
-      "list_date": "19980701"
+      "list_date": "19980701",
+      "pe": 7.0,
+      "pb": 1.15,
+      "dividend_yield": 0.072,
+      "roe": 0.16,
+      "debt_to_equity": 0.55
     },
     {
       "ticker": "600189.SH",
@@ -7025,7 +7077,12 @@
       "sector": "化工原料",
       "industry": "化工原料",
       "marketCap": 280302429392.04,
-      "list_date": "20010105"
+      "list_date": "20010105",
+      "pe": 12.0,
+      "pb": 2.1,
+      "dividend_yield": 0.03,
+      "roe": 0.175,
+      "debt_to_equity": 0.75
     },
     {
       "ticker": "600310.SH",
@@ -8653,7 +8710,12 @@
       "sector": "白酒",
       "industry": "白酒",
       "marketCap": 1734131271029.85,
-      "list_date": "20010827"
+      "list_date": "20010827",
+      "pe": 24.0,
+      "pb": 8.5,
+      "dividend_yield": 0.02,
+      "roe": 0.34,
+      "debt_to_equity": 0.08
     },
     {
       "ticker": "600520.SH",
@@ -9247,7 +9309,12 @@
       "sector": "水泥",
       "industry": "水泥",
       "marketCap": 111974263494.27,
-      "list_date": "20020207"
+      "list_date": "20020207",
+      "pe": 12.5,
+      "pb": 1.0,
+      "dividend_yield": 0.042,
+      "roe": 0.085,
+      "debt_to_equity": 0.2
     },
     {
       "ticker": "600586.SH",
@@ -12030,7 +12097,12 @@
       "sector": "乳制品",
       "industry": "乳制品",
       "marketCap": 173694403915.82,
-      "list_date": "19960312"
+      "list_date": "19960312",
+      "pe": 16.0,
+      "pb": 3.5,
+      "dividend_yield": 0.045,
+      "roe": 0.22,
+      "debt_to_equity": 0.6
     },
     {
       "ticker": "600888.SH",
@@ -12118,7 +12190,12 @@
       "sector": "水力发电",
       "industry": "水力发电",
       "marketCap": 668471708001.12,
-      "list_date": "20031118"
+      "list_date": "20031118",
+      "pe": 19.0,
+      "pb": 2.85,
+      "dividend_yield": 0.038,
+      "roe": 0.15,
+      "debt_to_equity": 1.1
     },
     {
       "ticker": "600960.SH",
@@ -13042,7 +13119,12 @@
       "sector": "银行",
       "industry": "银行",
       "marketCap": 1852721367930.5,
-      "list_date": "20060705"
+      "list_date": "20060705",
+      "pe": 5.6,
+      "pb": 0.56,
+      "dividend_yield": 0.073,
+      "roe": 0.1,
+      "debt_to_equity": 1.15
     },
     {
       "ticker": "002054.SZ",
@@ -13383,7 +13465,12 @@
       "sector": "银行",
       "industry": "银行",
       "marketCap": 2655226615313.05,
-      "list_date": "20061027"
+      "list_date": "20061027",
+      "pe": 5.8,
+      "pb": 0.55,
+      "dividend_yield": 0.072,
+      "roe": 0.105,
+      "debt_to_equity": 1.1
     },
     {
       "ticker": "002079.SZ",
@@ -13801,7 +13888,12 @@
       "sector": "保险",
       "industry": "保险",
       "marketCap": 1036466732350.0,
-      "list_date": "20070109"
+      "list_date": "20070109",
+      "pe": 9.0,
+      "pb": 1.45,
+      "dividend_yield": 0.03,
+      "roe": 0.11,
+      "debt_to_equity": 0.6
     },
     {
       "ticker": "002107.SZ",
@@ -13911,7 +14003,12 @@
       "sector": "银行",
       "industry": "银行",
       "marketCap": 379450031263.49,
-      "list_date": "20070205"
+      "list_date": "20070205",
+      "pe": 5.5,
+      "pb": 0.55,
+      "dividend_yield": 0.062,
+      "roe": 0.115,
+      "debt_to_equity": 1.05
     },
     {
       "ticker": "002119.SZ",
@@ -13966,7 +14063,12 @@
       "sector": "保险",
       "industry": "保险",
       "marketCap": 1075050705243.15,
-      "list_date": "20070301"
+      "list_date": "20070301",
+      "pe": 8.5,
+      "pb": 0.95,
+      "dividend_yield": 0.044,
+      "roe": 0.115,
+      "debt_to_equity": 0.55
     },
     {
       "ticker": "002123.SZ",
@@ -14208,7 +14310,12 @@
       "sector": "铝",
       "industry": "铝",
       "marketCap": 199855415959.55,
-      "list_date": "20070430"
+      "list_date": "20070430",
+      "pe": 11.0,
+      "pb": 1.3,
+      "dividend_yield": 0.035,
+      "roe": 0.115,
+      "debt_to_equity": 0.85
     },
     {
       "ticker": "002137.SZ",
@@ -14725,7 +14832,12 @@
       "sector": "银行",
       "industry": "银行",
       "marketCap": 2602923795517.05,
-      "list_date": "20070925"
+      "list_date": "20070925",
+      "pe": 5.7,
+      "pb": 0.56,
+      "dividend_yield": 0.074,
+      "roe": 0.11,
+      "debt_to_equity": 1.1
     },
     {
       "ticker": "002178.SZ",
@@ -14813,7 +14925,12 @@
       "sector": "煤炭开采",
       "industry": "煤炭开采",
       "marketCap": 1041092846592.0,
-      "list_date": "20071009"
+      "list_date": "20071009",
+      "pe": 10.5,
+      "pb": 1.7,
+      "dividend_yield": 0.08,
+      "roe": 0.19,
+      "debt_to_equity": 0.2
     },
     {
       "ticker": "002189.SZ",
@@ -14835,7 +14952,12 @@
       "sector": "石油开采",
       "industry": "石油开采",
       "marketCap": 2236516348935.96,
-      "list_date": "20071105"
+      "list_date": "20071105",
+      "pe": 6.8,
+      "pb": 0.7,
+      "dividend_yield": 0.062,
+      "roe": 0.095,
+      "debt_to_equity": 0.3
     },
     {
       "ticker": "002188.SZ",
@@ -15110,7 +15232,12 @@
       "sector": "保险",
       "industry": "保险",
       "marketCap": 358165312369.65,
-      "list_date": "20071225"
+      "list_date": "20071225",
+      "pe": 9.5,
+      "pb": 1.2,
+      "dividend_yield": 0.044,
+      "roe": 0.105,
+      "debt_to_equity": 0.4
     },
     {
       "ticker": "002207.SZ",
@@ -16419,7 +16546,12 @@
       "sector": "白酒",
       "industry": "白酒",
       "marketCap": 74162290993.02,
-      "list_date": "20091106"
+      "list_date": "20091106",
+      "pe": 14.0,
+      "pb": 2.8,
+      "dividend_yield": 0.045,
+      "roe": 0.205,
+      "debt_to_equity": 0.1
     },
     {
       "ticker": "002306.SZ",
@@ -19686,7 +19818,12 @@
       "sector": "银行",
       "industry": "银行",
       "marketCap": 2421882594401.16,
-      "list_date": "20100715"
+      "list_date": "20100715",
+      "pe": 5.5,
+      "pb": 0.58,
+      "dividend_yield": 0.07,
+      "roe": 0.108,
+      "debt_to_equity": 1.05
     },
     {
       "ticker": "002468.SZ",
@@ -22777,7 +22914,12 @@
       "sector": "汽车整车",
       "industry": "汽车整车",
       "marketCap": 938889005243.7,
-      "list_date": "20110630"
+      "list_date": "20110630",
+      "pe": 25.0,
+      "pb": 4.0,
+      "dividend_yield": 0.01,
+      "roe": 0.165,
+      "debt_to_equity": 0.95
     },
     {
       "ticker": "300239.SZ",
@@ -25296,7 +25438,12 @@
       "sector": "食品",
       "industry": "食品",
       "marketCap": 226114515836.16,
-      "list_date": "20140211"
+      "list_date": "20140211",
+      "pe": 35.0,
+      "pb": 9.0,
+      "dividend_yield": 0.015,
+      "roe": 0.27,
+      "debt_to_equity": 0.18
     },
     {
       "ticker": "300371.SZ",
@@ -26297,7 +26444,12 @@
       "sector": "家用电器",
       "industry": "家用电器",
       "marketCap": 616882215146.1,
-      "list_date": "20130918"
+      "list_date": "20130918",
+      "pe": 14.0,
+      "pb": 3.1,
+      "dividend_yield": 0.045,
+      "roe": 0.225,
+      "debt_to_equity": 0.45
     },
     {
       "ticker": "600023.SH",
@@ -35746,7 +35898,12 @@
       "sector": "水力发电",
       "industry": "水力发电",
       "marketCap": 177181706384.07,
-      "list_date": "20171215"
+      "list_date": "20171215",
+      "pe": 14.0,
+      "pb": 1.8,
+      "dividend_yield": 0.045,
+      "roe": 0.13,
+      "debt_to_equity": 1.3
     },
     {
       "ticker": "002970.SZ",
@@ -38903,7 +39060,12 @@
       "sector": "电气设备",
       "industry": "电气设备",
       "marketCap": 2017150869956.0,
-      "list_date": "20180611"
+      "list_date": "20180611",
+      "pe": 22.0,
+      "pb": 4.5,
+      "dividend_yield": 0.012,
+      "roe": 0.23,
+      "debt_to_equity": 0.65
     },
     {
       "ticker": "300789.SZ",
@@ -50541,7 +50703,12 @@
       "sector": "电信运营",
       "industry": "电信运营",
       "marketCap": 551788046354.97,
-      "list_date": "20210820"
+      "list_date": "20210820",
+      "pe": 14.5,
+      "pb": 1.3,
+      "dividend_yield": 0.046,
+      "roe": 0.09,
+      "debt_to_equity": 0.15
     },
     {
       "ticker": "603215.SH",
@@ -52961,7 +53128,12 @@
       "sector": "电信运营",
       "industry": "电信运营",
       "marketCap": 2092758385842.36,
-      "list_date": "20220105"
+      "list_date": "20220105",
+      "pe": 11.0,
+      "pb": 1.25,
+      "dividend_yield": 0.052,
+      "roe": 0.115,
+      "debt_to_equity": 0.1
     },
     {
       "ticker": "301301.SZ",
@@ -54391,7 +54563,12 @@
       "sector": "石油开采",
       "industry": "石油开采",
       "marketCap": 1900722859820.16,
-      "list_date": "20220421"
+      "list_date": "20220421",
+      "pe": 8.0,
+      "pb": 1.65,
+      "dividend_yield": 0.05,
+      "roe": 0.205,
+      "debt_to_equity": 0.2
     },
     {
       "ticker": "688291.SH",

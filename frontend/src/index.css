@@ -568,6 +568,18 @@ input[type="range"]::-webkit-slider-runnable-track {
   background: var(--scrollbar-hover);
 }
 
+/* ── 全局 focus-visible 焦点圈 ── */
+/* 只在键盘 / 程序聚焦时显示（鼠标点击不显示，避免噪声）。
+ * 颜色用 indigo-400/70，跟项目其余 accent 一致；offset 让圈不贴元素边缘。
+ * 注：button / a / input / select 默认应用；后续的 input:focus glow 仍有效。
+ */
+*:focus { outline: none; }
+*:focus-visible {
+  outline: 2px solid rgba(129, 140, 248, 0.7);
+  outline-offset: 2px;
+  border-radius: inherit;
+}
+
 /* ── Search box focus glow ── */
 input[type="text"]:focus {
   box-shadow: var(--focus-glow);
