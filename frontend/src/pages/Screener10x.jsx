@@ -19,15 +19,16 @@
 // ─────────────────────────────────────────────────────────────
 import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import {
-  Target, Layers, Plus, Edit2, Trash2, RefreshCw, Loader, AlertCircle,
-  Filter, Search, Database, Star, ChevronRight, Globe, Sparkles, X,
-  Archive, ArchiveRestore,
+  Target, Layers, Plus, RefreshCw, Loader, AlertCircle,
+  Filter, Search, Database, Star, Globe, Sparkles, X,
+  Archive,
   Download, Upload,
-  Check,
+  Activity,
 } from "lucide-react";
 import { apiFetch } from "../quant-platform.jsx";
 import TenxItemEditor from "../components/TenxItemEditor.jsx";
 import AddSupertrendDialog from "../components/AddSupertrendDialog.jsx";
+import WatchlistCard from "../components/WatchlistCard.jsx";
 
 const STRATEGY_LABEL = { growth: "成长型", value: "价值型" };
 
@@ -510,6 +511,54 @@ export default function Screener10x() {
     }
   };
 
+  // 一键加入 Stock Gene 观察列表（共享标的研究流程）
+  // 自动带上当前赛道作为 tag，加入后并行跑 4 引擎评分
+  // 返回 { added: bool, alreadyExists: bool, error?: str }
+  const [geneAdding, setGeneAdding] = useState(null); // 当前正在加的 ticker
+  const [geneToast, setGeneToast] = useState(null);   // { ticker, ok, msg }
+  const handleAddToGene = useCallback(async (candidate) => {
+    if (!candidate?.ticker) return;
+    setGeneAdding(candidate.ticker);
+    setGeneToast(null);
+    try {
+      // 把命中的赛道名作为初始标签（直接查 supertrends，避免闭包过期）
+      const trendTags = (candidate.matched_supertrends || [])
+        .map(id => supertrends.find(s => s.id === id)?.name || id)
+        .filter(Boolean);
+      const tags = [...new Set(["10x候选", ...trendTags])];
+      const addRes = await apiFetch("/stock-gene", {
+        method: "POST",
+        body: JSON.stringify({
+          ticker: candidate.ticker,
+          name: candidate.name || "",
+          market: candidate.market || "US",
+          sector: candidate.sector || candidate.industry || "",
+          tags,
+          notes: `来自 10x 猎手：${trendTags.join(" / ") || "未命中赛道"}`,
+        }),
+      });
+      if (!addRes?.ok) {
+        setGeneToast({ ticker: candidate.ticker, ok: false, msg: addRes?.detail || "加入失败" });
+        return;
+      }
+      // 并行跑 4 个引擎评分（注：trend / value / signal / risk 4 个路由）
+      const SCORE_ROUTES = ["score", "value-score", "signal-score", "risk-score"];
+      await Promise.allSettled(
+        SCORE_ROUTES.map(p => apiFetch(
+          `/stock-gene/${encodeURIComponent(candidate.ticker)}/${p}`,
+          { method: "POST" },
+        ))
+      );
+      setGeneToast({ ticker: candidate.ticker, ok: true, msg: "已加入 + 4 引擎评分" });
+      // 5 秒后自动消失
+      setTimeout(() => setGeneToast(cur => (cur?.ticker === candidate.ticker ? null : cur)), 5000);
+    } catch (e) {
+      setGeneToast({ ticker: candidate.ticker, ok: false, msg: String(e.message || e) });
+    } finally {
+      setGeneAdding(null);
+    }
+  }, [supertrends]);
+
   const handleDelete = async (ticker) => {
     if (!window.confirm(`从观察列表删除 ${ticker}？此操作不可撤销。归档（左下"显示归档"按钮）可保留 thesis。`)) return;
     await apiFetch(`/watchlist/10x/${encodeURIComponent(ticker)}`, { method: "DELETE" });
@@ -708,7 +757,7 @@ export default function Screener10x() {
                     <span className="text-[9px] text-[#7a8497] block truncate">{s.note || ""}</span>
                   </span>
                   {s.source === "user" && (
-                    <span className="text-[8px] text-violet-300/80">user</span>
+                    <span className="text-[9px] text-violet-300/80">user</span>
                   )}
                 </button>
               );
@@ -877,6 +926,27 @@ export default function Screener10x() {
                 <span>AI 排序：{aiRankingState.error}</span>
               </div>
             )}
+            {/* 加入股性检测的成功 / 失败 toast */}
+            {geneToast && (
+              <div className={`m-3 p-2 rounded text-[10px] flex items-start gap-2 ${
+                geneToast.ok
+                  ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-100"
+                  : "bg-red-500/10 border border-red-500/30 text-red-300/90"
+              }`}>
+                {geneToast.ok
+                  ? <Activity size={11} className="text-emerald-400 shrink-0 mt-0.5" />
+                  : <AlertCircle size={11} className="text-red-400 shrink-0 mt-0.5" />}
+                <div className="flex-1">
+                  <span className="font-mono text-white">{geneToast.ticker}</span>
+                  <span className="ml-1">→ 股性检测：{geneToast.msg}</span>
+                  {geneToast.ok && (
+                    <span className="ml-1 text-[9px] text-emerald-300/70">（去"股性检测"tab 查看评分）</span>
+                  )}
+                </div>
+                <button onClick={() => setGeneToast(null)}
+                  className="text-[#7a8497] hover:text-white p-0.5 rounded hover:bg-white/5"><X size={10} /></button>
+              </div>
+            )}
             {aiMatchResult && (
               <div className="m-3 p-2 bg-violet-500/10 border border-violet-500/30 rounded text-[10px] text-violet-100/90 flex items-start gap-2">
                 <Sparkles size={11} className="text-violet-400 shrink-0 mt-0.5" />
@@ -886,7 +956,7 @@ export default function Screener10x() {
                     {aiMatchResult.name && (
                       <span className="text-[9px] text-[#a0aec0] truncate">{aiMatchResult.name}</span>
                     )}
-                    {aiMatchResult.cached && <span className="text-[8px] text-amber-300/70">cached</span>}
+                    {aiMatchResult.cached && <span className="text-[9px] text-amber-300/70">cached</span>}
                   </div>
                   {aiMatchResult.error ? (
                     <div className="text-amber-300/90">{aiMatchResult.error}</div>
@@ -899,7 +969,7 @@ export default function Screener10x() {
                             {trendName(t)}
                           </span>
                         ))}
-                        <span className="text-[8px] text-[#7a8497] ml-1">
+                        <span className="text-[9px] text-[#7a8497] ml-1">
                           置信度 {(aiMatchResult.confidence * 100).toFixed(0)}%
                         </span>
                       </div>
@@ -911,7 +981,7 @@ export default function Screener10x() {
                     <div className="text-amber-300/90">
                       AI 不认为这只票属于已勾选的赛道
                       {aiMatchResult.confidence != null && (
-                        <span className="text-[8px] text-[#7a8497] ml-2">
+                        <span className="text-[9px] text-[#7a8497] ml-2">
                           置信度 {(aiMatchResult.confidence * 100).toFixed(0)}%
                         </span>
                       )}
@@ -975,7 +1045,7 @@ export default function Screener10x() {
                   {filteredCandidates.map((c) => {
                     const ai = aiRanking[c.ticker];
                     return (
-                      <tr key={c.ticker} className="border-t border-white/5 hover:bg-white/[0.02] transition">
+                      <tr key={c.ticker} className="border-t border-white/5 hover:bg-white/[0.04] transition">
                         <td className="px-2 py-1.5 font-mono text-[10px] text-white">{c.ticker}</td>
                         <td className="px-2 py-1.5 text-[10px] text-[#d0d7e2] truncate max-w-[140px]" title={c.name}>{c.name}</td>
                         <td className="px-2 py-1.5 text-[9px] text-[#a0aec0]">{c.market}{c.exchange && `·${c.exchange}`}</td>
@@ -1035,7 +1105,7 @@ export default function Screener10x() {
                                 <span
                                   key={t}
                                   title={tip}
-                                  className="text-[8px] px-1 py-px rounded bg-cyan-500/15 text-cyan-200 border border-cyan-500/30 cursor-help"
+                                  className="text-[9px] px-1 py-px rounded bg-cyan-500/15 text-cyan-200 border border-cyan-500/30 cursor-help"
                                 >
                                   {trendName(t)}
                                 </span>
@@ -1063,9 +1133,20 @@ export default function Screener10x() {
                             <button
                               onClick={() => openAdd(c)}
                               className="flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] rounded bg-indigo-500/15 hover:bg-indigo-500/30 text-indigo-200 border border-indigo-500/40 transition"
-                              title="加入观察"
+                              title="加入 10x 猎手观察列表（带 thesis / 卡位 / 目标价）"
                             >
                               <Plus size={9} /> 观察
+                            </button>
+                            <button
+                              onClick={() => handleAddToGene(c)}
+                              disabled={geneAdding === c.ticker}
+                              className="flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] rounded bg-emerald-500/15 hover:bg-emerald-500/30 text-emerald-200 border border-emerald-500/40 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                              title="加入股性检测：自动跑 4 引擎评分（趋势/价值/短期/风险）+ 带赛道标签"
+                            >
+                              {geneAdding === c.ticker
+                                ? <Loader size={9} className="animate-spin" />
+                                : <Activity size={9} />}
+                              股性
                             </button>
                           </div>
                         </td>
@@ -1157,6 +1238,7 @@ export default function Screener10x() {
         item={editing}
         candidate={pendingCandidate}
         supertrends={supertrends}
+        currentPrice={pricesByTicker[editing?.ticker || pendingCandidate?.ticker]}
         onClose={() => { setEditorOpen(false); setEditing(null); setPendingCandidate(null); }}
         onSaved={handleSaved}
       />
@@ -1166,279 +1248,11 @@ export default function Screener10x() {
         open={addTrendOpen}
         defaultStrategy={activeStrategy}   // 跟随当前 tab — value tab 加自定义赛道默认 strategy=value
         onClose={() => setAddTrendOpen(false)}
-        defaultStrategy={activeStrategy}
         onSaved={async () => {
           setAddTrendOpen(false);
           await reloadWatchlist();   // 刷新 supertrends 列表，新赛道立刻可勾选
         }}
       />
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────
-// 观察项卡片
-// ─────────────────────────────────────────────────────────────
-function WatchlistCard({ item, trendName, currentPrice, onEdit, onDelete, onToggleArchive, onMarkReviewed }) {
-  const moat = item.moat_score || 0;
-  const archived = !!item.archived;
-  // strategy-aware：价值型和成长型 item 在同一 watchlist 里混合显示，
-  // 需要一眼可辨；同时 L1/L2 / 卡位等字段在两种策略下语义不同。
-  const isValue = (item.strategy || "growth") === "value";
-  // L1/L2 颜色按"罕见 / 突出"映射：
-  //   growth: L2 深度认知 = 罕见 → 紫；L1 共识 = 普通 → 蓝
-  //   value:  L1 深度低估 = 罕见 → 紫；L2 合理估值 = 普通 → 蓝
-  const rareTone = "bg-violet-500/15 text-violet-200 border-violet-500/40";
-  const normalTone = "bg-blue-500/15 text-blue-200 border-blue-500/40";
-
-  // 价格预警计算：基于当前价（Yahoo） vs target_price / stop_loss
-  // 用户体验：现价 - target/stop 距离用百分比 + 颜色 + emoji 表达紧迫程度
-  const priceAlerts = useMemo(() => {
-    if (currentPrice == null || typeof currentPrice !== "number") return null;
-    const out = { current: currentPrice, target: null, stop: null };
-    if (item.target_price != null) {
-      const gap = (currentPrice - item.target_price) / item.target_price;
-      // gap > 0：当前价 > target（已超），用户已达预期 → 绿色
-      // -10% < gap < 0：临近目标 → 蓝/青色
-      // gap < -10%：距离目标还远 → 灰色
-      out.target = {
-        gap,
-        tone: gap >= 0 ? "above"
-            : gap >= -0.10 ? "near" : "far",
-      };
-    }
-    if (item.stop_loss != null) {
-      const gap = (currentPrice - item.stop_loss) / item.stop_loss;
-      // gap < 0：已破止损 → 红色
-      // 0 < gap < 10%：临近止损 → 黄色
-      // gap > 10%：安全 → 不强调（灰）
-      out.stop = {
-        gap,
-        tone: gap < 0 ? "below"
-            : gap < 0.10 ? "near" : "safe",
-      };
-    }
-    return out;
-  }, [currentPrice, item.target_price, item.stop_loss]);
-
-  // 复盘提醒：从最近一次接触（added_at / llm_thesis_cached_at）算出天数
-  // > 30 天 amber 提醒；> 90 天 red 强警告（建议重看 thesis 是否仍成立）
-  const reviewState = useMemo(() => {
-    if (archived) return null;   // 归档项不提醒
-    const dates = [];
-    if (item.added_at) {
-      const d = new Date(item.added_at);
-      if (!isNaN(d)) dates.push(d.getTime());
-    }
-    if (item.llm_thesis_cached_at) {
-      const d = new Date(item.llm_thesis_cached_at);
-      if (!isNaN(d)) dates.push(d.getTime());
-    }
-    if (dates.length === 0) return null;
-    const lastMs = Math.max(...dates);
-    const daysAgo = Math.floor((Date.now() - lastMs) / 86400000);
-    if (daysAgo < 7) return null;   // < 7 天太新，不显示
-    return {
-      daysAgo,
-      tone: daysAgo >= 90 ? "urgent" : daysAgo >= 30 ? "warn" : "info",
-    };
-  }, [item.added_at, item.llm_thesis_cached_at, archived]);
-
-  return (
-    <div className={`glass-card p-2 border transition group ${
-      archived
-        ? "border-white/5 opacity-60 hover:opacity-90"
-        : "border-white/10 hover:border-white/20"
-    }`}>
-      <div className="flex items-start justify-between gap-2 mb-1">
-        <div className="min-w-0">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="font-mono text-[12px] font-semibold text-white">{item.ticker}</span>
-            {/* strategy badge — 让混合 watchlist 一眼可辨 */}
-            <span
-              className={`text-[8px] px-1 py-px rounded font-medium border ${
-                isValue
-                  ? "bg-emerald-500/15 text-emerald-200 border-emerald-500/40"
-                  : "bg-indigo-500/15 text-indigo-200 border-indigo-500/40"
-              }`}
-              title={isValue ? "价值型 — Graham 安全边际" : "成长型 — 双层瓶颈 / 卡位公司"}
-            >
-              {isValue ? "值" : "成"}
-            </span>
-            {archived && (
-              <span className="text-[8px] px-1 py-px rounded bg-white/5 text-[#a0aec0] border border-white/15">归档</span>
-            )}
-            {item.bottleneck_layer === 2 && (
-              <span
-                className={`text-[8px] px-1 py-px rounded border ${isValue ? normalTone : rareTone}`}
-                title={isValue ? "L2 合理估值 — 安全边际偏薄" : "L2 深度认知 — 跨界看到第二层瓶颈"}
-              >L2</span>
-            )}
-            {item.bottleneck_layer === 1 && (
-              <span
-                className={`text-[8px] px-1 py-px rounded border ${isValue ? rareTone : normalTone}`}
-                title={isValue ? "L1 深度低估 — 显著低于内在价值" : "L1 共识层 — 主流认知层瓶颈"}
-              >L1</span>
-            )}
-            {/* 复盘提醒（≥7 天才显示）— 强提醒用户重看 thesis */}
-            {reviewState && (
-              <span
-                className={`text-[8px] px-1 py-px rounded border ${
-                  reviewState.tone === "urgent"
-                    ? "bg-red-500/15 text-red-300 border-red-500/40 animate-pulse"
-                    : reviewState.tone === "warn"
-                    ? "bg-amber-500/15 text-amber-300 border-amber-500/40"
-                    : "bg-white/5 text-[#a0aec0] border-white/15"
-                }`}
-                title={
-                  reviewState.tone === "urgent"
-                    ? `已 ${reviewState.daysAgo} 天未复盘 — 强烈建议重看 thesis 是否仍成立`
-                    : reviewState.tone === "warn"
-                    ? `已 ${reviewState.daysAgo} 天未复盘 — 建议复盘并 regenerate AI 草稿`
-                    : `${reviewState.daysAgo} 天前观察`
-                }
-              >
-                ⏰ {reviewState.daysAgo}d
-              </span>
-            )}
-          </div>
-          {item.supertrend_id && (
-            <div className="text-[9px] text-cyan-300/80 mt-0.5">{trendName(item.supertrend_id)}</div>
-          )}
-        </div>
-        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition">
-          {/* 一键已复盘 — 不必 regenerate 草稿就重置「N 天未复盘」badge */}
-          {!archived && onMarkReviewed && (
-            <button
-              onClick={onMarkReviewed}
-              className="p-1 rounded hover:bg-emerald-500/20 text-[#a0aec0] hover:text-emerald-300"
-              title="标记已复盘 — 重置「N 天未复盘」badge（不必重新生成 AI 草稿）"
-            >
-              <Check size={10} />
-            </button>
-          )}
-          <button onClick={onEdit} className="p-1 rounded hover:bg-white/10 text-[#a0aec0] hover:text-white" title="编辑">
-            <Edit2 size={10} />
-          </button>
-          <button
-            onClick={onToggleArchive}
-            className={`p-1 rounded hover:bg-amber-500/20 text-[#a0aec0] ${archived ? "hover:text-emerald-300" : "hover:text-amber-300"}`}
-            title={archived ? "恢复（取消归档）" : "归档（保留 thesis，不再显示）"}
-          >
-            {archived ? <ArchiveRestore size={10} /> : <Archive size={10} />}
-          </button>
-          <button onClick={onDelete} className="p-1 rounded hover:bg-red-500/20 text-[#a0aec0] hover:text-red-300" title="删除">
-            <Trash2 size={10} />
-          </button>
-        </div>
-      </div>
-
-      {/* moat score 星标 */}
-      <div className="flex items-center gap-0.5 mb-1">
-        {[1, 2, 3, 4, 5].map((n) => (
-          <Star
-            key={n}
-            size={9}
-            className={n <= moat ? "text-amber-400 fill-amber-400" : "text-white/15"}
-          />
-        ))}
-        <span className="text-[8px] text-[#7a8497] ml-1">{isValue ? "护城河" : "卡位"}</span>
-      </div>
-
-      {item.bottleneck_tag && (
-        <div className="text-[10px] text-[#d0d7e2] mb-1 flex items-start gap-1">
-          <ChevronRight size={9} className="text-amber-400 mt-0.5 shrink-0" />
-          <span className="break-words">{item.bottleneck_tag}</span>
-        </div>
-      )}
-
-      {item.thesis && (
-        <div className="text-[10px] text-[#a0aec0] leading-relaxed whitespace-pre-line line-clamp-3 mb-1">
-          {item.thesis}
-        </div>
-      )}
-
-      {/* 假设证伪条件（pre-mortem）— 红色警示色，写了就立刻能看到 */}
-      {item.falsification_condition && (
-        <div
-          className="text-[10px] text-amber-200/90 leading-relaxed mb-1 flex items-start gap-1 px-1.5 py-1 bg-amber-500/8 border border-amber-500/25 rounded"
-          title={`证伪条件：${item.falsification_condition}`}
-        >
-          <span className="text-amber-400 shrink-0">⚠</span>
-          <span className="break-words line-clamp-2">{item.falsification_condition}</span>
-        </div>
-      )}
-
-      {(item.target_price || item.stop_loss) && (
-        <div className="flex items-center gap-2 text-[9px] font-mono flex-wrap">
-          {/* 目标价 + 距当前价 % */}
-          {item.target_price && (
-            <span
-              className={`flex items-center gap-0.5 ${
-                priceAlerts?.target?.tone === "above"
-                  ? "text-emerald-300 font-semibold"
-                  : priceAlerts?.target?.tone === "near"
-                  ? "text-cyan-300"
-                  : "text-emerald-300/60"
-              }`}
-              title={priceAlerts
-                ? `当前价 ${priceAlerts.current.toFixed(2)} vs 目标 ${item.target_price}：${
-                    priceAlerts.target.gap >= 0 ? "已达 +" : "距 "
-                  }${Math.abs(priceAlerts.target.gap * 100).toFixed(1)}%`
-                : "目标价"}
-            >
-              ▲ {item.target_price}
-              {priceAlerts?.target && (
-                <span className="text-[8px] opacity-80">
-                  {priceAlerts.target.gap >= 0
-                    ? ` +${(priceAlerts.target.gap * 100).toFixed(1)}%`
-                    : ` ${(priceAlerts.target.gap * 100).toFixed(1)}%`}
-                </span>
-              )}
-            </span>
-          )}
-          {/* 止损位 + 距当前价 % */}
-          {item.stop_loss && (
-            <span
-              className={`flex items-center gap-0.5 ${
-                priceAlerts?.stop?.tone === "below"
-                  ? "text-red-400 font-semibold animate-pulse"
-                  : priceAlerts?.stop?.tone === "near"
-                  ? "text-amber-300"
-                  : "text-red-300/60"
-              }`}
-              title={priceAlerts
-                ? `当前价 ${priceAlerts.current.toFixed(2)} vs 止损 ${item.stop_loss}：${
-                    priceAlerts.stop.gap < 0 ? "已破 " : "距 +"
-                  }${Math.abs(priceAlerts.stop.gap * 100).toFixed(1)}%`
-                : "止损位"}
-            >
-              ▼ {item.stop_loss}
-              {priceAlerts?.stop && (
-                <span className="text-[8px] opacity-80">
-                  {priceAlerts.stop.gap < 0
-                    ? ` ${(priceAlerts.stop.gap * 100).toFixed(1)}%`
-                    : ` +${(priceAlerts.stop.gap * 100).toFixed(1)}%`}
-                </span>
-              )}
-            </span>
-          )}
-          {/* 当前价小字（仅有 quote 时） */}
-          {priceAlerts && (
-            <span className="text-[8px] text-[#7a8497] ml-auto">
-              ${priceAlerts.current.toFixed(2)}
-            </span>
-          )}
-        </div>
-      )}
-
-      {item.tags && item.tags.length > 0 && (
-        <div className="flex flex-wrap gap-0.5 mt-1">
-          {item.tags.map((t) => (
-            <span key={t} className="text-[8px] px-1 py-px rounded bg-white/5 text-[#a0aec0] border border-white/10">#{t}</span>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

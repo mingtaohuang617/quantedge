@@ -17,6 +17,7 @@
 import React, { useEffect, useState } from "react";
 import { X, Sparkles, Loader, AlertCircle, Save, Zap } from "lucide-react";
 import { apiFetch } from "../quant-platform.jsx";
+import ValueDCFCalculator from "./ValueDCFCalculator.jsx";
 
 const STRATEGY_OPTIONS = [
   { value: "growth", label: "成长型" },
@@ -90,7 +91,7 @@ function toNumberOrNull(v) {
   return isFinite(n) ? n : null;
 }
 
-export default function TenxItemEditor({ open, item, candidate, supertrends, onClose, onSaved }) {
+export default function TenxItemEditor({ open, item, candidate, supertrends, onClose, onSaved, currentPrice }) {
   // candidate: 来自候选股表，含 ticker / name / sector / marketCap (用于 LLM 草稿)
   // item: 已存在的 watchlist item（编辑模式）
   const isNew = !item;
@@ -250,6 +251,7 @@ export default function TenxItemEditor({ open, item, candidate, supertrends, onC
           <button
             onClick={onClose}
             className="text-[#a0aec0] hover:text-white transition-colors p-1 rounded hover:bg-white/10"
+            aria-label="关闭"
           >
             <X size={16} />
           </button>
@@ -376,6 +378,14 @@ export default function TenxItemEditor({ open, item, candidate, supertrends, onC
               💡 写明退出条件能避免持仓时把假设当信仰（Druckenmiller pre-mortem）
             </div>
           </Field>
+
+          {/* DCF 估算器 — 仅价值型显示，输入 FCF/增速/折现率 → 算内在价值 */}
+          {form.strategy === "value" && (
+            <ValueDCFCalculator
+              currentPrice={currentPrice}
+              onApplyTarget={(v) => setField("target_price", String(v))}
+            />
+          )}
 
           {/* row: target / stop */}
           <div className="grid grid-cols-2 gap-3">

@@ -40,7 +40,7 @@ import logging_config  # noqa: F401  — 副作用：配置轮转日志
 
 
 def sanitize(obj):
-    """Recursively replace NaN/Inf with None for JSON serialization."""
+    """Recursively replace NaN/Inf with None and convert numpy scalars for JSON."""
     if isinstance(obj, dict):
         return {k: sanitize(v) for k, v in obj.items()}
     if isinstance(obj, list):
@@ -55,6 +55,9 @@ def sanitize(obj):
         return v
     if isinstance(obj, (np.integer,)):
         return int(obj)
+    # numpy.bool_ → Python bool（json 模块不识别 np.bool_）
+    if isinstance(obj, np.bool_):
+        return bool(obj)
     return obj
 
 try:
@@ -594,6 +597,14 @@ async def lifespan(_app):
     # 后台增量同步（不阻塞 API server 启动）
     if HAS_DB:
         threading.Thread(target=_bg_run_incremental_sync, daemon=True).start()
+
+    # Stock Gene 评分定时刷新（守护线程，默认禁用直到用户启用）
+    try:
+        import stock_gene_scheduler
+        stock_gene_scheduler.start_scheduler()
+        print("[OK] stock-gene scheduler thread started")
+    except Exception as e:
+        print(f"[WARN] stock-gene scheduler failed to start: {e}")
 
     yield  # ── 此前 = startup, 此后 = shutdown ──
     # （目前没有需要 shutdown 清理的资源；如果未来加，写在 yield 之后）
@@ -1694,6 +1705,567 @@ def llm_value_thesis(req: ValueThesisReq):
     return sanitize(_llm_mod.value_thesis(stock, supertrend))
 
 
+# ─────────────────────────────────────────────────────────────
+# Mining Alpha — 因子挖掘 + ML + 回测面板（读取 CLI 产物）
+# ─────────────────────────────────────────────────────────────
+import json as _json_ma
+from pathlib import Path as _Path_ma
+
+_MA_OUTPUT_ROOT = _Path_ma(__file__).resolve().parent / "output" / "mining_alpha"
+
+
+def _ma_active_dir() -> _Path_ma:
+    """
+    解析当前激活的 Mining Alpha 输出目录。
+    优先级：runs/{latest.txt 内容}/ > OUTPUT_ROOT (老路径)
+    """
+    latest = _MA_OUTPUT_ROOT / "latest.txt"
+    if latest.exists():
+        run_id = latest.read_text(encoding="utf-8").strip()
+        candidate = _MA_OUTPUT_ROOT / "runs" / run_id
+        if candidate.exists():
+            return candidate
+    return _MA_OUTPUT_ROOT
+
+
+_MA_OUTPUT_DIR = _MA_OUTPUT_ROOT  # 兼容旧 import；实际读用 _ma_active_dir()
+
+
+def _ma_safe_read_csv(path, **kwargs):
+    """安全读 CSV — 文件不存在/损坏返回 None。读取失败时打印异常便于诊断。"""
+    if not path.exists():
+        return None
+    try:
+        import pandas as _pd
+        return _pd.read_csv(path, **kwargs)
+    except Exception as e:
+        print(f"[mining_alpha] read CSV failed: {path.name} — {type(e).__name__}: {e}")
+        return None
+
+
+def _ma_safe_read_parquet(path):
+    """安全读 parquet。文件存在但读取失败（典型是缺 pyarrow / fastparquet）时
+    打印异常，便于排查。返回 None 由调用方决定如何报错。"""
+    if not path.exists():
+        return None
+    try:
+        import pandas as _pd
+        return _pd.read_parquet(path)
+    except Exception as e:
+        print(f"[mining_alpha] read parquet failed: {path.name} — {type(e).__name__}: {e}")
+        return None
+
+
+def _ma_parquet_read_hint(path) -> str:
+    """构造 404 hint：区分'文件不存在'与'文件存在但读取失败'两种情况，
+    避免误导用户去跑没必要的 train/backtest。"""
+    if path.exists():
+        return f"{path.name} 存在但读取失败（检查后端是否装了 pyarrow / fastparquet；详情见后端日志）"
+    return f"{path.name} 不存在；先跑对应 mining_alpha.run 步骤"
+
+
+@app.get("/api/mining-alpha/status")
+def mining_alpha_status():
+    """检查 Mining Alpha 流水线各步产物 + 当前 run_id + 历史 runs。"""
+    active = _ma_active_dir()
+    factor_dir = _MA_OUTPUT_ROOT / "factors"  # 因子共享，不版本化
+    factor_count = len(list(factor_dir.glob("alpha_*.parquet"))) if factor_dir.exists() else 0
+    models_dir = active / "models"
+    model_count = len(list(models_dir.glob("*.lgb"))) if models_dir.exists() else 0
+
+    # 历史 runs 列表
+    runs_dir = _MA_OUTPUT_ROOT / "runs"
+    runs = []
+    if runs_dir.exists():
+        for p in sorted(runs_dir.iterdir(), reverse=True):
+            if p.is_dir():
+                runs.append({
+                    "run_id": p.name,
+                    "has_backtest": (p / "backtest_report.json").exists(),
+                    "has_predictions": (p / "predictions.parquet").exists(),
+                })
+
+    latest_txt = _MA_OUTPUT_ROOT / "latest.txt"
+    current_run_id = latest_txt.read_text(encoding="utf-8").strip() if latest_txt.exists() else None
+
+    return {
+        "output_dir": str(active),
+        "current_run_id": current_run_id,
+        "factor_count": factor_count,
+        "model_count": model_count,
+        "files": {
+            "ic_report": (active / "ic_report.csv").exists(),
+            "selected_alphas": (active / "selected_alphas.json").exists(),
+            "factor_correlation": (active / "factor_correlation.csv").exists(),
+            "feature_importance": (active / "feature_importance.csv").exists(),
+            "predictions": (active / "predictions.parquet").exists(),
+            "backtest_report": (active / "backtest_report.json").exists(),
+            "equity_curve": (active / "equity_curve.csv").exists(),
+            "equity_curve_png": (active / "equity_curve.png").exists(),
+            "fold_ic": (active / "fold_ic.csv").exists(),
+            "regime": (active / "regime.csv").exists(),
+            "multi_topn": (active / "backtest_multi_topn.csv").exists(),
+            "optuna_best": (active / "optuna_best.json").exists(),
+        },
+        "history_runs": runs[:20],
+    }
+
+
+@app.get("/api/mining-alpha/ic-report")
+def mining_alpha_ic_report(top_n: int = 20):
+    """返回单因子 IC 报告（按 |ICIR| 降序），默认 top 20。"""
+    df = _ma_safe_read_csv(_ma_active_dir() / "ic_report.csv")
+    if df is None:
+        raise HTTPException(404, "ic_report.csv 不存在；先跑 `mining_alpha.run ic-report`")
+    df = df.sort_values("ic_ir", key=lambda s: s.abs(), ascending=False).head(top_n)
+    return sanitize(df.to_dict(orient="records"))
+
+
+@app.get("/api/mining-alpha/feature-importance")
+def mining_alpha_feature_importance(top_n: int = 20):
+    """返回 ML 特征重要性（多 fold 平均），按降序排列。"""
+    df = _ma_safe_read_csv(_ma_active_dir() / "feature_importance.csv", index_col=0)
+    if df is None:
+        raise HTTPException(404, "feature_importance.csv 不存在；先跑 `train`")
+    # 多 fold 平均
+    mean_importance = df.mean(axis=1).sort_values(ascending=False).head(top_n)
+    return sanitize([
+        {"feature": str(k), "importance": float(v)}
+        for k, v in mean_importance.items()
+    ])
+
+
+@app.get("/api/mining-alpha/backtest")
+def mining_alpha_backtest():
+    """返回回测指标 + 策略/基准净值曲线 (采样后)。"""
+    active = _ma_active_dir()
+    metrics_path = active / "backtest_report.json"
+    if not metrics_path.exists():
+        raise HTTPException(404, "backtest_report.json 不存在；先跑 `backtest`")
+    with open(metrics_path, encoding="utf-8") as f:
+        metrics = _json_ma.load(f)
+
+    def _sample_csv(path, value_col):
+        df = _ma_safe_read_csv(path)
+        if df is None or df.empty:
+            return []
+        date_col = df.columns[0]
+        col = value_col if value_col in df.columns else df.columns[-1]
+        step = max(1, len(df) // 250)
+        sampled = df.iloc[::step]
+        return [{"date": str(row[date_col]), value_col: float(row[col])}
+                for _, row in sampled.iterrows()]
+
+    eq_curve = _sample_csv(active / "equity_curve.csv", "equity")
+    bench_curve = _sample_csv(active / "benchmark_equity.csv", "bench_equity")
+
+    # 多 Top-N 切片对比表
+    multi_topn = _ma_safe_read_csv(active / "backtest_multi_topn.csv")
+    multi_rows = multi_topn.to_dict(orient="records") if multi_topn is not None else []
+
+    return sanitize({
+        "metrics": metrics,
+        "equity_curve": eq_curve,
+        "benchmark_curve": bench_curve,
+        "multi_topn": multi_rows,
+    })
+
+
+@app.get("/api/mining-alpha/top-holdings")
+def mining_alpha_top_holdings(top_n: int = 20):
+    """返回最新一日预测分数 Top-N 个股（含与上一调仓期的 diff 标记）。"""
+    active = _ma_active_dir()
+    preds_path = active / "predictions.parquet"
+    preds = _ma_safe_read_parquet(preds_path)
+    if preds is None or preds.empty:
+        raise HTTPException(404, _ma_parquet_read_hint(preds_path))
+    latest_date = preds.index.max()
+    latest_row = preds.loc[latest_date].dropna().sort_values(ascending=False).head(top_n)
+    latest_set = set(latest_row.index)
+
+    # 上一周（5 个交易日前）的 Top-N
+    prev_holdings = []
+    prev_set = set()
+    if len(preds) > 5:
+        prev_date = preds.index[preds.index.get_indexer([latest_date])[0] - 5]
+        prev_row = preds.loc[prev_date].dropna().sort_values(ascending=False).head(top_n)
+        prev_set = set(prev_row.index)
+        prev_holdings = [{"ticker": str(t), "score": float(s)} for t, s in prev_row.items()]
+
+    holdings = []
+    for t, s in latest_row.items():
+        ticker = str(t)
+        if ticker in prev_set:
+            status = "held"        # 上期也在
+        else:
+            status = "new"          # 新进
+        holdings.append({"ticker": ticker, "score": float(s), "status": status})
+    # 添加上期有、本期被剔除的
+    dropped = prev_set - latest_set
+    for ticker in sorted(dropped):
+        holdings.append({"ticker": str(ticker), "score": None, "status": "dropped"})
+
+    return sanitize({
+        "as_of": str(latest_date),
+        "holdings": holdings,
+        "n_new": len(latest_set - prev_set),
+        "n_dropped": len(dropped),
+        "n_held": len(latest_set & prev_set),
+    })
+
+
+@app.get("/api/mining-alpha/regime")
+def mining_alpha_regime():
+    """返回 HMM regime 时间序列（用于净值图 overlay）。仅在 train --regime-aware 跑过后可用。"""
+    active = _ma_active_dir()
+    df = _ma_safe_read_csv(active / "regime.csv")
+    if df is None or df.empty:
+        raise HTTPException(404, "regime.csv 不存在；用 train --regime-aware 跑过后生成")
+    # 把列处理一下
+    date_col = df.columns[0]
+    out = []
+    for _, row in df.iterrows():
+        out.append({
+            "date": str(row[date_col]),
+            "label": str(row.get("label", "")),
+            "bull_prob": float(row.get("bull_prob", 0)),
+            "neutral_prob": float(row.get("neutral_prob", 0)),
+            "bear_prob": float(row.get("bear_prob", 0)),
+        })
+    return sanitize(out)
+
+
+@app.get("/api/mining-alpha/fold-ic")
+def mining_alpha_fold_ic():
+    """返回 walk-forward 各 fold 的测试集 IC 摘要表。"""
+    active = _ma_active_dir()
+    df = _ma_safe_read_csv(active / "fold_ic.csv")
+    if df is None or df.empty:
+        raise HTTPException(404, "fold_ic.csv 不存在；先跑 `train`")
+    return sanitize(df.to_dict(orient="records"))
+
+
+@app.get("/api/mining-alpha/alerts")
+def mining_alpha_alerts():
+    """读取 alerts.log（每行 JSON），返回最近 50 条。"""
+    log_path = _MA_OUTPUT_ROOT / "alerts.log"
+    if not log_path.exists():
+        return {"alerts": [], "n_total": 0}
+    lines = log_path.read_text(encoding="utf-8").strip().split("\n")
+    parsed = []
+    for line in lines[-50:]:
+        try:
+            parsed.append(_json_ma.loads(line))
+        except Exception:
+            continue
+    return {"alerts": parsed, "n_total": len(lines)}
+
+
+@app.post("/api/mining-alpha/switch-run/{run_id}")
+def mining_alpha_switch_run(run_id: str):
+    """切换 latest.txt 指向给定 run_id。"""
+    runs_dir = _MA_OUTPUT_ROOT / "runs" / run_id
+    if not runs_dir.exists():
+        raise HTTPException(404, f"run_id={run_id} 不存在")
+    (_MA_OUTPUT_ROOT / "latest.txt").write_text(run_id, encoding="utf-8")
+    return {"ok": True, "current_run_id": run_id, "output_dir": str(runs_dir)}
+
+
+# ─── 因子目录 / Markdown ───────────────────────────────────────
+@app.get("/api/mining-alpha/factor-catalog")
+def mining_alpha_factor_catalog():
+    """返回 factor catalog Markdown 字符串（前端可 render）。"""
+    try:
+        from mining_alpha.catalog import generate_catalog_md
+        return {"markdown": generate_catalog_md()}
+    except Exception as e:
+        raise HTTPException(500, str(e))
+
+
+# ─── Health check ─────────────────────────────────────────────
+@app.get("/api/mining-alpha/health")
+def mining_alpha_health():
+    """
+    检查 Mining Alpha 子系统健康度：模块加载、可选依赖、SQLite 表、因子注册数。
+    用于 CI 烟雾测试和运维监控。
+    """
+    out: dict = {"ok": True, "checks": {}}
+    # 1) 核心模块加载
+    backend_dir = _Path_ma(__file__).resolve().parent
+    import sys as _sys
+    if str(backend_dir) not in _sys.path:
+        _sys.path.insert(0, str(backend_dir))
+
+    core_modules = [
+        "operators", "operators_jit", "alpha191_factors", "alpha101_factors",
+        "data_loader", "preprocess", "ic_report", "model", "ensemble",
+        "hyperopt", "improvements", "explain", "portfolio", "backtest",
+        "alerts", "benchmark", "catalog", "synthetic_demo", "run",
+    ]
+    loaded, failed = [], []
+    for m in core_modules:
+        try:
+            __import__(f"mining_alpha.{m}")
+            loaded.append(m)
+        except Exception as e:
+            failed.append({"module": m, "error": str(e)[:120]})
+    out["checks"]["core_modules"] = {
+        "loaded": len(loaded), "total": len(core_modules),
+        "failed": failed,
+    }
+    if failed:
+        out["ok"] = False
+
+    # 2) 可选依赖
+    optional_deps = {
+        "lightgbm": "ML core", "xgboost": "Ensemble",
+        "catboost": "Ensemble", "shap": "Explainability",
+        "optuna": "Hyperopt", "numba": "JIT perf",
+        "pyarrow": "Parquet", "tushare": "Data source (A 股)",
+        "akshare": "Data source fallback", "hmmlearn": "Regime detection",
+    }
+    deps_status = {}
+    for d, purpose in optional_deps.items():
+        try:
+            __import__(d)
+            deps_status[d] = {"installed": True, "purpose": purpose}
+        except ImportError:
+            deps_status[d] = {"installed": False, "purpose": purpose}
+    out["checks"]["optional_deps"] = deps_status
+
+    # 3) SQLite 表存在性
+    try:
+        import db as _db_mod
+        _db_mod.init_db()
+        conn = _db_mod._get_conn()
+        tables = [r[0] for r in conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
+        ).fetchall()]
+        out["checks"]["sqlite_tables"] = {
+            "found": tables,
+            "essential_present": all(t in tables for t in
+                ("daily_bars", "tickers", "sync_state", "index_weight")),
+        }
+    except Exception as e:
+        out["checks"]["sqlite_tables"] = {"error": str(e)[:120]}
+        out["ok"] = False
+
+    # 4) 因子注册数
+    try:
+        from mining_alpha.alpha191_factors import list_alphas
+        from mining_alpha.alpha101_factors import list_alpha101
+        out["checks"]["factors"] = {
+            "alpha191": len(list_alphas()),
+            "alpha101": len(list_alpha101()),
+            "total": len(list_alphas()) + len(list_alpha101()),
+        }
+    except Exception as e:
+        out["checks"]["factors"] = {"error": str(e)[:120]}
+        out["ok"] = False
+
+    # 5) 路由总数
+    ma_routes = [r.path for r in app.routes if "mining-alpha" in r.path.lower()]
+    out["checks"]["routes"] = {
+        "count": len(set(ma_routes)),
+        "paths": sorted(set(ma_routes)),
+    }
+
+    # 6) 数据目录
+    out["checks"]["paths"] = {
+        "output_root": str(_MA_OUTPUT_ROOT),
+        "output_root_exists": _MA_OUTPUT_ROOT.exists(),
+        "active_run": str(_ma_active_dir()),
+    }
+    return sanitize(out)
+
+
+@app.get("/api/mining-alpha/ic-heatmap")
+def mining_alpha_ic_heatmap(top_n: int = 30, recent_months: int = 24):
+    """
+    返回 factor × month IC 热力图数据。
+
+    Args:
+      top_n: 按 |ICIR| 取前 N 个因子（与 ic-report 一致顺序）
+      recent_months: 只取最近 N 个月（默认 24，即 2 年）
+    """
+    active = _ma_active_dir()
+    heatmap = _ma_safe_read_csv(active / "ic_monthly_heatmap.csv", index_col=0)
+    if heatmap is None:
+        raise HTTPException(404, "ic_monthly_heatmap.csv 不存在；先跑 `ic-report`")
+    # 按 ic_report.csv 的 |ICIR| 顺序排序，取 top_n
+    rep = _ma_safe_read_csv(active / "ic_report.csv")
+    if rep is not None and len(rep) > 0:
+        rep = rep.sort_values("ic_ir", key=lambda s: s.abs(), ascending=False)
+        top_alphas = rep["alpha"].astype(int).head(top_n).tolist()
+        heatmap = heatmap.loc[[a for a in top_alphas if a in heatmap.index]]
+
+    # 只保留最近 N 个月
+    if recent_months and len(heatmap.columns) > recent_months:
+        heatmap = heatmap.iloc[:, -recent_months:]
+
+    # 转 long format 给前端 d3 友好结构
+    cells = []
+    for alpha_num, row in heatmap.iterrows():
+        for month, ic_val in row.items():
+            if pd.notna(ic_val):
+                cells.append({
+                    "alpha": int(alpha_num),
+                    "month": str(month),
+                    "ic": float(ic_val),
+                })
+    return sanitize({
+        "alphas": [int(a) for a in heatmap.index],
+        "months": [str(m) for m in heatmap.columns],
+        "cells": cells,
+    })
+
+
+# ── Run Pipeline (subprocess + progress) ─────────────────────
+import subprocess as _subprocess
+import threading as _threading
+
+_MA_JOB_LOCK = _threading.Lock()
+_MA_JOB_STATE: dict = {
+    "running": False,
+    "step": None,
+    "started_at": None,
+    "log_tail": [],
+    "exit_code": None,
+}
+
+
+def _ma_run_subprocess(step: str, extra_args: list[str]) -> None:
+    """在后台线程跑 mining_alpha 子命令，把进度更新到 _MA_JOB_STATE。"""
+    import time as _t
+    backend_dir = _Path_ma(__file__).resolve().parent
+    venv_python = backend_dir / ".venv" / "Scripts" / "python.exe"
+    if not venv_python.exists():
+        venv_python = "python"
+    # synthetic-demo 走独立模块，其他走 mining_alpha.run
+    if step == "synthetic-demo":
+        cmd = [str(venv_python), "-m", "mining_alpha.synthetic_demo"] + extra_args
+    else:
+        cmd = [str(venv_python), "-m", "mining_alpha.run", step] + extra_args
+    log_path = _MA_OUTPUT_ROOT / "_run_log.txt"
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    with _MA_JOB_LOCK:
+        _MA_JOB_STATE.update({
+            "running": True, "step": step,
+            "started_at": _t.time(), "log_tail": [], "exit_code": None,
+            "cmd": " ".join(cmd),
+        })
+    try:
+        with open(log_path, "w", encoding="utf-8") as logf:
+            proc = _subprocess.Popen(
+                cmd, cwd=str(backend_dir),
+                stdout=_subprocess.PIPE, stderr=_subprocess.STDOUT,
+                bufsize=1, universal_newlines=True,
+                encoding="utf-8", errors="replace",
+            )
+            for line in proc.stdout:
+                logf.write(line)
+                logf.flush()
+                with _MA_JOB_LOCK:
+                    tail = _MA_JOB_STATE["log_tail"]
+                    tail.append(line.rstrip())
+                    if len(tail) > 100:
+                        del tail[:len(tail) - 100]
+            proc.wait()
+            with _MA_JOB_LOCK:
+                _MA_JOB_STATE["running"] = False
+                _MA_JOB_STATE["exit_code"] = proc.returncode
+    except Exception as e:
+        with _MA_JOB_LOCK:
+            _MA_JOB_STATE["running"] = False
+            _MA_JOB_STATE["exit_code"] = -1
+            _MA_JOB_STATE["log_tail"].append(f"[error] {e}")
+
+
+@app.post("/api/mining-alpha/run/{step}")
+def mining_alpha_run_step(step: str, run_id: str | None = None,
+                          extra_args: str | None = None):
+    """
+    异步触发 mining_alpha 子任务。
+    step ∈ {synthetic-demo, sync-data, compute-factors, ic-report, train, backtest, optuna}
+    extra_args: 空格分隔的额外参数，如 "--top-n 50 --use-tradeable-mask"
+
+    synthetic-demo 走 `mining_alpha.synthetic_demo` 模块（不需 tushare 一键生成数据）。
+    其他 step 走 `mining_alpha.run {step}`。
+    """
+    allowed_steps = {"synthetic-demo", "sync-data", "compute-factors", "ic-report",
+                     "train", "backtest", "optuna"}
+    if step not in allowed_steps:
+        raise HTTPException(400, f"step 必须是 {allowed_steps}")
+    with _MA_JOB_LOCK:
+        if _MA_JOB_STATE["running"]:
+            return {"ok": False, "error": "已有任务在跑", "state": _MA_JOB_STATE}
+    args_list: list[str] = []
+    if step != "synthetic-demo" and run_id:
+        args_list += ["--run-id", run_id]
+    if extra_args:
+        args_list += extra_args.split()
+    _threading.Thread(target=_ma_run_subprocess, args=(step, args_list), daemon=True).start()
+    return {"ok": True, "step": step, "cmd_args": args_list}
+
+
+@app.get("/api/mining-alpha/run/status")
+def mining_alpha_run_status():
+    """轮询当前 pipeline 子任务状态。"""
+    import time as _t
+    with _MA_JOB_LOCK:
+        state = dict(_MA_JOB_STATE)
+    if state.get("started_at"):
+        state["elapsed_sec"] = round(_t.time() - state["started_at"], 1)
+    return sanitize(state)
+
+
+@app.get("/api/mining-alpha/factor-detail/{alpha_num}")
+def mining_alpha_factor_detail(alpha_num: int):
+    """
+    返回某个因子的详细信息：公式、描述、近 1 年日 IC 时序、Top decile 超额。
+    """
+    import sys as _sys
+    from pathlib import Path as _P
+    _backend = _P(__file__).resolve().parent
+    if str(_backend) not in _sys.path:
+        _sys.path.insert(0, str(_backend))
+    from mining_alpha.alpha191_factors import _ALPHA_REGISTRY
+
+    info = _ALPHA_REGISTRY.get(alpha_num)
+    if info is None:
+        raise HTTPException(404, f"Alpha{alpha_num} 未注册")
+
+    # 从 heatmap CSV 取该因子的月度 IC 序列
+    active = _ma_active_dir()
+    heatmap = _ma_safe_read_csv(active / "ic_monthly_heatmap.csv", index_col=0)
+    monthly_ic = []
+    if heatmap is not None and alpha_num in heatmap.index:
+        row = heatmap.loc[alpha_num]
+        monthly_ic = [{"month": str(m), "ic": float(v)}
+                      for m, v in row.items() if pd.notna(v)]
+
+    # 从 ic_report 取该因子的统计
+    rep = _ma_safe_read_csv(active / "ic_report.csv")
+    stats = {}
+    if rep is not None:
+        match = rep[rep["alpha"] == alpha_num]
+        if not match.empty:
+            stats = match.iloc[0].to_dict()
+            # 转为 JSON 友好
+            stats = {k: (float(v) if isinstance(v, (int, float)) and not pd.isna(v) else
+                         (None if pd.isna(v) else v))
+                     for k, v in stats.items()}
+
+    return sanitize({
+        "alpha": alpha_num,
+        "name": info.get("name", f"alpha_{alpha_num}"),
+        "category": info.get("category", ""),
+        "description": info.get("desc", ""),
+        "monthly_ic": monthly_ic,
+        "stats": stats,
+    })
+
+
 # ── Stock Gene（股性检测 / 牛股特征器） ──────────────────
 try:
     import stock_gene as _gene_mod
@@ -1712,6 +2284,7 @@ class StockGeneAddReq(BaseModel):
     sector: str = ""
     notes: str = ""
     tags: list[str] = []
+    list_id: str = "default"
 
 
 class StockGeneUpdateReq(BaseModel):
@@ -1754,6 +2327,7 @@ def stock_gene_add(req: StockGeneAddReq):
         item = _gene_mod.add_to_watchlist(
             req.ticker, name=req.name, market=req.market,
             sector=req.sector, notes=req.notes, tags=req.tags,
+            list_id=req.list_id,
         )
         return sanitize({"ok": True, "item": item})
     except ValueError as e:
@@ -1884,6 +2458,116 @@ def stock_gene_value_compare_peers(req: StockGeneComparePeersReq):
     ))
 
 
+# ── Stock Gene · Signal engine（短期信号雷达）────────────
+try:
+    import signal_gene as _signal_mod
+    HAS_SIGNAL_GENE = True
+except Exception as _e:
+    HAS_SIGNAL_GENE = False
+    _signal_mod = None
+    print(f"[WARN] signal_gene module not available: {_e}")
+
+
+@app.post("/api/stock-gene/signal/score")
+def stock_gene_signal_score(req: StockGeneScoreReq):
+    """对任意 ticker 跑一次短期信号评分（不入库）。"""
+    if not HAS_SIGNAL_GENE or _signal_mod is None:
+        raise HTTPException(503, "signal_gene 模块未加载")
+    return sanitize(_signal_mod.score_signal(
+        req.ticker, name=req.name, market=req.market, sector=req.sector,
+    ))
+
+
+@app.post("/api/stock-gene/{ticker}/signal-score")
+def stock_gene_signal_score_persist(ticker: str):
+    """对 watchlist 里某项跑短期信号评分并写回 last_signal_result。"""
+    if not HAS_STOCK_GENE or _gene_mod is None:
+        raise HTTPException(503, "stock_gene 模块未加载")
+    try:
+        return sanitize(_gene_mod.score_signal_and_persist(ticker))
+    except ValueError as e:
+        raise HTTPException(404, str(e))
+
+
+@app.post("/api/stock-gene/signal/score-all")
+def stock_gene_signal_score_all():
+    """批量短期信号评分。"""
+    if not HAS_STOCK_GENE or _gene_mod is None:
+        raise HTTPException(503, "stock_gene 模块未加载")
+    results = _gene_mod.score_all_signal()
+    return sanitize({"count": len(results), "items": results})
+
+
+@app.post("/api/stock-gene/signal/compare-peers")
+def stock_gene_signal_compare_peers(req: StockGeneComparePeersReq):
+    """短期信号横向对比。"""
+    if not HAS_STOCK_GENE or _gene_mod is None:
+        raise HTTPException(503, "stock_gene 模块未加载")
+    if not req.tickers:
+        raise HTTPException(400, "tickers 不能为空")
+    if len(req.tickers) > 10:
+        raise HTTPException(400, "一次最多对比 10 只")
+    return sanitize(_gene_mod.compare_peers_signal(
+        req.tickers, sector=req.sector, market=req.market,
+    ))
+
+
+# ── Stock Gene · Risk engine（风险画像）──────────────────
+try:
+    import risk_gene as _risk_mod
+    HAS_RISK_GENE = True
+except Exception as _e:
+    HAS_RISK_GENE = False
+    _risk_mod = None
+    print(f"[WARN] risk_gene module not available: {_e}")
+
+
+@app.post("/api/stock-gene/risk/score")
+def stock_gene_risk_score(req: StockGeneScoreReq):
+    """对任意 ticker 跑一次风险画像评分（不入库）。"""
+    if not HAS_RISK_GENE or _risk_mod is None:
+        raise HTTPException(503, "risk_gene 模块未加载")
+    cached = next((s for s in cache.stocks if s.get("ticker") == req.ticker.upper()), None)
+    return sanitize(_risk_mod.score_risk(
+        req.ticker, name=req.name, market=req.market, sector=req.sector,
+        cached_stock=cached,
+    ))
+
+
+@app.post("/api/stock-gene/{ticker}/risk-score")
+def stock_gene_risk_score_persist(ticker: str):
+    """对 watchlist 里某项跑风险评分并写回 last_risk_result。"""
+    if not HAS_STOCK_GENE or _gene_mod is None:
+        raise HTTPException(503, "stock_gene 模块未加载")
+    try:
+        return sanitize(_gene_mod.score_risk_and_persist(ticker))
+    except ValueError as e:
+        raise HTTPException(404, str(e))
+
+
+@app.post("/api/stock-gene/risk/score-all")
+def stock_gene_risk_score_all():
+    """批量风险评分。"""
+    if not HAS_STOCK_GENE or _gene_mod is None:
+        raise HTTPException(503, "stock_gene 模块未加载")
+    results = _gene_mod.score_all_risk()
+    return sanitize({"count": len(results), "items": results})
+
+
+@app.post("/api/stock-gene/risk/compare-peers")
+def stock_gene_risk_compare_peers(req: StockGeneComparePeersReq):
+    """风险横向对比。"""
+    if not HAS_STOCK_GENE or _gene_mod is None:
+        raise HTTPException(503, "stock_gene 模块未加载")
+    if not req.tickers:
+        raise HTTPException(400, "tickers 不能为空")
+    if len(req.tickers) > 10:
+        raise HTTPException(400, "一次最多对比 10 只")
+    return sanitize(_gene_mod.compare_peers_risk(
+        req.tickers, sector=req.sector, market=req.market,
+    ))
+
+
 # ── 导入 / 导出（备份）─────────────────────────────────
 class StockGeneImportReq(BaseModel):
     mode: str = "merge"             # 'merge' | 'replace'
@@ -1911,6 +2595,139 @@ def stock_gene_import(req: StockGeneImportReq):
         ))
     except ValueError as e:
         raise HTTPException(400, str(e))
+
+
+# ── List CRUD（多 watchlist 分组）────────────────────────
+class StockGeneListAddReq(BaseModel):
+    name: str
+    color: str = "slate"
+
+
+class StockGeneListUpdateReq(BaseModel):
+    name: str | None = None
+    color: str | None = None
+
+
+class StockGeneMoveReq(BaseModel):
+    list_id: str
+
+
+@app.get("/api/stock-gene/lists")
+def stock_gene_lists():
+    """列出所有 watchlist 分组（含 default）。"""
+    if not HAS_STOCK_GENE or _gene_mod is None:
+        raise HTTPException(503, "stock_gene 模块未加载")
+    return sanitize({"lists": _gene_mod.list_lists()})
+
+
+@app.post("/api/stock-gene/lists")
+def stock_gene_lists_add(req: StockGeneListAddReq):
+    """新建 list。"""
+    if not HAS_STOCK_GENE or _gene_mod is None:
+        raise HTTPException(503, "stock_gene 模块未加载")
+    try:
+        return sanitize({"ok": True, "list": _gene_mod.add_list(req.name, color=req.color)})
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.put("/api/stock-gene/lists/{list_id}")
+def stock_gene_lists_update(list_id: str, req: StockGeneListUpdateReq):
+    """重命名 / 改颜色。"""
+    if not HAS_STOCK_GENE or _gene_mod is None:
+        raise HTTPException(503, "stock_gene 模块未加载")
+    fields = {k: v for k, v in req.dict().items() if v is not None}
+    out = _gene_mod.update_list(list_id, **fields)
+    if out is None:
+        raise HTTPException(404, f"list 不存在: {list_id}")
+    return sanitize({"ok": True, "list": out})
+
+
+@app.delete("/api/stock-gene/lists/{list_id}")
+def stock_gene_lists_delete(list_id: str):
+    """删除 list；归属 items 自动移到 default。"""
+    if not HAS_STOCK_GENE or _gene_mod is None:
+        raise HTTPException(503, "stock_gene 模块未加载")
+    try:
+        moved = _gene_mod.delete_list(list_id)
+        return {"ok": True, "items_moved": moved}
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+# ── Scheduler 控制 ─────────────────────────────────────
+try:
+    import stock_gene_scheduler as _sched_mod
+    HAS_SCHEDULER = True
+except Exception as _e:
+    HAS_SCHEDULER = False
+    _sched_mod = None
+    print(f"[WARN] stock_gene_scheduler unavailable: {_e}")
+
+
+class SchedulerSetEnabledReq(BaseModel):
+    enabled: bool
+
+
+class SchedulerSetScheduleReq(BaseModel):
+    hour_utc: int       # 0-23
+    minute_utc: int     # 0-59
+
+
+@app.get("/api/stock-gene/scheduler/status")
+def stock_gene_scheduler_status():
+    """查看调度器状态：enabled / schedule / last_run / next_run / last_summary。"""
+    if not HAS_SCHEDULER or _sched_mod is None:
+        raise HTTPException(503, "scheduler 不可用")
+    return sanitize(_sched_mod.get_status())
+
+
+@app.post("/api/stock-gene/scheduler/enabled")
+def stock_gene_scheduler_enabled(req: SchedulerSetEnabledReq):
+    """开启 / 关闭定时刷新。"""
+    if not HAS_SCHEDULER or _sched_mod is None:
+        raise HTTPException(503, "scheduler 不可用")
+    return sanitize(_sched_mod.set_enabled(req.enabled))
+
+
+@app.post("/api/stock-gene/scheduler/schedule")
+def stock_gene_scheduler_schedule(req: SchedulerSetScheduleReq):
+    """设置每日运行的 UTC 时刻。"""
+    if not HAS_SCHEDULER or _sched_mod is None:
+        raise HTTPException(503, "scheduler 不可用")
+    return sanitize(_sched_mod.set_schedule(req.hour_utc, req.minute_utc))
+
+
+@app.post("/api/stock-gene/scheduler/run-now")
+def stock_gene_scheduler_run_now():
+    """立即手动触发一次全引擎评分。"""
+    if not HAS_SCHEDULER or _sched_mod is None:
+        raise HTTPException(503, "scheduler 不可用")
+    return sanitize(_sched_mod.run_now())
+
+
+@app.get("/api/stock-gene/alerts")
+def stock_gene_alerts(days: int = 30, min_delta: int = 1):
+    """从 score_history 计算评分变化 alerts。"""
+    if not HAS_STOCK_GENE or _gene_mod is None:
+        raise HTTPException(503, "stock_gene 模块未加载")
+    days = max(1, min(days, 365))
+    min_delta = max(1, min(min_delta, 8))
+    return sanitize({"alerts": _gene_mod.get_alerts(days=days, min_delta=min_delta)})
+
+
+@app.put("/api/stock-gene/{ticker}/move")
+def stock_gene_move(ticker: str, req: StockGeneMoveReq):
+    """把 item 移到指定 list。"""
+    if not HAS_STOCK_GENE or _gene_mod is None:
+        raise HTTPException(503, "stock_gene 模块未加载")
+    try:
+        out = _gene_mod.move_item(ticker, req.list_id)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    if out is None:
+        raise HTTPException(404, f"{ticker} 不在观察列表中")
+    return sanitize({"ok": True, "item": out})
 
 
 class StockGeneExplainReq(BaseModel):

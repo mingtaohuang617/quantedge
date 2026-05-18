@@ -7,6 +7,7 @@ import { monteCarlo as mcSimulate, navToReturns as mcNavToReturns, hhi as hhiCal
 import { idbGet, idbSet } from "./lib/idb.js";
 import macroSnapshot from "./macroSnapshot.json";
 import { TEMP_TEXT, TEMP_LABEL } from "./components/macro/shared.js";
+import ShortcutsModal from "./components/ShortcutsModal.jsx";
 
 // C1/C2: 拆分主文件 + 代码分割 — 各 Tab 按需加载（首屏不打包这些 chunk）
 const Journal = lazy(() => import("./pages/Journal.jsx"));
@@ -15,6 +16,7 @@ const BacktestEngine = lazy(() => import("./pages/BacktestEngine.jsx"));
 const ScoringDashboard = lazy(() => import("./pages/ScoringDashboard.jsx"));
 const MacroDashboard = lazy(() => import("./pages/MacroDashboard.jsx"));
 const Screener10x = lazy(() => import("./pages/Screener10x.jsx"));
+const MiningAlpha = lazy(() => import("./pages/MiningAlpha.jsx"));
 const StockGene = lazy(() => import("./pages/StockGene.jsx"));
 
 let STATIC_STOCKS = [];
@@ -997,7 +999,7 @@ const UserProfilePanel = ({ open, onClose, theme, toggleTheme }) => {
             ].map(([val, label]) => (
               <div key={label} className="text-center py-2 rounded-lg bg-white/[0.03] border border-white/5">
                 <div className="text-xs font-bold font-mono tabular-nums text-white leading-tight">{val}</div>
-                <div className="text-[8px] text-[#667] mt-0.5">{label}</div>
+                <div className="text-[9px] text-[#667] mt-0.5">{label}</div>
               </div>
             ))}
           </div>
@@ -1139,15 +1141,18 @@ const UserProfilePanel = ({ open, onClose, theme, toggleTheme }) => {
 
 // ─── Components ───────────────────────────────────────────
 export const Badge = ({ children, variant = "default", size = "md", dot = false }) => {
+  // PDF1 P0 收敛：info/violet/cyan 折叠为语义 5 角色 + 1 品牌色。
+  //  - info  曾用 sky → 改 neutral（仅作"数据展示"，无 warning 含义）
+  //  - violet/cyan 折叠到 accent（品牌色）— 不再单独存在
   const s = {
     default: "bg-white/5 text-[#a0aec0] border border-white/8",
     success: "bg-up/10 text-up border border-up/20",
     danger: "bg-down/10 text-down border border-down/20",
     warning: "bg-amber-500/10 text-amber-400 border border-amber-500/20",
-    info: "bg-sky-500/10 text-sky-400 border border-sky-500/20",
+    info: "bg-white/5 text-[#c8cdd3] border border-white/10",
     accent: "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20",
-    violet: "bg-violet-500/10 text-violet-400 border border-violet-500/20",
-    cyan: "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20",
+    violet: "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20",
+    cyan: "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20",
   };
   const sz = size === "sm" ? "px-1.5 py-px text-[9px]" : size === "lg" ? "px-2.5 py-1 text-xs" : "px-2 py-0.5 text-xs";
   return (
@@ -1221,6 +1226,7 @@ export const ScoreBar = ({ score, max = 100 }) => {
 const TAB_CFG = [
   { id: "scoring", label: "量化评分", icon: BarChart3 },
   { id: "backtest", label: "组合回测", icon: Activity },
+  { id: "miningAlpha", label: "Mining Alpha", icon: Zap },
   { id: "monitor", label: "实时监控", icon: Bell },
   { id: "journal", label: "投资日志", icon: BookOpen },
   { id: "macro", label: "宏观看板", icon: Globe },
@@ -1446,7 +1452,7 @@ const TickerManager = ({ open, onClose }) => {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-0.5">
                           <span className="text-xs font-semibold text-white">{item.symbol}</span>
-                          <Badge variant={item.market === "US" ? "info" : "warning"}>{item.market}</Badge>
+                          <Badge variant="default">{item.market}</Badge>
                           {item.type === "etf" && <Badge variant="accent">ETF</Badge>}
                           {item.price > 0 && <span className="text-[10px] font-mono tabular-nums text-[#a0aec0]">${item.price}</span>}
                           {item.change != null && safeChange(item.change) !== 0 && <span className={`text-[10px] font-mono tabular-nums ${safeChange(item.change) >= 0 ? "text-up" : "text-down"}`}>{safeChange(item.change) >= 0 ? "+" : ""}{fmtChange(item.change)}%</span>}
@@ -1490,7 +1496,7 @@ const TickerManager = ({ open, onClose }) => {
                   <div className="flex items-center gap-2 flex-1 min-w-0">
                     <span className="text-[10px] font-mono tabular-nums text-[#778] w-4">{s.rank}</span>
                     <span className="text-xs font-semibold text-white">{s.ticker}</span>
-                    <Badge variant={s.market === "US" ? "info" : "warning"}>{s.market}</Badge>
+                    <Badge variant="default">{s.market}</Badge>
                     {s.isETF && <Badge variant="accent">ETF</Badge>}
                     <span className="text-[10px] text-[#a0aec0] truncate">{lang === 'zh' ? (s.nameCN || STOCK_CN_NAMES[s.ticker] || s.name) : s.name}</span>
                   </div>
@@ -1553,7 +1559,7 @@ const WorkspaceSwitcher = () => {
         <div className="absolute right-0 top-full mt-1 z-30 glass-card border border-white/10 shadow-2xl shadow-black/50 min-w-[260px]">
           {/* 工作区列表 */}
           <div className="p-1">
-            <div className="text-[8px] uppercase tracking-wider text-[#778] px-2 py-1.5 font-mono">{t('工作区')} · {workspaces.length}</div>
+            <div className="text-[9px] uppercase tracking-wider text-[#778] px-2 py-1.5 font-mono">{t('工作区')} · {workspaces.length}</div>
             {workspaces.map(w => {
               const isActive = w.id === active.id;
               const isEditing = editing?.id === w.id;
@@ -1641,7 +1647,7 @@ const WorkspaceSwitcher = () => {
               </button>
             )}
           </div>
-          <div className="px-3 py-1.5 border-t border-white/5 text-[8px] text-[#667] leading-relaxed">
+          <div className="px-3 py-1.5 border-t border-white/5 text-[9px] text-[#667] leading-relaxed">
             {t('每个工作区独立保存日志 / 回测模板。股票池、行情数据全局共享。')}
           </div>
         </div>
@@ -1665,6 +1671,93 @@ const LiveClock = React.memo(() => {
   }, []);
   // HH:MM 不带秒（每分钟刷新足够；要看精确秒去看「数据更新于」字段）
   return <span className="font-mono tabular-nums text-xs text-[#a0aec0]">{time.toLocaleTimeString("en-GB", { hour12: false, hour: "2-digit", minute: "2-digit" })}</span>;
+});
+
+// ─── MobileBottomNav — 移动端底部 Tab Bar（iOS / Material 通用模式） ─
+// fixed bottom，icon + 微标签 + 渐变指示器；保留 safe-area-inset-bottom
+const MobileBottomNav = React.memo(({ tab, setTab }) => {
+  const { t } = useLang();
+  return (
+    <nav
+      role="tablist"
+      aria-label={t('主导航')}
+      className="md:hidden fixed bottom-0 left-0 right-0 z-30 flex items-stretch bg-[#0b0b14]/95 backdrop-blur-md border-t border-white/8"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+    >
+      {TAB_CFG.map((c) => {
+        const I = c.icon;
+        const active = tab === c.id;
+        return (
+          <button
+            key={c.id}
+            onClick={() => setTab(c.id)}
+            role="tab"
+            aria-selected={active}
+            aria-label={t(c.label)}
+            className={`relative flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 text-[9px] font-medium transition-colors active:scale-[0.96] ${
+              active ? 'text-white' : 'text-[#a0aec0]'
+            }`}
+          >
+            <I size={16} className={active ? 'drop-shadow-[0_0_4px_rgba(99,102,241,0.5)]' : ''} />
+            <span className="tracking-tight">{t(c.label)}</span>
+            {active && (
+              <span
+                aria-hidden="true"
+                className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-b-full"
+                style={{ background: 'var(--brand-gradient)' }}
+              />
+            )}
+          </button>
+        );
+      })}
+    </nav>
+  );
+});
+
+// ─── DataFreshnessPill — 持久数据状态条 ──────────────────────
+// 三态显示 + 一键刷新；title 显示完整状态文本
+//   - 实时（< 2 分钟）  绿色脉冲
+//   - 缓存（< 12 小时） amber 静态
+//   - 离线（无网或 > 12h）  红/灰
+const DataFreshnessPill = React.memo(({ apiOnline, priceUpdatedAt, priceRefreshing, onRefresh }) => {
+  const { t } = useLang();
+  // 每 30s 重算"多久前"，避免 stale 副标
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const iv = setInterval(() => setTick(v => v + 1), 30_000);
+    return () => clearInterval(iv);
+  }, []);
+  const ageSec = priceUpdatedAt ? Math.max(0, (Date.now() - priceUpdatedAt) / 1000) : Infinity;
+  // tick 仅触发 re-render；用 useMemo 锁定真正用到的值
+  void tick;
+  // 状态判定
+  let state, dotClass, label;
+  if (!apiOnline) { state = 'offline'; dotClass = 'bg-down'; label = t('离线'); }
+  else if (ageSec < 120) { state = 'live'; dotClass = ''; label = t('实时'); }
+  else if (ageSec < 12 * 3600) { state = 'cache'; dotClass = 'bg-amber-400'; label = t('缓存'); }
+  else { state = 'stale'; dotClass = 'bg-[#778]'; label = t('过期'); }
+  const ageText = !priceUpdatedAt ? '—'
+    : ageSec < 60 ? t('刚刚')
+    : ageSec < 3600 ? `${Math.round(ageSec / 60)}${t('分前')}`
+    : ageSec < 86400 ? `${Math.round(ageSec / 3600)}${t('时前')}`
+    : `${Math.round(ageSec / 86400)}${t('天前')}`;
+  const titleText = `${label} · ${t('数据更新于')} ${priceUpdatedAt ? new Date(priceUpdatedAt).toLocaleString() : '—'} · ${t('点击刷新')}`;
+  return (
+    <button
+      onClick={onRefresh}
+      disabled={priceRefreshing}
+      title={titleText}
+      className="hidden md:flex items-center gap-1.5 px-1.5 py-1 rounded-md text-[10px] font-medium bg-white/5 hover:bg-white/10 border border-white/8 transition-all btn-tactile disabled:opacity-50"
+    >
+      {state === 'live'
+        ? <span className="live-dot" style={{ width: 6, height: 6 }} />
+        : <span className={`w-1.5 h-1.5 rounded-full ${dotClass}`} />
+      }
+      <span className="text-[#a0aec0] tabular-nums">{label}</span>
+      <span className="text-[#778] font-mono tabular-nums hidden xl:inline">{ageText}</span>
+      {priceRefreshing && <RefreshCw size={9} className="animate-spin text-indigo-300" />}
+    </button>
+  );
 });
 
 // ─── Main ─────────────────────────────────────────────────
@@ -1785,7 +1878,7 @@ const CommandPalette = ({ open, onClose, stocks, onPickStock, onSwitchTab, curre
                   <>
                     {Icon && <Icon size={14} className="text-indigo-400 shrink-0" />}
                     <span className="text-xs text-white">{it.label}</span>
-                    <span className="ml-auto text-[8px] text-[#778] font-mono uppercase">{t('页面')}</span>
+                    <span className="ml-auto text-[9px] text-[#778] font-mono uppercase">{t('页面')}</span>
                     {currentTab === it.id && <span className="ml-1 text-[9px] text-indigo-400 font-mono">{t('当前')}</span>}
                   </>
                 ) : it.type === "action" ? (
@@ -1793,14 +1886,14 @@ const CommandPalette = ({ open, onClose, stocks, onPickStock, onSwitchTab, curre
                     <Settings size={14} className="text-amber-400 shrink-0" />
                     <span className="text-xs text-white">{it.label}</span>
                     <span className="text-[10px] text-[#a0aec0] truncate flex-1">{it.sub}</span>
-                    <span className="text-[8px] text-[#778] font-mono uppercase shrink-0">{t('动作')}</span>
+                    <span className="text-[9px] text-[#778] font-mono uppercase shrink-0">{t('动作')}</span>
                   </>
                 ) : it.type === "template" ? (
                   <>
                     <Activity size={14} className="text-cyan-400 shrink-0" />
                     <span className="text-xs text-white shrink-0">{it.label}</span>
                     <span className="text-[10px] text-[#a0aec0] truncate flex-1 font-mono">{it.sub}</span>
-                    <span className="text-[8px] text-cyan-400 font-mono uppercase shrink-0">{t('模板')}</span>
+                    <span className="text-[9px] text-cyan-400 font-mono uppercase shrink-0">{t('模板')}</span>
                   </>
                 ) : (
                   <>
@@ -1925,6 +2018,7 @@ function QuantPlatformInner() {
   const [showManager, setShowManager] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [cmdOpen, setCmdOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [onboardOpen, setOnboardOpen] = useState(false);
   useEffect(() => {
     try {
@@ -1989,26 +2083,49 @@ function QuantPlatformInner() {
   const toggleLayout = () => setLayoutMode(m => m === "topbar" ? "sidebar" : "topbar");
   const useSidebar = layoutMode === "sidebar";
 
-  // 全局键盘快捷键
+  // 全局键盘快捷键（ref 持有最新的回调以避免每次渲染重注册）
+  const kbdRefreshRef = useRef(quickPriceRefresh);
+  kbdRefreshRef.current = quickPriceRefresh;
   useEffect(() => {
     const handler = (e) => {
-      // Cmd/Ctrl + K — 打开命令面板
+      // Cmd/Ctrl + K — 打开命令面板（任何焦点状态都生效）
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         setCmdOpen(v => !v);
         return;
       }
-      // 1-4 切换 tab（仅当焦点不在输入框时）
+      // 输入框焦点时停止后续单键快捷键，避免误触
       const tag = document.activeElement?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA") return;
-      if (e.key >= "1" && e.key <= "4") {
+      const inEditable = tag === "INPUT" || tag === "TEXTAREA" || document.activeElement?.isContentEditable;
+      if (inEditable) return;
+      // 1-7 切换 tab（扩展至全部 7 个核心 tab）
+      if (e.key >= "1" && e.key <= "7") {
         const idx = parseInt(e.key, 10) - 1;
         if (TAB_CFG[idx]) { e.preventDefault(); setTab(TAB_CFG[idx].id); }
+        return;
       }
       // "/" 聚焦主搜索框
       if (e.key === "/") {
         const input = document.querySelector('input[placeholder*="搜索标的"]');
         if (input) { e.preventDefault(); input.focus(); }
+        return;
+      }
+      // "?" 打开键盘速查表（Shift+/）
+      if (e.key === "?") {
+        e.preventDefault();
+        setShortcutsOpen(v => !v);
+        return;
+      }
+      // "r" / "R" 刷新行情（与命令面板 act_refresh 同源）
+      if (e.key === "r" || e.key === "R") {
+        e.preventDefault();
+        kbdRefreshRef.current?.();
+        return;
+      }
+      // "j" / "k" 当前标的列表上下移动（仅在 ScoringDashboard）
+      if (e.key === "j" || e.key === "k") {
+        // 由 ScoringDashboard 决定是否响应（在自己监听器里 check tab）
+        window.dispatchEvent(new CustomEvent("quantedge:navStock", { detail: e.key === "j" ? "next" : "prev" }));
       }
     };
     window.addEventListener("keydown", handler);
@@ -2065,17 +2182,24 @@ function QuantPlatformInner() {
                   role="tab"
                   aria-selected={active}
                   aria-label={t(c.label)}
-                  className={`relative flex items-center gap-2 px-2 py-2 rounded-lg text-[11px] font-medium transition-all overflow-hidden whitespace-nowrap btn-tactile ${active ? "bg-gradient-to-r from-indigo-500/30 to-violet-500/15 text-white ring-1 ring-indigo-400/25" : "text-[#a0aec0] hover:text-white hover:bg-white/[0.06]"}`}
+                  // PDF1 P0：sidebar tab 从 紫色胶囊 改 极淡背景 + 左侧 2px 渐变指示条（与顶部下划线呼应）
+                  className={`relative flex items-center gap-2 px-2 py-2 rounded-md text-[11px] font-medium transition-all overflow-hidden whitespace-nowrap btn-tactile ${active ? "bg-white/[0.04] text-white" : "text-[#a0aec0] hover:text-white hover:bg-white/[0.04]"}`}
                 >
                   <I size={14} className="shrink-0" />
                   <span className="opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">{t(c.label)}</span>
-                  {active && <span className="absolute right-0 top-1/2 -translate-y-1/2 h-6 w-0.5 bg-indigo-400 rounded-l" />}
+                  {active && (
+                    <span
+                      aria-hidden="true"
+                      className="absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-r"
+                      style={{ background: 'var(--brand-gradient)' }}
+                    />
+                  )}
                 </button>
               );
             })}
           </nav>
           {/* 底部：⌘K 提示 */}
-          <div className="mt-auto px-2 py-2 text-[8px] text-[#667] flex items-center gap-1.5 overflow-hidden whitespace-nowrap">
+          <div className="mt-auto px-2 py-2 text-[9px] text-[#667] flex items-center gap-1.5 overflow-hidden whitespace-nowrap">
             <kbd className="px-1 py-[1px] rounded bg-white/5 border border-white/10 font-mono">⌘K</kbd>
             <span className="opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">{t('搜索')}</span>
           </div>
@@ -2093,7 +2217,7 @@ function QuantPlatformInner() {
                 <h1 className="text-xs md:text-sm font-bold tracking-tight text-white leading-tight">QuantEdge</h1>
                 <p className="text-[9px] md:text-[10px] text-[#a0aec0] hidden sm:block leading-tight">{t('综合量化投资平台 · 真实数据')}</p>
               </div>
-              <span className="hidden lg:inline-flex px-1.5 py-0.5 rounded text-[8px] font-mono font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">PRO</span>
+              <span className="hidden lg:inline-flex px-1.5 py-0.5 rounded text-[9px] font-mono font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">PRO</span>
             </div>
           </div>
           {/* Mobile: show compact right-side controls */}
@@ -2111,7 +2235,8 @@ function QuantPlatformInner() {
           </div>
         </div>
 
-        <nav role="tablist" aria-label={t('主导航')} className={`${useSidebar ? 'flex md:hidden' : 'flex'} items-center gap-1 md:gap-2 w-full md:w-auto overflow-x-auto`}>
+        {/* 主导航（桌面 / 顶部）：紧凑化以容下 7 个 tab。移动端用底部 MobileBottomNav 代替 */}
+        <nav role="tablist" aria-label={t('主导航')} className={`${useSidebar ? 'hidden' : 'hidden md:flex'} items-center gap-0.5 lg:gap-1 w-full md:w-auto overflow-x-auto shrink-0`}>
           {TAB_CFG.map(c => {
             const I = c.icon;
             const active = tab === c.id;
@@ -2122,12 +2247,12 @@ function QuantPlatformInner() {
                 role="tab"
                 aria-selected={active}
                 aria-label={t(c.label)}
-                className={`relative flex items-center gap-1 md:gap-1.5 px-2.5 md:px-3 py-2 text-[11px] md:text-xs font-medium whitespace-nowrap flex-1 md:flex-none justify-center transition-colors active:scale-[0.97] ${active ? "text-white" : "text-[#a0aec0] hover:text-white"}`}>
-                <I size={13} />{t(c.label)}
+                className={`relative flex items-center gap-1 lg:gap-1.5 px-1.5 md:px-2 lg:px-2.5 py-2 text-[11px] font-medium whitespace-nowrap flex-1 md:flex-none justify-center transition-colors active:scale-[0.97] ${active ? "text-white" : "text-[#a0aec0] hover:text-white"}`}>
+                <I size={12} />{t(c.label)}
                 {active && (
                   <span
                     aria-hidden="true"
-                    className="absolute left-2 right-2 -bottom-px h-0.5 rounded-full"
+                    className="absolute left-1.5 right-1.5 -bottom-px h-0.5 rounded-full"
                     style={{ background: 'var(--brand-gradient)' }}
                   />
                 )}
@@ -2136,11 +2261,14 @@ function QuantPlatformInner() {
           })}
         </nav>
 
-        <div className="hidden md:flex items-center gap-2.5">
-          {/* Header ticker tape — 60s 循环 marquee, hover 暂停（prefers-reduced-motion 自动停） */}
+        {/* 右侧 cluster：侧边栏模式下 flex-1 占满剩余空间让 ticker tape 撑长 */}
+        <div className={`hidden md:flex items-center gap-2 ${useSidebar ? 'flex-1 ml-3 min-w-0 justify-end' : ''}`}>
+          {/* Header ticker tape — 60s 循环 marquee, hover 暂停（prefers-reduced-motion 自动停）
+              · 侧边栏模式：flex-1 自适应（min 200 max 900）
+              · 非侧边栏：自适应到响应式宽度，避免硬编码 300px */}
           {stocks.length > 0 && (
             <div
-              className="relative flex items-center w-[300px] h-7 overflow-hidden rounded-md bg-white/[0.02] border border-white/5"
+              className={`relative flex items-center h-7 overflow-hidden rounded-md bg-white/[0.02] border border-white/5 ${useSidebar ? 'flex-1 min-w-[200px] max-w-[900px]' : 'w-[260px] lg:w-[300px] xl:w-[360px] 2xl:w-[420px]'}`}
               style={{
                 maskImage: 'linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent)',
                 WebkitMaskImage: 'linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent)',
@@ -2192,6 +2320,13 @@ function QuantPlatformInner() {
             <div className="live-dot" />
             <LiveClock />
           </div>
+          {/* PDF1 P0：持久数据新鲜度状态条 — 三态 实时/缓存/离线 + 一键刷新 */}
+          <DataFreshnessPill
+            apiOnline={apiOnline}
+            priceUpdatedAt={priceUpdatedAt}
+            priceRefreshing={priceRefreshing}
+            onRefresh={quickPriceRefresh}
+          />
           {/* 用户头像按钮 */}
           <button onClick={() => setShowProfile(true)} className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-white text-[10px] font-bold shadow-sm hover:shadow-indigo-500/30 hover:shadow-md transition-all btn-tactile ring-1 ring-white/10" title="账户信息">
             {(user.name || "U").charAt(0).toUpperCase()}
@@ -2199,7 +2334,7 @@ function QuantPlatformInner() {
         </div>
       </header>
 
-      <main id="main-content" role="main" className="flex-1 p-2 md:p-4 min-h-0 overflow-hidden flex flex-col">
+      <main id="main-content" role="main" className="flex-1 p-2 md:p-4 pb-14 md:pb-4 min-h-0 overflow-hidden flex flex-col">
         <Suspense fallback={
           <div className="flex items-center justify-center h-full text-[#778] text-xs">
             <div className="flex items-center gap-2">
@@ -2214,11 +2349,15 @@ function QuantPlatformInner() {
           {tab === "journal" && <Journal />}
           {tab === "macro" && <MacroDashboard />}
           {tab === "screener10x" && <Screener10x />}
+          {tab === "miningAlpha" && <MiningAlpha />}
           {tab === "stockgene" && <StockGene />}
         </Suspense>
       </main>
 
-      <footer className="flex items-center justify-between px-3 md:px-6 py-1.5 md:py-2 border-t border-white/5 bg-white/[0.02] backdrop-blur-sm flex-shrink-0" style={{ paddingBottom: "max(6px, env(safe-area-inset-bottom))" }}>
+      {/* 移动端底部 Tab Bar（替代顶部 7-tab squeeze）— 桌面端不渲染 */}
+      <MobileBottomNav tab={tab} setTab={setTab} />
+
+      <footer className="hidden md:flex items-center justify-between px-3 md:px-6 py-1.5 md:py-2 border-t border-white/5 bg-white/[0.02] backdrop-blur-sm flex-shrink-0" style={{ paddingBottom: "max(6px, env(safe-area-inset-bottom))" }}>
         <div className="flex items-center gap-2 md:gap-3 text-[9px] md:text-[10px] text-[#a0aec0] flex-wrap">
           {(() => {
             // S15: 数据源面板 — 鼠标悬停展示完整诊断信息
@@ -2290,7 +2429,7 @@ function QuantPlatformInner() {
                         <span className="font-mono text-[#a0aec0]">{apiOnline ? t('后端 API 直连') : t('独立 + 代理')}</span>
                       </div>
                     </div>
-                    <div className="mt-1.5 pt-1.5 border-t border-white/5 text-[8px] text-[#667] leading-relaxed">
+                    <div className="mt-1.5 pt-1.5 border-t border-white/5 text-[9px] text-[#667] leading-relaxed">
                       {t('点击右侧"刷新"按钮立即拉取最新行情')}
                     </div>
                   </div>
@@ -2323,7 +2462,7 @@ function QuantPlatformInner() {
                   className="hidden md:inline-flex items-center gap-1 hover:opacity-80 transition-opacity cursor-pointer"
                   title={t('点击查看宏观看板 · 综合 17 因子方向化温度')}
                 >
-                  <span className="text-[#a0aec0] uppercase text-[8px] font-medium">{t('宏观')}</span>
+                  <span className="text-[#a0aec0] uppercase text-[9px] font-medium">{t('宏观')}</span>
                   <span className={`font-mono tabular-nums font-bold ${TEMP_TEXT(temp)}`}>{temp.toFixed(0)}</span>
                   <span className={`text-[9px] ${TEMP_TEXT(temp)}`}>{t(TEMP_LABEL(temp))}</span>
                 </button>
@@ -2360,9 +2499,9 @@ function QuantPlatformInner() {
             </button>
           )}
           <span className="hidden lg:inline-flex items-center gap-1.5 text-[9px] text-[#667]">
-            <kbd className="px-1 py-[1px] rounded bg-white/5 border border-white/10 font-mono text-[8px]">⌘K</kbd>
+            <kbd className="px-1 py-[1px] rounded bg-white/5 border border-white/10 font-mono text-[9px]">⌘K</kbd>
             <span>{t('搜索')}</span>
-            <kbd className="px-1 py-[1px] rounded bg-white/5 border border-white/10 font-mono text-[8px] ml-1">Tab</kbd>
+            <kbd className="px-1 py-[1px] rounded bg-white/5 border border-white/10 font-mono text-[9px] ml-1">Tab</kbd>
             <span>{t('切换')}</span>
           </span>
           <span className="text-[9px] md:text-[10px] text-[#778] font-mono">v0.7.0 · <span className="text-indigo-400/80">PWA</span></span>
@@ -2400,6 +2539,7 @@ function QuantPlatformInner() {
         }}
       />
       <OnboardingTour open={onboardOpen} onClose={() => setOnboardOpen(false)} />
+      <ShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
     </div>
   );
 }

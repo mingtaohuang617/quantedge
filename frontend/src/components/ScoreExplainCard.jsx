@@ -63,7 +63,7 @@ export default function ScoreExplainCard({ stock, weights }) {
           <Info size={11} className="text-indigo-400" />
           <span className="text-[10px] font-medium text-indigo-300">为什么 {stock.score?.toFixed(1)} 分？</span>
           {state.cached && (
-            <span title="命中缓存" className="inline-flex items-center gap-0.5 text-[8px] text-amber-300/80">
+            <span title="命中缓存" className="inline-flex items-center gap-0.5 text-[9px] text-amber-300/80">
               <Zap size={8} /> 缓存
             </span>
           )}
@@ -79,7 +79,7 @@ export default function ScoreExplainCard({ stock, weights }) {
         {state.text && (
           <button
             onClick={handleGenerate}
-            className="text-[8px] text-indigo-300/70 hover:text-indigo-200 transition"
+            className="text-[9px] text-indigo-300/70 hover:text-indigo-200 transition"
           >
             重新解读
           </button>
