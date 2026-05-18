@@ -80,7 +80,7 @@ export default function AddTransactionModal({ open, onClose, onAdded, defaultTic
       <div className="glass-card p-4 w-[360px] max-w-[90vw] border border-emerald-500/30" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-3">
           <span className="text-sm font-semibold text-emerald-300">录入交易</span>
-          <button onClick={onClose} className="text-[#778] hover:text-white"><X size={14} /></button>
+          <button onClick={onClose} className="p-1.5 -m-1 rounded text-[#778] hover:text-white hover:bg-white/10 transition-colors" aria-label="关闭"><X size={14} /></button>
         </div>
 
         <div className="space-y-2">
@@ -151,7 +151,8 @@ export default function AddTransactionModal({ open, onClose, onAdded, defaultTic
               <label className="text-[9px] text-[#778] uppercase tracking-wider">交易日期</label>
               <input
                 type="date" value={tradedAt} onChange={e => setTradedAt(e.target.value)}
-                className="w-full px-2 py-1.5 mt-0.5 text-xs bg-[var(--bg-input)] border border-[var(--border-default)] rounded outline-none text-white"
+                style={{ colorScheme: "dark" }}
+                className="w-full px-2 py-1.5 mt-0.5 text-xs bg-[var(--bg-input)] border border-[var(--border-default)] rounded outline-none text-white focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/25 transition-colors"
               />
             </div>
           </div>

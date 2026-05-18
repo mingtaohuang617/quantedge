@@ -788,6 +788,7 @@ const BacktestEngine = () => {
       const navCurve = [];
       let maxNav = 0, maxDD = 0;
       const returns = [];
+      const benchReturns = []; // PDF1 P0：基准期间收益序列，用于算 benchSharpe（KPI 卡 vs 副标）
       // 持有份额（模拟实际持仓）
       let shares = normSeries.map(ns => ns.weight * 100 / ns.series[0]); // 初始份额
       let rebalanceCount = 0;
@@ -806,7 +807,8 @@ const BacktestEngine = () => {
           rebalanceCount++;
         }
 
-        const navPt = { date: dateAxis[i], strategy: Math.round(nav * 100) / 100, benchmark: benchSeries ? Math.round(benchSeries[i] * 100) / 100 : 100 + i * (35 / numPts) };
+        // benchmark 缺失时设为 null（之前用 100+i*线性递增 伪造，导致 Underwater 图显示 "QQQ 0%" 假相）
+        const navPt = { date: dateAxis[i], strategy: Math.round(nav * 100) / 100, benchmark: benchSeries ? Math.round(benchSeries[i] * 100) / 100 : null };
         // S8: 额外基准
         Object.entries(extraBenchSeries).forEach(([tk, ser]) => {
           navPt[`bench_${tk}`] = Math.round(ser[i] * 100) / 100;
@@ -816,6 +818,10 @@ const BacktestEngine = () => {
         const dd = (nav - maxNav) / maxNav * 100;
         if (dd < maxDD) maxDD = dd;
         if (i > 0) returns.push((nav - navCurve[i - 1].strategy) / navCurve[i - 1].strategy);
+        // 基准期间收益（与 strategy returns 同 period 计算）
+        if (i > 0 && navCurve[i].benchmark != null && navCurve[i - 1].benchmark != null && navCurve[i - 1].benchmark > 0) {
+          benchReturns.push((navCurve[i].benchmark - navCurve[i - 1].benchmark) / navCurve[i - 1].benchmark);
+        }
       }
 
       // 指标计算
@@ -865,11 +871,13 @@ const BacktestEngine = () => {
       }).sort((a, b) => b.ret - a.ret);
 
       // 回撤曲线 (underwater curve) — 组合 + 基准
+      // 基准缺失时 benchDD=null（Recharts 自动跳过），避免显示假的 0% 平直线
       const drawdownCurve = [];
       let peak = 0;
       let benchPeak = 0;
       let ddStart = -1, maxDDDuration = 0, curDDDuration = 0;
       let benchMaxDD = 0;
+      let benchHasData = false;
       navCurve.forEach((pt, idx) => {
         if (pt.strategy > peak) {
           peak = pt.strategy;
@@ -878,23 +886,40 @@ const BacktestEngine = () => {
         } else {
           curDDDuration++;
         }
-        if (pt.benchmark > benchPeak) benchPeak = pt.benchmark;
-        const benchDD = benchPeak > 0 ? Math.round((pt.benchmark - benchPeak) / benchPeak * 10000) / 100 : 0;
-        if (benchDD < benchMaxDD) benchMaxDD = benchDD;
+        let benchDD = null;
+        if (pt.benchmark != null) {
+          benchHasData = true;
+          if (pt.benchmark > benchPeak) benchPeak = pt.benchmark;
+          benchDD = benchPeak > 0 ? Math.round((pt.benchmark - benchPeak) / benchPeak * 10000) / 100 : 0;
+          if (benchDD < benchMaxDD) benchMaxDD = benchDD;
+        }
         drawdownCurve.push({
           date: pt.date,
           drawdown: Math.round((pt.strategy - peak) / peak * 10000) / 100,
           benchDD,
         });
       });
+      // 基准完全无数据时清零 benchMaxDD（下游 UI 显示 "—" 而不是 "0%"）
+      if (!benchHasData) benchMaxDD = null;
       if (curDDDuration > maxDDDuration) maxDDDuration = curDDDuration;
       // 估算回撤持续天数
       const ddDays = Math.round(maxDDDuration * (totalDays / Math.max(numPts, 1)));
 
       // 超额收益 Alpha（策略收益 - 基准收益）
+      // 基准缺失时 benchReturn/alpha 都置 null，下游 UI 显示"—"
       const benchFinal = navCurve[navCurve.length - 1].benchmark;
-      const benchReturn = ((benchFinal - 100) / 100 * 100);
-      const alpha = totalReturn - benchReturn;
+      const benchReturn = benchFinal != null ? ((benchFinal - 100) / 100 * 100) : null;
+      const alpha = benchReturn != null ? (totalReturn - benchReturn) : null;
+      // PDF1 P0：基准年化收益 + 基准夏普（用于 KPI 卡 vs 副标）
+      const annBenchReturn = benchReturn != null
+        ? (Math.pow(benchFinal / 100, annFactor) - 1) * 100
+        : null;
+      let benchSharpe = null;
+      if (benchReturns.length >= 5) {
+        const avgB = benchReturns.reduce((a, b) => a + b, 0) / benchReturns.length;
+        const stdB = Math.sqrt(benchReturns.reduce((a, b) => a + (b - avgB) ** 2, 0) / benchReturns.length);
+        if (stdB > 0) benchSharpe = (avgB / stdB) * Math.sqrt(periodsPerYear);
+      }
 
       // VaR (Value at Risk) — 95% and 99% confidence
       const sortedReturns = [...returns].sort((a, b) => a - b);
@@ -1041,10 +1066,10 @@ const BacktestEngine = () => {
           const startNav = slice[0].strategy;
           const endNav = slice[slice.length - 1].strategy;
           const wRet = ((endNav - startNav) / startNav) * 100;
-          // 基准窗口收益（用于 alpha）
+          // 基准窗口收益（用于 alpha）— 基准缺失时 wBenchRet/alpha 都置 null（之前 wBenchRet 兜底 0 会让 alpha 等于 wRet，产生假数据）
           const startBench = slice[0].benchmark;
           const endBench = slice[slice.length - 1].benchmark;
-          const wBenchRet = startBench > 0 ? ((endBench - startBench) / startBench) * 100 : 0;
+          const wBenchRet = (startBench != null && endBench != null && startBench > 0) ? ((endBench - startBench) / startBench) * 100 : null;
           // 周期回报
           const wRets = [];
           for (let i = 1; i < slice.length; i++) {
@@ -1067,8 +1092,8 @@ const BacktestEngine = () => {
             startDate: slice[0].date,
             endDate: slice[slice.length - 1].date,
             ret: Math.round(wRet * 100) / 100,
-            benchRet: Math.round(wBenchRet * 100) / 100,
-            alpha: Math.round((wRet - wBenchRet) * 100) / 100,
+            benchRet: wBenchRet != null ? Math.round(wBenchRet * 100) / 100 : null,
+            alpha: wBenchRet != null ? Math.round((wRet - wBenchRet) * 100) / 100 : null,
             sharpe: Math.round(wSharpe * 100) / 100,
             maxDD: Math.round(wMaxDD * 100) / 100,
             winRate: Math.round(wWinRate * 10) / 10,
@@ -1177,8 +1202,10 @@ const BacktestEngine = () => {
         metrics: {
           totalReturn: Math.round(totalReturn * 100) / 100,
           annReturn: Math.round(annReturn * 100) / 100,
-          alpha: Math.round(alpha * 100) / 100,
-          benchReturn: Math.round(benchReturn * 100) / 100,
+          alpha: alpha != null ? Math.round(alpha * 100) / 100 : null,
+          benchReturn: benchReturn != null ? Math.round(benchReturn * 100) / 100 : null,
+          annBenchReturn: annBenchReturn != null ? Math.round(annBenchReturn * 100) / 100 : null,
+          benchSharpe: benchSharpe != null ? Math.round(benchSharpe * 100) / 100 : null,
           sharpe: Math.round(sharpe * 100) / 100,
           maxDD: Math.round(maxDD * 100) / 100,
           maxDDDays: ddDays,
@@ -1188,7 +1215,7 @@ const BacktestEngine = () => {
           vol: Math.round(vol * 10) / 10,
           var95: Math.round(var95 * 100) / 100,
           var99: Math.round(var99 * 100) / 100,
-          benchMaxDD: Math.round(benchMaxDD * 100) / 100,
+          benchMaxDD: benchMaxDD != null ? Math.round(benchMaxDD * 100) / 100 : null,
         },
         finalValue: Math.round(initialCap * finalNav / 100),
       });
@@ -1368,7 +1395,8 @@ const BacktestEngine = () => {
                 {/* Ticker / Name & Market */}
                 <div className="flex items-center gap-1 mb-0.5">
                   <span className="text-[11px] font-bold truncate max-w-[80px]" style={{ color: "var(--text-heading)" }}>{stk.market !== "US" ? stk.name : ticker}</span>
-                  <Badge variant={stk.market === "US" ? "info" : "warning"}>{stk.market}</Badge>
+                  {/* PDF1 P0 收敛：市场标签不需要彩色（neutral default 即可） */}
+                  <Badge variant="default">{stk.market}</Badge>
                 </div>
                 {/* Rotary Knob */}
                 <RotaryKnob
@@ -1503,13 +1531,13 @@ const BacktestEngine = () => {
               <div className="mt-1.5 space-y-1">
                 <div className="flex gap-1.5 items-center">
                   <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)}
-                    className="flex-1 bg-white/5 border border-white/10 rounded-md px-1.5 py-1 text-[10px] outline-none"
+                    className="flex-1 bg-white/5 border border-white/10 rounded-md px-1.5 py-1 text-[10px] outline-none focus:border-indigo-500/50 focus:bg-white/[0.07] focus:ring-1 focus:ring-indigo-500/25 transition-colors"
                     style={{ color: "var(--text-primary)", colorScheme: "dark" }}
                     max={customEnd || new Date().toISOString().slice(0, 10)}
                   />
                   <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>{t('至')}</span>
                   <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)}
-                    className="flex-1 bg-white/5 border border-white/10 rounded-md px-1.5 py-1 text-[10px] outline-none"
+                    className="flex-1 bg-white/5 border border-white/10 rounded-md px-1.5 py-1 text-[10px] outline-none focus:border-indigo-500/50 focus:bg-white/[0.07] focus:ring-1 focus:ring-indigo-500/25 transition-colors"
                     style={{ color: "var(--text-primary)", colorScheme: "dark" }}
                     min={customStart} max={new Date().toISOString().slice(0, 10)}
                   />
@@ -1571,10 +1599,30 @@ const BacktestEngine = () => {
                 <Activity size={28} className={`text-indigo-400/40 ${running || dataLoading ? 'animate-pulse' : ''}`} />
               </div>
               <span className="text-sm mb-1.5 block font-medium" style={{ color: "var(--text-secondary)" }}>
-                {dataLoading ? dataLoadMsg : (running ? t('正在计算回测...') : t('构建组合后自动运行回测'))}
+                {dataLoading ? dataLoadMsg
+                  : running ? t('正在计算回测...')
+                  : portfolioStocks.length === 0 ? t('添加 3 只以上标的开始回测')
+                  : t('构建组合后自动运行回测')}
               </span>
-              <span className="text-[10px] block">{t('基于 {n} 个标的的真实价格历史 · 支持多时间维度', {n: portfolioStocks.length})}</span>
+              <span className="text-[10px] block">
+                {portfolioStocks.length === 0
+                  ? t('从内置模板开始 · 或左侧搜索添加任意全球标的')
+                  : t('基于 {n} 个标的的真实价格历史 · 支持多时间维度', {n: portfolioStocks.length})}
+              </span>
             </div>
+            {/* PDF1 P0：portfolio 为空时显式 CTA 指向构建器 / 模板（带主 CTA 的引导卡） */}
+            {!running && !dataLoading && portfolioStocks.length === 0 && (
+              <div className="flex items-center gap-2">
+                <button onClick={() => setBuilderOpen(true)}
+                  className="px-3 py-1.5 rounded-lg text-[11px] font-medium bg-indigo-500/15 text-indigo-300 border border-indigo-400/25 hover:bg-indigo-500/25 transition-all btn-tactile flex items-center gap-1.5">
+                  <Plus size={12} /> {t('添加标的')}
+                </button>
+                <button onClick={() => setShowTemplates(true)}
+                  className="px-3 py-1.5 rounded-lg text-[11px] font-medium bg-white/5 text-[#a0aec0] border border-white/10 hover:bg-white/10 hover:text-white transition-all btn-tactile flex items-center gap-1.5">
+                  <BookOpen size={12} /> {t('内置策略')}
+                </button>
+              </div>
+            )}
             {/* C13: 加载中显示 skeleton 占位（净值曲线 + 4 个 KPI 卡） */}
             {(running || dataLoading) && (
               <div className="w-full max-w-2xl px-4 space-y-3">
@@ -1677,19 +1725,19 @@ const BacktestEngine = () => {
                   <table className="w-full text-center">
                     <thead>
                       <tr>
-                        <th className="text-[8px] md:text-[9px] font-mono p-0.5 md:p-1" style={{ color: "var(--text-muted)" }}></th>
+                        <th className="text-[9px] md:text-[9px] font-mono p-0.5 md:p-1" style={{ color: "var(--text-muted)" }}></th>
                         {portfolioStocks.map(p => (
-                          <th key={p.ticker} className="text-[8px] md:text-[9px] font-mono p-0.5 md:p-1" style={{ color: "var(--text-muted)" }}>{p.ticker}</th>
+                          <th key={p.ticker} className="text-[9px] md:text-[9px] font-mono p-0.5 md:p-1" style={{ color: "var(--text-muted)" }}>{p.ticker}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
                       {portfolioStocks.map((p, i) => (
                         <tr key={p.ticker}>
-                          <td className="text-[8px] md:text-[9px] font-mono p-0.5 md:p-1 text-left whitespace-nowrap" style={{ color: "var(--text-muted)" }}>{p.ticker}</td>
+                          <td className="text-[9px] md:text-[9px] font-mono p-0.5 md:p-1 text-left whitespace-nowrap" style={{ color: "var(--text-muted)" }}>{p.ticker}</td>
                           {portfolioStocks.map((_, j) => (
                             <td key={j} className="p-px md:p-0.5">
-                              <div className="rounded md:rounded-md py-0.5 md:py-1 px-0.5 text-[8px] md:text-[9px] font-mono" style={{ background: "var(--bg-muted)", color: "var(--text-dim)" }}>
+                              <div className="rounded md:rounded-md py-0.5 md:py-1 px-0.5 text-[9px] md:text-[9px] font-mono" style={{ background: "var(--bg-muted)", color: "var(--text-dim)" }}>
                                 {i === j ? "1.00" : "—"}
                               </div>
                             </td>
@@ -1745,12 +1793,13 @@ const BacktestEngine = () => {
               {[
                 [t("总收益"), `${m.totalReturn >= 0 ? "+" : ""}${m.totalReturn}%`, m.totalReturn >= 0 ? "text-up" : "text-down", m.totalReturn >= 0 ? "positive" : "negative",
                   m.benchReturn != null ? `${benchTicker} ${m.benchReturn >= 0 ? '+' : ''}${m.benchReturn}%` : null],
-                [t("年化收益"), `${m.annReturn >= 0 ? "+" : ""}${m.annReturn}%`, m.annReturn >= 0 ? "text-up" : "text-down", m.annReturn >= 0 ? "positive" : "negative", null],
-                [t("超额 α"), `${m.alpha >= 0 ? "+" : ""}${m.alpha}%`, m.alpha >= 0 ? "text-up" : "text-down", m.alpha >= 0 ? "positive" : "negative",
-                  t('= 总收益 − 基准')],
+                [t("年化收益"), `${m.annReturn >= 0 ? "+" : ""}${m.annReturn}%`, m.annReturn >= 0 ? "text-up" : "text-down", m.annReturn >= 0 ? "positive" : "negative",
+                  m.annBenchReturn != null ? `${benchTicker} ${m.annBenchReturn >= 0 ? '+' : ''}${m.annBenchReturn}%` : null],
+                [t("超额 α"), m.alpha != null ? `${m.alpha >= 0 ? "+" : ""}${m.alpha}%` : "—", m.alpha == null ? "text-[#778]" : m.alpha >= 0 ? "text-up" : "text-down", m.alpha == null ? null : m.alpha >= 0 ? "positive" : "negative",
+                  m.alpha != null ? t('= 总收益 − 基准') : t('基准数据缺失')],
                 [t("终值"), `$${btResult.finalValue.toLocaleString()}`, "text-white", null, null],
                 [t("夏普"), m.sharpe.toFixed(2), m.sharpe > 1 ? "text-up" : m.sharpe > 0.5 ? "text-amber-400" : "text-down", m.sharpe > 1 ? "positive" : "negative",
-                  m.sharpe > 1 ? t('优秀') : m.sharpe > 0.5 ? t('合格') : t('偏弱')],
+                  m.benchSharpe != null ? `${benchTicker} ${m.benchSharpe.toFixed(2)}` : (m.sharpe > 1 ? t('优秀') : m.sharpe > 0.5 ? t('合格') : t('偏弱'))],
                 [t("最大回撤"), `${m.maxDD.toFixed(1)}%`, m.maxDD > -10 ? "text-amber-400" : "text-down", "negative",
                   m.benchMaxDD != null ? `${benchTicker} ${m.benchMaxDD}%` : null],
               ].map(([l, v, c, delta, vsBench], idx) => (
@@ -1898,23 +1947,23 @@ const BacktestEngine = () => {
                         const alpha = (sRet != null && bRet != null) ? sRet - bRet : null;
                         return (
                           <div className="glass-card border border-indigo-500/40 shadow-2xl px-2.5 py-2 tabular-nums" style={{ minWidth: 200 }}>
-                            <div className="text-[8px] text-[#778] uppercase tracking-wider mb-1 font-mono">{label}</div>
+                            <div className="text-[9px] text-[#778] uppercase tracking-wider mb-1 font-mono">{label}</div>
                             <div className="grid grid-cols-2 gap-x-3 gap-y-1">
                               <div>
-                                <div className="text-[8px] text-[#778] uppercase">{t('组合')}</div>
+                                <div className="text-[9px] text-[#778] uppercase">{t('组合')}</div>
                                 <div className={`text-sm font-bold font-mono leading-tight ${sRet >= 0 ? 'text-up' : 'text-down'}`}>
                                   {sign(sRet)}{sRet.toFixed(2)}%
                                 </div>
                               </div>
                               <div>
-                                <div className="text-[8px] text-[#778] uppercase">{benchTicker}</div>
-                                <div className={`text-sm font-mono leading-tight ${bRet >= 0 ? 'text-up' : 'text-down'}`}>
-                                  {sign(bRet)}{bRet.toFixed(2)}%
+                                <div className="text-[9px] text-[#778] uppercase">{benchTicker}</div>
+                                <div className={`text-sm font-mono leading-tight ${bRet == null ? 'text-[#778]' : bRet >= 0 ? 'text-up' : 'text-down'}`}>
+                                  {bRet != null ? `${sign(bRet)}${bRet.toFixed(2)}%` : '—'}
                                 </div>
                               </div>
                               {alpha != null && (
                                 <div className="col-span-2 pt-1 mt-0.5 border-t border-white/5 flex items-center justify-between">
-                                  <span className="text-[8px] text-[#778] uppercase">α (Alpha)</span>
+                                  <span className="text-[9px] text-[#778] uppercase">α (Alpha)</span>
                                   <span className={`text-sm font-bold font-mono ${alpha >= 0 ? 'text-up' : 'text-down'}`}>
                                     {sign(alpha)}{alpha.toFixed(2)}%
                                   </span>
@@ -1972,8 +2021,8 @@ const BacktestEngine = () => {
                 color: '#94a3b8',
                 metrics: {
                   totalReturn: m.benchReturn,
-                  annReturn: null, alpha: null,
-                  sharpe: null, sortino: null, calmar: null,
+                  annReturn: m.annBenchReturn, alpha: null,
+                  sharpe: m.benchSharpe, sortino: null, calmar: null,
                   maxDD: m.benchMaxDD,
                   vol: null, winRate: null, var95: null,
                 },
@@ -2011,14 +2060,16 @@ const BacktestEngine = () => {
                     <span className="section-title">{t('策略横评 ({n} 组)', { n: all.length })}</span>
                     <span className="text-[9px] text-[#778] font-mono ml-1">{t('深色 = 该指标胜者')}</span>
                   </div>
+                  {/* 紧凑表 + 行 hover 高亮（行级 +1.5px bg / 指标列加白）+ 顶部 header sticky */}
                   <table className="w-full text-[10px] tabular-nums border-collapse">
                     <thead>
+                      {/* sticky 必须放 <th> 才生效（tr/thead 上的 sticky 大部分浏览器不渲染）*/}
                       <tr className="border-b border-white/8">
-                        <th className="text-left font-medium text-[#778] py-1.5 pr-3">{t('指标')}</th>
+                        <th className="text-left font-medium text-[#778] py-1.5 pr-2 sticky top-0 bg-[#0b0b14]/95 backdrop-blur-sm">{t('指标')}</th>
                         {all.map(run => (
-                          <th key={run.id} className="text-right font-mono font-medium py-1.5 px-2 whitespace-nowrap" style={{ color: run.color }}>
+                          <th key={run.id} className="text-right font-mono font-medium py-1.5 px-1.5 whitespace-nowrap sticky top-0 bg-[#0b0b14]/95 backdrop-blur-sm" style={{ color: run.color }}>
                             <div className="flex items-center gap-1 justify-end">
-                              <span className="w-2 h-2 rounded-full inline-block" style={{ background: run.color }} />
+                              <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: run.color }} />
                               <span className="truncate max-w-[100px]" title={run.label}>{run.label}</span>
                             </div>
                           </th>
@@ -2027,18 +2078,18 @@ const BacktestEngine = () => {
                     </thead>
                     <tbody>
                       {rows.map(r => (
-                        <tr key={r.key} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
-                          <td className="text-[#a0aec0] py-1 pr-3">{r.label}</td>
+                        <tr key={r.key} className="group border-b border-white/[0.04] transition-colors hover:bg-white/[0.04]">
+                          <td className="py-1 pr-2 text-[#a0aec0] group-hover:text-white transition-colors">{r.label}</td>
                           {all.map((run, idx) => {
                             const raw = run.metrics[r.key];
                             if (raw == null) {
-                              return <td key={run.id} className="text-right font-mono py-1 px-2 text-[#556]">—</td>;
+                              return <td key={run.id} className="text-right font-mono py-1 px-1.5 text-[#556]">—</td>;
                             }
                             const v = Number(raw);
                             const isWinner = winners[r.key] === idx && all.length > 1;
                             const goodColor = r.good(v) ? 'text-up' : 'text-down';
                             return (
-                              <td key={run.id} className={`text-right font-mono py-1 px-2 ${isWinner ? 'bg-indigo-500/10 font-bold' : ''} ${goodColor}`}>
+                              <td key={run.id} className={`text-right font-mono py-1 px-1.5 ${isWinner ? 'bg-indigo-500/10 font-bold' : ''} ${goodColor}`}>
                                 {r.fmt(v)}
                               </td>
                             );
@@ -2243,7 +2294,7 @@ const BacktestEngine = () => {
                         <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-indigo-500 border-2 border-white shadow-lg shadow-indigo-500/40 transition-all duration-500"
                           style={{ left: `${betaPct}%` }} />
                       </div>
-                      <div className="flex justify-between text-[8px] text-[#778] font-mono mb-2">
+                      <div className="flex justify-between text-[9px] text-[#778] font-mono mb-2">
                         <span>0</span><span>1.0</span><span>2.5+</span>
                       </div>
                       <div className="text-[10px] text-[#a0aec0] leading-relaxed">
@@ -2376,7 +2427,7 @@ const BacktestEngine = () => {
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="flex items-center gap-1 text-[9px] text-down"><span className="w-3 h-0.5 bg-down rounded-full inline-block" /> {t('组合 {pct}%', {pct: m?.maxDD})}</span>
-                      <span className="flex items-center gap-1 text-[9px] text-amber-400"><span className="w-3 h-0.5 bg-amber-400 rounded-full inline-block" style={{ opacity: 0.6 }} /> {benchTicker} {m?.benchMaxDD || 0}%</span>
+                      <span className="flex items-center gap-1 text-[9px] text-amber-400"><span className="w-3 h-0.5 bg-amber-400 rounded-full inline-block" style={{ opacity: 0.6 }} /> {benchTicker} {m?.benchMaxDD != null ? `${m.benchMaxDD}%` : t('数据缺失')}</span>
                     </div>
                   </div>
                   <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-md bg-down/10 text-down border border-down/20 w-fit">
@@ -2423,8 +2474,8 @@ const BacktestEngine = () => {
                     [t("年化波动率"), `${m.vol}%`, m.vol < 20 ? "text-up" : m.vol < 40 ? "text-amber-400" : "text-down", ""],
                     ["VaR 99%", `${m.var99.toFixed(2)}%`, "text-down", ""],
                     [t("最大回撤天数"), `${m.maxDDDays} ${t("天")}`, m.maxDDDays < 30 ? "text-up" : m.maxDDDays < 60 ? "text-amber-400" : "text-down", ""],
-                    [t("基准收益"), `${m.benchReturn >= 0 ? "+" : ""}${m.benchReturn}%`, m.benchReturn >= 0 ? "text-up" : "text-down", ""],
-                    [t("基准最大回撤"), `${m.benchMaxDD}%`, "text-down", ""],
+                    [t("基准收益"), m.benchReturn != null ? `${m.benchReturn >= 0 ? "+" : ""}${m.benchReturn}%` : "—", m.benchReturn == null ? "text-[#778]" : m.benchReturn >= 0 ? "text-up" : "text-down", ""],
+                    [t("基准最大回撤"), m.benchMaxDD != null ? `${m.benchMaxDD}%` : "—", m.benchMaxDD == null ? "text-[#778]" : "text-down", ""],
                   ].map(([l, v, c, tip]) => (
                     <div key={l} className="flex justify-between items-center py-1.5 border-b border-white/[0.03] last:border-0" title={tip}>
                       <span className="text-[10px] text-[#a0aec0]">{l}</span>
@@ -2452,16 +2503,16 @@ const BacktestEngine = () => {
                 <table className="w-full text-center" style={{ minWidth: 0 }}>
                   <thead>
                     <tr>
-                      <th className="text-[8px] md:text-[9px] font-mono p-0.5 md:p-1" style={{ color: "var(--text-muted)" }}></th>
+                      <th className="text-[9px] md:text-[9px] font-mono p-0.5 md:p-1" style={{ color: "var(--text-muted)" }}></th>
                       {btResult.corrTickers.map(t => (
-                        <th key={t} className="text-[8px] md:text-[9px] font-mono font-medium p-0.5 md:p-1" style={{ color: "var(--text-heading)" }}>{t}</th>
+                        <th key={t} className="text-[9px] md:text-[9px] font-mono font-medium p-0.5 md:p-1" style={{ color: "var(--text-heading)" }}>{t}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {btResult.corrTickers.map((t, i) => (
                       <tr key={t}>
-                        <td className="text-[8px] md:text-[9px] font-mono font-medium p-0.5 md:p-1 text-left whitespace-nowrap" style={{ color: "var(--text-heading)" }}>{t}</td>
+                        <td className="text-[9px] md:text-[9px] font-mono font-medium p-0.5 md:p-1 text-left whitespace-nowrap" style={{ color: "var(--text-heading)" }}>{t}</td>
                         {btResult.corrMatrix[i].map((val, j) => {
                           const absV = Math.abs(val);
                           const hue = val >= 0 ? 142 : 0;
@@ -2470,7 +2521,7 @@ const BacktestEngine = () => {
                           const alpha = i === j ? 0.3 : 0.15 + absV * 0.5;
                           return (
                             <td key={j} className="p-px md:p-0.5">
-                              <div className="rounded md:rounded-md py-0.5 md:py-1 px-0.5 text-[8px] md:text-[9px] font-mono font-medium tabular-nums transition-all"
+                              <div className="rounded md:rounded-md py-0.5 md:py-1 px-0.5 text-[9px] md:text-[9px] font-mono font-medium tabular-nums transition-all"
                                 style={{
                                   background: i === j ? "var(--bg-muted)" : `hsla(${hue}, ${sat}%, ${lum}%, ${alpha})`,
                                   color: i === j ? "var(--text-muted)" : val > 0.5 ? "var(--accent-up)" : val < -0.3 ? "var(--accent-down)" : "var(--text-secondary)",
@@ -2489,15 +2540,15 @@ const BacktestEngine = () => {
               <div className="flex items-center justify-center gap-4 mt-2">
                 <div className="flex items-center gap-1">
                   <div className="w-3 h-2 rounded-sm" style={{ background: "hsla(0, 50%, 20%, 0.5)" }} />
-                  <span className="text-[8px]" style={{ color: "var(--text-muted)" }}>{t('负相关')}</span>
+                  <span className="text-[9px]" style={{ color: "var(--text-muted)" }}>{t('负相关')}</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <div className="w-3 h-2 rounded-sm" style={{ background: "var(--bg-muted)" }} />
-                  <span className="text-[8px]" style={{ color: "var(--text-muted)" }}>{t('无相关')}</span>
+                  <span className="text-[9px]" style={{ color: "var(--text-muted)" }}>{t('无相关')}</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <div className="w-3 h-2 rounded-sm" style={{ background: "hsla(142, 50%, 20%, 0.5)" }} />
-                  <span className="text-[8px]" style={{ color: "var(--text-muted)" }}>{t('正相关')}</span>
+                  <span className="text-[9px]" style={{ color: "var(--text-muted)" }}>{t('正相关')}</span>
                 </div>
               </div>
             </div>
@@ -2547,17 +2598,17 @@ const BacktestEngine = () => {
                       </thead>
                       <tbody>
                         {wf.windows.map(w => (
-                          <tr key={w.id} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
+                          <tr key={w.id} className="border-b border-white/[0.04] hover:bg-white/[0.04]">
                             <td className="py-1 px-2 font-mono text-cyan-300">{w.label}</td>
                             <td className="py-1 px-2 font-mono text-[#a0aec0] text-[9px]">{w.startDate} ~ {w.endDate}</td>
                             <td className={`py-1 px-2 text-right font-mono font-bold ${w.ret >= 0 ? 'text-up' : 'text-down'}`}>
                               {w.ret >= 0 ? '+' : ''}{w.ret}%
                             </td>
-                            <td className={`py-1 px-2 text-right font-mono ${w.benchRet >= 0 ? 'text-up' : 'text-down'}`}>
-                              {w.benchRet >= 0 ? '+' : ''}{w.benchRet}%
+                            <td className={`py-1 px-2 text-right font-mono ${w.benchRet == null ? 'text-[#778]' : w.benchRet >= 0 ? 'text-up' : 'text-down'}`}>
+                              {w.benchRet != null ? `${w.benchRet >= 0 ? '+' : ''}${w.benchRet}%` : '—'}
                             </td>
-                            <td className={`py-1 px-2 text-right font-mono ${w.alpha >= 0 ? 'text-up' : 'text-down'}`}>
-                              {w.alpha >= 0 ? '+' : ''}{w.alpha}%
+                            <td className={`py-1 px-2 text-right font-mono ${w.alpha == null ? 'text-[#778]' : w.alpha >= 0 ? 'text-up' : 'text-down'}`}>
+                              {w.alpha != null ? `${w.alpha >= 0 ? '+' : ''}${w.alpha}%` : '—'}
                             </td>
                             <td className={`py-1 px-2 text-right font-mono ${w.sharpe >= 1 ? 'text-up' : w.sharpe >= 0 ? 'text-amber-400' : 'text-down'}`}>{w.sharpe}</td>
                             <td className="py-1 px-2 text-right font-mono text-down">{w.maxDD}%</td>
@@ -2636,7 +2687,7 @@ const BacktestEngine = () => {
                       </div>
                     ))}
                     {ra.sectorBreakdown.length > 5 && (
-                      <div className="text-[8px] text-[#667] text-right">+ {ra.sectorBreakdown.length - 5} {t('个其他板块')}</div>
+                      <div className="text-[9px] text-[#667] text-right">+ {ra.sectorBreakdown.length - 5} {t('个其他板块')}</div>
                     )}
                   </div>
                   <div className="mt-2 pt-2 border-t border-white/5 text-[9px] text-[#667] leading-relaxed">
