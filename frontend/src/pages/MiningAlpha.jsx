@@ -20,7 +20,7 @@
 //   - GET /api/mining-alpha/fold-ic              per-fold IC
 //   - POST /api/mining-alpha/switch-run/{id}     切换 latest run
 // ─────────────────────────────────────────────────────────────
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Zap, TrendingUp, Activity, Database, AlertCircle, Loader, RefreshCw, Target,
   Plus, Minus, ArrowRight, GitBranch, X, Play, Terminal, Grid3x3, Info,
@@ -49,8 +49,9 @@ const StepChip = ({ label, done }) => (
 
 // ─── Run 切换器 ──────────────────────────────────────────────
 const RunSwitcher = ({ status, onSwitch }) => {
-  if (!status?.history_runs?.length) return null;
   const [open, setOpen] = useState(false);
+  // hook 必须在 early return 之前，避免 status 由空变非空时 hook 顺序变化
+  if (!status?.history_runs?.length) return null;
   return (
     <div className="relative">
       <button
@@ -136,14 +137,14 @@ const IC_COLOR_SCALE = (ic) => {
 };
 
 const ICHeatmap = ({ data, onPickAlpha }) => {
-  if (!data?.cells?.length) return <div className="text-[#a0aec0] text-xs">IC 热力图未生成。`mining_alpha.run ic-report` 后会自动产出 ic_monthly_heatmap.csv</div>;
-  const { alphas, months, cells } = data;
-  // 构造 alpha → month → ic lookup
+  // hook 必须在 early return 之前，避免 data 由空变非空时 hook 顺序变化
   const lookup = useMemo(() => {
     const m = new Map();
-    cells.forEach(c => { m.set(`${c.alpha}|${c.month}`, c.ic); });
+    (data?.cells || []).forEach(c => { m.set(`${c.alpha}|${c.month}`, c.ic); });
     return m;
-  }, [cells]);
+  }, [data]);
+  if (!data?.cells?.length) return <div className="text-[#a0aec0] text-xs">IC 热力图未生成。`mining_alpha.run ic-report` 后会自动产出 ic_monthly_heatmap.csv</div>;
+  const { alphas, months } = data;
   return (
     <div className="overflow-auto max-h-[480px] rounded-lg border border-white/5">
       <table className="text-[10px] font-mono tabular-nums">
@@ -190,9 +191,13 @@ const FactorDetailModal = ({ alphaNum, onClose }) => {
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     if (alphaNum == null) return;
+    let cancelled = false;
     setLoading(true);
-    apiFetch(`/api/mining-alpha/factor-detail/${alphaNum}`)
-      .then(setData).catch(() => setData(null)).finally(() => setLoading(false));
+    apiFetch(`/mining-alpha/factor-detail/${alphaNum}`)
+      .then(d => { if (!cancelled) setData(d); })
+      .catch(() => { if (!cancelled) setData(null); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, [alphaNum]);
   if (alphaNum == null) return null;
   return (
@@ -271,23 +276,40 @@ const STEPS = [
 const RunPipelinePanel = ({ runId, onJobDone }) => {
   const [jobState, setJobState] = useState(null);
   const [activeStep, setActiveStep] = useState(null);
-  // 轮询
+
+  // 锁定 onJobDone 最新引用，避免 parent 每次重渲染都触发 effect cleanup
+  const onJobDoneRef = useRef(onJobDone);
+  useEffect(() => { onJobDoneRef.current = onJobDone; }, [onJobDone]);
+
+  // 首次 mount：拉一次状态了解后端是否有任务在跑
   useEffect(() => {
+    let cancelled = false;
+    apiFetch("/mining-alpha/run/status").then(s => {
+      if (!cancelled && s) setJobState(s);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  // 仅在 (activeStep 或后端 running) 时才 poll；空闲时停掉，省去无谓 200+ /run/status 请求
+  useEffect(() => {
+    if (!jobState?.running && !activeStep) return;
+    let cancelled = false;
     let timer = null;
     const tick = async () => {
-      try {
-        const s = await apiFetch("/api/mining-alpha/run/status");
-        setJobState(s);
-        if (s && !s.running && s.exit_code != null) {
-          setActiveStep(null);
-          onJobDone?.();
-        }
-      } catch {/* swallow */}
+      if (cancelled) return;
+      const s = await apiFetch("/mining-alpha/run/status").catch(() => null);
+      if (cancelled) return;
+      if (s) setJobState(s);
+      if (s && !s.running && s.exit_code != null) {
+        setActiveStep(null);
+        onJobDoneRef.current?.();
+        return;
+      }
       timer = setTimeout(tick, 2000);
     };
-    tick();
-    return () => clearTimeout(timer);
-  }, [onJobDone]);
+    timer = setTimeout(tick, 2000);
+    return () => { cancelled = true; if (timer) clearTimeout(timer); };
+  }, [jobState?.running, activeStep]);
 
   const triggerStep = async (step, extra) => {
     setActiveStep(step);
@@ -295,7 +317,10 @@ const RunPipelinePanel = ({ runId, onJobDone }) => {
     if (runId) qs.set("run_id", runId);
     if (extra) qs.set("extra_args", extra);
     try {
-      await apiFetch(`/api/mining-alpha/run/${step}?${qs.toString()}`, { method: "POST" });
+      await apiFetch(`/mining-alpha/run/${step}?${qs.toString()}`, { method: "POST" });
+      // 立刻拉一次最新状态，让 jobState.running=true 触发 polling effect
+      const s = await apiFetch("/mining-alpha/run/status").catch(() => null);
+      if (s) setJobState(s);
     } catch (e) {
       setActiveStep(null);
       alert(`启动失败: ${e}`);
@@ -407,13 +432,14 @@ const REGIME_COLOR = {
 
 // ─── 净值曲线（含 benchmark + regime overlay）─────────────────
 const EquityCurveChart = ({ strategy, benchmark, regimeSegments }) => {
-  if (!strategy || strategy.length === 0) return <div className="text-[#a0aec0] text-xs">回测净值未生成。`mining_alpha.run backtest`</div>;
   // 合并 strategy + benchmark 数据，使用 date 字段对齐
+  // 注意：hook 必须在任何 early return 之前调用，否则 hook 顺序在 strategy 由空变非空时会变化
   const benchMap = useMemo(() => {
     const m = new Map();
     (benchmark || []).forEach(p => m.set(p.date, p.bench_equity));
     return m;
   }, [benchmark]);
+  if (!strategy || strategy.length === 0) return <div className="text-[#a0aec0] text-xs">回测净值未生成。`mining_alpha.run backtest`</div>;
   const data = strategy.map(p => ({ date: p.date, equity: p.equity, bench: benchMap.get(p.date) }));
   return (
     <ResponsiveContainer width="100%" height={320}>
@@ -516,8 +542,12 @@ const MultiTopNTable = ({ rows }) => {
 };
 
 // ─── Top 持仓表（含 new/held/dropped 标记）─────────────────────
-const TopHoldingsTable = ({ holdings, asOf, summary }) => {
-  if (!holdings || holdings.length === 0) return <div className="text-[#a0aec0] text-xs">最新预测不可用。`train`</div>;
+const TopHoldingsTable = ({ holdings, asOf, summary, errorDetail }) => {
+  if (!holdings || holdings.length === 0) return (
+    <div className="text-[#a0aec0] text-xs">
+      {errorDetail || "最新预测不可用。`train`"}
+    </div>
+  );
   return (
     <div>
       <div className="flex items-center justify-between mb-1.5">
@@ -608,20 +638,20 @@ export default function MiningAlpha() {
     setLoading(true);
     setError(null);
     try {
-      const s = await apiFetch("/api/mining-alpha/status").catch(() => null);
+      const s = await apiFetch("/mining-alpha/status").catch(() => null);
       setStatus(s);
       const tasks = [];
       if (s?.files?.ic_report) {
-        tasks.push(apiFetch("/api/mining-alpha/ic-report?top_n=20").catch(() => []).then(setIC));
-        tasks.push(apiFetch("/api/mining-alpha/ic-heatmap?top_n=20&recent_months=24").catch(() => null).then(setHeatmap));
+        tasks.push(apiFetch("/mining-alpha/ic-report?top_n=20").catch(() => []).then(setIC));
+        tasks.push(apiFetch("/mining-alpha/ic-heatmap?top_n=20&recent_months=24").catch(() => null).then(setHeatmap));
       }
-      if (s?.files?.feature_importance) tasks.push(apiFetch("/api/mining-alpha/feature-importance?top_n=20").catch(() => []).then(setImportance));
-      if (s?.files?.backtest_report) tasks.push(apiFetch("/api/mining-alpha/backtest").catch(() => null).then(setBacktest));
-      if (s?.files?.predictions) tasks.push(apiFetch("/api/mining-alpha/top-holdings?top_n=20").catch(() => ({})).then(setTopHoldings));
-      if (s?.files?.regime) tasks.push(apiFetch("/api/mining-alpha/regime").catch(() => []).then(setRegime));
-      if (s?.files?.fold_ic) tasks.push(apiFetch("/api/mining-alpha/fold-ic").catch(() => []).then(setFoldIC));
+      if (s?.files?.feature_importance) tasks.push(apiFetch("/mining-alpha/feature-importance?top_n=20").catch(() => []).then(setImportance));
+      if (s?.files?.backtest_report) tasks.push(apiFetch("/mining-alpha/backtest").catch(() => null).then(setBacktest));
+      if (s?.files?.predictions) tasks.push(apiFetch("/mining-alpha/top-holdings?top_n=20").catch(() => ({})).then(setTopHoldings));
+      if (s?.files?.regime) tasks.push(apiFetch("/mining-alpha/regime").catch(() => []).then(setRegime));
+      if (s?.files?.fold_ic) tasks.push(apiFetch("/mining-alpha/fold-ic").catch(() => []).then(setFoldIC));
       // alerts: status.files.alerts 暂未声明，直接尝试拉取
-      tasks.push(apiFetch("/api/mining-alpha/alerts").catch(() => ({ alerts: [] })).then(r => setAlerts(r?.alerts || [])));
+      tasks.push(apiFetch("/mining-alpha/alerts").catch(() => ({ alerts: [] })).then(r => setAlerts(r?.alerts || [])));
       await Promise.all(tasks);
     } catch (e) {
       setError(String(e));
@@ -632,7 +662,7 @@ export default function MiningAlpha() {
 
   const onSwitchRun = async (runId) => {
     try {
-      await apiFetch(`/api/mining-alpha/switch-run/${runId}`, { method: "POST" });
+      await apiFetch(`/mining-alpha/switch-run/${runId}`, { method: "POST" });
       await fetchAll();
     } catch (e) {
       setError(String(e));
@@ -764,7 +794,7 @@ export default function MiningAlpha() {
             <ArrowRight size={10} className="text-[#a0aec0]" />
             <span className="text-[10px] text-[#a0aec0] font-normal">vs 上周持仓</span>
           </div>
-          <TopHoldingsTable holdings={topHoldings.holdings} asOf={topHoldings.as_of} summary={summary} />
+          <TopHoldingsTable holdings={topHoldings?.holdings} asOf={topHoldings?.as_of} summary={summary} errorDetail={topHoldings?.detail} />
         </div>
       </div>
 
