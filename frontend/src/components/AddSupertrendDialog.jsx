@@ -119,6 +119,7 @@ export default function AddSupertrendDialog({ open, onClose, onSaved, defaultStr
           <button
             onClick={onClose}
             className="text-[#a0aec0] hover:text-white transition-colors p-1 rounded hover:bg-white/10"
+            aria-label="关闭"
           >
             <X size={16} />
           </button>

@@ -1037,7 +1037,7 @@ export default function Screener10x() {
                   {filteredCandidates.map((c) => {
                     const ai = aiRanking[c.ticker];
                     return (
-                      <tr key={c.ticker} className="border-t border-white/5 hover:bg-white/[0.02] transition">
+                      <tr key={c.ticker} className="border-t border-white/5 hover:bg-white/[0.04] transition">
                         <td className="px-2 py-1.5 font-mono text-[10px] text-white">{c.ticker}</td>
                         <td className="px-2 py-1.5 text-[10px] text-[#d0d7e2] truncate max-w-[140px]" title={c.name}>{c.name}</td>
                         <td className="px-2 py-1.5 text-[9px] text-[#a0aec0]">{c.market}{c.exchange && `·${c.exchange}`}</td>

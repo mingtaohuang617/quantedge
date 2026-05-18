@@ -2597,7 +2597,7 @@ const BacktestEngine = () => {
                       </thead>
                       <tbody>
                         {wf.windows.map(w => (
-                          <tr key={w.id} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
+                          <tr key={w.id} className="border-b border-white/[0.04] hover:bg-white/[0.04]">
                             <td className="py-1 px-2 font-mono text-cyan-300">{w.label}</td>
                             <td className="py-1 px-2 font-mono text-[#a0aec0] text-[9px]">{w.startDate} ~ {w.endDate}</td>
                             <td className={`py-1 px-2 text-right font-mono font-bold ${w.ret >= 0 ? 'text-up' : 'text-down'}`}>

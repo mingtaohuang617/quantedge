@@ -97,7 +97,7 @@ const CompareModal = ({ open, onClose, stocks }) => {
             <h2 className="text-sm font-semibold text-white">{t('标的对比')}</h2>
             <span className="text-[10px] text-[#a0aec0]">{stocks.length}</span>
           </div>
-          <button onClick={onClose} className="text-[#a0aec0] hover:text-white transition-colors p-1 rounded hover:bg-white/10">
+          <button onClick={onClose} aria-label="关闭对比" className="text-[#a0aec0] hover:text-white transition-colors p-1 rounded hover:bg-white/10">
             <X size={16} />
           </button>
         </div>
@@ -128,10 +128,10 @@ const CompareModal = ({ open, onClose, stocks }) => {
               </RadarChart>
             </ResponsiveContainer>
           </div>
-          {/* KPI 表 */}
+          {/* KPI 表（sticky header + 每行 winner 高亮）*/}
           <div className="glass-card p-3 overflow-x-auto">
             <table className="w-full text-left text-[11px]">
-              <thead>
+              <thead className="sticky top-0 z-10 bg-[var(--bg-card)]/95 backdrop-blur-sm">
                 <tr className="text-[10px] text-[#a0aec0] border-b border-white/8">
                   <th className="py-2 pr-2 font-medium">{t('指标')}</th>
                   {stocks.map((s, i) => (
@@ -141,26 +141,50 @@ const CompareModal = ({ open, onClose, stocks }) => {
               </thead>
               <tbody className="font-mono tabular-nums">
                 {[
-                  [t("名称"), s => lang === 'zh' ? (s.nameCN || STOCK_CN_NAMES[s.ticker] || s.name) : s.name, "font-sans text-[10px] text-[#a0aec0]"],
-                  [t("现价"), s => `${currencySymbol(s.currency)}${s.price}`, "text-white"],
-                  [t("涨跌"), s => `${safeChange(s.change) >= 0 ? "+" : ""}${fmtChange(s.change)}%`, s => safeChange(s.change) >= 0 ? "text-up" : "text-down"],
-                  [t("评分"), s => s.score?.toFixed(1), "text-indigo-300 font-semibold"],
-                  ["PE", s => s.pe?.toFixed(1) ?? "—", "text-white"],
-                  ["ROE", s => s.roe ? `${s.roe.toFixed(1)}%` : "—", "text-white"],
-                  [t("动量"), s => s.momentum?.toFixed(0) ?? "—", "text-white"],
-                  ["RSI", s => s.rsi?.toFixed(0) ?? "—", "text-white"],
-                  [t("营收增长"), s => s.revenueGrowth ? `${s.revenueGrowth.toFixed(1)}%` : "—", "text-white"],
-                  [t("利润率"), s => s.profitMargin ? `${s.profitMargin.toFixed(1)}%` : "—", "text-white"],
-                ].map(([label, fn, klass]) => (
-                  <tr key={label} className="border-b border-white/5 last:border-0 hover:bg-white/[0.02]">
-                    <td className="py-1.5 pr-2 text-[#a0aec0]">{label}</td>
-                    {stocks.map(s => {
-                      const v = fn(s);
-                      const c = typeof klass === "function" ? klass(s) : klass;
-                      return <td key={s.ticker} className={`py-1.5 px-2 ${c}`}>{v}</td>;
-                    })}
-                  </tr>
-                ))}
+                  // 第 4 项 winner: "higher" | "lower" | null（null = 不评胜负，纯展示）
+                  [t("名称"), s => lang === 'zh' ? (s.nameCN || STOCK_CN_NAMES[s.ticker] || s.name) : s.name, "font-sans text-[10px] text-[#a0aec0]", null],
+                  [t("现价"), s => `${currencySymbol(s.currency)}${s.price}`, "text-white", null],
+                  [t("涨跌"), s => `${safeChange(s.change) >= 0 ? "+" : ""}${fmtChange(s.change)}%`, s => safeChange(s.change) >= 0 ? "text-up" : "text-down", "higher"],
+                  [t("评分"), s => s.score?.toFixed(1), "text-indigo-300 font-semibold", "higher"],
+                  ["PE", s => s.pe?.toFixed(1) ?? "—", "text-white", "lower"],
+                  ["ROE", s => s.roe ? `${s.roe.toFixed(1)}%` : "—", "text-white", "higher"],
+                  [t("动量"), s => s.momentum?.toFixed(0) ?? "—", "text-white", "higher"],
+                  ["RSI", s => s.rsi?.toFixed(0) ?? "—", "text-white", null],
+                  [t("营收增长"), s => s.revenueGrowth ? `${s.revenueGrowth.toFixed(1)}%` : "—", "text-white", "higher"],
+                  [t("利润率"), s => s.profitMargin ? `${s.profitMargin.toFixed(1)}%` : "—", "text-white", "higher"],
+                ].map(([label, fn, klass, winnerDir]) => {
+                  // 计算 winner idx（数值型才有，文字行 winnerDir=null 跳过）
+                  let winnerIdx = -1;
+                  if (winnerDir && stocks.length > 1) {
+                    const raws = stocks.map(s => {
+                      if (label === t("评分")) return s.score;
+                      if (label === "PE") return s.pe;
+                      if (label === "ROE") return s.roe;
+                      if (label === t("动量")) return s.momentum;
+                      if (label === t("营收增长")) return s.revenueGrowth;
+                      if (label === t("利润率")) return s.profitMargin;
+                      if (label === t("涨跌")) return safeChange(s.change);
+                      return null;
+                    });
+                    let bestVal = winnerDir === "higher" ? -Infinity : Infinity;
+                    raws.forEach((r, i) => {
+                      if (r == null || !isFinite(r)) return;
+                      if (winnerDir === "higher" && r > bestVal) { bestVal = r; winnerIdx = i; }
+                      if (winnerDir === "lower" && r > 0 && r < bestVal) { bestVal = r; winnerIdx = i; }
+                    });
+                  }
+                  return (
+                    <tr key={label} className="group border-b border-white/5 last:border-0 hover:bg-white/[0.04] transition-colors">
+                      <td className="py-1.5 pr-2 text-[#a0aec0] group-hover:text-white transition-colors">{label}</td>
+                      {stocks.map((s, idx) => {
+                        const v = fn(s);
+                        const c = typeof klass === "function" ? klass(s) : klass;
+                        const isWinner = idx === winnerIdx;
+                        return <td key={s.ticker} className={`py-1.5 px-2 ${c} ${isWinner ? 'bg-indigo-500/15 font-bold rounded' : ''}`}>{v}</td>;
+                      })}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
