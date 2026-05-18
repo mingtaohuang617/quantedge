@@ -1732,25 +1732,36 @@ _MA_OUTPUT_DIR = _MA_OUTPUT_ROOT  # 兼容旧 import；实际读用 _ma_active_d
 
 
 def _ma_safe_read_csv(path, **kwargs):
-    """安全读 CSV — 文件不存在/损坏返回 None。"""
+    """安全读 CSV — 文件不存在/损坏返回 None。读取失败时打印异常便于诊断。"""
     if not path.exists():
         return None
     try:
         import pandas as _pd
         return _pd.read_csv(path, **kwargs)
-    except Exception:
+    except Exception as e:
+        print(f"[mining_alpha] read CSV failed: {path.name} — {type(e).__name__}: {e}")
         return None
 
 
 def _ma_safe_read_parquet(path):
-    """安全读 parquet。"""
+    """安全读 parquet。文件存在但读取失败（典型是缺 pyarrow / fastparquet）时
+    打印异常，便于排查。返回 None 由调用方决定如何报错。"""
     if not path.exists():
         return None
     try:
         import pandas as _pd
         return _pd.read_parquet(path)
-    except Exception:
+    except Exception as e:
+        print(f"[mining_alpha] read parquet failed: {path.name} — {type(e).__name__}: {e}")
         return None
+
+
+def _ma_parquet_read_hint(path) -> str:
+    """构造 404 hint：区分'文件不存在'与'文件存在但读取失败'两种情况，
+    避免误导用户去跑没必要的 train/backtest。"""
+    if path.exists():
+        return f"{path.name} 存在但读取失败（检查后端是否装了 pyarrow / fastparquet；详情见后端日志）"
+    return f"{path.name} 不存在；先跑对应 mining_alpha.run 步骤"
 
 
 @app.get("/api/mining-alpha/status")
@@ -1864,9 +1875,10 @@ def mining_alpha_backtest():
 def mining_alpha_top_holdings(top_n: int = 20):
     """返回最新一日预测分数 Top-N 个股（含与上一调仓期的 diff 标记）。"""
     active = _ma_active_dir()
-    preds = _ma_safe_read_parquet(active / "predictions.parquet")
+    preds_path = active / "predictions.parquet"
+    preds = _ma_safe_read_parquet(preds_path)
     if preds is None or preds.empty:
-        raise HTTPException(404, "predictions.parquet 不存在；先跑 `train`")
+        raise HTTPException(404, _ma_parquet_read_hint(preds_path))
     latest_date = preds.index.max()
     latest_row = preds.loc[latest_date].dropna().sort_values(ascending=False).head(top_n)
     latest_set = set(latest_row.index)
