@@ -20,6 +20,7 @@ backend/tickers_custom.json
 # User-managed watchlist (local-only)
 backend/watchlist_10x.json
 backend/stock_gene.json
+backend/stock_gene_scheduler.json
 
 # Legacy migration archives
 files.zip

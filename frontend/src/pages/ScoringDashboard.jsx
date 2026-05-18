@@ -97,7 +97,7 @@ const CompareModal = ({ open, onClose, stocks }) => {
             <h2 className="text-sm font-semibold text-white">{t('标的对比')}</h2>
             <span className="text-[10px] text-[#a0aec0]">{stocks.length}</span>
           </div>
-          <button onClick={onClose} className="text-[#a0aec0] hover:text-white transition-colors p-1 rounded hover:bg-white/10">
+          <button onClick={onClose} aria-label="关闭对比" className="text-[#a0aec0] hover:text-white transition-colors p-1 rounded hover:bg-white/10">
             <X size={16} />
           </button>
         </div>
@@ -128,39 +128,64 @@ const CompareModal = ({ open, onClose, stocks }) => {
               </RadarChart>
             </ResponsiveContainer>
           </div>
-          {/* KPI 表 */}
+          {/* KPI 表（sticky header + 每行 winner 高亮）*/}
           <div className="glass-card p-3 overflow-x-auto">
             <table className="w-full text-left text-[11px]">
               <thead>
+                {/* sticky 必须放 <th> 才生效（thead/tr 上的 sticky 大部分浏览器不渲染）*/}
                 <tr className="text-[10px] text-[#a0aec0] border-b border-white/8">
-                  <th className="py-2 pr-2 font-medium">{t('指标')}</th>
+                  <th className="py-2 pr-2 font-medium sticky top-0 z-10 bg-[var(--bg-card)]/95 backdrop-blur-sm">{t('指标')}</th>
                   {stocks.map((s, i) => (
-                    <th key={s.ticker} className="py-2 px-2 font-medium font-mono" style={{ color: COMPARE_COLORS[i] }}>{s.ticker}</th>
+                    <th key={s.ticker} className="py-2 px-2 font-medium font-mono sticky top-0 z-10 bg-[var(--bg-card)]/95 backdrop-blur-sm" style={{ color: COMPARE_COLORS[i] }}>{s.ticker}</th>
                   ))}
                 </tr>
               </thead>
               <tbody className="font-mono tabular-nums">
                 {[
-                  [t("名称"), s => lang === 'zh' ? (s.nameCN || STOCK_CN_NAMES[s.ticker] || s.name) : s.name, "font-sans text-[10px] text-[#a0aec0]"],
-                  [t("现价"), s => `${currencySymbol(s.currency)}${s.price}`, "text-white"],
-                  [t("涨跌"), s => `${safeChange(s.change) >= 0 ? "+" : ""}${fmtChange(s.change)}%`, s => safeChange(s.change) >= 0 ? "text-up" : "text-down"],
-                  [t("评分"), s => s.score?.toFixed(1), "text-indigo-300 font-semibold"],
-                  ["PE", s => s.pe?.toFixed(1) ?? "—", "text-white"],
-                  ["ROE", s => s.roe ? `${s.roe.toFixed(1)}%` : "—", "text-white"],
-                  [t("动量"), s => s.momentum?.toFixed(0) ?? "—", "text-white"],
-                  ["RSI", s => s.rsi?.toFixed(0) ?? "—", "text-white"],
-                  [t("营收增长"), s => s.revenueGrowth ? `${s.revenueGrowth.toFixed(1)}%` : "—", "text-white"],
-                  [t("利润率"), s => s.profitMargin ? `${s.profitMargin.toFixed(1)}%` : "—", "text-white"],
-                ].map(([label, fn, klass]) => (
-                  <tr key={label} className="border-b border-white/5 last:border-0 hover:bg-white/[0.02]">
-                    <td className="py-1.5 pr-2 text-[#a0aec0]">{label}</td>
-                    {stocks.map(s => {
-                      const v = fn(s);
-                      const c = typeof klass === "function" ? klass(s) : klass;
-                      return <td key={s.ticker} className={`py-1.5 px-2 ${c}`}>{v}</td>;
-                    })}
-                  </tr>
-                ))}
+                  // 第 4 项 winner: "higher" | "lower" | null（null = 不评胜负，纯展示）
+                  [t("名称"), s => lang === 'zh' ? (s.nameCN || STOCK_CN_NAMES[s.ticker] || s.name) : s.name, "font-sans text-[10px] text-[#a0aec0]", null],
+                  [t("现价"), s => `${currencySymbol(s.currency)}${s.price}`, "text-white", null],
+                  [t("涨跌"), s => `${safeChange(s.change) >= 0 ? "+" : ""}${fmtChange(s.change)}%`, s => safeChange(s.change) >= 0 ? "text-up" : "text-down", "higher"],
+                  [t("评分"), s => s.score?.toFixed(1), "text-indigo-300 font-semibold", "higher"],
+                  ["PE", s => s.pe?.toFixed(1) ?? "—", "text-white", "lower"],
+                  ["ROE", s => s.roe ? `${s.roe.toFixed(1)}%` : "—", "text-white", "higher"],
+                  [t("动量"), s => s.momentum?.toFixed(0) ?? "—", "text-white", "higher"],
+                  ["RSI", s => s.rsi?.toFixed(0) ?? "—", "text-white", null],
+                  [t("营收增长"), s => s.revenueGrowth ? `${s.revenueGrowth.toFixed(1)}%` : "—", "text-white", "higher"],
+                  [t("利润率"), s => s.profitMargin ? `${s.profitMargin.toFixed(1)}%` : "—", "text-white", "higher"],
+                ].map(([label, fn, klass, winnerDir]) => {
+                  // 计算 winner idx（数值型才有，文字行 winnerDir=null 跳过）
+                  let winnerIdx = -1;
+                  if (winnerDir && stocks.length > 1) {
+                    const raws = stocks.map(s => {
+                      if (label === t("评分")) return s.score;
+                      if (label === "PE") return s.pe;
+                      if (label === "ROE") return s.roe;
+                      if (label === t("动量")) return s.momentum;
+                      if (label === t("营收增长")) return s.revenueGrowth;
+                      if (label === t("利润率")) return s.profitMargin;
+                      if (label === t("涨跌")) return safeChange(s.change);
+                      return null;
+                    });
+                    let bestVal = winnerDir === "higher" ? -Infinity : Infinity;
+                    raws.forEach((r, i) => {
+                      if (r == null || !isFinite(r)) return;
+                      if (winnerDir === "higher" && r > bestVal) { bestVal = r; winnerIdx = i; }
+                      if (winnerDir === "lower" && r > 0 && r < bestVal) { bestVal = r; winnerIdx = i; }
+                    });
+                  }
+                  return (
+                    <tr key={label} className="group border-b border-white/5 last:border-0 hover:bg-white/[0.04] transition-colors">
+                      <td className="py-1.5 pr-2 text-[#a0aec0] group-hover:text-white transition-colors">{label}</td>
+                      {stocks.map((s, idx) => {
+                        const v = fn(s);
+                        const c = typeof klass === "function" ? klass(s) : klass;
+                        const isWinner = idx === winnerIdx;
+                        return <td key={s.ticker} className={`py-1.5 px-2 ${c} ${isWinner ? 'bg-indigo-500/15 font-bold rounded' : ''}`}>{v}</td>;
+                      })}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -174,6 +199,8 @@ const CompareModal = ({ open, onClose, stocks }) => {
 const ScoringDashboard = () => {
   const { t, lang } = useLang();
   const [sel, setSel] = useState(null);
+  // 详情区 scroll-spy：当前可见的 section（overview / fundamental / technical / liquidity / myposition）
+  const [activeSection, setActiveSection] = useState("overview");
   // 来自 MacroDashboard alert 跳转的上下文 — 显示一个可关闭的横幅
   const [macroSignal, setMacroSignal] = useState(null);
   const [mkt, setMkt] = useState("ALL");
@@ -449,6 +476,46 @@ const ScoringDashboard = () => {
     return () => window.removeEventListener("quantedge:selectStock", handler);
   }, [liveStocks]);
 
+  // J/K 全局键盘上下导航 — 用 ref 持有最新 filtered/sel，避免重注册
+  const navRefs = useRef({ filtered: [], sel: null });
+  useEffect(() => {
+    const handler = (e) => {
+      const dir = e.detail;
+      const list = navRefs.current.filtered;
+      const cur = navRefs.current.sel;
+      if (!list || list.length === 0) return;
+      const curIdx = cur ? list.findIndex(s => s.ticker === cur.ticker) : -1;
+      const nextIdx = dir === "next"
+        ? (curIdx + 1) % list.length
+        : (curIdx - 1 + list.length) % list.length;
+      const next = list[nextIdx];
+      if (next) { setSel(next); setMobileShowDetail(true); }
+    };
+    window.addEventListener("quantedge:navStock", handler);
+    return () => window.removeEventListener("quantedge:navStock", handler);
+  }, []);
+
+  // 详情区 scroll-spy：IntersectionObserver 跟踪 #detail-* sections，更新 activeSection
+  useEffect(() => {
+    if (!sel) return;
+    const ids = ["overview", "fundamental", "technical", "liquidity", "myposition"];
+    const nodes = ids.map(id => document.getElementById(`detail-${id}`)).filter(Boolean);
+    if (nodes.length === 0) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        // 取交集度最大的 entry 作为 active
+        const visible = entries.filter(e => e.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+        if (visible[0]) {
+          const id = visible[0].target.id.replace("detail-", "");
+          setActiveSection(id);
+        }
+      },
+      { rootMargin: "-30% 0px -60% 0px", threshold: [0, 0.1, 0.5] }
+    );
+    nodes.forEach(n => observer.observe(n));
+    return () => observer.disconnect();
+  }, [sel]);
+
   // 来自 macro alert 的跨 tab 跳转 → 显示一个临时横幅，提示用户当前查看持仓的宏观背景
   useEffect(() => {
     const onSignal = (e) => {
@@ -583,6 +650,10 @@ const ScoringDashboard = () => {
     }
     return [...list].sort((a, b) => b.score - a.score);
   }, [liveStocks, mkt, typeFilter, searchTerm, sortBy, showFavOnly, favorites]);
+
+  // J/K 导航 ref 同步（filtered/sel 变化时更新最新引用）
+  navRefs.current.filtered = filtered;
+  navRefs.current.sel = sel;
 
   // 板块聚合 — 基于 filtered 结果
   const sectorGroups = useMemo(() => {
@@ -745,8 +816,8 @@ const ScoringDashboard = () => {
         </button>
       </div>
     )}
-    {/* ── 市场指数条 ── */}
-    <div className="hidden md:flex items-center gap-3 px-3 py-1.5 mb-2 glass-card text-[10px] flex-shrink-0 overflow-x-auto">
+    {/* ── 市场指数条（分层响应：核心 always · F&G/HSI/VIX md+ · 板块 xl+） ── */}
+    <div className="hidden md:flex items-center gap-3 px-3 py-1.5 mb-2 glass-card text-[10px] flex-shrink-0">
       <span className="flex items-center gap-1.5 text-[#a0aec0] shrink-0">
         <span className={`w-1.5 h-1.5 rounded-full ${marketStatus.dot}`} />
         <span className="font-medium">{t(marketStatus.key)}</span>
@@ -754,8 +825,9 @@ const ScoringDashboard = () => {
       <span className="text-white/10 shrink-0">|</span>
       {indices.length === 0 && indicesLoading ? (
         <span className="text-[#667] font-mono animate-pulse">{t('指数加载中…')}</span>
-      ) : indices.map(idx => (
-        <div key={idx.sym} className="flex items-center gap-1.5 shrink-0">
+      ) : indices.map((idx, i) => (
+        // SPX/NDX 永远显示；HSI/VIX 仅 lg+ 显示（窄屏避免溢出）
+        <div key={idx.sym} className={`flex items-center gap-1.5 shrink-0 ${i >= 2 ? 'hidden lg:flex' : ''}`}>
           <span className="text-[#a0aec0] font-medium">{idx.sym}</span>
           <span className="font-mono tabular-nums text-white">{idx.close != null ? idx.close.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "—"}</span>
           {idx.pct != null && (
@@ -794,16 +866,17 @@ const ScoringDashboard = () => {
           <>
             <span className="text-white/10 shrink-0">|</span>
             <div className="flex items-center gap-1.5 shrink-0" title={t('恐惧贪婪指数：基于今日涨跌均值 + 上涨宽度')}>
-              <span className="text-[#a0aec0] font-medium uppercase text-[8px]">F&G</span>
+              <span className="text-[#a0aec0] font-medium uppercase text-[9px]">F&G</span>
               <span className={`w-1.5 h-1.5 rounded-full ${fgBg}`} />
               <span className={`font-mono tabular-nums font-bold ${fgColor}`}>{fearGreed}</span>
               <span className={`text-[9px] ${fgColor}`}>{fgLabel}</span>
             </div>
             {sectors.length > 0 && (
+              // 板块热力：占 ~500px，只在 xl+ 显示（避免窄屏溢出）
               <>
-                <span className="text-white/10 shrink-0">|</span>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-[#a0aec0] font-medium uppercase text-[8px]">{t('板块')}</span>
+                <span className="hidden xl:inline text-white/10 shrink-0">|</span>
+                <div className="hidden xl:flex items-center gap-2 shrink-0">
+                  <span className="text-[#a0aec0] font-medium uppercase text-[9px]">{t('板块')}</span>
                   {sectors.map(s => (
                     <span key={s.name} className="flex items-center gap-1" title={`${s.name} · ${s.n} ${t('只')}`}>
                       <span className="text-[10px] text-[#a0aec0] truncate max-w-[60px]">{t(s.name)}</span>
@@ -832,7 +905,7 @@ const ScoringDashboard = () => {
               className="flex items-center gap-1.5 shrink-0 hover:opacity-80 transition-opacity cursor-pointer"
               title={t('点击查看宏观看板 · 综合 17 因子方向化温度')}
             >
-              <span className="text-[#a0aec0] font-medium uppercase text-[8px]">{t('宏观')}</span>
+              <span className="text-[#a0aec0] font-medium uppercase text-[9px]">{t('宏观')}</span>
               <span className={`font-mono tabular-nums font-bold ${cls}`}>{temp.toFixed(0)}</span>
               <span className={`text-[9px] ${cls}`}>{label}</span>
             </button>
@@ -1246,7 +1319,11 @@ const ScoringDashboard = () => {
               ))}
             </div>
           ) : filtered.map((stk, i) => (
-            <button key={stk.ticker} onClick={() => { setSel(stk); setMobileShowDetail(true); }} onContextMenu={(e) => handleContextMenu(e, stk)} className={`virt-row w-full text-left px-2.5 ${density === "compact" ? "py-1" : "py-2.5 md:py-2"} rounded-lg transition-all duration-200 border ${i < 30 ? 'animate-stagger' : ''} active:scale-[0.98] group relative ${sel?.ticker === stk.ticker ? "bg-gradient-to-r from-indigo-500/35 via-indigo-500/15 to-transparent border-indigo-500/30 shadow-lg shadow-indigo-500/5" : "bg-white/[0.02] border-transparent hover:bg-white/[0.04] hover:border-white/10"}`} style={{ animationDelay: i < 30 ? `${i * 0.03}s` : undefined }}>
+            <button key={stk.ticker} onClick={() => { setSel(stk); setMobileShowDetail(true); }} onContextMenu={(e) => handleContextMenu(e, stk)} className={`virt-row w-full text-left px-2.5 ${density === "compact" ? "py-1" : "py-2.5 md:py-2"} rounded-lg transition-all duration-200 border ${i < 30 ? 'animate-stagger' : ''} active:scale-[0.98] group relative overflow-hidden ${sel?.ticker === stk.ticker ? "bg-gradient-to-r from-indigo-500/35 via-indigo-500/15 to-transparent border-indigo-500/30 shadow-lg shadow-indigo-500/5" : "bg-white/[0.02] border-transparent hover:bg-white/[0.04] hover:border-white/10"}`} style={{ animationDelay: i < 30 ? `${i * 0.03}s` : undefined }}>
+              {/* PDF2 抛光 Phase 1.1：选中态 2px 渐变光条 indigo→cyan（无入场动画，直接显示） */}
+              {sel?.ticker === stk.ticker && (
+                <span aria-hidden="true" className="absolute left-0 top-1 bottom-1 w-[2px] rounded-r" style={{ background: 'var(--brand-gradient)' }} />
+              )}
               {density === "compact" ? (
                 <div className="flex items-center gap-2">
                   <span className="text-[9px] w-4 text-center text-[#667] font-mono shrink-0">{i + 1}</span>
@@ -1335,7 +1412,9 @@ const ScoringDashboard = () => {
                     <h3 className="text-base sm:text-lg font-bold text-white tracking-tight">{sel.ticker}</h3>
                     {/* PDF1 收敛：sector 从 accent Badge 改 neutral 文字（信息性，无需视觉权重） */}
                     <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>{sel.market} · {sel.sector}</span>
-                    {sel.isETF && <Badge variant={sel.leverage ? "danger" : "warning"} size="sm">{sel.etfType}</Badge>}
+                    {/* PDF1 P0 收敛：etfType（国家/主题/行业 ETF）是分类信息，不是 warning。
+                        leverage 保留 danger（杠杆是真风险标记）；普通 ETF 用 default neutral。 */}
+                    {sel.isETF && <Badge variant={sel.leverage ? "danger" : "default"} size="sm">{sel.etfType}</Badge>}
                     {/* PDF2 抛光：28px 评分环 stroke 描边动画（1.1s）+ 双色品牌渐变 */}
                     {sel.score != null && (() => {
                       const C = 69.12;  // 2π × r=11
@@ -1378,7 +1457,17 @@ const ScoringDashboard = () => {
                   <div className="text-xs text-[#a0aec0]">{lang === 'zh' ? (sel.nameCN || STOCK_CN_NAMES[sel.ticker] || sel.name) : sel.name}</div>
                 </div>
                 <div className="sm:text-right flex sm:block items-center gap-2">
-                  <div className="text-xl sm:text-2xl font-bold font-mono tabular-nums text-white">
+                  {/* PDF2 抛光 4.2：主价格抬到 24/28px + 渐变文字（白→slate-300）让数字有金属感 */}
+                  <div
+                    className="text-2xl sm:text-[28px] font-bold font-mono tabular-nums leading-none"
+                    style={{
+                      background: 'linear-gradient(180deg, #ffffff 0%, #cbd5e1 100%)',
+                      WebkitBackgroundClip: 'text',
+                      backgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      letterSpacing: '-0.02em',
+                    }}
+                  >
                     <CountUp value={parseFloat(sel.price) || 0} decimals={(sel.currency === "KRW" || sel.currency === "JPY") ? 0 : 2} duration={600} prefix={currencySymbol(sel.currency)} thousands />
                   </div>
                   <div className={`text-sm font-bold tabular-nums ${safeChange(sel.change) >= 0 ? "text-up" : "text-down"}`}>
@@ -1488,14 +1577,14 @@ const ScoringDashboard = () => {
                         const sign = (n) => (n >= 0 ? '+' : '');
                         return (
                           <div className="glass-card border border-indigo-500/40 shadow-2xl px-2.5 py-2 tabular-nums" style={{ minWidth: 180 }}>
-                            <div className="text-[8px] text-[#778] uppercase tracking-wider mb-1 font-mono">{label}</div>
+                            <div className="text-[9px] text-[#778] uppercase tracking-wider mb-1 font-mono">{label}</div>
                             <div className="grid grid-cols-2 gap-x-3 gap-y-1">
                               <div>
-                                <div className="text-[8px] text-[#778] uppercase">{t('价格')}</div>
+                                <div className="text-[9px] text-[#778] uppercase">{t('价格')}</div>
                                 <div className="text-sm font-bold font-mono text-white leading-tight">{cur}{Number(d.p).toFixed(2)}</div>
                               </div>
                               <div>
-                                <div className="text-[8px] text-[#778] uppercase">% Δ</div>
+                                <div className="text-[9px] text-[#778] uppercase">% Δ</div>
                                 <div className={`text-sm font-bold font-mono leading-tight ${d.pct >= 0 ? 'text-up' : 'text-down'}`}>
                                   {sign(d.pct)}{Number(d.pct).toFixed(2)}%
                                 </div>
@@ -1503,13 +1592,13 @@ const ScoringDashboard = () => {
                               {d.bpct != null && (
                                 <>
                                   <div>
-                                    <div className="text-[8px] text-[#778] uppercase">{benchmarkLabel}</div>
+                                    <div className="text-[9px] text-[#778] uppercase">{benchmarkLabel}</div>
                                     <div className={`text-xs font-mono leading-tight ${d.bpct >= 0 ? 'text-up' : 'text-down'}`}>
                                       {sign(d.bpct)}{Number(d.bpct).toFixed(2)}%
                                     </div>
                                   </div>
                                   <div>
-                                    <div className="text-[8px] text-[#778] uppercase">α</div>
+                                    <div className="text-[9px] text-[#778] uppercase">α</div>
                                     <div className={`text-xs font-mono leading-tight ${(d.pct - d.bpct) >= 0 ? 'text-up' : 'text-down'}`}>
                                       {sign(d.pct - d.bpct)}{Number(d.pct - d.bpct).toFixed(2)}%
                                     </div>
@@ -1521,9 +1610,10 @@ const ScoringDashboard = () => {
                         );
                       }}
                     />
-                    <Area yAxisId="price" type="monotone" dataKey="p" stroke={chartData.length >= 2 && chartData[chartData.length-1].p >= chartData[0].p ? "url(#strokeGrad)" : "#FF6B6B"} strokeWidth={2} fill="url(#pg)" dot={false} activeDot={{ r: 4, fill: "#fff", stroke: "#8A2BE2", strokeWidth: 2, filter: "drop-shadow(0 0 4px rgba(138,43,226,0.6))" }} />
-                    <Line yAxisId="pct" type="monotone" dataKey="pct" stroke="transparent" dot={false} activeDot={false} />
-                    {showBenchmark && <Line yAxisId="pct" type="monotone" dataKey="bpct" stroke="#94a3b8" strokeWidth={1.5} strokeDasharray="4 3" dot={false} activeDot={{ r: 3, fill: "#cbd5e1", stroke: "#94a3b8", strokeWidth: 1.5 }} />}
+                    {/* PDF2 抛光 4.4：1100ms 描边 + ease-out 让 K 线"画出来"而不是突然显形 */}
+                    <Area yAxisId="price" type="monotone" dataKey="p" stroke={chartData.length >= 2 && chartData[chartData.length-1].p >= chartData[0].p ? "url(#strokeGrad)" : "#FF6B6B"} strokeWidth={2} fill="url(#pg)" dot={false} activeDot={{ r: 4, fill: "#fff", stroke: "#8A2BE2", strokeWidth: 2, filter: "drop-shadow(0 0 4px rgba(138,43,226,0.6))" }} animationDuration={1100} animationEasing="ease-out" />
+                    <Line yAxisId="pct" type="monotone" dataKey="pct" stroke="transparent" dot={false} activeDot={false} isAnimationActive={false} />
+                    {showBenchmark && <Line yAxisId="pct" type="monotone" dataKey="bpct" stroke="#94a3b8" strokeWidth={1.5} strokeDasharray="4 3" dot={false} activeDot={{ r: 3, fill: "#cbd5e1", stroke: "#94a3b8", strokeWidth: 1.5 }} animationDuration={1100} animationEasing="ease-out" />}
                   </ComposedChart>
                 )}
               </div>
@@ -1583,18 +1673,32 @@ const ScoringDashboard = () => {
                 { id: "technical", label: t("技术面") },
                 { id: "liquidity", label: t("资金面") },
                 { id: "myposition", label: t("我的持仓") },
-              ].map((tabItem) => (
-                <button
-                  key={tabItem.id}
-                  onClick={() => {
-                    const target = document.getElementById(`detail-${tabItem.id}`);
-                    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                  }}
-                  className="px-2.5 py-1 text-[10px] font-medium rounded-md text-[#a0aec0] hover:text-white hover:bg-white/[0.06] transition-all whitespace-nowrap shrink-0"
-                >
-                  {tabItem.label}
-                </button>
-              ))}
+              ].map((tabItem) => {
+                const isActive = activeSection === tabItem.id;
+                return (
+                  <button
+                    key={tabItem.id}
+                    onClick={() => {
+                      const target = document.getElementById(`detail-${tabItem.id}`);
+                      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }}
+                    className={`relative px-2.5 py-1 text-[10px] font-medium rounded-md transition-all whitespace-nowrap shrink-0 ${
+                      isActive
+                        ? "text-white bg-white/[0.06]"
+                        : "text-[#a0aec0] hover:text-white hover:bg-white/[0.04]"
+                    }`}
+                  >
+                    {tabItem.label}
+                    {isActive && (
+                      <span
+                        aria-hidden="true"
+                        className="absolute left-2.5 right-2.5 -bottom-0.5 h-[2px] rounded-full"
+                        style={{ background: 'var(--brand-gradient)' }}
+                      />
+                    )}
+                  </button>
+                );
+              })}
             </div>
 
             {/* ── KPI 速览条（综合评分 + 关键因子） ── */}
@@ -1611,7 +1715,7 @@ const ScoringDashboard = () => {
                 </div>
                 <div className="mt-1 h-1 rounded-full bg-white/5 overflow-hidden">
                   <div className="h-full rounded-full transition-all duration-500"
-                    style={{ width: `${sel.score}%`, background: sel.score >= 80 ? "var(--accent-up)" : sel.score >= 60 ? "#f59e0b" : "var(--accent-down)" }} />
+                    style={{ width: `${sel.score}%`, background: sel.score >= 80 ? "var(--accent-up)" : sel.score >= 60 ? "var(--accent-amber)" : "var(--accent-down)" }} />
                 </div>
                 {/* 子分数 Tooltip */}
                 {sel.subScores && Object.keys(sel.subScores).length > 0 && (
@@ -1623,7 +1727,8 @@ const ScoringDashboard = () => {
                           const labelMap = { fundamental: t('基本面'), technical: t('技术面'), growth: t('成长性'), cost: t('成本'), liquidity: t('流动性'), momentum: t('动量'), risk: t('风险') };
                           const label = labelMap[k] || k;
                           const pct = Math.max(0, Math.min(100, Number(v) || 0));
-                          const color = pct >= 80 ? '#10b981' : pct >= 60 ? '#f59e0b' : '#ef4444';
+                          // 用 CSS 语义 token（之前硬编码 Tailwind 默认 hex 绕过了项目调色板）
+                          const color = pct >= 80 ? 'var(--accent-up)' : pct >= 60 ? 'var(--accent-amber)' : 'var(--accent-down)';
                           return (
                             <div key={k} className="flex items-center gap-2">
                               <span className="text-[9px] text-[#a0aec0] w-10 shrink-0">{label}</span>
@@ -1635,7 +1740,7 @@ const ScoringDashboard = () => {
                           );
                         })}
                       </div>
-                      <div className="mt-1.5 pt-1.5 border-t border-white/5 text-[8px] text-[#666]">{t('加权综合 = 各因子加权平均')}</div>
+                      <div className="mt-1.5 pt-1.5 border-t border-white/5 text-[9px] text-[#666]">{t('加权综合 = 各因子加权平均')}</div>
                     </div>
                   </div>
                 )}
@@ -1771,7 +1876,7 @@ const ScoringDashboard = () => {
                           {/* Tick marks at 0/25/50/75/100% */}
                           {[0, 25, 50, 75, 100].map(tick => (
                             <div key={tick} className="absolute top-0 h-full w-px bg-white/10" style={{ left: `${tick}%` }}>
-                              <span className="absolute -bottom-3.5 left-1/2 -translate-x-1/2 text-[8px] text-[#778]">{tick}</span>
+                              <span className="absolute -bottom-3.5 left-1/2 -translate-x-1/2 text-[9px] text-[#778]">{tick}</span>
                             </div>
                           ))}
                           {/* Floating pill slider for current price */}
@@ -1962,7 +2067,8 @@ const ScoringDashboard = () => {
                         <Database size={11} className="text-indigo-400" />
                         <span className="section-title">{t('ETF 核心指标')}</span>
                       </div>
-                      <Badge variant={sel.leverage ? "danger" : "accent"} size="sm">{sel.etfType}</Badge>
+                      {/* PDF1 P0 收敛：etfType 分类标签用 neutral，不抢 ETF 核心指标的视觉权重 */}
+                      <Badge variant={sel.leverage ? "danger" : "default"} size="sm">{sel.etfType}</Badge>
                     </div>
                     <div className="space-y-2">
                       {/* 成本与费用 */}

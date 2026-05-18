@@ -1137,7 +1137,7 @@ AAPL,50,189.2,2025-04-01
                         {csvPreview.rows.map((r, i) => {
                           const inLib = liveStocks.some(s => s.ticker === r.ticker);
                           return (
-                            <tr key={i} className={`border-b border-white/[0.04] hover:bg-white/[0.02] ${!r._selected ? 'opacity-40' : ''}`}>
+                            <tr key={i} className={`border-b border-white/[0.04] hover:bg-white/[0.04] ${!r._selected ? 'opacity-40' : ''}`}>
                               <td className="px-2 py-1">
                                 <input type="checkbox" checked={r._selected}
                                   onChange={(e) => {
