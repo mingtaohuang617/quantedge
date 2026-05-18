@@ -118,13 +118,15 @@ export default {
           fontVariantNumeric: 'tabular-nums',
         },
         '.btn-tactile': {
-          transition: 'all 0.15s cubic-bezier(0.4,0,0.2,1)',
+          // PDF2：hover 2 通道 — 颜色（brightness）+ 位移（scale + 极轻 translateY）
+          transition: 'transform 0.15s cubic-bezier(0.4,0,0.2,1), filter 0.15s cubic-bezier(0.4,0,0.2,1)',
           '&:hover': {
-            transform: 'scale(1.02)',
-            filter: 'brightness(1.1)',
+            transform: 'translateY(-0.5px) scale(1.025)',
+            filter: 'brightness(1.12)',
           },
           '&:active': {
-            transform: 'scale(0.98)',
+            transform: 'translateY(0) scale(0.97)',
+            filter: 'brightness(0.95)',
           },
         },
       });

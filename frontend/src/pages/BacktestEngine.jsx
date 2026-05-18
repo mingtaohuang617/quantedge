@@ -2060,14 +2060,15 @@ const BacktestEngine = () => {
                     <span className="section-title">{t('策略横评 ({n} 组)', { n: all.length })}</span>
                     <span className="text-[9px] text-[#778] font-mono ml-1">{t('深色 = 该指标胜者')}</span>
                   </div>
+                  {/* 紧凑表 + 行 hover 高亮（行级 +1.5px bg / 指标列加白）+ 顶部 header sticky */}
                   <table className="w-full text-[10px] tabular-nums border-collapse">
                     <thead>
-                      <tr className="border-b border-white/8">
-                        <th className="text-left font-medium text-[#778] py-1.5 pr-3">{t('指标')}</th>
+                      <tr className="border-b border-white/8 sticky top-0 bg-[#0b0b14]/95 backdrop-blur-sm">
+                        <th className="text-left font-medium text-[#778] py-1.5 pr-2">{t('指标')}</th>
                         {all.map(run => (
-                          <th key={run.id} className="text-right font-mono font-medium py-1.5 px-2 whitespace-nowrap" style={{ color: run.color }}>
+                          <th key={run.id} className="text-right font-mono font-medium py-1.5 px-1.5 whitespace-nowrap" style={{ color: run.color }}>
                             <div className="flex items-center gap-1 justify-end">
-                              <span className="w-2 h-2 rounded-full inline-block" style={{ background: run.color }} />
+                              <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: run.color }} />
                               <span className="truncate max-w-[100px]" title={run.label}>{run.label}</span>
                             </div>
                           </th>
@@ -2076,18 +2077,18 @@ const BacktestEngine = () => {
                     </thead>
                     <tbody>
                       {rows.map(r => (
-                        <tr key={r.key} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
-                          <td className="text-[#a0aec0] py-1 pr-3">{r.label}</td>
+                        <tr key={r.key} className="group border-b border-white/[0.04] transition-colors hover:bg-white/[0.04]">
+                          <td className="py-1 pr-2 text-[#a0aec0] group-hover:text-white transition-colors">{r.label}</td>
                           {all.map((run, idx) => {
                             const raw = run.metrics[r.key];
                             if (raw == null) {
-                              return <td key={run.id} className="text-right font-mono py-1 px-2 text-[#556]">—</td>;
+                              return <td key={run.id} className="text-right font-mono py-1 px-1.5 text-[#556]">—</td>;
                             }
                             const v = Number(raw);
                             const isWinner = winners[r.key] === idx && all.length > 1;
                             const goodColor = r.good(v) ? 'text-up' : 'text-down';
                             return (
-                              <td key={run.id} className={`text-right font-mono py-1 px-2 ${isWinner ? 'bg-indigo-500/10 font-bold' : ''} ${goodColor}`}>
+                              <td key={run.id} className={`text-right font-mono py-1 px-1.5 ${isWinner ? 'bg-indigo-500/10 font-bold' : ''} ${goodColor}`}>
                                 {r.fmt(v)}
                               </td>
                             );

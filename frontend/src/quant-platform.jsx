@@ -2180,11 +2180,18 @@ function QuantPlatformInner() {
                   role="tab"
                   aria-selected={active}
                   aria-label={t(c.label)}
-                  className={`relative flex items-center gap-2 px-2 py-2 rounded-lg text-[11px] font-medium transition-all overflow-hidden whitespace-nowrap btn-tactile ${active ? "bg-gradient-to-r from-indigo-500/30 to-violet-500/15 text-white ring-1 ring-indigo-400/25" : "text-[#a0aec0] hover:text-white hover:bg-white/[0.06]"}`}
+                  // PDF1 P0：sidebar tab 从 紫色胶囊 改 极淡背景 + 左侧 2px 渐变指示条（与顶部下划线呼应）
+                  className={`relative flex items-center gap-2 px-2 py-2 rounded-md text-[11px] font-medium transition-all overflow-hidden whitespace-nowrap btn-tactile ${active ? "bg-white/[0.04] text-white" : "text-[#a0aec0] hover:text-white hover:bg-white/[0.04]"}`}
                 >
                   <I size={14} className="shrink-0" />
                   <span className="opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">{t(c.label)}</span>
-                  {active && <span className="absolute right-0 top-1/2 -translate-y-1/2 h-6 w-0.5 bg-indigo-400 rounded-l" />}
+                  {active && (
+                    <span
+                      aria-hidden="true"
+                      className="absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-r"
+                      style={{ background: 'var(--brand-gradient)' }}
+                    />
+                  )}
                 </button>
               );
             })}
