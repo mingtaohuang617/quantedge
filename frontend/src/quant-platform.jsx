@@ -1688,6 +1688,8 @@ const MobileBottomNav = React.memo(({ tab, setTab }) => {
       {TAB_CFG.map((c) => {
         const I = c.icon;
         const active = tab === c.id;
+        // 移动端 8 个 tab，375px 屏每个 ~46px。短标签 2 行避免「Mining Alpha」/「10x 猎手」横向溢出
+        const useShort = Array.isArray(c.short) && c.short.length === 2;
         return (
           <button
             key={c.id}
@@ -1700,7 +1702,14 @@ const MobileBottomNav = React.memo(({ tab, setTab }) => {
             }`}
           >
             <I size={16} className={active ? 'drop-shadow-[0_0_4px_rgba(99,102,241,0.5)]' : ''} />
-            <span className="tracking-tight">{t(c.label)}</span>
+            {useShort ? (
+              <span className="flex flex-col items-center leading-[1.05] tracking-tight">
+                <span>{c.short[0]}</span>
+                <span>{c.short[1]}</span>
+              </span>
+            ) : (
+              <span className="tracking-tight">{t(c.label)}</span>
+            )}
             {active && (
               <span
                 aria-hidden="true"

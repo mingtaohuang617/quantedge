@@ -29,7 +29,7 @@ const EN = {
 
   // ── UserProfile Panel ──
   '账户信息': 'Account Info',
-  '天': 'days',
+  // '天' 已在 HMM 段定义为 'd'（line ~548）— 此处删除重复定义
   '标的': 'Securities',
   '日志': 'Journal',
   '缓存': 'Cache',
@@ -91,7 +91,7 @@ const EN = {
   '代码': 'Ticker',
   '价格': 'Price',
   '收益率': 'Return',
-  '未知': 'Unknown',
+  // '未知' 已在下方 HMM 段定义（line ~462）— 此处删除重复定义
   '数据不足': 'Insufficient Data',
 
   // ── Scoring Dashboard ──
@@ -246,7 +246,7 @@ const EN = {
   '风险调整后收益': 'Risk-Adjusted Return',
   '索提诺比率': 'Sortino Ratio',
   '下行风险调整': 'Downside Risk Adjusted',
-  '胜率': 'Win Rate',
+  // '胜率' 已在下方 HMM/sort 段定义（line ~339）— 此处删除重复定义
   '年化波动率': 'Annualized Volatility',
   '最大回撤天数': 'Max DD Duration',
   '基准收益': 'Benchmark Return',
@@ -297,7 +297,7 @@ const EN = {
   '极度恐惧': 'Extreme Fear',
   '关注板块表现 (今日)': 'Sector Performance (Today)',
   '点击查看宏观看板 · 综合 17 因子方向化温度': 'Click to open macro dashboard · 17-factor weighted temperature',
-  '宏观调整': 'Macro adj',
+  // '宏观调整' 已在下方 sort 段定义为 'Macro Adj'（line ~355）— 此处删除重复定义
   '牛市中动量风格当下加分': 'Bull regime favors momentum (+)',
   '熊市中价值风格当下加分': 'Bear regime favors value (+)',
   '牛市中价值风格当下不利': 'Bull regime disfavors value (−)',
@@ -327,7 +327,7 @@ const EN = {
   '占组合': 'in portfolio',
   '当前 regime 不利，考虑分散': 'current regime unfavorable, consider diversifying',
   '当前 regime 顺风，仓位结构良好': 'current regime tailwind, position well-aligned',
-  '权重': 'Weight',
+  // '权重' 已在下方 Backtest extra 段定义（line ~444）— 此处删除重复定义
   '平均 Δ': 'Avg Δ',
   '风险分': 'Risk',
   '风险分 = 板块权重 × |平均 Δ|，反映该板块对组合表现的潜在拉动': 'Risk = sector weight × |avg Δ|; reflects sector\'s potential drag/boost on portfolio',
