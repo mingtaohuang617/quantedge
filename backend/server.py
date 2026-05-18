@@ -40,7 +40,7 @@ import logging_config  # noqa: F401  — 副作用：配置轮转日志
 
 
 def sanitize(obj):
-    """Recursively replace NaN/Inf with None for JSON serialization."""
+    """Recursively replace NaN/Inf with None and convert numpy scalars for JSON."""
     if isinstance(obj, dict):
         return {k: sanitize(v) for k, v in obj.items()}
     if isinstance(obj, list):
@@ -55,6 +55,9 @@ def sanitize(obj):
         return v
     if isinstance(obj, (np.integer,)):
         return int(obj)
+    # numpy.bool_ → Python bool（json 模块不识别 np.bool_）
+    if isinstance(obj, np.bool_):
+        return bool(obj)
     return obj
 
 try:
@@ -594,6 +597,14 @@ async def lifespan(_app):
     # 后台增量同步（不阻塞 API server 启动）
     if HAS_DB:
         threading.Thread(target=_bg_run_incremental_sync, daemon=True).start()
+
+    # Stock Gene 评分定时刷新（守护线程，默认禁用直到用户启用）
+    try:
+        import stock_gene_scheduler
+        stock_gene_scheduler.start_scheduler()
+        print("[OK] stock-gene scheduler thread started")
+    except Exception as e:
+        print(f"[WARN] stock-gene scheduler failed to start: {e}")
 
     yield  # ── 此前 = startup, 此后 = shutdown ──
     # （目前没有需要 shutdown 清理的资源；如果未来加，写在 yield 之后）
@@ -2261,6 +2272,7 @@ class StockGeneAddReq(BaseModel):
     sector: str = ""
     notes: str = ""
     tags: list[str] = []
+    list_id: str = "default"
 
 
 class StockGeneUpdateReq(BaseModel):
@@ -2303,6 +2315,7 @@ def stock_gene_add(req: StockGeneAddReq):
         item = _gene_mod.add_to_watchlist(
             req.ticker, name=req.name, market=req.market,
             sector=req.sector, notes=req.notes, tags=req.tags,
+            list_id=req.list_id,
         )
         return sanitize({"ok": True, "item": item})
     except ValueError as e:
@@ -2433,6 +2446,116 @@ def stock_gene_value_compare_peers(req: StockGeneComparePeersReq):
     ))
 
 
+# ── Stock Gene · Signal engine（短期信号雷达）────────────
+try:
+    import signal_gene as _signal_mod
+    HAS_SIGNAL_GENE = True
+except Exception as _e:
+    HAS_SIGNAL_GENE = False
+    _signal_mod = None
+    print(f"[WARN] signal_gene module not available: {_e}")
+
+
+@app.post("/api/stock-gene/signal/score")
+def stock_gene_signal_score(req: StockGeneScoreReq):
+    """对任意 ticker 跑一次短期信号评分（不入库）。"""
+    if not HAS_SIGNAL_GENE or _signal_mod is None:
+        raise HTTPException(503, "signal_gene 模块未加载")
+    return sanitize(_signal_mod.score_signal(
+        req.ticker, name=req.name, market=req.market, sector=req.sector,
+    ))
+
+
+@app.post("/api/stock-gene/{ticker}/signal-score")
+def stock_gene_signal_score_persist(ticker: str):
+    """对 watchlist 里某项跑短期信号评分并写回 last_signal_result。"""
+    if not HAS_STOCK_GENE or _gene_mod is None:
+        raise HTTPException(503, "stock_gene 模块未加载")
+    try:
+        return sanitize(_gene_mod.score_signal_and_persist(ticker))
+    except ValueError as e:
+        raise HTTPException(404, str(e))
+
+
+@app.post("/api/stock-gene/signal/score-all")
+def stock_gene_signal_score_all():
+    """批量短期信号评分。"""
+    if not HAS_STOCK_GENE or _gene_mod is None:
+        raise HTTPException(503, "stock_gene 模块未加载")
+    results = _gene_mod.score_all_signal()
+    return sanitize({"count": len(results), "items": results})
+
+
+@app.post("/api/stock-gene/signal/compare-peers")
+def stock_gene_signal_compare_peers(req: StockGeneComparePeersReq):
+    """短期信号横向对比。"""
+    if not HAS_STOCK_GENE or _gene_mod is None:
+        raise HTTPException(503, "stock_gene 模块未加载")
+    if not req.tickers:
+        raise HTTPException(400, "tickers 不能为空")
+    if len(req.tickers) > 10:
+        raise HTTPException(400, "一次最多对比 10 只")
+    return sanitize(_gene_mod.compare_peers_signal(
+        req.tickers, sector=req.sector, market=req.market,
+    ))
+
+
+# ── Stock Gene · Risk engine（风险画像）──────────────────
+try:
+    import risk_gene as _risk_mod
+    HAS_RISK_GENE = True
+except Exception as _e:
+    HAS_RISK_GENE = False
+    _risk_mod = None
+    print(f"[WARN] risk_gene module not available: {_e}")
+
+
+@app.post("/api/stock-gene/risk/score")
+def stock_gene_risk_score(req: StockGeneScoreReq):
+    """对任意 ticker 跑一次风险画像评分（不入库）。"""
+    if not HAS_RISK_GENE or _risk_mod is None:
+        raise HTTPException(503, "risk_gene 模块未加载")
+    cached = next((s for s in cache.stocks if s.get("ticker") == req.ticker.upper()), None)
+    return sanitize(_risk_mod.score_risk(
+        req.ticker, name=req.name, market=req.market, sector=req.sector,
+        cached_stock=cached,
+    ))
+
+
+@app.post("/api/stock-gene/{ticker}/risk-score")
+def stock_gene_risk_score_persist(ticker: str):
+    """对 watchlist 里某项跑风险评分并写回 last_risk_result。"""
+    if not HAS_STOCK_GENE or _gene_mod is None:
+        raise HTTPException(503, "stock_gene 模块未加载")
+    try:
+        return sanitize(_gene_mod.score_risk_and_persist(ticker))
+    except ValueError as e:
+        raise HTTPException(404, str(e))
+
+
+@app.post("/api/stock-gene/risk/score-all")
+def stock_gene_risk_score_all():
+    """批量风险评分。"""
+    if not HAS_STOCK_GENE or _gene_mod is None:
+        raise HTTPException(503, "stock_gene 模块未加载")
+    results = _gene_mod.score_all_risk()
+    return sanitize({"count": len(results), "items": results})
+
+
+@app.post("/api/stock-gene/risk/compare-peers")
+def stock_gene_risk_compare_peers(req: StockGeneComparePeersReq):
+    """风险横向对比。"""
+    if not HAS_STOCK_GENE or _gene_mod is None:
+        raise HTTPException(503, "stock_gene 模块未加载")
+    if not req.tickers:
+        raise HTTPException(400, "tickers 不能为空")
+    if len(req.tickers) > 10:
+        raise HTTPException(400, "一次最多对比 10 只")
+    return sanitize(_gene_mod.compare_peers_risk(
+        req.tickers, sector=req.sector, market=req.market,
+    ))
+
+
 # ── 导入 / 导出（备份）─────────────────────────────────
 class StockGeneImportReq(BaseModel):
     mode: str = "merge"             # 'merge' | 'replace'
@@ -2460,6 +2583,139 @@ def stock_gene_import(req: StockGeneImportReq):
         ))
     except ValueError as e:
         raise HTTPException(400, str(e))
+
+
+# ── List CRUD（多 watchlist 分组）────────────────────────
+class StockGeneListAddReq(BaseModel):
+    name: str
+    color: str = "slate"
+
+
+class StockGeneListUpdateReq(BaseModel):
+    name: str | None = None
+    color: str | None = None
+
+
+class StockGeneMoveReq(BaseModel):
+    list_id: str
+
+
+@app.get("/api/stock-gene/lists")
+def stock_gene_lists():
+    """列出所有 watchlist 分组（含 default）。"""
+    if not HAS_STOCK_GENE or _gene_mod is None:
+        raise HTTPException(503, "stock_gene 模块未加载")
+    return sanitize({"lists": _gene_mod.list_lists()})
+
+
+@app.post("/api/stock-gene/lists")
+def stock_gene_lists_add(req: StockGeneListAddReq):
+    """新建 list。"""
+    if not HAS_STOCK_GENE or _gene_mod is None:
+        raise HTTPException(503, "stock_gene 模块未加载")
+    try:
+        return sanitize({"ok": True, "list": _gene_mod.add_list(req.name, color=req.color)})
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.put("/api/stock-gene/lists/{list_id}")
+def stock_gene_lists_update(list_id: str, req: StockGeneListUpdateReq):
+    """重命名 / 改颜色。"""
+    if not HAS_STOCK_GENE or _gene_mod is None:
+        raise HTTPException(503, "stock_gene 模块未加载")
+    fields = {k: v for k, v in req.dict().items() if v is not None}
+    out = _gene_mod.update_list(list_id, **fields)
+    if out is None:
+        raise HTTPException(404, f"list 不存在: {list_id}")
+    return sanitize({"ok": True, "list": out})
+
+
+@app.delete("/api/stock-gene/lists/{list_id}")
+def stock_gene_lists_delete(list_id: str):
+    """删除 list；归属 items 自动移到 default。"""
+    if not HAS_STOCK_GENE or _gene_mod is None:
+        raise HTTPException(503, "stock_gene 模块未加载")
+    try:
+        moved = _gene_mod.delete_list(list_id)
+        return {"ok": True, "items_moved": moved}
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+# ── Scheduler 控制 ─────────────────────────────────────
+try:
+    import stock_gene_scheduler as _sched_mod
+    HAS_SCHEDULER = True
+except Exception as _e:
+    HAS_SCHEDULER = False
+    _sched_mod = None
+    print(f"[WARN] stock_gene_scheduler unavailable: {_e}")
+
+
+class SchedulerSetEnabledReq(BaseModel):
+    enabled: bool
+
+
+class SchedulerSetScheduleReq(BaseModel):
+    hour_utc: int       # 0-23
+    minute_utc: int     # 0-59
+
+
+@app.get("/api/stock-gene/scheduler/status")
+def stock_gene_scheduler_status():
+    """查看调度器状态：enabled / schedule / last_run / next_run / last_summary。"""
+    if not HAS_SCHEDULER or _sched_mod is None:
+        raise HTTPException(503, "scheduler 不可用")
+    return sanitize(_sched_mod.get_status())
+
+
+@app.post("/api/stock-gene/scheduler/enabled")
+def stock_gene_scheduler_enabled(req: SchedulerSetEnabledReq):
+    """开启 / 关闭定时刷新。"""
+    if not HAS_SCHEDULER or _sched_mod is None:
+        raise HTTPException(503, "scheduler 不可用")
+    return sanitize(_sched_mod.set_enabled(req.enabled))
+
+
+@app.post("/api/stock-gene/scheduler/schedule")
+def stock_gene_scheduler_schedule(req: SchedulerSetScheduleReq):
+    """设置每日运行的 UTC 时刻。"""
+    if not HAS_SCHEDULER or _sched_mod is None:
+        raise HTTPException(503, "scheduler 不可用")
+    return sanitize(_sched_mod.set_schedule(req.hour_utc, req.minute_utc))
+
+
+@app.post("/api/stock-gene/scheduler/run-now")
+def stock_gene_scheduler_run_now():
+    """立即手动触发一次全引擎评分。"""
+    if not HAS_SCHEDULER or _sched_mod is None:
+        raise HTTPException(503, "scheduler 不可用")
+    return sanitize(_sched_mod.run_now())
+
+
+@app.get("/api/stock-gene/alerts")
+def stock_gene_alerts(days: int = 30, min_delta: int = 1):
+    """从 score_history 计算评分变化 alerts。"""
+    if not HAS_STOCK_GENE or _gene_mod is None:
+        raise HTTPException(503, "stock_gene 模块未加载")
+    days = max(1, min(days, 365))
+    min_delta = max(1, min(min_delta, 8))
+    return sanitize({"alerts": _gene_mod.get_alerts(days=days, min_delta=min_delta)})
+
+
+@app.put("/api/stock-gene/{ticker}/move")
+def stock_gene_move(ticker: str, req: StockGeneMoveReq):
+    """把 item 移到指定 list。"""
+    if not HAS_STOCK_GENE or _gene_mod is None:
+        raise HTTPException(503, "stock_gene 模块未加载")
+    try:
+        out = _gene_mod.move_item(ticker, req.list_id)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    if out is None:
+        raise HTTPException(404, f"{ticker} 不在观察列表中")
+    return sanitize({"ok": True, "item": out})
 
 
 class StockGeneExplainReq(BaseModel):

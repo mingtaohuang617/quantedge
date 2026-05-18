@@ -64,7 +64,7 @@ const AlertRulesPanel = ({ liveStocks, t, lang }) => {
         const nameLabel = displayTicker(r.tk, stk, lang);
         const isActive = activeRules.has(r.id);
         return (
-          <button key={r.id} onClick={() => toggle(r.id)} className="w-full flex items-center justify-between gap-2 text-left hover:bg-white/[0.02] -mx-1 px-1 py-0.5 rounded transition-colors">
+          <button key={r.id} onClick={() => toggle(r.id)} className="w-full flex items-center justify-between gap-2 text-left hover:bg-white/[0.04] -mx-1 px-1 py-0.5 rounded transition-colors">
             <div className="min-w-0">
               <div className="text-xs text-white truncate" title={r.tk}>{nameLabel} {t(r.ruleKey)}</div>
               <div className="text-[10px]" style={{ color: "var(--text-secondary)" }}>{r.value}</div>
@@ -533,7 +533,7 @@ const Monitor = () => {
               const stkForAlert = liveStocks.find(s => s.ticker === a.ticker);
               const alertLabel = displayTicker(a.ticker, stkForAlert, lang);
               return (
-              <div key={a.id} className={`p-3 rounded-lg border transition-all hover:bg-white/[0.02] animate-stagger relative group ${isAcked ? 'opacity-50' : ''} ${a.severity === "high" ? "border-red-500/20 bg-red-500/5" : a.severity === "warning" ? "border-amber-500/20 bg-amber-500/5" : "border-sky-500/20 bg-sky-500/5"}`} style={{ animationDelay: `${idx * 0.06}s` }}>
+              <div key={a.id} className={`p-3 rounded-lg border transition-all hover:bg-white/[0.04] animate-stagger relative group ${isAcked ? 'opacity-50' : ''} ${a.severity === "high" ? "border-red-500/20 bg-red-500/5" : a.severity === "warning" ? "border-amber-500/20 bg-amber-500/5" : "border-sky-500/20 bg-sky-500/5"}`} style={{ animationDelay: `${idx * 0.06}s` }}>
                 {a.severity === "high" && !isAcked && <div className="absolute left-0 top-2 bottom-2 w-[3px] rounded-full bg-down animate-breathe" />}
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-2">

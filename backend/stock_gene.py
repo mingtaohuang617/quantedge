@@ -68,17 +68,50 @@ RS_BENCHMARK = {
 
 
 # ── 持久化 ───────────────────────────────────────────────
+DEFAULT_LIST = {"id": "default", "name": "默认", "color": "indigo"}
+
+
 def load_watchlist() -> dict:
+    """加载 watchlist；不存在则返回 v2 默认结构。
+
+    v2 schema:
+      {
+        "version": 2,
+        "lists": [{id, name, color, created_at}, ...],
+        "items": [{ticker, list_id, ...}],
+      }
+    v1 自动迁移：lists = [default]，items 全部赋 list_id="default"。
+    """
     if not WATCHLIST_PATH.exists():
-        return {"version": 1, "items": []}
+        return {"version": 2, "lists": [DEFAULT_LIST.copy()], "items": []}
     try:
         with open(WATCHLIST_PATH, "r", encoding="utf-8") as f:
             data = json.load(f)
-        data.setdefault("version", 1)
-        data.setdefault("items", [])
-        return data
+        return _migrate_to_v2(data)
     except Exception:
-        return {"version": 1, "items": []}
+        return {"version": 2, "lists": [DEFAULT_LIST.copy()], "items": []}
+
+
+def _migrate_to_v2(data: dict) -> dict:
+    """v1 → v2：补 lists、给每个 item 加 list_id。"""
+    data.setdefault("version", 1)
+    data.setdefault("items", [])
+    if data.get("version", 1) >= 2 and isinstance(data.get("lists"), list) and data["lists"]:
+        # 容错：确保 default 存在 + 每个 item 有 list_id
+        list_ids = {l["id"] for l in data["lists"]}
+        if "default" not in list_ids:
+            data["lists"].insert(0, DEFAULT_LIST.copy())
+            list_ids.add("default")
+        for it in data["items"]:
+            if it.get("list_id") not in list_ids:
+                it["list_id"] = "default"
+        return data
+    # v1 → v2 迁移
+    data["lists"] = [DEFAULT_LIST.copy()]
+    for it in data["items"]:
+        it.setdefault("list_id", "default")
+    data["version"] = 2
+    return data
 
 
 def save_watchlist(data: dict) -> None:
@@ -90,14 +123,18 @@ def save_watchlist(data: dict) -> None:
 
 
 def add_to_watchlist(ticker: str, name: str = "", market: str = "US",
-                     sector: str = "", notes: str = "", tags: list[str] | None = None) -> dict:
+                     sector: str = "", notes: str = "", tags: list[str] | None = None,
+                     list_id: str = "default") -> dict:
     data = load_watchlist()
     ticker = ticker.strip().upper()
     if not ticker:
         raise ValueError("ticker 不能为空")
+    # 校验 list_id 存在；不存在则降级到 default
+    list_ids = {l["id"] for l in data.get("lists", [])}
+    if list_id not in list_ids:
+        list_id = "default"
     for it in data["items"]:
         if it["ticker"] == ticker:
-            # 已存在：更新元数据
             it["name"] = name or it.get("name", "")
             it["market"] = market or it.get("market", "US")
             it["sector"] = sector or it.get("sector", "")
@@ -114,6 +151,7 @@ def add_to_watchlist(ticker: str, name: str = "", market: str = "US",
         "sector": sector,
         "notes": notes,
         "tags": tags or [],
+        "list_id": list_id,
         "added_at": date.today().isoformat(),
         "last_result": None,
         "last_checked_at": None,
@@ -121,6 +159,88 @@ def add_to_watchlist(ticker: str, name: str = "", market: str = "US",
     data["items"].append(item)
     save_watchlist(data)
     return item
+
+
+# ── List CRUD ───────────────────────────────────────────
+def list_lists() -> list[dict]:
+    """返回所有 lists（含 default）。"""
+    return load_watchlist().get("lists", [])
+
+
+def _slugify(name: str) -> str:
+    """简单 slug：保留字母数字 + 中划线；中文转拼音过于重，用 list-{timestamp} 兜底。"""
+    import re
+    s = re.sub(r"[^a-zA-Z0-9\-_]+", "-", name.strip()).strip("-").lower()
+    return s if s else f"list-{int(date.today().toordinal())}"
+
+
+def add_list(name: str, color: str = "slate") -> dict:
+    name = (name or "").strip()
+    if not name:
+        raise ValueError("list 名称不能为空")
+    data = load_watchlist()
+    existing = {l["id"]: l for l in data["lists"]}
+    # 生成唯一 id
+    base = _slugify(name)
+    list_id = base
+    n = 1
+    while list_id in existing:
+        n += 1
+        list_id = f"{base}-{n}"
+    new_list = {
+        "id": list_id,
+        "name": name,
+        "color": color,
+        "created_at": date.today().isoformat(),
+    }
+    data["lists"].append(new_list)
+    save_watchlist(data)
+    return new_list
+
+
+def update_list(list_id: str, **fields) -> dict | None:
+    data = load_watchlist()
+    for l in data["lists"]:
+        if l["id"] == list_id:
+            for k, v in fields.items():
+                if k in ("name", "color") and v is not None:
+                    l[k] = v
+            save_watchlist(data)
+            return l
+    return None
+
+
+def delete_list(list_id: str) -> int:
+    """删除 list；归属该 list 的 items 全部移到 default。返回受影响 items 数。"""
+    if list_id == "default":
+        raise ValueError("默认 list 不能删除")
+    data = load_watchlist()
+    before = len(data["lists"])
+    data["lists"] = [l for l in data["lists"] if l["id"] != list_id]
+    if len(data["lists"]) == before:
+        return 0  # 没找到
+    moved = 0
+    for it in data["items"]:
+        if it.get("list_id") == list_id:
+            it["list_id"] = "default"
+            moved += 1
+    save_watchlist(data)
+    return moved
+
+
+def move_item(ticker: str, target_list_id: str) -> dict | None:
+    """把 item 移到目标 list。"""
+    data = load_watchlist()
+    ticker = ticker.strip().upper()
+    list_ids = {l["id"] for l in data["lists"]}
+    if target_list_id not in list_ids:
+        raise ValueError(f"未知 list_id: {target_list_id}")
+    for it in data["items"]:
+        if it["ticker"] == ticker:
+            it["list_id"] = target_list_id
+            save_watchlist(data)
+            return it
+    return None
 
 
 def remove_from_watchlist(ticker: str) -> bool:
@@ -803,13 +923,227 @@ def compare_peers_value(tickers: list[str], sector: str = "",
     }
 
 
+# ── Signal engine 集成（S1—S6 短期入场信号）─────────────
+def score_signal_and_persist(ticker: str) -> dict:
+    """对 watchlist 里的某项跑短期信号评分并写回 last_signal_result + 历史。"""
+    import signal_gene
+    data = load_watchlist()
+    ticker = ticker.strip().upper()
+    item = next((it for it in data["items"] if it["ticker"] == ticker), None)
+    if item is None:
+        raise ValueError(f"{ticker} 不在 stock_gene 观察列表中")
+    result = signal_gene.score_signal(
+        ticker, name=item.get("name", ""),
+        market=item.get("market", "US"),
+        sector=item.get("sector", ""),
+    )
+    item["last_signal_result"] = result
+    item["last_signal_checked_at"] = result["checked_at"]
+    _append_history(item, "signal", result)
+    save_watchlist(data)
+    return result
+
+
+def score_all_signal() -> list[dict]:
+    """批量短期信号评分所有观察项。"""
+    import signal_gene
+    data = load_watchlist()
+    results: list[dict] = []
+    for item in data["items"]:
+        try:
+            r = signal_gene.score_signal(
+                item["ticker"], name=item.get("name", ""),
+                market=item.get("market", "US"),
+                sector=item.get("sector", ""),
+            )
+            item["last_signal_result"] = r
+            item["last_signal_checked_at"] = r["checked_at"]
+            _append_history(item, "signal", r)
+            results.append(r)
+        except Exception as e:
+            results.append({"ticker": item["ticker"], "error": str(e)})
+    save_watchlist(data)
+    return results
+
+
+def compare_peers_signal(tickers: list[str], sector: str = "",
+                         market: str = "US") -> dict:
+    """短期信号横向对比。"""
+    import signal_gene
+    rows = []
+    for t in tickers:
+        try:
+            rows.append(signal_gene.score_signal(
+                t, market=market, sector=sector,
+            ))
+        except Exception as e:
+            rows.append({"ticker": t, "error": str(e)})
+    return {
+        "engine": "signal",
+        "sector": sector,
+        "market": market,
+        "count": len(rows),
+        "items": rows,
+    }
+
+
+# ── Risk engine 集成（R1—R6 风险画像）───────────────────
+def score_risk_and_persist(ticker: str) -> dict:
+    """对 watchlist 里的某项跑风险画像评分并写回 last_risk_result + 历史。"""
+    import risk_gene
+    data = load_watchlist()
+    ticker = ticker.strip().upper()
+    item = next((it for it in data["items"] if it["ticker"] == ticker), None)
+    if item is None:
+        raise ValueError(f"{ticker} 不在 stock_gene 观察列表中")
+    cached = _get_cached_stock(ticker)
+    result = risk_gene.score_risk(
+        ticker, name=item.get("name", ""),
+        market=item.get("market", "US"),
+        sector=item.get("sector", ""),
+        cached_stock=cached,
+    )
+    item["last_risk_result"] = result
+    item["last_risk_checked_at"] = result["checked_at"]
+    _append_history(item, "risk", result)
+    save_watchlist(data)
+    return result
+
+
+def score_all_risk() -> list[dict]:
+    """批量风险评分所有观察项。"""
+    import risk_gene
+    data = load_watchlist()
+    results: list[dict] = []
+    for item in data["items"]:
+        try:
+            cached = _get_cached_stock(item["ticker"])
+            r = risk_gene.score_risk(
+                item["ticker"], name=item.get("name", ""),
+                market=item.get("market", "US"),
+                sector=item.get("sector", ""),
+                cached_stock=cached,
+            )
+            item["last_risk_result"] = r
+            item["last_risk_checked_at"] = r["checked_at"]
+            _append_history(item, "risk", r)
+            results.append(r)
+        except Exception as e:
+            results.append({"ticker": item["ticker"], "error": str(e)})
+    save_watchlist(data)
+    return results
+
+
+def compare_peers_risk(tickers: list[str], sector: str = "",
+                       market: str = "US") -> dict:
+    """风险横向对比。"""
+    import risk_gene
+    rows = []
+    for t in tickers:
+        try:
+            cached = _get_cached_stock(t)
+            rows.append(risk_gene.score_risk(
+                t, market=market, sector=sector, cached_stock=cached,
+            ))
+        except Exception as e:
+            rows.append({"ticker": t, "error": str(e)})
+    return {
+        "engine": "risk",
+        "sector": sector,
+        "market": market,
+        "count": len(rows),
+        "items": rows,
+    }
+
+
+# ── 全引擎批量评分（scheduler 用）────────────────────────
+def score_all_engines() -> dict:
+    """跑全部 4 个引擎的 score-all，返回每个引擎的成功/失败计数。"""
+    summary = {"started_at": datetime.utcnow().isoformat() + "Z", "engines": {}}
+    # 每个引擎独立 try，单一失败不影响其它
+    runs = [
+        ("trend", score_all),
+        ("value", score_all_value),
+        ("signal", score_all_signal),
+        ("risk", score_all_risk),
+    ]
+    total_items = len(load_watchlist().get("items", []))
+    for name, fn in runs:
+        try:
+            results = fn()
+            ok = sum(1 for r in results if not r.get("error"))
+            fail = len(results) - ok
+            summary["engines"][name] = {"ok": ok, "fail": fail}
+        except Exception as e:
+            summary["engines"][name] = {"error": str(e)}
+    summary["finished_at"] = datetime.utcnow().isoformat() + "Z"
+    summary["items_scanned"] = total_items
+    return summary
+
+
+# ── 评分变化预警 ────────────────────────────────────────
+def get_alerts(days: int = 30, min_delta: int = 1) -> list[dict]:
+    """
+    从 score_history 计算评分变化 alerts。
+    对每个 item 的每个 engine，看最近 2 条历史的 score 差，|delta| ≥ min_delta 算 alert。
+    返回按 checked_at 倒序的 alerts 列表。
+    """
+    from datetime import datetime, timedelta
+    data = load_watchlist()
+    cutoff = (datetime.utcnow() - timedelta(days=days)).isoformat() + "Z"
+    out = []
+    for item in data.get("items", []):
+        history = item.get("score_history") or []
+        if len(history) < 2:
+            continue
+        by_engine: dict[str, list[dict]] = {}
+        for h in history:
+            eng = h.get("engine")
+            if not eng:
+                continue
+            by_engine.setdefault(eng, []).append(h)
+        for eng_id, hs in by_engine.items():
+            if len(hs) < 2:
+                continue
+            # 按 checked_at 排序，取最后两条
+            hs_sorted = sorted(hs, key=lambda x: x.get("checked_at", ""))
+            latest = hs_sorted[-1]
+            prev = hs_sorted[-2]
+            if not latest.get("checked_at") or latest["checked_at"] < cutoff:
+                continue
+            cur_score = latest.get("score")
+            prev_score = prev.get("score")
+            if cur_score is None or prev_score is None:
+                continue
+            delta = cur_score - prev_score
+            if abs(delta) < min_delta:
+                continue
+            out.append({
+                "ticker": item["ticker"],
+                "name": item.get("name", ""),
+                "engine": eng_id,
+                "from_score": prev_score,
+                "to_score": cur_score,
+                "delta": delta,
+                "max_score": latest.get("max_score"),
+                "from_verdict": prev.get("verdict_level"),
+                "to_verdict": latest.get("verdict_level"),
+                "checked_at": latest["checked_at"],
+                "prev_checked_at": prev.get("checked_at"),
+                "list_id": item.get("list_id", "default"),
+            })
+    out.sort(key=lambda x: x["checked_at"], reverse=True)
+    return out
+
+
 # ── 导入 / 导出 ────────────────────────────────────────
 def export_data() -> dict:
-    """整份观察列表（含评分历史、双引擎缓存）导出为 dict，前端转 JSON 下载。"""
+    """整份观察列表（含评分历史、各引擎缓存、lists 分组）导出为 dict。"""
     data = load_watchlist()
     return {
-        "version": data.get("version", 1),
+        "version": data.get("version", 2),
         "exported_at": datetime.utcnow().isoformat() + "Z",
+        "lists": data.get("lists", [DEFAULT_LIST.copy()]),
         "items": data.get("items", []),
     }
 
@@ -835,7 +1169,38 @@ def import_data(payload: dict, mode: str = "merge") -> dict:
     skipped = 0
     if mode == "replace":
         data["items"] = []
+        # replace 模式：导入 payload 的 lists（保留 default）
+        incoming_lists = payload.get("lists") or []
+        if incoming_lists:
+            seen = {"default"}
+            new_lists = [DEFAULT_LIST.copy()]
+            for raw_l in incoming_lists:
+                lid = raw_l.get("id")
+                if not lid or lid in seen:
+                    continue
+                new_lists.append({
+                    "id": lid,
+                    "name": raw_l.get("name", lid),
+                    "color": raw_l.get("color", "slate"),
+                    "created_at": raw_l.get("created_at") or date.today().isoformat(),
+                })
+                seen.add(lid)
+            data["lists"] = new_lists
+    else:
+        # merge 模式：缺少的 list 补上
+        existing_list_ids = {l["id"] for l in data["lists"]}
+        for raw_l in (payload.get("lists") or []):
+            lid = raw_l.get("id")
+            if lid and lid not in existing_list_ids:
+                data["lists"].append({
+                    "id": lid,
+                    "name": raw_l.get("name", lid),
+                    "color": raw_l.get("color", "slate"),
+                    "created_at": raw_l.get("created_at") or date.today().isoformat(),
+                })
+                existing_list_ids.add(lid)
     existing_tickers = {it["ticker"] for it in data["items"]}
+    valid_list_ids = {l["id"] for l in data["lists"]}
 
     for raw in incoming:
         if not isinstance(raw, dict):
@@ -846,6 +1211,9 @@ def import_data(payload: dict, mode: str = "merge") -> dict:
         if t in existing_tickers:
             skipped += 1
             continue
+        raw_list_id = raw.get("list_id") or "default"
+        if raw_list_id not in valid_list_ids:
+            raw_list_id = "default"
         # 仅白名单字段，避免恶意 payload 污染
         item = {
             "ticker": t,
@@ -854,11 +1222,16 @@ def import_data(payload: dict, mode: str = "merge") -> dict:
             "sector": raw.get("sector", ""),
             "notes": raw.get("notes", ""),
             "tags": raw.get("tags") or [],
+            "list_id": raw_list_id,
             "added_at": raw.get("added_at") or date.today().isoformat(),
             "last_result": raw.get("last_result"),
             "last_value_result": raw.get("last_value_result"),
+            "last_signal_result": raw.get("last_signal_result"),
+            "last_risk_result": raw.get("last_risk_result"),
             "last_checked_at": raw.get("last_checked_at"),
             "last_value_checked_at": raw.get("last_value_checked_at"),
+            "last_signal_checked_at": raw.get("last_signal_checked_at"),
+            "last_risk_checked_at": raw.get("last_risk_checked_at"),
             "score_history": raw.get("score_history") or [],
         }
         data["items"].append(item)
