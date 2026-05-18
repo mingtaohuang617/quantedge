@@ -68,17 +68,50 @@ RS_BENCHMARK = {
 
 
 # ── 持久化 ───────────────────────────────────────────────
+DEFAULT_LIST = {"id": "default", "name": "默认", "color": "indigo"}
+
+
 def load_watchlist() -> dict:
+    """加载 watchlist；不存在则返回 v2 默认结构。
+
+    v2 schema:
+      {
+        "version": 2,
+        "lists": [{id, name, color, created_at}, ...],
+        "items": [{ticker, list_id, ...}],
+      }
+    v1 自动迁移：lists = [default]，items 全部赋 list_id="default"。
+    """
     if not WATCHLIST_PATH.exists():
-        return {"version": 1, "items": []}
+        return {"version": 2, "lists": [DEFAULT_LIST.copy()], "items": []}
     try:
         with open(WATCHLIST_PATH, "r", encoding="utf-8") as f:
             data = json.load(f)
-        data.setdefault("version", 1)
-        data.setdefault("items", [])
-        return data
+        return _migrate_to_v2(data)
     except Exception:
-        return {"version": 1, "items": []}
+        return {"version": 2, "lists": [DEFAULT_LIST.copy()], "items": []}
+
+
+def _migrate_to_v2(data: dict) -> dict:
+    """v1 → v2：补 lists、给每个 item 加 list_id。"""
+    data.setdefault("version", 1)
+    data.setdefault("items", [])
+    if data.get("version", 1) >= 2 and isinstance(data.get("lists"), list) and data["lists"]:
+        # 容错：确保 default 存在 + 每个 item 有 list_id
+        list_ids = {l["id"] for l in data["lists"]}
+        if "default" not in list_ids:
+            data["lists"].insert(0, DEFAULT_LIST.copy())
+            list_ids.add("default")
+        for it in data["items"]:
+            if it.get("list_id") not in list_ids:
+                it["list_id"] = "default"
+        return data
+    # v1 → v2 迁移
+    data["lists"] = [DEFAULT_LIST.copy()]
+    for it in data["items"]:
+        it.setdefault("list_id", "default")
+    data["version"] = 2
+    return data
 
 
 def save_watchlist(data: dict) -> None:
@@ -90,14 +123,18 @@ def save_watchlist(data: dict) -> None:
 
 
 def add_to_watchlist(ticker: str, name: str = "", market: str = "US",
-                     sector: str = "", notes: str = "", tags: list[str] | None = None) -> dict:
+                     sector: str = "", notes: str = "", tags: list[str] | None = None,
+                     list_id: str = "default") -> dict:
     data = load_watchlist()
     ticker = ticker.strip().upper()
     if not ticker:
         raise ValueError("ticker 不能为空")
+    # 校验 list_id 存在；不存在则降级到 default
+    list_ids = {l["id"] for l in data.get("lists", [])}
+    if list_id not in list_ids:
+        list_id = "default"
     for it in data["items"]:
         if it["ticker"] == ticker:
-            # 已存在：更新元数据
             it["name"] = name or it.get("name", "")
             it["market"] = market or it.get("market", "US")
             it["sector"] = sector or it.get("sector", "")
@@ -114,6 +151,7 @@ def add_to_watchlist(ticker: str, name: str = "", market: str = "US",
         "sector": sector,
         "notes": notes,
         "tags": tags or [],
+        "list_id": list_id,
         "added_at": date.today().isoformat(),
         "last_result": None,
         "last_checked_at": None,
@@ -121,6 +159,88 @@ def add_to_watchlist(ticker: str, name: str = "", market: str = "US",
     data["items"].append(item)
     save_watchlist(data)
     return item
+
+
+# ── List CRUD ───────────────────────────────────────────
+def list_lists() -> list[dict]:
+    """返回所有 lists（含 default）。"""
+    return load_watchlist().get("lists", [])
+
+
+def _slugify(name: str) -> str:
+    """简单 slug：保留字母数字 + 中划线；中文转拼音过于重，用 list-{timestamp} 兜底。"""
+    import re
+    s = re.sub(r"[^a-zA-Z0-9\-_]+", "-", name.strip()).strip("-").lower()
+    return s if s else f"list-{int(date.today().toordinal())}"
+
+
+def add_list(name: str, color: str = "slate") -> dict:
+    name = (name or "").strip()
+    if not name:
+        raise ValueError("list 名称不能为空")
+    data = load_watchlist()
+    existing = {l["id"]: l for l in data["lists"]}
+    # 生成唯一 id
+    base = _slugify(name)
+    list_id = base
+    n = 1
+    while list_id in existing:
+        n += 1
+        list_id = f"{base}-{n}"
+    new_list = {
+        "id": list_id,
+        "name": name,
+        "color": color,
+        "created_at": date.today().isoformat(),
+    }
+    data["lists"].append(new_list)
+    save_watchlist(data)
+    return new_list
+
+
+def update_list(list_id: str, **fields) -> dict | None:
+    data = load_watchlist()
+    for l in data["lists"]:
+        if l["id"] == list_id:
+            for k, v in fields.items():
+                if k in ("name", "color") and v is not None:
+                    l[k] = v
+            save_watchlist(data)
+            return l
+    return None
+
+
+def delete_list(list_id: str) -> int:
+    """删除 list；归属该 list 的 items 全部移到 default。返回受影响 items 数。"""
+    if list_id == "default":
+        raise ValueError("默认 list 不能删除")
+    data = load_watchlist()
+    before = len(data["lists"])
+    data["lists"] = [l for l in data["lists"] if l["id"] != list_id]
+    if len(data["lists"]) == before:
+        return 0  # 没找到
+    moved = 0
+    for it in data["items"]:
+        if it.get("list_id") == list_id:
+            it["list_id"] = "default"
+            moved += 1
+    save_watchlist(data)
+    return moved
+
+
+def move_item(ticker: str, target_list_id: str) -> dict | None:
+    """把 item 移到目标 list。"""
+    data = load_watchlist()
+    ticker = ticker.strip().upper()
+    list_ids = {l["id"] for l in data["lists"]}
+    if target_list_id not in list_ids:
+        raise ValueError(f"未知 list_id: {target_list_id}")
+    for it in data["items"]:
+        if it["ticker"] == ticker:
+            it["list_id"] = target_list_id
+            save_watchlist(data)
+            return it
+    return None
 
 
 def remove_from_watchlist(ticker: str) -> bool:
@@ -938,11 +1058,12 @@ def compare_peers_risk(tickers: list[str], sector: str = "",
 
 # ── 导入 / 导出 ────────────────────────────────────────
 def export_data() -> dict:
-    """整份观察列表（含评分历史、双引擎缓存）导出为 dict，前端转 JSON 下载。"""
+    """整份观察列表（含评分历史、各引擎缓存、lists 分组）导出为 dict。"""
     data = load_watchlist()
     return {
-        "version": data.get("version", 1),
+        "version": data.get("version", 2),
         "exported_at": datetime.utcnow().isoformat() + "Z",
+        "lists": data.get("lists", [DEFAULT_LIST.copy()]),
         "items": data.get("items", []),
     }
 
@@ -968,7 +1089,38 @@ def import_data(payload: dict, mode: str = "merge") -> dict:
     skipped = 0
     if mode == "replace":
         data["items"] = []
+        # replace 模式：导入 payload 的 lists（保留 default）
+        incoming_lists = payload.get("lists") or []
+        if incoming_lists:
+            seen = {"default"}
+            new_lists = [DEFAULT_LIST.copy()]
+            for raw_l in incoming_lists:
+                lid = raw_l.get("id")
+                if not lid or lid in seen:
+                    continue
+                new_lists.append({
+                    "id": lid,
+                    "name": raw_l.get("name", lid),
+                    "color": raw_l.get("color", "slate"),
+                    "created_at": raw_l.get("created_at") or date.today().isoformat(),
+                })
+                seen.add(lid)
+            data["lists"] = new_lists
+    else:
+        # merge 模式：缺少的 list 补上
+        existing_list_ids = {l["id"] for l in data["lists"]}
+        for raw_l in (payload.get("lists") or []):
+            lid = raw_l.get("id")
+            if lid and lid not in existing_list_ids:
+                data["lists"].append({
+                    "id": lid,
+                    "name": raw_l.get("name", lid),
+                    "color": raw_l.get("color", "slate"),
+                    "created_at": raw_l.get("created_at") or date.today().isoformat(),
+                })
+                existing_list_ids.add(lid)
     existing_tickers = {it["ticker"] for it in data["items"]}
+    valid_list_ids = {l["id"] for l in data["lists"]}
 
     for raw in incoming:
         if not isinstance(raw, dict):
@@ -979,6 +1131,9 @@ def import_data(payload: dict, mode: str = "merge") -> dict:
         if t in existing_tickers:
             skipped += 1
             continue
+        raw_list_id = raw.get("list_id") or "default"
+        if raw_list_id not in valid_list_ids:
+            raw_list_id = "default"
         # 仅白名单字段，避免恶意 payload 污染
         item = {
             "ticker": t,
@@ -987,11 +1142,16 @@ def import_data(payload: dict, mode: str = "merge") -> dict:
             "sector": raw.get("sector", ""),
             "notes": raw.get("notes", ""),
             "tags": raw.get("tags") or [],
+            "list_id": raw_list_id,
             "added_at": raw.get("added_at") or date.today().isoformat(),
             "last_result": raw.get("last_result"),
             "last_value_result": raw.get("last_value_result"),
+            "last_signal_result": raw.get("last_signal_result"),
+            "last_risk_result": raw.get("last_risk_result"),
             "last_checked_at": raw.get("last_checked_at"),
             "last_value_checked_at": raw.get("last_value_checked_at"),
+            "last_signal_checked_at": raw.get("last_signal_checked_at"),
+            "last_risk_checked_at": raw.get("last_risk_checked_at"),
             "score_history": raw.get("score_history") or [],
         }
         data["items"].append(item)

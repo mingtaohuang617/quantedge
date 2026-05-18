@@ -1715,6 +1715,7 @@ class StockGeneAddReq(BaseModel):
     sector: str = ""
     notes: str = ""
     tags: list[str] = []
+    list_id: str = "default"
 
 
 class StockGeneUpdateReq(BaseModel):
@@ -1757,6 +1758,7 @@ def stock_gene_add(req: StockGeneAddReq):
         item = _gene_mod.add_to_watchlist(
             req.ticker, name=req.name, market=req.market,
             sector=req.sector, notes=req.notes, tags=req.tags,
+            list_id=req.list_id,
         )
         return sanitize({"ok": True, "item": item})
     except ValueError as e:
@@ -2024,6 +2026,78 @@ def stock_gene_import(req: StockGeneImportReq):
         ))
     except ValueError as e:
         raise HTTPException(400, str(e))
+
+
+# ── List CRUD（多 watchlist 分组）────────────────────────
+class StockGeneListAddReq(BaseModel):
+    name: str
+    color: str = "slate"
+
+
+class StockGeneListUpdateReq(BaseModel):
+    name: str | None = None
+    color: str | None = None
+
+
+class StockGeneMoveReq(BaseModel):
+    list_id: str
+
+
+@app.get("/api/stock-gene/lists")
+def stock_gene_lists():
+    """列出所有 watchlist 分组（含 default）。"""
+    if not HAS_STOCK_GENE or _gene_mod is None:
+        raise HTTPException(503, "stock_gene 模块未加载")
+    return sanitize({"lists": _gene_mod.list_lists()})
+
+
+@app.post("/api/stock-gene/lists")
+def stock_gene_lists_add(req: StockGeneListAddReq):
+    """新建 list。"""
+    if not HAS_STOCK_GENE or _gene_mod is None:
+        raise HTTPException(503, "stock_gene 模块未加载")
+    try:
+        return sanitize({"ok": True, "list": _gene_mod.add_list(req.name, color=req.color)})
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.put("/api/stock-gene/lists/{list_id}")
+def stock_gene_lists_update(list_id: str, req: StockGeneListUpdateReq):
+    """重命名 / 改颜色。"""
+    if not HAS_STOCK_GENE or _gene_mod is None:
+        raise HTTPException(503, "stock_gene 模块未加载")
+    fields = {k: v for k, v in req.dict().items() if v is not None}
+    out = _gene_mod.update_list(list_id, **fields)
+    if out is None:
+        raise HTTPException(404, f"list 不存在: {list_id}")
+    return sanitize({"ok": True, "list": out})
+
+
+@app.delete("/api/stock-gene/lists/{list_id}")
+def stock_gene_lists_delete(list_id: str):
+    """删除 list；归属 items 自动移到 default。"""
+    if not HAS_STOCK_GENE or _gene_mod is None:
+        raise HTTPException(503, "stock_gene 模块未加载")
+    try:
+        moved = _gene_mod.delete_list(list_id)
+        return {"ok": True, "items_moved": moved}
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.put("/api/stock-gene/{ticker}/move")
+def stock_gene_move(ticker: str, req: StockGeneMoveReq):
+    """把 item 移到指定 list。"""
+    if not HAS_STOCK_GENE or _gene_mod is None:
+        raise HTTPException(503, "stock_gene 模块未加载")
+    try:
+        out = _gene_mod.move_item(ticker, req.list_id)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    if out is None:
+        raise HTTPException(404, f"{ticker} 不在观察列表中")
+    return sanitize({"ok": True, "item": out})
 
 
 class StockGeneExplainReq(BaseModel):

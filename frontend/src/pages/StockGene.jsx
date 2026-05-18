@@ -192,12 +192,37 @@ function formatFreshness(iso) {
   return new Date(iso).toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" });
 }
 
+// 多 watchlist 用的色板（与 Tailwind 颜色保持一致）
+const LIST_COLORS = [
+  { id: "indigo", text: "text-indigo-300", bg: "bg-indigo-500/15", border: "border-indigo-500/40", active: "bg-indigo-500/20 text-indigo-100" },
+  { id: "emerald", text: "text-emerald-300", bg: "bg-emerald-500/15", border: "border-emerald-500/40", active: "bg-emerald-500/20 text-emerald-100" },
+  { id: "amber", text: "text-amber-300", bg: "bg-amber-500/15", border: "border-amber-500/40", active: "bg-amber-500/20 text-amber-100" },
+  { id: "cyan", text: "text-cyan-300", bg: "bg-cyan-500/15", border: "border-cyan-500/40", active: "bg-cyan-500/20 text-cyan-100" },
+  { id: "rose", text: "text-rose-300", bg: "bg-rose-500/15", border: "border-rose-500/40", active: "bg-rose-500/20 text-rose-100" },
+  { id: "violet", text: "text-violet-300", bg: "bg-violet-500/15", border: "border-violet-500/40", active: "bg-violet-500/20 text-violet-100" },
+  { id: "slate", text: "text-slate-300", bg: "bg-slate-500/15", border: "border-slate-500/40", active: "bg-slate-500/20 text-slate-100" },
+];
+const listColor = (id) => LIST_COLORS.find(c => c.id === id) || LIST_COLORS[6];
+const ACTIVE_LIST_STORAGE_KEY = "stockgene.activeListId";
+
 export default function StockGene() {
   // 观察列表
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isDemoMode, setIsDemoMode] = useState(false);
+  // Lists（多 watchlist 分组）
+  const [lists, setLists] = useState([{ id: "default", name: "默认", color: "indigo" }]);
+  const [activeListId, setActiveListId] = useState(() => {
+    try { return localStorage.getItem(ACTIVE_LIST_STORAGE_KEY) || "default"; }
+    catch { return "default"; }
+  });
+  // List 管理 modal: { mode: 'create' | 'rename' | 'delete', list? }
+  const [listDialog, setListDialog] = useState(null);
+  // 持久化 activeListId
+  useEffect(() => {
+    try { localStorage.setItem(ACTIVE_LIST_STORAGE_KEY, activeListId); } catch {}
+  }, [activeListId]);
   // 引擎切换："trend" = 牛股特征器（8 维趋势）/"value" = 价值健康度（6 维）
   const [engine, setEngine] = useState("trend");
   // 排序方式：当前引擎评分 / 添加时间 / ticker 字母
@@ -268,7 +293,7 @@ export default function StockGene() {
   const [notesDraft, setNotesDraft] = useState("");
   const [notesSaving, setNotesSaving] = useState(false);
 
-  // ── 拉观察列表 ─────────────────────────────────────────
+  // ── 拉观察列表 + lists ─────────────────────────────────
   const reload = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -276,6 +301,7 @@ export default function StockGene() {
     setLoading(false);
     if (json && Array.isArray(json.items)) {
       setItems(json.items);
+      if (Array.isArray(json.lists)) setLists(json.lists);
       setIsDemoMode(false);
       // 默认选中第一项
       if (json.items.length > 0 && !selectedTicker) {
@@ -362,6 +388,7 @@ export default function StockGene() {
         ticker, name: newName.trim(),
         market: newMarket, sector: newSector.trim(), notes: newNotes.trim(),
         tags: newTags,
+        list_id: activeListId,
       }),
     });
     if (!res?.ok) {
@@ -438,7 +465,7 @@ export default function StockGene() {
     for (const t of tickers) {
       const res = await apiFetch("/stock-gene", {
         method: "POST",
-        body: JSON.stringify({ ticker: t, market: batchMarket }),
+        body: JSON.stringify({ ticker: t, market: batchMarket, list_id: activeListId }),
       });
       if (res?.ok) added.push(t);
       setBatchProgress(p => ({ ...p, done: p.done + 1 }));
@@ -461,7 +488,49 @@ export default function StockGene() {
     setBatchProgress(null);
     setBatchInput("");
     setShowBatchForm(false);
-  }, [batchInput, batchMarket, reload]);
+  }, [batchInput, batchMarket, reload, activeListId]);
+
+  // ── Lists 管理 ──────────────────────────────────────────
+  const handleCreateList = useCallback(async (name, color) => {
+    const res = await apiFetch("/stock-gene/lists", {
+      method: "POST",
+      body: JSON.stringify({ name, color }),
+    });
+    if (res?.ok && res.list) {
+      await reload();
+      setActiveListId(res.list.id);
+      return res.list;
+    }
+    return null;
+  }, [reload]);
+
+  const handleRenameList = useCallback(async (listId, name, color) => {
+    const res = await apiFetch(`/stock-gene/lists/${encodeURIComponent(listId)}`, {
+      method: "PUT",
+      body: JSON.stringify({ name, color }),
+    });
+    if (res?.ok) await reload();
+  }, [reload]);
+
+  const handleDeleteList = useCallback(async (listId) => {
+    const res = await apiFetch(`/stock-gene/lists/${encodeURIComponent(listId)}`, {
+      method: "DELETE",
+    });
+    if (res?.ok) {
+      // 切回 default
+      if (activeListId === listId) setActiveListId("default");
+      await reload();
+    }
+    return res;
+  }, [reload, activeListId]);
+
+  const handleMoveItem = useCallback(async (ticker, targetListId) => {
+    const res = await apiFetch(`/stock-gene/${encodeURIComponent(ticker)}/move`, {
+      method: "PUT",
+      body: JSON.stringify({ list_id: targetListId }),
+    });
+    if (res?.ok) await reload();
+  }, [reload]);
 
   // ── Tags 编辑（PUT /api/stock-gene/{ticker}）─────────────
   const handleSaveTags = useCallback(async (ticker, nextTags) => {
@@ -687,6 +756,8 @@ export default function StockGene() {
   const sortedItems = useMemo(() => {
     const q = filterText.trim().toLowerCase();
     const arr = items.filter((it) => {
+      // 当前 list 过滤
+      if ((it.list_id || "default") !== activeListId) return false;
       // 文本搜索
       if (q) {
         const haystack = [it.ticker, it.name, it.sector].join(" ").toLowerCase();
@@ -730,13 +801,23 @@ export default function StockGene() {
       arr.sort((a, b) => a.ticker.localeCompare(b.ticker));
     }
     return arr;
-  }, [items, sortBy, engine, filterText, filterVerdicts, filterTags, minComposite, weights, onlyHeld, positions]);
+  }, [items, sortBy, engine, filterText, filterVerdicts, filterTags, minComposite, weights, onlyHeld, positions, activeListId]);
 
   // 所有 items 已存在的 unique tags（用于 tag 过滤 chips）
   const allTags = useMemo(() => {
     const s = new Set();
     items.forEach(it => (it.tags || []).forEach(t => s.add(t)));
     return [...s].sort();
+  }, [items]);
+
+  // 每个 list 的 item 数量（用于 tab 显示）
+  const listItemCounts = useMemo(() => {
+    const counts = {};
+    for (const it of items) {
+      const lid = it.list_id || "default";
+      counts[lid] = (counts[lid] || 0) + 1;
+    }
+    return counts;
   }, [items]);
 
   // ── 快捷键 ────────────────────────────────────────────────
@@ -933,6 +1014,27 @@ export default function StockGene() {
         />
       )}
 
+      {/* List 管理 modal */}
+      {listDialog && (
+        <ListDialog
+          mode={listDialog.mode}
+          list={listDialog.list}
+          onCreate={async (name, color) => {
+            await handleCreateList(name, color);
+            setListDialog(null);
+          }}
+          onRename={async (name, color) => {
+            await handleRenameList(listDialog.list.id, name, color);
+            setListDialog(null);
+          }}
+          onDelete={async () => {
+            await handleDeleteList(listDialog.list.id);
+            setListDialog(null);
+          }}
+          onCancel={() => setListDialog(null)}
+        />
+      )}
+
       {/* 确认对话框（删除等不可逆操作） */}
       {confirmDialog && (
         <ConfirmDialog
@@ -948,6 +1050,17 @@ export default function StockGene() {
           onCancel={() => setConfirmDialog(null)}
         />
       )}
+
+      {/* List tabs（多 watchlist 切换 + 创建） */}
+      <ListsTabBar
+        lists={lists}
+        activeId={activeListId}
+        onSelect={setActiveListId}
+        onCreate={() => setListDialog({ mode: "create" })}
+        onRename={(list) => setListDialog({ mode: "rename", list })}
+        onDelete={(list) => setListDialog({ mode: "delete", list })}
+        itemCounts={listItemCounts}
+      />
 
       {/* 三栏 grid */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-[280px_1fr_340px] gap-3 overflow-hidden min-h-0">
@@ -1334,6 +1447,8 @@ export default function StockGene() {
               onSaveTags={(nextTags) => handleSaveTags(selectedItem.ticker, nextTags)}
               weights={weights}
               position={positions[selectedItem.ticker]}
+              lists={lists}
+              onMove={(targetListId) => handleMoveItem(selectedItem.ticker, targetListId)}
             />
           )}
         </div>
@@ -1399,7 +1514,7 @@ export default function StockGene() {
 function ScoreDetail({
   item, engine, onRescore, onDelete, scoring, onExplain, explainLoading, narrative,
   editingNotes, notesDraft, setNotesDraft, onEditNotes, onSaveNotes, onCancelNotes, notesSaving,
-  onSaveTags, weights, position,
+  onSaveTags, weights, position, lists, onMove,
 }) {
   const cfg = eng(engine);
   const r = engResult(item, engine);
@@ -1471,6 +1586,19 @@ function ScoreDetail({
               {explainLoading ? <Loader size={10} className="animate-spin" /> : <Sparkles size={10} />}
               AI 解读
             </button>
+          )}
+          {/* 移动到其它 list */}
+          {lists && lists.length > 1 && onMove && (
+            <select
+              value={item.list_id || "default"}
+              onChange={(e) => onMove(e.target.value)}
+              className="px-1.5 py-1 text-[10px] rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white border border-white/10 transition cursor-pointer"
+              title="移动到其它分组"
+            >
+              {lists.map(l => (
+                <option key={l.id} value={l.id}>→ {l.name}</option>
+              ))}
+            </select>
           )}
           <button
             onClick={onDelete}
@@ -2381,6 +2509,159 @@ function PositionCard({ position }) {
             </span>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// ListsTabBar — 顶部 list 切换 tabs（含创建/重命名/删除入口）
+// ─────────────────────────────────────────────────────────────
+function ListsTabBar({ lists, activeId, onSelect, onCreate, onRename, onDelete, itemCounts }) {
+  return (
+    <div className="px-3 py-1.5 glass-card border border-white/10 flex items-center gap-1 overflow-x-auto">
+      <Layers size={11} className="text-[#7a8497] shrink-0" />
+      {lists.map(l => {
+        const c = listColor(l.color);
+        const active = l.id === activeId;
+        const count = itemCounts[l.id] || 0;
+        const isDefault = l.id === "default";
+        return (
+          <div key={l.id} className="flex items-center group/listtab">
+            <button
+              onClick={() => onSelect(l.id)}
+              className={`flex items-center gap-1 px-2 py-1 text-[10px] rounded border transition whitespace-nowrap ${
+                active
+                  ? `${c.active} ${c.border}`
+                  : "bg-white/[0.02] border-white/8 text-[#a0aec0] hover:text-white hover:bg-white/5"
+              }`}
+              title={`切换到 ${l.name}（${count} 只）`}
+            >
+              <span>{l.name}</span>
+              <span className="text-[8px] opacity-70 font-mono">{count}</span>
+            </button>
+            {/* 编辑 / 删除按钮（hover 显示，default 不可删） */}
+            {!isDefault && (
+              <div className="opacity-0 group-hover/listtab:opacity-100 transition flex items-center -ml-0.5">
+                <button
+                  onClick={() => onRename(l)}
+                  className="p-0.5 text-[#7a8497] hover:text-white"
+                  title="重命名 / 改颜色"
+                >
+                  <Edit2 size={9} />
+                </button>
+                <button
+                  onClick={() => onDelete(l)}
+                  className="p-0.5 text-[#7a8497] hover:text-rose-300"
+                  title="删除（items 移到默认）"
+                >
+                  <X size={10} />
+                </button>
+              </div>
+            )}
+          </div>
+        );
+      })}
+      <button
+        onClick={onCreate}
+        className="flex items-center justify-center w-6 h-6 rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white border border-white/10 transition"
+        title="新建分组"
+      >
+        <Plus size={10} />
+      </button>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// ListDialog — 创建 / 重命名 / 删除 list 三态弹层
+// ─────────────────────────────────────────────────────────────
+function ListDialog({ mode, list, onCreate, onRename, onDelete, onCancel }) {
+  const [name, setName] = useState(list?.name || "");
+  const [color, setColor] = useState(list?.color || "slate");
+  const [busy, setBusy] = useState(false);
+  const isDelete = mode === "delete";
+  const title = isDelete ? `删除分组「${list?.name}」` :
+                mode === "rename" ? "重命名分组" : "新建分组";
+  const handleSubmit = async () => {
+    if (isDelete) {
+      setBusy(true);
+      try { await onDelete(); } finally { setBusy(false); }
+      return;
+    }
+    const v = name.trim();
+    if (!v) return;
+    setBusy(true);
+    try {
+      if (mode === "create") await onCreate(v, color);
+      else await onRename(v, color);
+    } finally { setBusy(false); }
+  };
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={onCancel}>
+      <div className="glass-card border border-white/15 rounded-lg p-4 min-w-[320px] max-w-[420px] shadow-2xl"
+        onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            {isDelete ? <AlertCircle size={13} className="text-rose-400" /> : <Layers size={13} className="text-emerald-300" />}
+            <span className="text-[12px] font-semibold text-white">{title}</span>
+          </div>
+          <button onClick={onCancel} className="text-[#a0aec0] hover:text-white"><X size={12} /></button>
+        </div>
+        {isDelete ? (
+          <div className="text-[11px] text-[#d0d7e2] mb-3 leading-relaxed">
+            该分组下的所有 items 会被自动移到「默认」分组，评分历史 / tags / notes 全部保留。<br/>
+            分组本身会被删除，操作不可撤销。
+          </div>
+        ) : (
+          <div className="space-y-2.5">
+            <div>
+              <div className="text-[9px] text-[#7a8497] mb-1">名称</div>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="如：核心仓 / 投机仓 / 长持..."
+                autoFocus
+                className="w-full px-2 py-1 text-[11px] bg-white/5 border border-white/10 rounded text-white placeholder-[#7a8497] focus:outline-none focus:border-emerald-500/50"
+              />
+            </div>
+            <div>
+              <div className="text-[9px] text-[#7a8497] mb-1">颜色</div>
+              <div className="flex flex-wrap gap-1">
+                {LIST_COLORS.map(c => (
+                  <button
+                    key={c.id}
+                    onClick={() => setColor(c.id)}
+                    className={`w-6 h-6 rounded border transition ${c.bg} ${c.border} ${
+                      color === c.id ? "ring-2 ring-white/50" : ""
+                    }`}
+                    title={c.id}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+        <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-end gap-1">
+          <button
+            onClick={onCancel}
+            disabled={busy}
+            className="px-3 py-1 text-[10px] rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white border border-white/10 disabled:opacity-40"
+          >取消</button>
+          <button
+            onClick={handleSubmit}
+            disabled={busy || (!isDelete && !name.trim())}
+            className={`flex items-center gap-1 px-3 py-1 text-[10px] rounded border transition disabled:opacity-40 ${
+              isDelete
+                ? "bg-rose-500/15 hover:bg-rose-500/25 text-rose-200 border-rose-500/40"
+                : "bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-200 border-emerald-500/40"
+            }`}
+            autoFocus={isDelete}
+          >
+            {busy ? <Loader size={9} className="animate-spin" /> : null}
+            {isDelete ? "删除" : (mode === "create" ? "创建" : "保存")}
+          </button>
+        </div>
       </div>
     </div>
   );
