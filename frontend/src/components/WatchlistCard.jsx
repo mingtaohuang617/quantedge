@@ -107,7 +107,7 @@ export default function WatchlistCard({
             <span className="font-mono text-[12px] font-semibold text-white">{item.ticker}</span>
             {/* strategy badge — 让混合 watchlist 一眼可辨 */}
             <span
-              className={`text-[8px] px-1 py-px rounded font-medium border ${
+              className={`text-[9px] px-1 py-px rounded font-medium border ${
                 isValue
                   ? "bg-emerald-500/15 text-emerald-200 border-emerald-500/40"
                   : "bg-indigo-500/15 text-indigo-200 border-indigo-500/40"
@@ -117,24 +117,24 @@ export default function WatchlistCard({
               {isValue ? "值" : "成"}
             </span>
             {archived && (
-              <span className="text-[8px] px-1 py-px rounded bg-white/5 text-[#a0aec0] border border-white/15">归档</span>
+              <span className="text-[9px] px-1 py-px rounded bg-white/5 text-[#a0aec0] border border-white/15">归档</span>
             )}
             {item.bottleneck_layer === 2 && (
               <span
-                className={`text-[8px] px-1 py-px rounded border ${isValue ? normalTone : rareTone}`}
+                className={`text-[9px] px-1 py-px rounded border ${isValue ? normalTone : rareTone}`}
                 title={isValue ? "L2 合理估值 — 安全边际偏薄" : "L2 深度认知 — 跨界看到第二层瓶颈"}
               >L2</span>
             )}
             {item.bottleneck_layer === 1 && (
               <span
-                className={`text-[8px] px-1 py-px rounded border ${isValue ? rareTone : normalTone}`}
+                className={`text-[9px] px-1 py-px rounded border ${isValue ? rareTone : normalTone}`}
                 title={isValue ? "L1 深度低估 — 显著低于内在价值" : "L1 共识层 — 主流认知层瓶颈"}
               >L1</span>
             )}
             {/* 复盘提醒（≥7 天才显示）— 强提醒用户重看 thesis */}
             {reviewState && (
               <span
-                className={`text-[8px] px-1 py-px rounded border ${
+                className={`text-[9px] px-1 py-px rounded border ${
                   reviewState.tone === "urgent"
                     ? "bg-red-500/15 text-red-300 border-red-500/40 animate-pulse"
                     : reviewState.tone === "warn"

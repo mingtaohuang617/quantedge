@@ -24,7 +24,7 @@ export function ListsTabBar({ lists, activeId, onSelect, onCreate, onRename, onD
               title={`切换到 ${l.name}（${count} 只）`}
             >
               <span>{l.name}</span>
-              <span className="text-[8px] opacity-70 font-mono">{count}</span>
+              <span className="text-[9px] opacity-70 font-mono">{count}</span>
             </button>
             {!isDefault && (
               <div className="opacity-0 group-hover/listtab:opacity-100 transition flex items-center -ml-0.5">
