@@ -6,7 +6,58 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
-- **10x 猎手 strategy 字段语义统一 + UI 清理**（v2.0 polish）：让混合 watchlist 上 growth/value item 一眼可辨；修 value tab 加自定义赛道时新赛道默认 strategy=growth 不显示的 bug
+- **10x 猎手 价值型 DCF 估值计算器** (PR #86 + #87)：TenxItemEditor 价值型 strategy 时内嵌两阶段 DCF + 敏感性矩阵
+  - `frontend/src/lib/dcf.js`：`calcDCF` 两阶段模型（短期 N 年 FCF 折现 + Gordon Growth 终值）+ `marginOfSafety` 计算 + `calcSensitivityMatrix` 3×3 (r ± 1% × g1 ± 2%)
+  - `frontend/src/components/ValueDCFCalculator.jsx`：collapsible UI；5 个输入（FCF/g1/N/g2/r）；useMemo 实时算；安全边际三档配色（≥33% emerald / 0-33% cyan / 高估 red）；「应用到目标价」一键回填 form.target_price；敏感性矩阵 toggle 展开 3×3 grid，配色按 vs base 偏差（emerald/cyan/gray/amber）+ 中心格 ring 标识
+  - `frontend/src/components/TenxItemEditor.jsx`：加 `currentPrice` 可选 prop；仅 `form.strategy === "value"` 时渲染 DCF
+  - 测试：vitest +44 例（26 数学：DCF 输入校验/数学正确性/敏感性矩阵；18 组件：折叠/展开/输入/三档配色/矩阵 toggle/中心格 ring）
+- **10x 猎手 WatchlistCard 抽出 + 30 组件测试** (PR #85)：从 Screener10x.jsx 抽出独立组件便于测试，文件从 1444 → 1177 行（-19%）
+  - `frontend/src/components/WatchlistCard.jsx`：纯 presentational 组件（262 行），原代码字节级 copy（不改逻辑）
+  - 测试：WatchlistCard.test.jsx 23 例（strategy badge / L1·L2 strategy-aware / 卡位↔护城河 label / 价格预警 above·near·below tone / 复盘 badge urgent·warn·info / 可证伪条件警示框 / 归档 opacity / moat 星标 / 回调）；AddSupertrendDialog.test.jsx 追加 7 例 strategy radio
+- **10x 猎手 smoke fundamentals v3** (PR #84)：手扩 28 → 116 代表股，覆盖 3 个 value 赛道 × 3 个市场 × 主要行业；yfinance .info 全市场 enrich 被 Yahoo 限频严重（实测 fill rate 0.1%），手扩 patch 是当前唯一可用解
+  - US 14→57 / CN 8→35 / HK 7→24
+  - 加银行（GS/MS/USB/C 等）/ 保险（MET/PRU/AIG 等）/ 公用（DUK/SO/AEP/NEE）/ 烟草（PM）/ 消费稳健（WMT/COST/KHC/CL）/ 工业（CAT/DE/UNP）/ 化工钢铁建材（DOW/LYB/NUE/VMC）/ A 股价值龙头（中国移动/长江电力/海螺水泥/五粮液/海天/伊利）/ HK 蓝筹（汇丰/恒生/友邦/平安 H/中海油 H）+ 成长对照（NVDA/TSLA/AAPL/腾讯/阿里）
+- **10x 猎手 AI 一键串联** (PR #83)：替代两步点击（「AI 校验赛道」+「AI 排序」），一键并发跑 top 5 校验 + top 10 排序
+  - `frontend/src/pages/Screener10x.jsx:handleAiPipeline`：用 `Promise.allSettled` 并发；进度显示 `loading {matched}/{total}`；amber 主色按钮夹在 AI 排序按钮左侧
+- **10x 猎手 React 组件测试 setup + 15 个初始测试** (PR #82)：搭 vitest jsdom 环境，让组件可单测
+  - 装 `@testing-library/react` + `@testing-library/jest-dom` + `jsdom`
+  - `frontend/src/test-setup.js` 加载 `@testing-library/jest-dom/vitest` matchers
+  - `frontend/vite.config.js`：`test.setupFiles` + `test.environmentMatchGlobs` 让 `.test.jsx` 走 jsdom（`.test.js` 仍 node env 保持快）
+  - TenxItemEditor.test.jsx 10 例（strategy 切换字段标签 / BOTTLENECK_OPTIONS / placeholder）+ AddSupertrendDialog.test.jsx 8 例（open/close / 校验 / save / AI 生成）
+- **10x 猎手 一键已复盘按钮** (PR #78)：观察项卡片加 ✓ 按钮，PUT `llm_thesis_cached_at = now` 重置「N 天未复盘」badge，不必重新跑 AI 草稿
+  - `frontend/src/pages/Screener10x.jsx:handleMarkReviewed` + WatchlistCard 加 `onMarkReviewed` prop
+- **10x 猎手 generate-keywords value strategy + dialog radio** (PR #77)：自定义赛道关键词生成按 strategy 切 prompt；添加赛道对话框加成长/价值 radio 选择
+  - `frontend/api/llm/generate-keywords.js`：split `buildPromptGrowth` + `buildPromptValue`，value prompt 强调防御性/周期性/必需品行业关键词；cache key prefix 区分（`generate-keywords` vs `generate-keywords-value`）
+  - `frontend/src/components/AddSupertrendDialog.jsx`：加 strategy radio + 透传到 POST body + LLM 调用；接 `defaultStrategy` prop 跟随调用方 tab
+- **10x 猎手 AI 排序 rank-candidates value strategy** (PR #76)：候选股 AI 打分支持价值型语义（护城河强度 / 价值确信度，而非卡位独特性）
+  - `frontend/api/llm/rank-candidates.js`：split `buildPromptGrowth` (卡位独特性 1-5) + `buildPromptValue` (价值确信度 1-5)；value 模式 candidate lines 携带 5 维财务字段；每个 value 赛道给 LLM 维度提示（高股息=股息持续性 / 周期=PB vs 历史 / 消费稳健=穿越周期 ROE）
+- **10x 猎手 N 天未复盘 badge** (PR #75)：观察项卡片显示「⏰ Xd」badge，提醒用户重看 thesis 是否仍成立
+  - `reviewState` useMemo：取 `added_at` 和 `llm_thesis_cached_at` 较新者算 daysAgo
+  - 三档：< 7d 不显示；7-30d info（灰）；30-90d warn（amber）；≥ 90d urgent（red + animate-pulse）；archived 项一律不提醒
+- **10x 猎手 卡位假设可证伪化字段** (PR #74)：Druckenmiller / 桥水 pre-mortem 纪律 — 让用户写明「什么条件触发我承认 thesis 错了」
+  - `backend/watchlist_10x.py` + `frontend/api/_lib/watchlist10x.js`：`falsification_condition` 字段（默认空字符串），CRUD 透传
+  - `frontend/src/components/TenxItemEditor.jsx`：加输入框 + strategy-aware placeholder（成长 = 瓶颈解除 / 价值 = 现金流断裂）
+  - WatchlistCard：填了显示 ⚠ amber 警示框
+  - backend pytest +4 例
+- **10x 猎手 AI 校验赛道支持 value strategy** (PR #70)：`/api/llm/match-supertrend` 按当前候选股 strategy 自动路由到对应 prompt 框架（Graham 安全边际 vs 双层瓶颈）
+  - `frontend/api/llm/match-supertrend.js`：split `buildPromptGrowth` + `buildPromptValue`；value prompt 喂 5 维财务字段；cache key prefix `match-supertrend-value` 与 growth 隔离
+- **10x 猎手 价格预警 badge** (PR #72)：观察项卡片实时拉 Yahoo 当前价，与 target_price / stop_loss 对比变色
+  - `frontend/src/pages/Screener10x.jsx`：`_tickerToYahoo` ticker 翻译（.HK 5 位零填充 / .SH → .SS）+ `fetchCurrentPrice`（chart endpoint 单只）+ `pricesByTicker` state；`items` 变化时拉 missing 价格（不重复）
+  - WatchlistCard：`priceAlerts` useMemo 算 gap%；target above/near/far 三档（emerald/cyan/灰）；stop below/near/safe（red+animate-pulse / amber / 灰）；tooltip 显示「当前价 vs 目标」距离百分比
+- **fix(10x): screen endpoint 透传价值型 5 维过滤参数** (PR #67)：`frontend/api/watchlist/10x/screen.js` 漏传 6 个字段（max_pe / max_pb / min_roe / min_dividend_yield / max_debt_to_equity / include_no_fundamentals），导致前端 5 维 filter 实际无效；补齐
+- **fix(e2e): cmdk smoke selector 收窄消除 flaky** (PR #68)：`tests-e2e/smoke.spec.ts` 把 `text=/动量成长|动量/` 改为 `text=动量成长`，避免匹中 ScoringDashboard 里的隐藏 span
+- **macro 看板系列** (PR #61-#66 / #69 / #71)：宏观信号深度集成到 journal / scoring / monitor
+  - PR #61：投资日志每只持仓加 macro context card（当前 regime / temperature）
+  - PR #62：scoring 加「按 macro-adjusted score 排序」（regime tilt 调整）
+  - PR #63：日志 AI 复盘 prompt 注入 macro context（让 LLM 知道当前是 risk-on/off）
+  - PR #64：portfolio macro sensitivity card — regime flip 时整组合估值变化模拟
+  - PR #65：transactions 买入前 macro style fit 警告（成长股 in risk-off 时弹提示）
+  - PR #66：sector × regime exposure panel（看持仓在不同 regime 下的 sector 暴露）
+  - PR #69：macro L5 alert 历史回测面板（验证 alert 信号的历史准确率）
+  - PR #71：monitor 注入 macro L5 alerts + 临时 F&G badge
+- **monitor: severity + type filter chips** (PR #73)：alerts 列表加严重度 / 类型过滤 chip，长列表时快速聚焦
+- **stock-gene: dual-engine detector** (PR #81)：新增「股票基因」检测器 — bull pattern（8 个动量/趋势因子）+ value health（6 个估值/财务因子）；新 page `frontend/src/pages/StockGene.jsx` + backend `stock_gene.py` + LLM context 模块
+- **qol: NAV clock per-min + HTML meta + global focus-visible** (PR #79)：导航栏时钟按分钟刷新；HTML meta 完善；全局 focus-visible 焦点环统一
   - `frontend/src/components/AddSupertrendDialog.jsx`：接 `defaultStrategy` prop；POST `/supertrends` 透传 `strategy` 字段（backend / serverless 早已支持，只是前端原来漏传）；头部加 strategy 标识 chip（与 WatchlistCard badge 同款配色）
   - `frontend/src/pages/Screener10x.jsx`：
     - WatchlistCard 加 strategy badge 「成」/「值」（indigo / emerald 颜色区分）
