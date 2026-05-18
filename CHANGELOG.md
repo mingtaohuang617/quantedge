@@ -6,6 +6,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- **Finnhub free tier US fundamentals enrich** (PR #96)：替代被 Yahoo 限频严重的 yfinance .info，用 Finnhub 免费 API 给全市场 12k 美股拉 PE/PB/股息/ROE/D/E
+  - `backend/data_sources/finnhub_source.py`：`fetch_fundamentals_finnhub(symbol)` 单只拉 + `enrich_us_fundamentals_finnhub(items)` 批量；字段映射 `peNormalizedAnnual / pbAnnual / dividendYieldIndicatedAnnual / roeRfy / totalDebt/totalEquityAnnual`；429 限频自动 sleep 20s + retry；401/403 鉴权失败立即终止；网络错误返回 None 不阻断
+  - `backend/universe/enrich_us_finnhub.py`：standalone 脚本（不掺入 sync_us 复杂流程），支持 `--limit` 测试 + `--force` 覆盖已有 + `--sleep` 调速；checkpoint 每 100 个保存 + Ctrl+C 优雅退出保留进度
+  - `backend/.env.example`：加 `FINNHUB_API_KEY` 模板（注册 https://finnhub.io free）
+  - 测试：backend pytest +15 例（mock httpx，零网络）— 字段映射 / 429 retry / 鉴权失败 / network error / only_missing 跳过 / force 覆盖 / limit
+  - 性能：60 calls/min × 60 = 3600/h；12k 票 ≈ 3.3 小时跑完；vs yfinance .info 实测 fill rate 0.1% 不可用
 - **10x 猎手 价值型 DCF 估值计算器** (PR #86 + #87)：TenxItemEditor 价值型 strategy 时内嵌两阶段 DCF + 敏感性矩阵
   - `frontend/src/lib/dcf.js`：`calcDCF` 两阶段模型（短期 N 年 FCF 折现 + Gordon Growth 终值）+ `marginOfSafety` 计算 + `calcSensitivityMatrix` 3×3 (r ± 1% × g1 ± 2%)
   - `frontend/src/components/ValueDCFCalculator.jsx`：collapsible UI；5 个输入（FCF/g1/N/g2/r）；useMemo 实时算；安全边际三档配色（≥33% emerald / 0-33% cyan / 高估 red）；「应用到目标价」一键回填 form.target_price；敏感性矩阵 toggle 展开 3×3 grid，配色按 vs base 偏差（emerald/cyan/gray/amber）+ 中心格 ring 标识
