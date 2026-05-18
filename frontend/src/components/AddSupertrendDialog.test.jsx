@@ -121,3 +121,75 @@ describe('AddSupertrendDialog', () => {
     });
   });
 });
+
+describe('AddSupertrendDialog — strategy radio（PR #77 + #80）', () => {
+  beforeEach(() => {
+    apiFetchMock.mockReset();
+  });
+
+  it('defaultStrategy="growth" 默认选中成长型 radio', () => {
+    const { container } = renderDialog({ defaultStrategy: 'growth' });
+    const growthRadio = container.querySelector('input[type="radio"][value="growth"]');
+    const valueRadio = container.querySelector('input[type="radio"][value="value"]');
+    expect(growthRadio.checked).toBe(true);
+    expect(valueRadio.checked).toBe(false);
+  });
+
+  it('defaultStrategy="value" 默认选中价值型 radio', () => {
+    const { container } = renderDialog({ defaultStrategy: 'value' });
+    const growthRadio = container.querySelector('input[type="radio"][value="growth"]');
+    const valueRadio = container.querySelector('input[type="radio"][value="value"]');
+    expect(growthRadio.checked).toBe(false);
+    expect(valueRadio.checked).toBe(true);
+  });
+
+  it('defaultStrategy 缺省时默认 growth', () => {
+    const { container } = renderDialog();  // 不传 defaultStrategy
+    const growthRadio = container.querySelector('input[type="radio"][value="growth"]');
+    expect(growthRadio.checked).toBe(true);
+  });
+
+  it('点击 value radio 切换到 value', () => {
+    const { container } = renderDialog({ defaultStrategy: 'growth' });
+    const valueRadio = container.querySelector('input[type="radio"][value="value"]');
+    fireEvent.click(valueRadio);
+    expect(valueRadio.checked).toBe(true);
+  });
+
+  it('strategy radio 提示文本明示两种策略含义', () => {
+    renderDialog();
+    expect(screen.getByText(/AI 算力/)).toBeInTheDocument();
+    expect(screen.getByText(/高股息/)).toBeInTheDocument();
+  });
+
+  it('保存时 strategy 字段透传到 POST body（defaultStrategy=value）', async () => {
+    apiFetchMock.mockResolvedValueOnce({ ok: true, item: { id: 'test' } });
+    renderDialog({ defaultStrategy: 'value' });
+
+    fireEvent.change(screen.getByPlaceholderText(/如 新能源/), { target: { value: '高股息测试' } });
+    fireEvent.change(screen.getByPlaceholderText(/光伏, 储能/), { target: { value: '银行, 公用事业' } });
+    fireEvent.click(screen.getByRole('button', { name: /添加赛道/ }));
+
+    await waitFor(() => {
+      expect(apiFetchMock).toHaveBeenCalled();
+    });
+    const callBody = JSON.parse(apiFetchMock.mock.calls[0][1].body);
+    expect(callBody.strategy).toBe('value');
+  });
+
+  it('AI 生成 keywords 时透传 strategy 到 LLM endpoint', async () => {
+    apiFetchMock.mockResolvedValueOnce({
+      ok: true, keywords_zh: ['银行'], keywords_en: ['Banks'],
+    });
+    renderDialog({ defaultStrategy: 'value' });
+
+    fireEvent.change(screen.getByPlaceholderText(/如 新能源/), { target: { value: '高股息' } });
+    fireEvent.click(screen.getByRole('button', { name: /AI 生成/ }));
+
+    await waitFor(() => {
+      expect(apiFetchMock).toHaveBeenCalled();
+    });
+    const callBody = JSON.parse(apiFetchMock.mock.calls[0][1].body);
+    expect(callBody.strategy).toBe('value');
+  });
+});
