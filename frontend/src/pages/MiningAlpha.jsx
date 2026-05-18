@@ -20,7 +20,7 @@
 //   - GET /api/mining-alpha/fold-ic              per-fold IC
 //   - POST /api/mining-alpha/switch-run/{id}     切换 latest run
 // ─────────────────────────────────────────────────────────────
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Zap, TrendingUp, Activity, Database, AlertCircle, Loader, RefreshCw, Target,
   Plus, Minus, ArrowRight, GitBranch, X, Play, Terminal, Grid3x3, Info,
@@ -271,23 +271,40 @@ const STEPS = [
 const RunPipelinePanel = ({ runId, onJobDone }) => {
   const [jobState, setJobState] = useState(null);
   const [activeStep, setActiveStep] = useState(null);
-  // 轮询
+
+  // 锁定 onJobDone 最新引用，避免 parent 每次重渲染都触发 effect cleanup
+  const onJobDoneRef = useRef(onJobDone);
+  useEffect(() => { onJobDoneRef.current = onJobDone; }, [onJobDone]);
+
+  // 首次 mount：拉一次状态了解后端是否有任务在跑
   useEffect(() => {
+    let cancelled = false;
+    apiFetch("/api/mining-alpha/run/status").then(s => {
+      if (!cancelled && s) setJobState(s);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  // 仅在 (activeStep 或后端 running) 时才 poll；空闲时停掉，省去无谓 200+ /run/status 请求
+  useEffect(() => {
+    if (!jobState?.running && !activeStep) return;
+    let cancelled = false;
     let timer = null;
     const tick = async () => {
-      try {
-        const s = await apiFetch("/api/mining-alpha/run/status");
-        setJobState(s);
-        if (s && !s.running && s.exit_code != null) {
-          setActiveStep(null);
-          onJobDone?.();
-        }
-      } catch {/* swallow */}
+      if (cancelled) return;
+      const s = await apiFetch("/api/mining-alpha/run/status").catch(() => null);
+      if (cancelled) return;
+      if (s) setJobState(s);
+      if (s && !s.running && s.exit_code != null) {
+        setActiveStep(null);
+        onJobDoneRef.current?.();
+        return;
+      }
       timer = setTimeout(tick, 2000);
     };
-    tick();
-    return () => clearTimeout(timer);
-  }, [onJobDone]);
+    timer = setTimeout(tick, 2000);
+    return () => { cancelled = true; if (timer) clearTimeout(timer); };
+  }, [jobState?.running, activeStep]);
 
   const triggerStep = async (step, extra) => {
     setActiveStep(step);
@@ -296,6 +313,9 @@ const RunPipelinePanel = ({ runId, onJobDone }) => {
     if (extra) qs.set("extra_args", extra);
     try {
       await apiFetch(`/api/mining-alpha/run/${step}?${qs.toString()}`, { method: "POST" });
+      // 立刻拉一次最新状态，让 jobState.running=true 触发 polling effect
+      const s = await apiFetch("/api/mining-alpha/run/status").catch(() => null);
+      if (s) setJobState(s);
     } catch (e) {
       setActiveStep(null);
       alert(`启动失败: ${e}`);
