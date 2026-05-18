@@ -929,7 +929,7 @@ export default function StockGene() {
           >
             <Bell size={11} />
             {unreadAlertsCount > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-[14px] h-[14px] px-1 rounded-full bg-rose-500 text-white text-[8px] font-mono font-bold flex items-center justify-center">
+              <span className="absolute -top-1 -right-1 min-w-[14px] h-[14px] px-1 rounded-full bg-rose-500 text-white text-[9px] font-mono font-bold flex items-center justify-center">
                 {unreadAlertsCount > 9 ? "9+" : unreadAlertsCount}
               </span>
             )}
@@ -1243,7 +1243,7 @@ export default function StockGene() {
                     {/* 持仓徽章：金色，表示已购买 */}
                     {positions[it.ticker] && (
                       <span
-                        className="text-[8px] px-1 py-px rounded bg-amber-500/15 text-amber-200 border border-amber-500/40 flex items-center gap-0.5"
+                        className="text-[9px] px-1 py-px rounded bg-amber-500/15 text-amber-200 border border-amber-500/40 flex items-center gap-0.5"
                         title={`持仓 ${positions[it.ticker].net_qty} 股 @ $${positions[it.ticker].avg_cost}（${
                           positions[it.ticker].unrealized_pnl_pct != null
                             ? `浮${positions[it.ticker].unrealized_pnl_pct >= 0 ? "盈" : "亏"} ${positions[it.ticker].unrealized_pnl_pct.toFixed(1)}%`
@@ -1290,7 +1290,7 @@ export default function StockGene() {
                         综合 {composite}
                       </span>
                       {scored < ENGINE_IDS.length && (
-                        <span className="text-[8px] text-[#5a6477]" title="部分引擎未评分">部分</span>
+                        <span className="text-[9px] text-[#5a6477]" title="部分引擎未评分">部分</span>
                       )}
                     </div>
                   )}
