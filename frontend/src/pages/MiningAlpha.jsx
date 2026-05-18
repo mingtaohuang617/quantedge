@@ -191,7 +191,7 @@ const FactorDetailModal = ({ alphaNum, onClose }) => {
   useEffect(() => {
     if (alphaNum == null) return;
     setLoading(true);
-    apiFetch(`/api/mining-alpha/factor-detail/${alphaNum}`)
+    apiFetch(`/mining-alpha/factor-detail/${alphaNum}`)
       .then(setData).catch(() => setData(null)).finally(() => setLoading(false));
   }, [alphaNum]);
   if (alphaNum == null) return null;
@@ -279,7 +279,7 @@ const RunPipelinePanel = ({ runId, onJobDone }) => {
   // 首次 mount：拉一次状态了解后端是否有任务在跑
   useEffect(() => {
     let cancelled = false;
-    apiFetch("/api/mining-alpha/run/status").then(s => {
+    apiFetch("/mining-alpha/run/status").then(s => {
       if (!cancelled && s) setJobState(s);
     });
     return () => { cancelled = true; };
@@ -292,7 +292,7 @@ const RunPipelinePanel = ({ runId, onJobDone }) => {
     let timer = null;
     const tick = async () => {
       if (cancelled) return;
-      const s = await apiFetch("/api/mining-alpha/run/status").catch(() => null);
+      const s = await apiFetch("/mining-alpha/run/status").catch(() => null);
       if (cancelled) return;
       if (s) setJobState(s);
       if (s && !s.running && s.exit_code != null) {
@@ -312,9 +312,9 @@ const RunPipelinePanel = ({ runId, onJobDone }) => {
     if (runId) qs.set("run_id", runId);
     if (extra) qs.set("extra_args", extra);
     try {
-      await apiFetch(`/api/mining-alpha/run/${step}?${qs.toString()}`, { method: "POST" });
+      await apiFetch(`/mining-alpha/run/${step}?${qs.toString()}`, { method: "POST" });
       // 立刻拉一次最新状态，让 jobState.running=true 触发 polling effect
-      const s = await apiFetch("/api/mining-alpha/run/status").catch(() => null);
+      const s = await apiFetch("/mining-alpha/run/status").catch(() => null);
       if (s) setJobState(s);
     } catch (e) {
       setActiveStep(null);
@@ -628,20 +628,20 @@ export default function MiningAlpha() {
     setLoading(true);
     setError(null);
     try {
-      const s = await apiFetch("/api/mining-alpha/status").catch(() => null);
+      const s = await apiFetch("/mining-alpha/status").catch(() => null);
       setStatus(s);
       const tasks = [];
       if (s?.files?.ic_report) {
-        tasks.push(apiFetch("/api/mining-alpha/ic-report?top_n=20").catch(() => []).then(setIC));
-        tasks.push(apiFetch("/api/mining-alpha/ic-heatmap?top_n=20&recent_months=24").catch(() => null).then(setHeatmap));
+        tasks.push(apiFetch("/mining-alpha/ic-report?top_n=20").catch(() => []).then(setIC));
+        tasks.push(apiFetch("/mining-alpha/ic-heatmap?top_n=20&recent_months=24").catch(() => null).then(setHeatmap));
       }
-      if (s?.files?.feature_importance) tasks.push(apiFetch("/api/mining-alpha/feature-importance?top_n=20").catch(() => []).then(setImportance));
-      if (s?.files?.backtest_report) tasks.push(apiFetch("/api/mining-alpha/backtest").catch(() => null).then(setBacktest));
-      if (s?.files?.predictions) tasks.push(apiFetch("/api/mining-alpha/top-holdings?top_n=20").catch(() => ({})).then(setTopHoldings));
-      if (s?.files?.regime) tasks.push(apiFetch("/api/mining-alpha/regime").catch(() => []).then(setRegime));
-      if (s?.files?.fold_ic) tasks.push(apiFetch("/api/mining-alpha/fold-ic").catch(() => []).then(setFoldIC));
+      if (s?.files?.feature_importance) tasks.push(apiFetch("/mining-alpha/feature-importance?top_n=20").catch(() => []).then(setImportance));
+      if (s?.files?.backtest_report) tasks.push(apiFetch("/mining-alpha/backtest").catch(() => null).then(setBacktest));
+      if (s?.files?.predictions) tasks.push(apiFetch("/mining-alpha/top-holdings?top_n=20").catch(() => ({})).then(setTopHoldings));
+      if (s?.files?.regime) tasks.push(apiFetch("/mining-alpha/regime").catch(() => []).then(setRegime));
+      if (s?.files?.fold_ic) tasks.push(apiFetch("/mining-alpha/fold-ic").catch(() => []).then(setFoldIC));
       // alerts: status.files.alerts 暂未声明，直接尝试拉取
-      tasks.push(apiFetch("/api/mining-alpha/alerts").catch(() => ({ alerts: [] })).then(r => setAlerts(r?.alerts || [])));
+      tasks.push(apiFetch("/mining-alpha/alerts").catch(() => ({ alerts: [] })).then(r => setAlerts(r?.alerts || [])));
       await Promise.all(tasks);
     } catch (e) {
       setError(String(e));
@@ -652,7 +652,7 @@ export default function MiningAlpha() {
 
   const onSwitchRun = async (runId) => {
     try {
-      await apiFetch(`/api/mining-alpha/switch-run/${runId}`, { method: "POST" });
+      await apiFetch(`/mining-alpha/switch-run/${runId}`, { method: "POST" });
       await fetchAll();
     } catch (e) {
       setError(String(e));
