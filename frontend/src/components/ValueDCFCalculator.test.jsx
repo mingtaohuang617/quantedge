@@ -138,3 +138,52 @@ describe('ValueDCFCalculator — header 摘要', () => {
     expect(screen.getByText(/· 内在/)).toBeInTheDocument();
   });
 });
+
+describe('ValueDCFCalculator — 敏感性矩阵 toggle', () => {
+  it('展开 DCF 后默认不显示敏感性矩阵', () => {
+    renderCalc();
+    fireEvent.click(screen.getByText(/DCF 估算/));
+    fireEvent.change(screen.getByPlaceholderText('如 3.5'), { target: { value: '3' } });
+    expect(screen.getByText(/敏感性矩阵/)).toBeInTheDocument();
+    // 矩阵 cell 数字（基准 ~51.9）不显示
+    expect(screen.queryByText('r ↓ / g1 →')).not.toBeInTheDocument();
+  });
+
+  it('点击 toggle 展开 3x3 矩阵', () => {
+    renderCalc();
+    fireEvent.click(screen.getByText(/DCF 估算/));
+    fireEvent.change(screen.getByPlaceholderText('如 3.5'), { target: { value: '3' } });
+    fireEvent.click(screen.getByText(/敏感性矩阵/));
+    expect(screen.getByText('r ↓ / g1 →')).toBeInTheDocument();
+    // 表头：3 个 g1 列 + 1 个角落 = 4 个 th
+    // 3 个 r 行
+    // 9 个 cell（中心高亮）
+  });
+
+  it('矩阵中心格 [1][1] 加 ring 标识（base case）', () => {
+    const { container } = renderCalc();
+    fireEvent.click(screen.getByText(/DCF 估算/));
+    fireEvent.change(screen.getByPlaceholderText('如 3.5'), { target: { value: '3' } });
+    fireEvent.click(screen.getByText(/敏感性矩阵/));
+    const rings = container.querySelectorAll('[class*="ring-1"][class*="ring-emerald"]');
+    expect(rings.length).toBe(1);   // 仅中心格
+  });
+
+  it('FCF 不变时只算一次矩阵；toggle 折回不报错', () => {
+    renderCalc();
+    fireEvent.click(screen.getByText(/DCF 估算/));
+    fireEvent.change(screen.getByPlaceholderText('如 3.5'), { target: { value: '3' } });
+    const toggle = screen.getByText(/敏感性矩阵/);
+    fireEvent.click(toggle);
+    expect(screen.getByText('r ↓ / g1 →')).toBeInTheDocument();
+    fireEvent.click(toggle);   // 折回
+    expect(screen.queryByText('r ↓ / g1 →')).not.toBeInTheDocument();
+  });
+
+  it('FCF 为空时不显示 toggle 按钮', () => {
+    renderCalc();
+    fireEvent.click(screen.getByText(/DCF 估算/));
+    // FCF 还没填
+    expect(screen.queryByText(/敏感性矩阵/)).not.toBeInTheDocument();
+  });
+});
