@@ -21,7 +21,7 @@ import React, { useEffect, useState, useCallback, useMemo, useRef } from "react"
 import {
   Activity, Plus, Trash2, RefreshCw, Loader, AlertCircle, Check, X,
   Sparkles, Target, BarChart3, TrendingUp, Layers, ChevronRight,
-  Edit2, Award, Search, ArrowUpDown, Download, Upload, Sliders,
+  Edit2, Award, Search, ArrowUpDown, Download, Upload, Sliders, Briefcase,
 } from "lucide-react";
 import { apiFetch } from "../quant-platform.jsx";
 
@@ -222,6 +222,10 @@ export default function StockGene() {
   const [filterTags, setFilterTags] = useState(() => new Set());
   // 综合分阈值过滤（0 = 不过滤）
   const [minComposite, setMinComposite] = useState(0);
+  // "仅持仓" 过滤
+  const [onlyHeld, setOnlyHeld] = useState(false);
+  // 持仓数据：Map<ticker, position>
+  const [positions, setPositions] = useState({});
   // 引擎权重（localStorage 持久化）
   const [weights, setWeights] = useState(() => {
     try {
@@ -287,6 +291,61 @@ export default function StockGene() {
   }, []);
 
   useEffect(() => { reload(); }, [reload]);
+
+  // ── 拉持仓数据 ─────────────────────────────────────────
+  // 用户的实际持仓（来自 /api/positions）→ 在观察列表里高亮 + 详情面板显示成本 / P&L
+  const reloadPositions = useCallback(async () => {
+    const json = await apiFetch("/positions");
+    if (json && Array.isArray(json.positions)) {
+      const map = {};
+      for (const p of json.positions) {
+        if (p.ticker && !p.closed) map[p.ticker] = p;
+      }
+      setPositions(map);
+    }
+  }, []);
+  useEffect(() => { reloadPositions(); }, [reloadPositions]);
+
+  // 持仓但未在观察列表里的 ticker（用于建议导入 banner）
+  const untrackedHoldings = useMemo(() => {
+    const inWatchlist = new Set(items.map(it => it.ticker));
+    return Object.keys(positions).filter(t => !inWatchlist.has(t));
+  }, [positions, items]);
+
+  // 一键把所有未跟踪的持仓加入股性检测
+  const handleAddAllHoldings = useCallback(async () => {
+    if (untrackedHoldings.length === 0) return;
+    setBatchProgress({ phase: "adding", done: 0, total: untrackedHoldings.length });
+    const added = [];
+    for (const t of untrackedHoldings) {
+      const res = await apiFetch("/stock-gene", {
+        method: "POST",
+        body: JSON.stringify({
+          ticker: t,
+          market: "US",  // 简化：持仓默认 US，用户可后续编辑
+          tags: ["持仓"],
+        }),
+      });
+      if (res?.ok) added.push(t);
+      setBatchProgress(p => ({ ...p, done: p.done + 1 }));
+    }
+    await reload();
+    // 并行跑 4 引擎评分
+    if (added.length > 0) {
+      setBatchProgress({ phase: "scoring", done: 0, total: added.length });
+      for (const t of added) {
+        await Promise.allSettled(
+          ENGINE_IDS.map(id => apiFetch(
+            `/stock-gene/${encodeURIComponent(t)}/${eng(id).scoreRoute}`,
+            { method: "POST" },
+          ))
+        );
+        setBatchProgress(p => ({ ...p, done: p.done + 1 }));
+      }
+      await reload();
+    }
+    setBatchProgress(null);
+  }, [untrackedHoldings, reload]);
 
   // ── 添加 ───────────────────────────────────────────────
   // 加入观察后同时跑两个引擎（趋势 + 价值），一次点击双评分齐全
@@ -649,6 +708,8 @@ export default function StockGene() {
         const { composite } = compositeScore(it, weights);
         if (composite == null || composite < minComposite) return false;
       }
+      // 仅持仓：只保留 positions 里的 ticker
+      if (onlyHeld && !positions[it.ticker]) return false;
       return true;
     });
     if (sortBy === "composite") {
@@ -669,7 +730,7 @@ export default function StockGene() {
       arr.sort((a, b) => a.ticker.localeCompare(b.ticker));
     }
     return arr;
-  }, [items, sortBy, engine, filterText, filterVerdicts, filterTags, minComposite, weights]);
+  }, [items, sortBy, engine, filterText, filterVerdicts, filterTags, minComposite, weights, onlyHeld, positions]);
 
   // 所有 items 已存在的 unique tags（用于 tag 过滤 chips）
   const allTags = useMemo(() => {
@@ -813,7 +874,7 @@ export default function StockGene() {
             onChange={(e) => { handleImportFile(e.target.files?.[0]); e.target.value = ""; }}
           />
           <button
-            onClick={reload}
+            onClick={() => { reload(); reloadPositions(); }}
             className="flex items-center gap-1 px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white transition border border-white/10"
             title="刷新（快捷键：r）"
           >
@@ -837,6 +898,27 @@ export default function StockGene() {
           </button>
         </div>
       </div>
+
+      {/* 未跟踪的持仓：建议一键加入观察 */}
+      {untrackedHoldings.length > 0 && !batchProgress && (
+        <div className="px-3 py-1.5 glass-card border border-amber-500/30 bg-amber-500/5 flex items-center gap-2 text-[10px]">
+          <Briefcase size={12} className="text-amber-400 shrink-0" />
+          <span className="text-amber-100">
+            <span className="font-semibold">{untrackedHoldings.length}</span> 只持仓还没在股性检测里：
+            <span className="ml-1 font-mono text-amber-300/80">
+              {untrackedHoldings.slice(0, 5).join(" · ")}
+              {untrackedHoldings.length > 5 && ` 等 ${untrackedHoldings.length} 只`}
+            </span>
+          </span>
+          <button
+            onClick={handleAddAllHoldings}
+            className="ml-auto flex items-center gap-1 px-2 py-1 rounded bg-amber-500/15 hover:bg-amber-500/25 text-amber-100 border border-amber-500/40 transition text-[10px]"
+            title="把全部持仓加入股性检测 + 跑 4 引擎评分"
+          >
+            <Plus size={10} /> 全部加入 + 评分
+          </button>
+        </div>
+      )}
 
       {/* 快捷键帮助 overlay */}
       {showShortcuts && <ShortcutsHelp onClose={() => setShowShortcuts(false)} />}
@@ -928,6 +1010,26 @@ export default function StockGene() {
                   onChange={setFilterTags}
                 />
               )}
+              {/* 持仓筛选：仅当有持仓时显示 */}
+              {Object.keys(positions).length > 0 && (
+                <div className="flex items-center gap-1 text-[9px] text-[#7a8497]">
+                  <Briefcase size={9} className="text-amber-400" />
+                  <span>持仓</span>
+                  <button
+                    onClick={() => setOnlyHeld(!onlyHeld)}
+                    className={`text-[9px] px-1.5 py-px rounded border transition ${
+                      onlyHeld
+                        ? "bg-amber-500/15 border-amber-500/40 text-amber-200"
+                        : "bg-white/[0.02] border-white/10 text-[#7a8497] hover:text-white hover:border-white/20"
+                    }`}
+                    title={onlyHeld ? "点击取消，显示全部" : "只看我已购买的"}
+                  >
+                    仅持仓
+                  </button>
+                  <span className="text-[#5a6477]">·</span>
+                  <span className="text-[#a0aec0]">{Object.keys(positions).length} 只持仓</span>
+                </div>
+              )}
               {/* 综合分阈值滑块 */}
               <div className="flex items-center gap-1.5 text-[9px] text-[#7a8497]">
                 <span className="shrink-0">综合分 ≥</span>
@@ -993,6 +1095,20 @@ export default function StockGene() {
                   <div className="flex items-center gap-2 mb-1">
                     <span className="font-mono text-[12px] font-semibold text-white">{it.ticker}</span>
                     <span className="text-[9px] text-[#7a8497]">{it.market}</span>
+                    {/* 持仓徽章：金色，表示已购买 */}
+                    {positions[it.ticker] && (
+                      <span
+                        className="text-[8px] px-1 py-px rounded bg-amber-500/15 text-amber-200 border border-amber-500/40 flex items-center gap-0.5"
+                        title={`持仓 ${positions[it.ticker].net_qty} 股 @ $${positions[it.ticker].avg_cost}（${
+                          positions[it.ticker].unrealized_pnl_pct != null
+                            ? `浮${positions[it.ticker].unrealized_pnl_pct >= 0 ? "盈" : "亏"} ${positions[it.ticker].unrealized_pnl_pct.toFixed(1)}%`
+                            : "—"
+                        }）`}
+                      >
+                        <Briefcase size={8} />
+                        持仓
+                      </span>
+                    )}
                     {/* 多引擎评分徽章：每个引擎一个，当前 engine 加 ring 高亮 */}
                     <div className="ml-auto flex items-center gap-1">
                       {ENGINE_IDS.map(id => {
@@ -1217,6 +1333,7 @@ export default function StockGene() {
               notesSaving={notesSaving}
               onSaveTags={(nextTags) => handleSaveTags(selectedItem.ticker, nextTags)}
               weights={weights}
+              position={positions[selectedItem.ticker]}
             />
           )}
         </div>
@@ -1282,7 +1399,7 @@ export default function StockGene() {
 function ScoreDetail({
   item, engine, onRescore, onDelete, scoring, onExplain, explainLoading, narrative,
   editingNotes, notesDraft, setNotesDraft, onEditNotes, onSaveNotes, onCancelNotes, notesSaving,
-  onSaveTags, weights,
+  onSaveTags, weights, position,
 }) {
   const cfg = eng(engine);
   const r = engResult(item, engine);
@@ -1390,6 +1507,8 @@ function ScoreDetail({
         />
         {/* Tags 行：紧凑展示 + 直接增删 */}
         <TagsRow tags={item.tags || []} onChange={onSaveTags} />
+        {/* 持仓信息卡：仅当用户实际持有时显示 */}
+        {position && <PositionCard position={position} />}
       </div>
 
       {/* 特征列表（趋势 8 维 / 价值 6 维） */}
@@ -2206,6 +2325,62 @@ function WeightsPanel({ weights, onChange, onReset, onClose }) {
             完成
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// PositionCard — 详情面板的持仓信息卡（成本 / 市值 / P&L）
+// ─────────────────────────────────────────────────────────────
+function PositionCard({ position }) {
+  const p = position;
+  const upPct = p.unrealized_pnl_pct;
+  const pnlColor = upPct == null ? "text-[#a0aec0]" : upPct >= 0 ? "text-emerald-300" : "text-rose-300";
+  const arrow = upPct == null ? "" : upPct >= 0 ? "▲" : "▼";
+  const fmt = (v, prec = 2) => v == null ? "—" : v.toLocaleString("en-US", {
+    minimumFractionDigits: prec, maximumFractionDigits: prec,
+  });
+  return (
+    <div className="mt-2 px-2 py-2 bg-amber-500/8 border-l-2 border-amber-500/50 rounded">
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <Briefcase size={11} className="text-amber-400" />
+        <span className="text-[10px] font-semibold text-amber-100">持仓信息</span>
+      </div>
+      <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[10px] tabular-nums">
+        <div className="flex justify-between">
+          <span className="text-[#a0aec0]">持股</span>
+          <span className="font-mono text-white">{fmt(p.net_qty, 0)} 股</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-[#a0aec0]">均价</span>
+          <span className="font-mono text-white">${fmt(p.avg_cost)}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-[#a0aec0]">现价</span>
+          <span className="font-mono text-white">${fmt(p.latest_close)}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-[#a0aec0]">市值</span>
+          <span className="font-mono text-white">${fmt(p.market_value)}</span>
+        </div>
+        <div className="col-span-2 mt-1 pt-1 border-t border-amber-500/15 flex justify-between">
+          <span className="text-[#a0aec0]">浮动 P&L</span>
+          <span className={`font-mono font-semibold ${pnlColor}`}>
+            {arrow} ${fmt(p.unrealized_pnl)}
+            {upPct != null && (
+              <span className="ml-1 text-[9px]">({upPct >= 0 ? "+" : ""}{fmt(upPct, 1)}%)</span>
+            )}
+          </span>
+        </div>
+        {p.realized_pnl !== 0 && (
+          <div className="col-span-2 flex justify-between">
+            <span className="text-[#a0aec0]">已实现 P&L</span>
+            <span className={`font-mono ${p.realized_pnl >= 0 ? "text-emerald-300" : "text-rose-300"}`}>
+              ${fmt(p.realized_pnl)}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );
