@@ -65,7 +65,7 @@ export default function MonthlyReviewModal({ open, onClose }) {
               </span>
             )}
           </div>
-          <button onClick={onClose} className="text-[#778] hover:text-white"><X size={14} /></button>
+          <button onClick={onClose} className="p-1.5 -m-1 rounded text-[#778] hover:text-white hover:bg-white/10 transition-colors" aria-label="关闭"><X size={14} /></button>
         </div>
 
         {/* 月份选择 + 生成 */}

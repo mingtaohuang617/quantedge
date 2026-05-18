@@ -174,6 +174,8 @@ const CompareModal = ({ open, onClose, stocks }) => {
 const ScoringDashboard = () => {
   const { t, lang } = useLang();
   const [sel, setSel] = useState(null);
+  // 详情区 scroll-spy：当前可见的 section（overview / fundamental / technical / liquidity / myposition）
+  const [activeSection, setActiveSection] = useState("overview");
   // 来自 MacroDashboard alert 跳转的上下文 — 显示一个可关闭的横幅
   const [macroSignal, setMacroSignal] = useState(null);
   const [mkt, setMkt] = useState("ALL");
@@ -467,6 +469,27 @@ const ScoringDashboard = () => {
     window.addEventListener("quantedge:navStock", handler);
     return () => window.removeEventListener("quantedge:navStock", handler);
   }, []);
+
+  // 详情区 scroll-spy：IntersectionObserver 跟踪 #detail-* sections，更新 activeSection
+  useEffect(() => {
+    if (!sel) return;
+    const ids = ["overview", "fundamental", "technical", "liquidity", "myposition"];
+    const nodes = ids.map(id => document.getElementById(`detail-${id}`)).filter(Boolean);
+    if (nodes.length === 0) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        // 取交集度最大的 entry 作为 active
+        const visible = entries.filter(e => e.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+        if (visible[0]) {
+          const id = visible[0].target.id.replace("detail-", "");
+          setActiveSection(id);
+        }
+      },
+      { rootMargin: "-30% 0px -60% 0px", threshold: [0, 0.1, 0.5] }
+    );
+    nodes.forEach(n => observer.observe(n));
+    return () => observer.disconnect();
+  }, [sel]);
 
   // 来自 macro alert 的跨 tab 跳转 → 显示一个临时横幅，提示用户当前查看持仓的宏观背景
   useEffect(() => {
@@ -1625,18 +1648,32 @@ const ScoringDashboard = () => {
                 { id: "technical", label: t("技术面") },
                 { id: "liquidity", label: t("资金面") },
                 { id: "myposition", label: t("我的持仓") },
-              ].map((tabItem) => (
-                <button
-                  key={tabItem.id}
-                  onClick={() => {
-                    const target = document.getElementById(`detail-${tabItem.id}`);
-                    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                  }}
-                  className="px-2.5 py-1 text-[10px] font-medium rounded-md text-[#a0aec0] hover:text-white hover:bg-white/[0.06] transition-all whitespace-nowrap shrink-0"
-                >
-                  {tabItem.label}
-                </button>
-              ))}
+              ].map((tabItem) => {
+                const isActive = activeSection === tabItem.id;
+                return (
+                  <button
+                    key={tabItem.id}
+                    onClick={() => {
+                      const target = document.getElementById(`detail-${tabItem.id}`);
+                      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }}
+                    className={`relative px-2.5 py-1 text-[10px] font-medium rounded-md transition-all whitespace-nowrap shrink-0 ${
+                      isActive
+                        ? "text-white bg-white/[0.06]"
+                        : "text-[#a0aec0] hover:text-white hover:bg-white/[0.04]"
+                    }`}
+                  >
+                    {tabItem.label}
+                    {isActive && (
+                      <span
+                        aria-hidden="true"
+                        className="absolute left-2.5 right-2.5 -bottom-0.5 h-[2px] rounded-full"
+                        style={{ background: 'var(--brand-gradient)' }}
+                      />
+                    )}
+                  </button>
+                );
+              })}
             </div>
 
             {/* ── KPI 速览条（综合评分 + 关键因子） ── */}
@@ -1653,7 +1690,7 @@ const ScoringDashboard = () => {
                 </div>
                 <div className="mt-1 h-1 rounded-full bg-white/5 overflow-hidden">
                   <div className="h-full rounded-full transition-all duration-500"
-                    style={{ width: `${sel.score}%`, background: sel.score >= 80 ? "var(--accent-up)" : sel.score >= 60 ? "#f59e0b" : "var(--accent-down)" }} />
+                    style={{ width: `${sel.score}%`, background: sel.score >= 80 ? "var(--accent-up)" : sel.score >= 60 ? "var(--accent-amber)" : "var(--accent-down)" }} />
                 </div>
                 {/* 子分数 Tooltip */}
                 {sel.subScores && Object.keys(sel.subScores).length > 0 && (
@@ -1665,7 +1702,8 @@ const ScoringDashboard = () => {
                           const labelMap = { fundamental: t('基本面'), technical: t('技术面'), growth: t('成长性'), cost: t('成本'), liquidity: t('流动性'), momentum: t('动量'), risk: t('风险') };
                           const label = labelMap[k] || k;
                           const pct = Math.max(0, Math.min(100, Number(v) || 0));
-                          const color = pct >= 80 ? '#10b981' : pct >= 60 ? '#f59e0b' : '#ef4444';
+                          // 用 CSS 语义 token（之前硬编码 Tailwind 默认 hex 绕过了项目调色板）
+                          const color = pct >= 80 ? 'var(--accent-up)' : pct >= 60 ? 'var(--accent-amber)' : 'var(--accent-down)';
                           return (
                             <div key={k} className="flex items-center gap-2">
                               <span className="text-[9px] text-[#a0aec0] w-10 shrink-0">{label}</span>

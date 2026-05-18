@@ -80,7 +80,7 @@ export default function AddTransactionModal({ open, onClose, onAdded, defaultTic
       <div className="glass-card p-4 w-[360px] max-w-[90vw] border border-emerald-500/30" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-3">
           <span className="text-sm font-semibold text-emerald-300">录入交易</span>
-          <button onClick={onClose} className="text-[#778] hover:text-white"><X size={14} /></button>
+          <button onClick={onClose} className="p-1.5 -m-1 rounded text-[#778] hover:text-white hover:bg-white/10 transition-colors" aria-label="关闭"><X size={14} /></button>
         </div>
 
         <div className="space-y-2">

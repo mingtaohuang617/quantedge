@@ -68,7 +68,7 @@ export function ShortcutsHelp({ onClose }) {
       <div className="glass-card border border-white/15 rounded-lg p-4 min-w-[280px] shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-3">
           <span className="text-[12px] font-semibold text-white">键盘快捷键</span>
-          <button onClick={onClose} className="text-[#a0aec0] hover:text-white" title="关闭"><X size={12} /></button>
+          <button onClick={onClose} className="p-1.5 -m-1 rounded text-[#a0aec0] hover:text-white hover:bg-white/10 transition-colors" title="关闭" aria-label="关闭"><X size={13} /></button>
         </div>
         <div className="space-y-1.5">
           {rows.map(r => (
@@ -101,7 +101,7 @@ export function WeightsPanel({ weights, onChange, onReset, onClose }) {
             <Sliders size={13} className="text-indigo-300" />
             <span className="text-[12px] font-semibold text-white">综合分权重</span>
           </div>
-          <button onClick={onClose} className="text-[#a0aec0] hover:text-white" title="关闭"><X size={12} /></button>
+          <button onClick={onClose} className="p-1.5 -m-1 rounded text-[#a0aec0] hover:text-white hover:bg-white/10 transition-colors" title="关闭" aria-label="关闭"><X size={13} /></button>
         </div>
         <div className="text-[10px] text-[#7a8497] mb-3 leading-relaxed">
           各引擎在综合分里的权重（总和不需等于 100，会自动归一化）。调整会立即重算所有综合分 + 重新排序。
@@ -172,7 +172,7 @@ export function ListDialog({ mode, list, onCreate, onRename, onDelete, onCancel 
             {isDelete ? <AlertCircle size={13} className="text-rose-400" /> : <Layers size={13} className="text-emerald-300" />}
             <span className="text-[12px] font-semibold text-white">{title}</span>
           </div>
-          <button onClick={onCancel} className="text-[#a0aec0] hover:text-white"><X size={12} /></button>
+          <button onClick={onCancel} className="p-1.5 -m-1 rounded text-[#a0aec0] hover:text-white hover:bg-white/10 transition-colors" title="取消" aria-label="取消"><X size={13} /></button>
         </div>
         {isDelete ? (
           <div className="text-[11px] text-[#d0d7e2] mb-3 leading-relaxed">
