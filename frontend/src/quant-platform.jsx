@@ -1223,15 +1223,16 @@ export const ScoreBar = ({ score, max = 100 }) => {
   );
 };
 
+// short: 2 行显示用（仅顶部 nav；压缩横向空间。aria-label / 命令面板仍用 label 单行）
 const TAB_CFG = [
-  { id: "scoring", label: "量化评分", icon: BarChart3 },
-  { id: "backtest", label: "组合回测", icon: Activity },
-  { id: "miningAlpha", label: "Mining Alpha", icon: Zap },
-  { id: "monitor", label: "实时监控", icon: Bell },
-  { id: "journal", label: "投资日志", icon: BookOpen },
-  { id: "macro", label: "宏观看板", icon: Globe },
-  { id: "screener10x", label: "10x 猎手", icon: Target },
-  { id: "stockgene", label: "股性检测", icon: Zap },
+  { id: "scoring",     label: "量化评分",     short: ["量化", "评分"],     icon: BarChart3 },
+  { id: "backtest",    label: "组合回测",     short: ["组合", "回测"],     icon: Activity },
+  { id: "miningAlpha", label: "Mining Alpha", short: ["Mining", "Alpha"],  icon: Zap },
+  { id: "monitor",     label: "实时监控",     short: ["实时", "监控"],     icon: Bell },
+  { id: "journal",     label: "投资日志",     short: ["投资", "日志"],     icon: BookOpen },
+  { id: "macro",       label: "宏观看板",     short: ["宏观", "看板"],     icon: Globe },
+  { id: "screener10x", label: "10x 猎手",     short: ["10x", "猎手"],      icon: Target },
+  { id: "stockgene",   label: "股性检测",     short: ["股性", "检测"],     icon: Zap },
 ];
 
 // ─── Scoring ──────────────────────────────────────────────
@@ -2235,11 +2236,14 @@ function QuantPlatformInner() {
           </div>
         </div>
 
-        {/* 主导航（桌面 / 顶部）：紧凑化以容下 7 个 tab。移动端用底部 MobileBottomNav 代替 */}
+        {/* 主导航（桌面 / 顶部）：8 个 tab 横向已挤，使用 2 行短标签压缩横向空间。
+            移动端用底部 MobileBottomNav 代替。 */}
         <nav role="tablist" aria-label={t('主导航')} className={`${useSidebar ? 'hidden' : 'hidden md:flex'} items-center gap-0.5 lg:gap-1 w-full md:w-auto overflow-x-auto shrink-0`}>
           {TAB_CFG.map(c => {
             const I = c.icon;
             const active = tab === c.id;
+            // 中文 label 在 zh 模式下用 2 行 short 标签（量化/评分），英文 fallback 单行 t(label)
+            const useShort = lang === 'zh' && Array.isArray(c.short) && c.short.length === 2;
             return (
               <button
                 key={c.id}
@@ -2247,8 +2251,17 @@ function QuantPlatformInner() {
                 role="tab"
                 aria-selected={active}
                 aria-label={t(c.label)}
-                className={`relative flex items-center gap-1 lg:gap-1.5 px-1.5 md:px-2 lg:px-2.5 py-2 text-[11px] font-medium whitespace-nowrap flex-1 md:flex-none justify-center transition-colors active:scale-[0.97] ${active ? "text-white" : "text-[#a0aec0] hover:text-white"}`}>
-                <I size={12} />{t(c.label)}
+                title={t(c.label)}
+                className={`relative flex items-center gap-1 lg:gap-1.5 px-1.5 md:px-2 lg:px-2.5 py-1 md:py-1.5 text-[10px] font-medium whitespace-nowrap flex-1 md:flex-none justify-center transition-colors active:scale-[0.97] ${active ? "text-white" : "text-[#a0aec0] hover:text-white"}`}>
+                <I size={12} className="shrink-0" />
+                {useShort ? (
+                  <span className="flex flex-col items-center leading-[1.1] tracking-tight">
+                    <span>{c.short[0]}</span>
+                    <span>{c.short[1]}</span>
+                  </span>
+                ) : (
+                  <span>{t(c.label)}</span>
+                )}
                 {active && (
                   <span
                     aria-hidden="true"
