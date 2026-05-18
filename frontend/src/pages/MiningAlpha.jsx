@@ -191,9 +191,13 @@ const FactorDetailModal = ({ alphaNum, onClose }) => {
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     if (alphaNum == null) return;
+    let cancelled = false;
     setLoading(true);
     apiFetch(`/mining-alpha/factor-detail/${alphaNum}`)
-      .then(setData).catch(() => setData(null)).finally(() => setLoading(false));
+      .then(d => { if (!cancelled) setData(d); })
+      .catch(() => { if (!cancelled) setData(null); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, [alphaNum]);
   if (alphaNum == null) return null;
   return (
