@@ -1238,6 +1238,7 @@ export default function Screener10x() {
         item={editing}
         candidate={pendingCandidate}
         supertrends={supertrends}
+        currentPrice={pricesByTicker[editing?.ticker || pendingCandidate?.ticker]}
         onClose={() => { setEditorOpen(false); setEditing(null); setPendingCandidate(null); }}
         onSaved={handleSaved}
       />
