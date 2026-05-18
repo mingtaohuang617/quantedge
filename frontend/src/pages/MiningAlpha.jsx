@@ -49,8 +49,9 @@ const StepChip = ({ label, done }) => (
 
 // ─── Run 切换器 ──────────────────────────────────────────────
 const RunSwitcher = ({ status, onSwitch }) => {
-  if (!status?.history_runs?.length) return null;
   const [open, setOpen] = useState(false);
+  // hook 必须在 early return 之前，避免 status 由空变非空时 hook 顺序变化
+  if (!status?.history_runs?.length) return null;
   return (
     <div className="relative">
       <button
@@ -136,14 +137,14 @@ const IC_COLOR_SCALE = (ic) => {
 };
 
 const ICHeatmap = ({ data, onPickAlpha }) => {
-  if (!data?.cells?.length) return <div className="text-[#a0aec0] text-xs">IC 热力图未生成。`mining_alpha.run ic-report` 后会自动产出 ic_monthly_heatmap.csv</div>;
-  const { alphas, months, cells } = data;
-  // 构造 alpha → month → ic lookup
+  // hook 必须在 early return 之前，避免 data 由空变非空时 hook 顺序变化
   const lookup = useMemo(() => {
     const m = new Map();
-    cells.forEach(c => { m.set(`${c.alpha}|${c.month}`, c.ic); });
+    (data?.cells || []).forEach(c => { m.set(`${c.alpha}|${c.month}`, c.ic); });
     return m;
-  }, [cells]);
+  }, [data]);
+  if (!data?.cells?.length) return <div className="text-[#a0aec0] text-xs">IC 热力图未生成。`mining_alpha.run ic-report` 后会自动产出 ic_monthly_heatmap.csv</div>;
+  const { alphas, months } = data;
   return (
     <div className="overflow-auto max-h-[480px] rounded-lg border border-white/5">
       <table className="text-[10px] font-mono tabular-nums">
@@ -427,13 +428,14 @@ const REGIME_COLOR = {
 
 // ─── 净值曲线（含 benchmark + regime overlay）─────────────────
 const EquityCurveChart = ({ strategy, benchmark, regimeSegments }) => {
-  if (!strategy || strategy.length === 0) return <div className="text-[#a0aec0] text-xs">回测净值未生成。`mining_alpha.run backtest`</div>;
   // 合并 strategy + benchmark 数据，使用 date 字段对齐
+  // 注意：hook 必须在任何 early return 之前调用，否则 hook 顺序在 strategy 由空变非空时会变化
   const benchMap = useMemo(() => {
     const m = new Map();
     (benchmark || []).forEach(p => m.set(p.date, p.bench_equity));
     return m;
   }, [benchmark]);
+  if (!strategy || strategy.length === 0) return <div className="text-[#a0aec0] text-xs">回测净值未生成。`mining_alpha.run backtest`</div>;
   const data = strategy.map(p => ({ date: p.date, equity: p.equity, bench: benchMap.get(p.date) }));
   return (
     <ResponsiveContainer width="100%" height={320}>
