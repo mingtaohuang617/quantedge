@@ -26,7 +26,18 @@ jobs:
         run: ruff check backend
         continue-on-error: true
       - name: Pytest (no network)
-        run: pytest backend/tests -m "not network" --tb=short
+        run: pytest backend/tests -m "not network and not slow" --tb=short
+
+      # Mining Alpha 烟雾测试：合成数据跑 compute-factors，验证 191+36 个因子全部能算
+      - name: Mining Alpha smoke (synthetic data)
+        run: |
+          cd backend
+          python -m mining_alpha.synthetic_demo --n-stocks 30 --years 1 --seed 0
+          python -m mining_alpha.run compute-factors \
+            --universe DEMO --start 2025-05-01 --end 2026-05-18 \
+            --run-id ci --factor-sets all
+          python -m mining_alpha.catalog --output ../docs/_ci_catalog_check.md
+          test -f output/mining_alpha/factors/_tradeable_mask.parquet
 
   frontend:
     name: Frontend (build + unit tests)

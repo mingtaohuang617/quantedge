@@ -131,6 +131,27 @@
 
 ---
 
+---
+
+## 已落地 — Mining Alpha（2026-05）
+
+> 详见 [MINING_ALPHA.md](MINING_ALPHA.md)
+
+A 股 Alpha191 因子挖掘 + ML 合成 + 回测 — 已交付：
+- 187 / 191 因子（仅剩 30/143/166/190 不实现，原因详见 MINING_ALPHA.md）
+- 算子库 25 个 + walk-forward LightGBM ranker + 向量化回测
+- 改良层：vol-scaled / IC-decay 自适应权重 / regime-aware（接 HMM）
+- 前端 tab `Mining Alpha` + 5 个 FastAPI routes (`/api/mining-alpha/*`)
+- 433 mining_alpha 测试全绿
+
+**待用户跑实数据**（Mining Alpha 真实回测需要 tushare daily 接口权限）：
+- [ ] **[P2]** 用户升级 tushare 积分至 2000+ 后跑全流程 CLI
+  - `python -m mining_alpha.run sync-data --universe CSI800 --start 2020-01-01`
+  - `↳ compute-factors → ic-report → train → backtest`
+  - 验证 KPI 门槛（年化超额 ≥ HS300+6%, Sharpe ≥ 1.2, 最大回撤 ≤ 25%）
+
+---
+
 ## 优先级分布
 
 | 优先级 | 数量 | 工作量分布            | 类别                                  |
