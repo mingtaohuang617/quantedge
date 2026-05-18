@@ -132,9 +132,9 @@ const CompareModal = ({ open, onClose, stocks }) => {
           <div className="glass-card p-3 overflow-x-auto">
             <table className="w-full text-left text-[11px]">
               <thead>
-                {/* sticky 必须放 <th> 才生效（thead/tr 上的 sticky 大部分浏览器不渲染）*/}
+                {/* sticky 必须放 <th> 才生效。指标列同时 sticky top + left（z-20 比 top-only 高一级）*/}
                 <tr className="text-[10px] text-[#a0aec0] border-b border-white/8">
-                  <th className="py-2 pr-2 font-medium sticky top-0 z-10 bg-[var(--bg-card)]/95 backdrop-blur-sm">{t('指标')}</th>
+                  <th className="py-2 pr-2 font-medium sticky top-0 left-0 z-20 bg-[var(--bg-card)]/95 backdrop-blur-sm">{t('指标')}</th>
                   {stocks.map((s, i) => (
                     <th key={s.ticker} className="py-2 px-2 font-medium font-mono sticky top-0 z-10 bg-[var(--bg-card)]/95 backdrop-blur-sm" style={{ color: COMPARE_COLORS[i] }}>{s.ticker}</th>
                   ))}
@@ -176,7 +176,7 @@ const CompareModal = ({ open, onClose, stocks }) => {
                   }
                   return (
                     <tr key={label} className="group border-b border-white/5 last:border-0 hover:bg-white/[0.04] transition-colors">
-                      <td className="py-1.5 pr-2 text-[#a0aec0] group-hover:text-white transition-colors">{label}</td>
+                      <td className="py-1.5 pr-2 text-[#a0aec0] group-hover:text-white transition-colors sticky left-0 z-10 bg-[var(--bg-card)] group-hover:bg-[var(--bg-card-hover)]">{label}</td>
                       {stocks.map((s, idx) => {
                         const v = fn(s);
                         const c = typeof klass === "function" ? klass(s) : klass;

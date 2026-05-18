@@ -52,11 +52,11 @@ export function ScoreDetail({
                 </div>
                 {composite != null && (
                   <div className="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded border bg-white/5 border-white/15">
-                    <span className="text-[8px] text-[#7a8497]">综合</span>
+                    <span className="text-[9px] text-[#7a8497]">综合</span>
                     <span className={`text-[11px] font-mono font-bold ${compositeStyle(composite).text}`}>
                       {composite}
                     </span>
-                    <span className="text-[8px] text-[#7a8497]">/100</span>
+                    <span className="text-[9px] text-[#7a8497]">/100</span>
                   </div>
                 )}
               </div>

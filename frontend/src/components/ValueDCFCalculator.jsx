@@ -123,7 +123,7 @@ export default function ValueDCFCalculator({ currentPrice, onApplyTarget }) {
               <div className="flex items-center justify-between px-2 py-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded">
                 <div className="flex flex-col">
                   <span className="text-[9px] text-[#a0aec0]">内在价值（每股）</span>
-                  <span className="text-[8px] text-[#7a8497]">
+                  <span className="text-[9px] text-[#7a8497]">
                     短期 {result.shortTermPV.toFixed(2)} + 终值 {result.terminalValuePV.toFixed(2)}
                   </span>
                 </div>

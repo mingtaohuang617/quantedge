@@ -1,7 +1,9 @@
 // /api/stock-gene  —  GET (list items + lists)  /  POST (add item)
-import { requireReferer, readJson } from './_lib/auth.js';
-import { KV_ENABLED } from './_lib/kv.js';
-import { loadData, addItem } from './_lib/stockGene.js';
+// 路径 stock-gene/index.js 而不是 stock-gene.js：避免与同名目录冲突，
+// 在 Vercel 上 file + directory 同名时 directory 会赢导致 file 被忽略。
+import { requireReferer, readJson } from '../_lib/auth.js';
+import { KV_ENABLED } from '../_lib/kv.js';
+import { loadData, addItem } from '../_lib/stockGene.js';
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');

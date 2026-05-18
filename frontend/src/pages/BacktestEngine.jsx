@@ -2060,14 +2060,15 @@ const BacktestEngine = () => {
                     <span className="section-title">{t('策略横评 ({n} 组)', { n: all.length })}</span>
                     <span className="text-[9px] text-[#778] font-mono ml-1">{t('深色 = 该指标胜者')}</span>
                   </div>
-                  {/* 紧凑表 + 行 hover 高亮（行级 +1.5px bg / 指标列加白）+ 顶部 header sticky */}
+                  {/* 紧凑表 + 行 hover 高亮 + 顶部 header sticky + 第一列（指标名）横向 sticky 防滚动迷失 */}
                   <table className="w-full text-[10px] tabular-nums border-collapse">
                     <thead>
-                      {/* sticky 必须放 <th> 才生效（tr/thead 上的 sticky 大部分浏览器不渲染）*/}
+                      {/* sticky 必须放 <th> 才生效（tr/thead 上的 sticky 大部分浏览器不渲染）
+                          指标列同时 sticky top + left（z-20 比 top-only 高一级，跨头/列时不被覆盖） */}
                       <tr className="border-b border-white/8">
-                        <th className="text-left font-medium text-[#778] py-1.5 pr-2 sticky top-0 bg-[#0b0b14]/95 backdrop-blur-sm">{t('指标')}</th>
+                        <th className="text-left font-medium text-[#778] py-1.5 pr-2 sticky top-0 left-0 z-20 bg-[#0b0b14]/95 backdrop-blur-sm">{t('指标')}</th>
                         {all.map(run => (
-                          <th key={run.id} className="text-right font-mono font-medium py-1.5 px-1.5 whitespace-nowrap sticky top-0 bg-[#0b0b14]/95 backdrop-blur-sm" style={{ color: run.color }}>
+                          <th key={run.id} className="text-right font-mono font-medium py-1.5 px-1.5 whitespace-nowrap sticky top-0 z-10 bg-[#0b0b14]/95 backdrop-blur-sm" style={{ color: run.color }}>
                             <div className="flex items-center gap-1 justify-end">
                               <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: run.color }} />
                               <span className="truncate max-w-[100px]" title={run.label}>{run.label}</span>
@@ -2079,7 +2080,7 @@ const BacktestEngine = () => {
                     <tbody>
                       {rows.map(r => (
                         <tr key={r.key} className="group border-b border-white/[0.04] transition-colors hover:bg-white/[0.04]">
-                          <td className="py-1 pr-2 text-[#a0aec0] group-hover:text-white transition-colors">{r.label}</td>
+                          <td className="py-1 pr-2 text-[#a0aec0] group-hover:text-white transition-colors sticky left-0 z-10 bg-[var(--bg-card)] group-hover:bg-[var(--bg-card-hover)]">{r.label}</td>
                           {all.map((run, idx) => {
                             const raw = run.metrics[r.key];
                             if (raw == null) {
