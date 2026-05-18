@@ -3,7 +3,7 @@
 // - HTML network-first + 离线兜底
 // - /api/yahoo stale-while-revalidate（即刻返回缓存 + 后台刷新，命中率↑速度↑）
 // 版本号变化会触发新 SW 安装 → 自动清理旧缓存
-const VERSION = "v2";
+const VERSION = "v3";
 const CACHE = `quantedge-${VERSION}`;
 const API_CACHE = `quantedge-api-${VERSION}`;
 const APP_SHELL = ["/", "/index.html", "/manifest.webmanifest", "/icon.svg"];
