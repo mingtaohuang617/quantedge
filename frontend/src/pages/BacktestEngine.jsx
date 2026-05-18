@@ -2063,10 +2063,11 @@ const BacktestEngine = () => {
                   {/* 紧凑表 + 行 hover 高亮（行级 +1.5px bg / 指标列加白）+ 顶部 header sticky */}
                   <table className="w-full text-[10px] tabular-nums border-collapse">
                     <thead>
-                      <tr className="border-b border-white/8 sticky top-0 bg-[#0b0b14]/95 backdrop-blur-sm">
-                        <th className="text-left font-medium text-[#778] py-1.5 pr-2">{t('指标')}</th>
+                      {/* sticky 必须放 <th> 才生效（tr/thead 上的 sticky 大部分浏览器不渲染）*/}
+                      <tr className="border-b border-white/8">
+                        <th className="text-left font-medium text-[#778] py-1.5 pr-2 sticky top-0 bg-[#0b0b14]/95 backdrop-blur-sm">{t('指标')}</th>
                         {all.map(run => (
-                          <th key={run.id} className="text-right font-mono font-medium py-1.5 px-1.5 whitespace-nowrap" style={{ color: run.color }}>
+                          <th key={run.id} className="text-right font-mono font-medium py-1.5 px-1.5 whitespace-nowrap sticky top-0 bg-[#0b0b14]/95 backdrop-blur-sm" style={{ color: run.color }}>
                             <div className="flex items-center gap-1 justify-end">
                               <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: run.color }} />
                               <span className="truncate max-w-[100px]" title={run.label}>{run.label}</span>

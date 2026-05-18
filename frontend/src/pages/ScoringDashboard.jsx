@@ -131,11 +131,12 @@ const CompareModal = ({ open, onClose, stocks }) => {
           {/* KPI 表（sticky header + 每行 winner 高亮）*/}
           <div className="glass-card p-3 overflow-x-auto">
             <table className="w-full text-left text-[11px]">
-              <thead className="sticky top-0 z-10 bg-[var(--bg-card)]/95 backdrop-blur-sm">
+              <thead>
+                {/* sticky 必须放 <th> 才生效（thead/tr 上的 sticky 大部分浏览器不渲染）*/}
                 <tr className="text-[10px] text-[#a0aec0] border-b border-white/8">
-                  <th className="py-2 pr-2 font-medium">{t('指标')}</th>
+                  <th className="py-2 pr-2 font-medium sticky top-0 z-10 bg-[var(--bg-card)]/95 backdrop-blur-sm">{t('指标')}</th>
                   {stocks.map((s, i) => (
-                    <th key={s.ticker} className="py-2 px-2 font-medium font-mono" style={{ color: COMPARE_COLORS[i] }}>{s.ticker}</th>
+                    <th key={s.ticker} className="py-2 px-2 font-medium font-mono sticky top-0 z-10 bg-[var(--bg-card)]/95 backdrop-blur-sm" style={{ color: COMPARE_COLORS[i] }}>{s.ticker}</th>
                   ))}
                 </tr>
               </thead>
