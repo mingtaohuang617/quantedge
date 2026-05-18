@@ -58,6 +58,9 @@ export default function StockGene() {
   // 评分定时刷新 scheduler
   const [schedulerStatus, setSchedulerStatus] = useState(null);
   const [showScheduler, setShowScheduler] = useState(false);
+  // 评分是否在当前部署可用（Vercel serverless 上不可用，需 self-host backend）
+  const [scoringUnavailable, setScoringUnavailable] = useState(false);
+  const [dismissedScoringBanner, setDismissedScoringBanner] = useState(false);
   // 上次看过 alerts 的时间戳（localStorage），用于计算未读
   const [lastSeenAlertsAt, setLastSeenAlertsAt] = useState(() => {
     try { return localStorage.getItem(LAST_SEEN_ALERTS_KEY) || ""; }
@@ -336,12 +339,16 @@ export default function StockGene() {
     // 并行跑所有引擎；任一失败不影响其它
     setScoringTicker(ticker);
     try {
-      await Promise.allSettled(
+      const results = await Promise.allSettled(
         ENGINE_IDS.map(id => apiFetch(
           `/stock-gene/${encodeURIComponent(ticker)}/${eng(id).scoreRoute}`,
           { method: "POST" },
         ))
       );
+      // 任一返回 scoring_requires_self_hosted_backend 即标记不可用
+      if (results.some(r => r.status === "fulfilled" && r.value?.error === "scoring_requires_self_hosted_backend")) {
+        setScoringUnavailable(true);
+      }
       await reload();
     } finally {
       setScoringTicker(null);
@@ -350,14 +357,19 @@ export default function StockGene() {
 
   // ── 评分（单个，持久化） ───────────────────────────────
   // 通过 ENGINES 配置查表，避免 if/else 多分支
+  // Vercel serverless 上 score 路由会返回 503 (error=scoring_requires_self_hosted_backend)
+  // → 设 scoringUnavailable=true 触发友好提示，但不阻断 CRUD
   const handleScore = useCallback(async (ticker, engineId = engine) => {
     setScoringTicker(ticker);
     try {
       const cfg = eng(engineId);
-      await apiFetch(
+      const res = await apiFetch(
         `/stock-gene/${encodeURIComponent(ticker)}/${cfg.scoreRoute}`,
         { method: "POST" },
       );
+      if (res?.error === "scoring_requires_self_hosted_backend") {
+        setScoringUnavailable(true);
+      }
       await reload();
     } finally {
       setScoringTicker(null);
@@ -369,7 +381,10 @@ export default function StockGene() {
     if (items.length === 0) return;
     setBatchScoring(true);
     try {
-      await apiFetch(`/stock-gene/${eng(engine).scoreAllRoute}`, { method: "POST" });
+      const res = await apiFetch(`/stock-gene/${eng(engine).scoreAllRoute}`, { method: "POST" });
+      if (res?.error === "scoring_requires_self_hosted_backend") {
+        setScoringUnavailable(true);
+      }
       await reload();
     } finally {
       setBatchScoring(false);
@@ -944,6 +959,30 @@ export default function StockGene() {
           </button>
         </div>
       </div>
+
+      {/* Vercel 上评分不可用提示（仅评分受影响；CRUD/分组/标签/导入导出可用） */}
+      {scoringUnavailable && !dismissedScoringBanner && (
+        <div className="px-3 py-1.5 glass-card border border-amber-500/30 bg-amber-500/5 flex items-center gap-2 text-[10px]">
+          <AlertCircle size={12} className="text-amber-400 shrink-0" />
+          <span className="text-amber-100">
+            <span className="font-semibold">评分功能未启用</span>
+            ：当前部署是 Vercel serverless（无 pandas/numpy）。可以加股票、改标签、分组、备份，
+            但 4 引擎评分需 self-hosted backend。
+            <a
+              href="https://github.com/mingtaohuang617/quantedge/blob/main/docs/STOCK_GENE_ONBOARDING.md"
+              target="_blank" rel="noreferrer"
+              className="ml-1 underline text-amber-300/90 hover:text-amber-200"
+            >上手指南 ↗</a>
+          </span>
+          <button
+            onClick={() => setDismissedScoringBanner(true)}
+            className="ml-auto text-amber-300/70 hover:text-amber-100"
+            title="本次会话不再显示"
+          >
+            <X size={10} />
+          </button>
+        </div>
+      )}
 
       {/* 未跟踪的持仓：建议一键加入观察 */}
       {untrackedHoldings.length > 0 && !batchProgress && (
