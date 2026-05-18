@@ -536,8 +536,12 @@ const MultiTopNTable = ({ rows }) => {
 };
 
 // ─── Top 持仓表（含 new/held/dropped 标记）─────────────────────
-const TopHoldingsTable = ({ holdings, asOf, summary }) => {
-  if (!holdings || holdings.length === 0) return <div className="text-[#a0aec0] text-xs">最新预测不可用。`train`</div>;
+const TopHoldingsTable = ({ holdings, asOf, summary, errorDetail }) => {
+  if (!holdings || holdings.length === 0) return (
+    <div className="text-[#a0aec0] text-xs">
+      {errorDetail || "最新预测不可用。`train`"}
+    </div>
+  );
   return (
     <div>
       <div className="flex items-center justify-between mb-1.5">
@@ -784,7 +788,7 @@ export default function MiningAlpha() {
             <ArrowRight size={10} className="text-[#a0aec0]" />
             <span className="text-[10px] text-[#a0aec0] font-normal">vs 上周持仓</span>
           </div>
-          <TopHoldingsTable holdings={topHoldings.holdings} asOf={topHoldings.as_of} summary={summary} />
+          <TopHoldingsTable holdings={topHoldings?.holdings} asOf={topHoldings?.as_of} summary={summary} errorDetail={topHoldings?.detail} />
         </div>
       </div>
 
