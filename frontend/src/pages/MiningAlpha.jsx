@@ -633,30 +633,37 @@ export default function MiningAlpha() {
   const [pickedAlpha, setPickedAlpha] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  // 防 fetch 竞态：每次新 fetch 自增 seq，回包时如果 seq 不是当前 latest 就丢弃。
+  // 场景：快速切 run A→B 时，如果 A 的回包慢于 B，旧的 A 数据不会覆盖新的 B 状态。
+  const fetchSeqRef = useRef(0);
 
   const fetchAll = async () => {
+    const mySeq = ++fetchSeqRef.current;
+    const isStale = () => fetchSeqRef.current !== mySeq;
     setLoading(true);
     setError(null);
     try {
       const s = await apiFetch("/mining-alpha/status").catch(() => null);
+      if (isStale()) return;
       setStatus(s);
+      const guarded = (setter) => (val) => { if (!isStale()) setter(val); };
       const tasks = [];
       if (s?.files?.ic_report) {
-        tasks.push(apiFetch("/mining-alpha/ic-report?top_n=20").catch(() => []).then(setIC));
-        tasks.push(apiFetch("/mining-alpha/ic-heatmap?top_n=20&recent_months=24").catch(() => null).then(setHeatmap));
+        tasks.push(apiFetch("/mining-alpha/ic-report?top_n=20").catch(() => []).then(guarded(setIC)));
+        tasks.push(apiFetch("/mining-alpha/ic-heatmap?top_n=20&recent_months=24").catch(() => null).then(guarded(setHeatmap)));
       }
-      if (s?.files?.feature_importance) tasks.push(apiFetch("/mining-alpha/feature-importance?top_n=20").catch(() => []).then(setImportance));
-      if (s?.files?.backtest_report) tasks.push(apiFetch("/mining-alpha/backtest").catch(() => null).then(setBacktest));
-      if (s?.files?.predictions) tasks.push(apiFetch("/mining-alpha/top-holdings?top_n=20").catch(() => ({})).then(setTopHoldings));
-      if (s?.files?.regime) tasks.push(apiFetch("/mining-alpha/regime").catch(() => []).then(setRegime));
-      if (s?.files?.fold_ic) tasks.push(apiFetch("/mining-alpha/fold-ic").catch(() => []).then(setFoldIC));
+      if (s?.files?.feature_importance) tasks.push(apiFetch("/mining-alpha/feature-importance?top_n=20").catch(() => []).then(guarded(setImportance)));
+      if (s?.files?.backtest_report) tasks.push(apiFetch("/mining-alpha/backtest").catch(() => null).then(guarded(setBacktest)));
+      if (s?.files?.predictions) tasks.push(apiFetch("/mining-alpha/top-holdings?top_n=20").catch(() => ({})).then(guarded(setTopHoldings)));
+      if (s?.files?.regime) tasks.push(apiFetch("/mining-alpha/regime").catch(() => []).then(guarded(setRegime)));
+      if (s?.files?.fold_ic) tasks.push(apiFetch("/mining-alpha/fold-ic").catch(() => []).then(guarded(setFoldIC)));
       // alerts: status.files.alerts 暂未声明，直接尝试拉取
-      tasks.push(apiFetch("/mining-alpha/alerts").catch(() => ({ alerts: [] })).then(r => setAlerts(r?.alerts || [])));
+      tasks.push(apiFetch("/mining-alpha/alerts").catch(() => ({ alerts: [] })).then(r => { if (!isStale()) setAlerts(r?.alerts || []); }));
       await Promise.all(tasks);
     } catch (e) {
-      setError(String(e));
+      if (!isStale()) setError(String(e));
     } finally {
-      setLoading(false);
+      if (!isStale()) setLoading(false);
     }
   };
 
@@ -669,7 +676,11 @@ export default function MiningAlpha() {
     }
   };
 
-  useEffect(() => { fetchAll(); }, []);
+  useEffect(() => {
+    fetchAll();
+    // 卸载时让 in-flight 回包全部失效
+    return () => { fetchSeqRef.current++; };
+  }, []);
 
   const regimeSegments = useMemo(() => mergeRegimeSegments(regime), [regime]);
   const allDone = status && status.files && Object.values(status.files).every(Boolean);
