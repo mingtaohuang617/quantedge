@@ -1,6 +1,0 @@
-# 临时禁用 stock-gene serverless API 路由
-# 这些函数（commit f51bc5f 引入）让 Vercel 部署一直失败
-# 前端 isDemoMode 兜底，stock-gene 页面会自动降级到 demo 模式
-# 未来若 Vercel 限制确认 + 修复后，删此文件恢复
-api/stock-gene/
-api/stock-gene.js
