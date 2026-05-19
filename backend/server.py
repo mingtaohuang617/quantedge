@@ -34,6 +34,7 @@ except ImportError:
     pass  # python-dotenv 未装时静默跳过；用户可改用 PowerShell setx
 
 import numpy as np
+import pandas as pd  # mining_alpha 路由的 pd.notna/pd.isna 直接用
 import yfinance as yf
 
 import logging_config  # noqa: F401  — 副作用：配置轮转日志
