@@ -84,10 +84,14 @@
   - 验收标准：`backend/notifiers/` 下新增 `telegram.py` 和 `wecom.py`，从环境变量读 token / webhook url；`pipeline.py` 在 alerts severity 为 `high` 时触发推送；新增 `.env.example` 说明配置项；推送失败不影响管道主流程。
   - 预估工作量：M
 
-- [ ] **[P2]** 定时任务（Windows Task Scheduler / cron）
+- [x] **[P2]** 定时任务（Windows Task Scheduler / cron）
   - 背景：`backend/README.md` 里有 cron 示例但没真正部署。本地至少应该每个交易日收盘后自动跑一次。
   - 验收标准：`backend/scripts/` 下提供 `run_scheduled.bat`（Windows）+ `install_cron.sh`（macOS/Linux），README 写明安装步骤；脚本内部调用 `npm run refresh-data` 等价命令；首次运行能在 `output/cron.log` 看到日志。
   - 预估工作量：S
+  - **完成（2026-05-19）**：核心脚本已存在（`run_scheduled.bat` + `install_cron.sh`），本次补 Windows 一键安装器 + 完善 README。
+    - 新增 `backend/scripts/install_pipeline_scheduler.ps1`：注册 `QuantEdgePipelineDaily` 任务，每周一到周五 16:30 跑 `run_scheduled.bat`；带 S4U LogonType（普通用户不暴露密码）+ 笔记本电池兼容 + 错过补跑 + 失败重试 3 次；与 mining-alpha 专用 `install_task_scheduler.ps1` 隔离不冲突。
+    - 更新 `backend/README.md` 定时运行 section：把散文式说明改为指向具体脚本（macOS/Linux → `./install_cron.sh`，Windows → `.\install_pipeline_scheduler.ps1`），加测试/卸载命令；mining-alpha 独立调度的注释提示。
+    - 现有 `run_scheduled.bat` 已正确处理 venv + cron.log 时间戳 + exit code（之前实现的留存），不动。
 
 ### 前端
 
