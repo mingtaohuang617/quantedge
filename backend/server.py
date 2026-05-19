@@ -34,6 +34,7 @@ except ImportError:
     pass  # python-dotenv 未装时静默跳过；用户可改用 PowerShell setx
 
 import numpy as np
+import pandas as pd  # mining_alpha 路由的 pd.notna/pd.isna 直接用
 import yfinance as yf
 
 import logging_config  # noqa: F401  — 副作用：配置轮转日志
@@ -1574,7 +1575,7 @@ class ScreenReq(BaseModel):
     min_market_cap_b: float | None = None
     include_etf: bool = False
     exclude_in_watchlist: bool = True
-    limit: int = 200
+    limit: int = 2000
     precise: bool = False        # True = strict mode（仅核心关键词，精度高）
     include_no_mcap: bool = True # marketCap 缺失的标的是否纳入（默认 True，避免静默丢 A 股）
     # 价值型 5 维（v2.0 新增；任一非 None 即启用）：

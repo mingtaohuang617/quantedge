@@ -241,7 +241,7 @@ export default function Screener10x() {
         markets,
         include_etf: includeETF,
         exclude_in_watchlist: true,
-        limit: 200,
+        limit: 2000,   // 之前 200 太严 — mega-cap 被小盘卡位排序挤出
         precise,
       };
       if (activeStrategy === "growth") {

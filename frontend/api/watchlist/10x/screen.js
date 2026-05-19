@@ -23,7 +23,7 @@ export default async function handler(req, res) {
       min_market_cap_b: body.min_market_cap_b ?? null,
       include_etf: !!body.include_etf,
       exclude_in_watchlist: body.exclude_in_watchlist !== false,
-      limit: Number.isInteger(body.limit) ? body.limit : 200,
+      limit: Number.isInteger(body.limit) ? body.limit : 2000,
       precise: !!body.precise,
       include_no_mcap: body.include_no_mcap !== false,
       // 价值型 5 维（v2.0；之前漏透传导致前端 PE/PB/股息/ROE/D/E 过滤完全无效）
