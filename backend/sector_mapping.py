@@ -38,9 +38,12 @@ SUPERTRENDS: dict[str, dict] = {
         "note": "AI 软硬件 / 加速器 / HBM / AI 应用",
         "keywords_strict_zh": [
             "AI", "HBM", "算力", "智能计算", "人工智能",
+            # AAPL/SONY 等消费电子大厂自研 AI 芯片，归入 AI 算力赛道
+            "消费电子",
         ],
         "keywords_strict_en": [
             "Artificial Intelligence",
+            "Consumer Electronics",
         ],
         # broad：软件 / IT 服务（AI 公司常被归到这些板块，但也含纯软件公司）
         "keywords_broad_zh": [
@@ -87,10 +90,13 @@ SUPERTRENDS: dict[str, dict] = {
         "note": "数据中心 / 电力 / 公共事业",
         "keywords_strict_zh": [
             "数据中心", "新型电力", "火力发电", "水力发电",
+            # AI 数据中心耗电激增 → 独立电力商 (CEG / VST / NRG) 是直接受益者
+            "独立电力",
         ],
         "keywords_strict_en": [
             "Data Center",
             "Power Producers",
+            "Independent Power",
         ],
         # broad：泛公用事业（含非数据中心配套的水电气公司）
         "keywords_broad_zh": ["公共事业"],
