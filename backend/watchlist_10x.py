@@ -348,7 +348,7 @@ def screen_candidates(
     min_market_cap_b: float | None = None,
     include_etf: bool = False,
     exclude_in_watchlist: bool = True,
-    limit: int = 200,
+    limit: int = 2000,  # 之前 200 太严 — mega-cap (MU/NVDA/AVGO 等市值 100B+) 被小盘卡位排序挤出
     precise: bool = False,
     include_no_mcap: bool = True,
     # 价值型 5 维筛选（v2.0 新增）：
