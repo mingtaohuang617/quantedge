@@ -1103,7 +1103,7 @@ const UserProfilePanel = ({ open, onClose, theme, toggleTheme }) => {
           <div className="rounded-lg bg-white/[0.03] border border-white/5 p-3 space-y-1.5 text-[10px]">
             <div className="flex items-center justify-between">
               <span className="text-[#667]">{t('版本')}</span>
-              <span className="text-[#a0aec0] font-mono">v0.6.0</span>
+              <span className="text-[#a0aec0] font-mono">v0.8.0</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-[#667]">{t('许可')}</span>
@@ -2526,7 +2526,7 @@ function QuantPlatformInner() {
             <kbd className="px-1 py-[1px] rounded bg-white/5 border border-white/10 font-mono text-[9px] ml-1">Tab</kbd>
             <span>{t('切换')}</span>
           </span>
-          <span className="text-[9px] md:text-[10px] text-[#778] font-mono">v0.7.0 · <span className="text-indigo-400/80">PWA</span></span>
+          <span className="text-[9px] md:text-[10px] text-[#778] font-mono">v0.8.0 · <span className="text-indigo-400/80">PWA</span></span>
         </div>
       </footer>
 
