@@ -1571,7 +1571,7 @@ class ScreenReq(BaseModel):
     min_market_cap_b: float | None = None
     include_etf: bool = False
     exclude_in_watchlist: bool = True
-    limit: int = 200
+    limit: int = 2000
     precise: bool = False        # True = strict mode（仅核心关键词，精度高）
     include_no_mcap: bool = True # marketCap 缺失的标的是否纳入（默认 True，避免静默丢 A 股）
     # 价值型 5 维（v2.0 新增；任一非 None 即启用）：

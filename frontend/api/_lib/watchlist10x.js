@@ -284,7 +284,7 @@ export async function screenCandidates(opts = {}) {
     min_market_cap_b = null,
     include_etf = false,
     exclude_in_watchlist = true,
-    limit = 200,
+    limit = 2000,   // 之前 200 太严 — mega-cap (MU/NVDA/AVGO 等市值 100B+) 被小盘卡位排序挤出
     precise = false,
     include_no_mcap = true,
     // 价值型 5 维（v2.0 新增）
