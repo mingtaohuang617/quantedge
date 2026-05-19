@@ -5,6 +5,68 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-05-19 — UI/UX optimization sprint
+
+> 本版本聚焦 UI/UX 体验深度抛光，基于两份独立 design critique PDF
+> （克制派 + 高级感派）+ design-critique skill 推动，覆盖 Phase 0-5
+> 主体 + 多轮微调。功能特性照常累积（详见后续 Added 区）。
+
+### UI/UX — 主体优化（PR #91）
+
+- **色彩语义化收敛**：7 色 accent 折叠到 5 角色（`--sem-brand` indigo→cyan 渐变 / `--sem-up` / `--sem-down` / `--sem-warn` / `--sem-neutral`）
+  - Badge 组件 `info/violet/cyan` 三种 variant 折叠到 neutral / brand，移除 sky / fuchsia / emerald 装饰用法
+  - sector chip 多色编码（TAG_COLORS）保留 — 是合法的数据编码
+  - 视觉残留 sky/violet/rose/emerald = 0（量化评分页验证）
+- **字号纪律 5 档制**：删除 64 处 `text-[8px]`（< WCAG 12px 阈值），收敛到 9 / 10 / 11 / 12 / 16 五档
+- **回测引擎 QQQ bug 修复**：基准数据缺失时 5 处 null-safety 取代假基准线（之前 `100 + i*线性递增` 伪造导致 Underwater 显示假 0% 平直线）
+- **KPI 卡 vs 基准副标**：回测 6 张 KPI 卡（总收益 / 年化 / α / 终值 / 夏普 / 最大回撤）全部加 vs 基准副标
+  - 新增 `annBenchReturn` + `benchSharpe` 计算
+  - baseline 行（横评表）补全
+- **全局键盘流**：⌘K 命令面板（已存在，新接通 ShortcutsModal） / 1-7 切 tab / J K 上下标的 / R 刷新 / / 聚焦搜索 / ? 速查表 / ⌘. 切深浅
+- **DataFreshnessPill 持久状态条**：header 右侧四态显示（实时 / 缓存 / 离线 / 过期）+ 一键刷新，30s 自动重算"多久前"
+- **顶部 Tab 紧凑化**：gap-0.5 + px-1.5 + size-12 让 8 个 tab 横向无溢出
+- **ticker tape 自适应**：侧边栏模式 flex-1 拉长（200-900px）；常规模式响应式（260/300/360/420px）
+- **市场指数条分层**：核心 always / HSI VIX lg+ / 板块热力 xl+，去掉 overflow-x-auto 不再横向滚动
+- **移动端底部 Tab Bar**：`fixed bottom-0` 替代顶部 squeeze，iOS 风 icon + 微标签 + safe-area-inset-bottom
+- **空状态 CTA**：回测无标的时显示「添加 3 只以上标的开始回测」+ 两个引导按钮
+- **抛光层**：sidebar tab 下划线（与顶部呼应）/ ambient drift 42s / btn-tactile 2 通道（颜色 + 位移）/ 主价格 28px 金属渐变（白→slate-300）/ K 线 1.1s stroke 描边 / number spinner 隐藏 / 模态命中区 ≥24px / scroll-spy 详情 5 锚点 / CompareModal 4 标的对比 winner 高亮
+
+### UI/UX — 顶部 Tab 2 行短标签（PR #92）
+
+- 8 tab + 4 字中文 label 在 ~1900 宽屏溢出问题修复
+- `TAB_CFG` 每条加 `short: ["量化","评分"]` 字段
+- 顶部 nav 渲染：`lang === 'zh'` + `c.short` 存在时 flex-col 堆叠 2 行；英文 fallback 单行
+- `aria-label` / `title` 保留完整 label（无障碍 + hover tooltip）
+- 字号 11→10，py 收紧避免 2 行后超高
+- 8 个 4 字 tab 横向节省 ~50% 宽度
+
+### UI/UX — i18n 清理 + 移动端底栏短标签（PR #97）
+
+- `i18n.jsx` 5 处 `Duplicate key` 警告全部消除（运行时行为不变，删 shadow 定义）
+  - `'天'` / `'未知'` / `'胜率'` / `'宏观调整'` / `'权重'` 各有 2 处
+  - vite build 日志从 5 warnings → 0 warnings
+- `MobileBottomNav` 复用 TAB_CFG.short，修复「Mining Alpha」/「10x 猎手」375px 移动屏溢出
+  - flex-col + leading-[1.05] + tracking-tight 让 2 行紧贴
+  - 单 tab 高度 ~49px，main pb-14 (56px) 覆盖足够
+
+### UI/UX — 表格抛光 + 8px 清理（PR #98）
+
+- **横评表/CompareModal 第一列横向 sticky**：
+  - `BacktestEngine 策略横评表` 指标列横向滚动时锁定在左
+  - `CompareModal KPI 表` 同样处理
+  - `sticky left-0 z-20 bg-[var(--bg-card)]`（z 高于顶部 sticky thead 的 z-10）+ group-hover 联动 bg 跨列高亮
+- **13 处 text-[8px] → text-[9px]**（main 合并后 stock-gene 子组件 + ValueDCFCalculator / WatchlistCard 残留）
+
+### Vercel 部署调研 + 文档化（PR #104）
+
+- 确认 Vercel **Hobby plan 硬上限 12 个 serverless function**
+- 项目当前 22 函数（llm 4 + stock-gene 10 + universe 1 + watchlist 6 + yahoo 1），刚好踩线
+- `.vercelignore` 排除 stock-gene 10 个 → 部署的函数 = 12 贴顶
+- 影响：生产 `quantedge-chi.vercel.app` 上 stock-gene tab = demo 模式
+- 团队决策：保持现状。`.vercelignore` 注释写入完整根因 + 3 个恢复方案（升级 Pro / catch-all 合并 / 现状）
+
+---
+
 ### Added
 - **Finnhub free tier US fundamentals enrich** (PR #96)：替代被 Yahoo 限频严重的 yfinance .info，用 Finnhub 免费 API 给全市场 12k 美股拉 PE/PB/股息/ROE/D/E
   - `backend/data_sources/finnhub_source.py`：`fetch_fundamentals_finnhub(symbol)` 单只拉 + `enrich_us_fundamentals_finnhub(items)` 批量；字段映射 `peNormalizedAnnual / pbAnnual / dividendYieldIndicatedAnnual / roeRfy / totalDebt/totalEquityAnnual`；429 限频自动 sleep 20s + retry；401/403 鉴权失败立即终止；网络错误返回 None 不阻断
