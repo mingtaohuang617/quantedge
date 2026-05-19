@@ -841,3 +841,7 @@ export default function MiningAlpha() {
     </div>
   );
 }
+
+// 用于单测：把 3 个子组件 named export 出来。生产代码不消费这些 import，
+// 只有 MiningAlpha.test.jsx 用。
+export { AlertsBanner, TopHoldingsTable, RunPipelinePanel };
