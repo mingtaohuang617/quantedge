@@ -186,19 +186,20 @@ const ICHeatmap = ({ data, onPickAlpha }) => {
 };
 
 // ─── 因子详情 modal (点击 alpha 弹) ─────────────────────────
-const FactorDetailModal = ({ alphaNum, onClose }) => {
+const FactorDetailModal = ({ alphaNum, runId, onClose }) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     if (alphaNum == null) return;
     let cancelled = false;
     setLoading(true);
-    apiFetch(`/mining-alpha/factor-detail/${alphaNum}`)
+    const qs = runId ? `?run_id=${encodeURIComponent(runId)}` : "";
+    apiFetch(`/mining-alpha/factor-detail/${alphaNum}${qs}`)
       .then(d => { if (!cancelled) setData(d); })
       .catch(() => { if (!cancelled) setData(null); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [alphaNum]);
+  }, [alphaNum, runId]);
   if (alphaNum == null) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
@@ -647,16 +648,20 @@ export default function MiningAlpha() {
       if (isStale()) return;
       setStatus(s);
       const guarded = (setter) => (val) => { if (!isStale()) setter(val); };
+      // 锁定 status 返回的 run_id，把它显式带进后续 6 个 GET。
+      // 防 switch-run 在 fetchAll 中途改写 latest.txt 导致跨 run 数据混读。
+      const rid = s?.current_run_id ? `&run_id=${encodeURIComponent(s.current_run_id)}` : "";
+      const ridFirst = s?.current_run_id ? `?run_id=${encodeURIComponent(s.current_run_id)}` : "";
       const tasks = [];
       if (s?.files?.ic_report) {
-        tasks.push(apiFetch("/mining-alpha/ic-report?top_n=20").catch(() => []).then(guarded(setIC)));
-        tasks.push(apiFetch("/mining-alpha/ic-heatmap?top_n=20&recent_months=24").catch(() => null).then(guarded(setHeatmap)));
+        tasks.push(apiFetch(`/mining-alpha/ic-report?top_n=20${rid}`).catch(() => []).then(guarded(setIC)));
+        tasks.push(apiFetch(`/mining-alpha/ic-heatmap?top_n=20&recent_months=24${rid}`).catch(() => null).then(guarded(setHeatmap)));
       }
-      if (s?.files?.feature_importance) tasks.push(apiFetch("/mining-alpha/feature-importance?top_n=20").catch(() => []).then(guarded(setImportance)));
-      if (s?.files?.backtest_report) tasks.push(apiFetch("/mining-alpha/backtest").catch(() => null).then(guarded(setBacktest)));
-      if (s?.files?.predictions) tasks.push(apiFetch("/mining-alpha/top-holdings?top_n=20").catch(() => ({})).then(guarded(setTopHoldings)));
-      if (s?.files?.regime) tasks.push(apiFetch("/mining-alpha/regime").catch(() => []).then(guarded(setRegime)));
-      if (s?.files?.fold_ic) tasks.push(apiFetch("/mining-alpha/fold-ic").catch(() => []).then(guarded(setFoldIC)));
+      if (s?.files?.feature_importance) tasks.push(apiFetch(`/mining-alpha/feature-importance?top_n=20${rid}`).catch(() => []).then(guarded(setImportance)));
+      if (s?.files?.backtest_report) tasks.push(apiFetch(`/mining-alpha/backtest${ridFirst}`).catch(() => null).then(guarded(setBacktest)));
+      if (s?.files?.predictions) tasks.push(apiFetch(`/mining-alpha/top-holdings?top_n=20${rid}`).catch(() => ({})).then(guarded(setTopHoldings)));
+      if (s?.files?.regime) tasks.push(apiFetch(`/mining-alpha/regime${ridFirst}`).catch(() => []).then(guarded(setRegime)));
+      if (s?.files?.fold_ic) tasks.push(apiFetch(`/mining-alpha/fold-ic${ridFirst}`).catch(() => []).then(guarded(setFoldIC)));
       // alerts: status.files.alerts 暂未声明，直接尝试拉取
       tasks.push(apiFetch("/mining-alpha/alerts").catch(() => ({ alerts: [] })).then(r => { if (!isStale()) setAlerts(r?.alerts || []); }));
       await Promise.all(tasks);
@@ -837,7 +842,11 @@ export default function MiningAlpha() {
       )}
 
       {/* 因子详情 modal */}
-      <FactorDetailModal alphaNum={pickedAlpha} onClose={() => setPickedAlpha(null)} />
+      <FactorDetailModal alphaNum={pickedAlpha} runId={status?.current_run_id} onClose={() => setPickedAlpha(null)} />
     </div>
   );
 }
+
+// 用于单测：把 3 个子组件 named export 出来。生产代码不消费这些 import，
+// 只有 MiningAlpha.test.jsx 用。
+export { AlertsBanner, TopHoldingsTable, RunPipelinePanel };
