@@ -9,7 +9,9 @@
     "enriched_market_cap": 5200,
     "enriched_industry": 2199,
     "fundamentals_smoke_count": 57,
-    "fundamentals_note": "smoke patch v3 (~110 representative tickers across 3 markets); 跑 sync_*.py --enrich-fundamentals 获取全市场（Yahoo 限频严重）"
+    "fundamentals_note": "smoke patch v3 (~110 representative tickers across 3 markets); 跑 sync_*.py --enrich-fundamentals 获取全市场（Yahoo 限频严重）",
+    "sector_smoke_patch_count": 25,
+    "sector_smoke_note": "手填 ~22 只主流成长股 sector 数据；解决 yfinance enrich 对 mega-cap 不可靠导致的 supertrend 不命中问题"
   },
   "items": [
     {
@@ -4530,8 +4532,8 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": true,
-      "sector": null,
-      "industry": null,
+      "sector": "半导体",
+      "industry": "半导体",
       "marketCap": 224273160000.0
     },
     {
@@ -14399,8 +14401,8 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
+      "sector": "软件基础设施",
+      "industry": "应用软件",
       "marketCap": 115556723967.6
     },
     {
@@ -18923,9 +18925,9 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "数据中心 REIT",
+      "industry": "数据中心",
+      "marketCap": 84000000000.0
     },
     {
       "ticker": "EQPT",
@@ -24856,8 +24858,8 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
+      "sector": "互联网内容与信息",
+      "industry": "互联网内容与信息",
       "marketCap": 4643093520000.0,
       "pe": 24.0,
       "pb": 7.5,
@@ -24873,8 +24875,8 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
+      "sector": "互联网内容与信息",
+      "industry": "互联网内容与信息",
       "marketCap": 4673020040000.0
     },
     {
@@ -47307,8 +47309,8 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
+      "sector": "半导体",
+      "industry": "半导体",
       "marketCap": 186568540000.0
     },
     {
@@ -57212,8 +57214,8 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
+      "sector": "独立电力生产商",
+      "industry": "独立电力",
       "marketCap": 16894205805.12
     },
     {
@@ -58393,8 +58395,8 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
+      "sector": "汽车制造",
+      "industry": "电动车",
       "marketCap": 1467812003264.22,
       "pe": 70.0,
       "pb": 12.0,
@@ -59022,8 +59024,8 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
+      "sector": "半导体",
+      "industry": "半导体",
       "marketCap": 255754276126.82
     },
     {
@@ -65111,9 +65113,9 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "软件基础设施",
+      "industry": "软件基础设施",
+      "marketCap": 36000000000.0
     },
     {
       "ticker": "ZSQR",
@@ -71155,9 +71157,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": true,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "互联网零售",
+      "industry": "互联网零售",
+      "marketCap": 180000000000.0
     },
     {
       "ticker": "BABO",
@@ -78838,9 +78840,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "通讯设备",
+      "industry": "光通信",
+      "marketCap": 18000000000.0
     },
     {
       "ticker": "CIF",
@@ -80211,9 +80213,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "通讯设备",
+      "industry": "激光与光电子",
+      "marketCap": 13000000000.0
     },
     {
       "ticker": "COHX",
@@ -85146,9 +85148,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "数据中心 REIT",
+      "industry": "数据中心",
+      "marketCap": 60000000000.0
     },
     {
       "ticker": "DLR$J",
@@ -93940,9 +93942,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "通讯设备",
+      "industry": "光通信",
+      "marketCap": 11000000000.0
     },
     {
       "ticker": "FNB",
@@ -104990,9 +104992,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "数据中心 REIT",
+      "industry": "数据中心 REIT",
+      "marketCap": 35000000000.0
     },
     {
       "ticker": "IROC",
@@ -117556,9 +117558,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "软件基础设施",
+      "industry": "软件基础设施",
+      "marketCap": 38000000000.0
     },
     {
       "ticker": "NETL",
@@ -117964,9 +117966,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": true,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "汽车制造",
+      "industry": "电动车",
+      "marketCap": 8000000000.0
     },
     {
       "ticker": "NIQ",
@@ -118792,9 +118794,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "独立电力生产商",
+      "industry": "独立电力",
+      "marketCap": 23000000000.0
     },
     {
       "ticker": "NRGD",
@@ -121161,9 +121163,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "软件基础设施",
+      "industry": "软件基础设施",
+      "marketCap": 460000000000.0
     },
     {
       "ticker": "ORCL$D",
@@ -134655,9 +134657,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "软件基础设施",
+      "industry": "应用软件",
+      "marketCap": 60000000000.0
     },
     {
       "ticker": "SNOY",
@@ -141143,9 +141145,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "半导体",
+      "industry": "半导体",
+      "marketCap": 1200000000000.0
     },
     {
       "ticker": "TSME",
@@ -145586,9 +145588,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "独立电力生产商",
+      "industry": "独立电力",
+      "marketCap": 65000000000.0
     },
     {
       "ticker": "VSTS",
@@ -148937,9 +148939,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": true,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "汽车制造",
+      "industry": "电动车",
+      "marketCap": 12000000000.0
     },
     {
       "ticker": "XPH",

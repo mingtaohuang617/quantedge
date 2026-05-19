@@ -348,7 +348,7 @@ def screen_candidates(
     min_market_cap_b: float | None = None,
     include_etf: bool = False,
     exclude_in_watchlist: bool = True,
-    limit: int = 200,
+    limit: int = 2000,  # 之前 200 太严 — mega-cap (MU/NVDA/AVGO 等市值 100B+) 被小盘卡位排序挤出
     precise: bool = False,
     include_no_mcap: bool = True,
     # 价值型 5 维筛选（v2.0 新增）：
@@ -415,9 +415,11 @@ def screen_candidates(
             sec_matched &= wanted
             ind_matched &= wanted
 
-            # precise 模式 fallback：sec/ind 都不命中时再查名称（保持原有 OR 逻辑）
+            # sec/ind 都不命中时 fallback 查名称（broad + precise 都启用 —
+            # 之前限制 precise=True，导致 sector 为空的票如 TSM/EQIX/BABA
+            # 在默认 broad 模式下永远无救；strict 关键词如 "Semiconductor"/"AI" 特异度高，假阳性低）
             name_reasons: dict[str, list[str]] = {}
-            if precise and not (sec_matched or ind_matched):
+            if not (sec_matched or ind_matched):
                 _, name_reasons = _sm.name_matches_strict_with_reasons(
                     name_val, wanted, extra_user_trends=user_trends,
                 )
