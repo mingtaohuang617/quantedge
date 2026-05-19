@@ -39,7 +39,7 @@ import {
 // 返回 { usOpen, usPre, usPost, hkOpen, cnOpen, krOpen }，仅判断时段（不含节假日）
 // 注：使用 IANA 时区名 (America/New_York 等)，DST 由 Intl 自动处理 — 美股冬令时
 //     EST UTC-5 / 夏令时 EDT UTC-4 切换无需手动调整
-function getMarketsStatus(now = new Date()) {
+export function getMarketsStatus(now = new Date()) {
   const partsIn = (tz) => {
     const arr = new Intl.DateTimeFormat('en-US', {
       timeZone: tz, weekday: 'short', hour: 'numeric', minute: 'numeric', hour12: false,
