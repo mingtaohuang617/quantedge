@@ -78,7 +78,7 @@ FRONTEND_DATA_PATH = BASE_DIR.parent / "frontend" / "src" / "data.js"
 
 # ─── Import pipeline components ────────────────────────
 from config import TICKERS as BUILTIN_TICKERS, SECTOR_ETF_MAP
-from factors import calc_rsi, calc_momentum, calc_stock_score, calc_etf_score, parse_leverage
+from factors import calc_rsi, calc_momentum, calc_stock_score, calc_etf_score
 
 # 宏观因子库（Phase 1）— 副作用：导入子模块时装饰器把因子注册进 _REGISTRY
 import db as _macro_db
@@ -179,11 +179,10 @@ def fetch_single_stock(ticker_key: str, cfg: dict) -> dict | None:
     try:
         # Try data source router first, fallback to yfinance
         try:
-            hist, src = fetch_history(cfg, days=120)
+            hist, _src = fetch_history(cfg, days=120)
         except Exception:
             tk_obj = yf.Ticker(symbol)
             hist = tk_obj.history(period="6mo")
-            src = "yfinance-fallback"
 
         if hist is None or hist.empty or len(hist) < 2:
             return None
@@ -250,7 +249,6 @@ def fetch_single_stock(ticker_key: str, cfg: dict) -> dict | None:
                 expense_ratio = cfg.get("static_overrides", {}).get("expenseRatio", 0.5)
 
             leverage_str = cfg.get("leverage")
-            lev_factor = parse_leverage(leverage_str)
 
             aum_raw = safe_get(info, "totalAssets")
             score, sub_scores = calc_etf_score(
@@ -1902,14 +1900,12 @@ def mining_alpha_top_holdings(top_n: int = 20, run_id: str | None = None):
     latest_row = preds.loc[latest_date].dropna().sort_values(ascending=False).head(top_n)
     latest_set = set(latest_row.index)
 
-    # 上一周（5 个交易日前）的 Top-N
-    prev_holdings = []
-    prev_set = set()
+    # 上一周（5 个交易日前）的 Top-N（只取 ticker 集合，用于打 new/held/dropped 标记）
+    prev_set: set = set()
     if len(preds) > 5:
         prev_date = preds.index[preds.index.get_indexer([latest_date])[0] - 5]
         prev_row = preds.loc[prev_date].dropna().sort_values(ascending=False).head(top_n)
         prev_set = set(prev_row.index)
-        prev_holdings = [{"ticker": str(t), "score": float(s)} for t, s in prev_row.items()]
 
     holdings = []
     for t, s in latest_row.items():
