@@ -45,6 +45,59 @@ export const SUPERTRENDS = {
     keywords_broad_zh: ['公共事业'],
     keywords_broad_en: ['Utilities - Regulated', 'Utilities - Independent'],
   },
+  // ── 成长型 SUPERTRENDS 新增（v3.0）─────────────
+  consumer_internet: {
+    name: '消费互联网',
+    strategy: 'growth',
+    note: '电商 / 流媒体 / 社交 / 旅游 / 出行（AMZN/META/BABA/NFLX/UBER 等）',
+    keywords_strict_zh: [
+      '互联网零售', '互联网内容', '互联网服务',
+      '流媒体', '社交媒体', '媒体娱乐',
+      '在线广告', '线上零售',
+      // Yahoo 中文翻译变体
+      '旅游服务', '电子游戏与多媒体', '互动媒体及服务',
+      '消费性电讯设备',
+    ],
+    keywords_strict_en: [
+      'Internet Retail', 'Internet Content',
+      'Entertainment', 'Travel Services',
+      'Restaurants',
+      'Specialty Retail',
+    ],
+    keywords_broad_zh: ['数字广告', '娱乐', '酒店'],
+    keywords_broad_en: ['Leisure', 'Lodging', 'Advertising Agencies'],
+  },
+  ev_auto: {
+    name: '电动车与新能源汽车',
+    strategy: 'growth',
+    note: '整车 / 动力电池 / 充电桩 / 自动驾驶（TSLA/NIO/比亚迪/宁德 等）',
+    keywords_strict_zh: [
+      '电动车', '新能源汽车', '汽车制造', '动力电池',
+      '整车', '自动驾驶',
+      // Yahoo 中文翻译
+      '汽车', '电气设备',
+    ],
+    keywords_strict_en: ['Auto Manufacturers', 'Auto - Manufacturers', 'Auto Parts'],
+    keywords_broad_zh: ['汽车零部件'],
+    keywords_broad_en: ['Auto & Truck Dealerships'],
+  },
+  biotech: {
+    name: '生物科技与创新药',
+    strategy: 'growth',
+    note: '创新药 / GLP-1 / 基因疗法 / 医疗器械（LLY/NVO/REGN/MRNA 等；区别于大盘药企）',
+    keywords_strict_zh: [
+      '生物科技', '创新药', '医疗器械', '基因', '诊断试剂',
+      // Yahoo 中文翻译变体
+      '生物技术', '医疗设备', '医疗设备和用品', '化学制药',
+    ],
+    keywords_strict_en: [
+      'Biotechnology', 'Medical Devices', 'Diagnostics & Research',
+      'Drug Manufacturers—Specialty & Generic',
+      'Drug Manufacturers - Specialty',
+    ],
+    keywords_broad_zh: ['医疗保健'],
+    keywords_broad_en: ['Healthcare Plans', 'Medical Care Facilities'],
+  },
   // ── 价值型 SUPERTRENDS ────────────────────────
   value_div: {
     name: '高股息蓝筹',
@@ -63,7 +116,7 @@ export const SUPERTRENDS = {
     name: '周期价值',
     strategy: 'value',
     note: '银行 / 保险 / 化工 / 钢铁（低 PB 入场）',
-    keywords_strict_zh: ['银行', '保险', '化工', '钢铁', '有色金属', '建材'],
+    keywords_strict_zh: ['银行', '保险', '化工', '钢铁', '有色金属', '建材', '证券', '券商'],
     keywords_strict_en: [
       'Banks - Regional', 'Banks—Regional',
       'Insurance—Property & Casualty', 'Insurance—Life',
@@ -77,14 +130,19 @@ export const SUPERTRENDS = {
   value_consumer: {
     name: '消费稳健',
     strategy: 'value',
-    note: '食品饮料 / 必需消费（穿越周期 ROE）',
-    keywords_strict_zh: ['食品', '饮料', '白酒', '乳制品', '调味品'],
+    note: '食品饮料 / 必需消费 / 大盘药企（穿越周期 ROE / 稳定派息）',
+    keywords_strict_zh: [
+      '食品', '饮料', '白酒', '乳制品', '调味品',
+      '大型制药', '制药企业',
+      '一般药品制造商',
+    ],
     keywords_strict_en: [
       'Beverages—Non-Alcoholic', 'Beverages - Non-Alcoholic',
       'Beverages—Wineries & Distilleries',
       'Packaged Foods', 'Confectioners',
       'Tobacco',
       'Household & Personal Products',
+      'Drug Manufacturers—General', 'Drug Manufacturers - General',
     ],
     keywords_broad_zh: [],
     keywords_broad_en: [],
