@@ -278,11 +278,12 @@ def test_list_supertrends_meta_strategy_filter():
     growth_ids = {m["id"] for m in growth}
     value_ids = {m["id"] for m in value}
     assert growth_ids == {"ai_compute", "semi", "optical", "datacenter",
-                          "consumer_internet", "ev_auto", "biotech"}
+                          "consumer_internet", "ev_auto", "biotech",
+                          "defense_aerospace"}
     assert value_ids == {"value_div", "value_cyclical", "value_consumer"}
     # 默认（无参数）返回全部
     all_meta = list_supertrends_meta()
-    assert len(all_meta) == 10   # 7 growth + 3 value
+    assert len(all_meta) == 11   # 8 growth + 3 value
     # 每项都有 strategy 字段
     for m in all_meta:
         assert m["strategy"] in ("growth", "value")

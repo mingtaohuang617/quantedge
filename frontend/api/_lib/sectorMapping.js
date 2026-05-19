@@ -57,6 +57,7 @@ export const SUPERTRENDS = {
       // Yahoo 中文翻译变体
       '旅游服务', '电子游戏与多媒体', '互动媒体及服务',
       '消费性电讯设备',
+      '餐厅', '度假村与赌场', '住宿', '休闲',
     ],
     keywords_strict_en: [
       'Internet Retail', 'Internet Content',
@@ -86,9 +87,10 @@ export const SUPERTRENDS = {
     strategy: 'growth',
     note: '创新药 / GLP-1 / 基因疗法 / 医疗器械（LLY/NVO/REGN/MRNA 等；区别于大盘药企）',
     keywords_strict_zh: [
-      '生物科技', '创新药', '医疗器械', '基因', '诊断试剂',
+      '生物科技', '创新药', '医疗器械', '基因', '诊断试剂', '诊断与研究',
       // Yahoo 中文翻译变体
       '生物技术', '医疗设备', '医疗设备和用品', '化学制药',
+      '专业与通用药品制造商',
     ],
     keywords_strict_en: [
       'Biotechnology', 'Medical Devices', 'Diagnostics & Research',
@@ -98,16 +100,30 @@ export const SUPERTRENDS = {
     keywords_broad_zh: ['医疗保健'],
     keywords_broad_en: ['Healthcare Plans', 'Medical Care Facilities'],
   },
+  defense_aerospace: {
+    name: '国防航天',
+    strategy: 'growth',
+    note: '国防 / 航天 / 武器 / 军工电子（BA/RTX/LMT/NOC/GD/AXON/GE 等）',
+    keywords_strict_zh: ['国防', '航天', '军工', '武器', '航空航天与国防'],
+    keywords_strict_en: ['Aerospace & Defense', 'Aerospace', 'Defense'],
+    keywords_broad_zh: [],
+    keywords_broad_en: [],
+  },
   // ── 价值型 SUPERTRENDS ────────────────────────
   value_div: {
     name: '高股息蓝筹',
     strategy: 'value',
     note: '公用事业 / 银行龙头 / 能源 / 电信（股息率 > 4%）',
-    keywords_strict_zh: ['电信运营', '石油', '天然气', '煤炭'],
+    keywords_strict_zh: [
+      '电信运营', '石油', '天然气', '煤炭',
+      '电信服务', '受监管电力', '受监管燃气',
+      '油气勘探与开发', '油气设备', '油气精炼营销',
+    ],
     keywords_strict_en: [
       'Banks—Diversified', 'Oil & Gas Integrated',
       'Telecom Services', 'Utilities—Regulated Electric',
       'Utilities - Regulated Gas',
+      'Oil & Gas E&P', 'Oil & Gas Refining', 'Oil & Gas Equipment',
     ],
     keywords_broad_zh: ['公共事业'],
     keywords_broad_en: ['Utilities - Diversified'],
@@ -115,14 +131,22 @@ export const SUPERTRENDS = {
   value_cyclical: {
     name: '周期价值',
     strategy: 'value',
-    note: '银行 / 保险 / 化工 / 钢铁（低 PB 入场）',
-    keywords_strict_zh: ['银行', '保险', '化工', '钢铁', '有色金属', '建材', '证券', '券商'],
+    note: '银行 / 保险 / 化工 / 钢铁 / 券商 / 金融服务（低 PB 入场）',
+    keywords_strict_zh: [
+      '银行', '保险', '化工', '钢铁', '有色金属', '建材', '证券', '券商',
+      '金融服务', '支付', '资本市场', '资产管理',
+      '工业机械', '综合货运与物流', '铁路',
+    ],
     keywords_strict_en: [
       'Banks - Regional', 'Banks—Regional',
       'Insurance—Property & Casualty', 'Insurance—Life',
+      'Insurance—Diversified', 'Insurance Brokers',
+      'Capital Markets', 'Asset Management', 'Credit Services',
       'Chemicals', 'Specialty Chemicals',
-      'Steel', 'Aluminum',
-      'Building Materials',
+      'Steel', 'Aluminum', 'Building Materials',
+      'Farm & Heavy Construction Machinery',
+      'Specialty Industrial Machinery',
+      'Railroads',
     ],
     keywords_broad_zh: [],
     keywords_broad_en: [],
@@ -130,11 +154,12 @@ export const SUPERTRENDS = {
   value_consumer: {
     name: '消费稳健',
     strategy: 'value',
-    note: '食品饮料 / 必需消费 / 大盘药企（穿越周期 ROE / 稳定派息）',
+    note: '食品饮料 / 必需消费 / 大盘药企 / 大型零售',
     keywords_strict_zh: [
       '食品', '饮料', '白酒', '乳制品', '调味品',
       '大型制药', '制药企业',
-      '一般药品制造商',
+      '一般药品制造商', '糖果',
+      '折扣零售', '家居装饰零售', '服装鞋类',
     ],
     keywords_strict_en: [
       'Beverages—Non-Alcoholic', 'Beverages - Non-Alcoholic',
@@ -143,6 +168,8 @@ export const SUPERTRENDS = {
       'Tobacco',
       'Household & Personal Products',
       'Drug Manufacturers—General', 'Drug Manufacturers - General',
+      'Discount Stores', 'Home Improvement Retail',
+      'Footwear & Accessories',
     ],
     keywords_broad_zh: [],
     keywords_broad_en: [],

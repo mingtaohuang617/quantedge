@@ -174,6 +174,332 @@ US_PATCHES = {
     "CMG":  {"sector": "Restaurants", "industry": "Restaurants", "marketCap": 80e9},
 }
 
+
+# ─── Phase 2: 批量扩 SPX 500 / NDX 100 剩余票 ───────────────
+# 使用 helper 批量定义同 sector 的多 ticker，避免重复打字
+def _expand(tickers, sector, industry=None, marketCap=None):
+    """生成 {ticker: {sector, industry, marketCap}} dict。industry 默认同 sector。"""
+    industry = industry or sector
+    return {t: {"sector": sector, "industry": industry, "marketCap": marketCap} for t in tickers}
+
+
+US_PHASE2 = {}
+
+# 半导体 + 半导体设备
+US_PHASE2.update(_expand(
+    ["GFS", "MU", "SNPS", "CDNS", "ANSS", "KEYS", "TER", "ENPH", "FSLR"],
+    "半导体", "半导体", 80e9,
+))
+
+# AI 软件 / 应用软件 / 信息技术服务
+US_PHASE2.update(_expand(
+    ["IBM", "AKAM", "ANSS", "CDW", "EPAM", "FFIV", "GEN", "FIS", "FI", "GPN",
+     "INTU", "FICO", "IT", "JKHY", "KEYS", "MSCI", "MCO", "MKTX",
+     "NWSA", "NWS", "NTAP", "ORCL", "PAYC", "PAYX", "PTC", "ROP",
+     "TYL", "TXN", "VRSK", "VRSN", "WDC", "STX"],
+    "信息技术服务", "信息技术服务", 50e9,
+))
+US_PHASE2.update(_expand(
+    ["AKAM", "CDAY", "DXC", "ENPH", "LDOS"],
+    "信息技术服务", "信息技术服务", 20e9,
+))
+
+# 通讯设备 / 网络（→ optical broad）
+US_PHASE2.update(_expand(
+    ["CSCO", "ANET", "JNPR", "MSI", "GLW", "NTAP", "ZBRA", "KEYS"],
+    "通讯设备", "通讯设备", 50e9,
+))
+
+# 消费互联网 / 媒体娱乐
+US_PHASE2.update(_expand(
+    ["DIS", "WBD", "PARA", "NFLX", "FOXA", "FOX", "OMC", "IPG", "CHTR", "CMCSA"],
+    "媒体娱乐", "媒体娱乐", 50e9,
+))
+US_PHASE2.update(_expand(
+    ["TTWO", "EA", "RBLX", "ROKU"],
+    "电子游戏与多媒体", "电子游戏与多媒体", 30e9,
+))
+
+# 旅游 / 酒店 / 餐饮 / 休闲（→ consumer_internet）
+US_PHASE2.update(_expand(
+    ["MAR", "HLT", "LVS", "MGM", "WYNN", "CZR", "NCLH", "RCL", "CCL", "BKNG", "EXPE", "ABNB"],
+    "住宿", "住宿", 50e9,
+))
+US_PHASE2.update(_expand(
+    ["YUM", "MCD", "SBUX", "CMG", "DPZ", "DRI"],
+    "餐厅", "餐厅", 50e9,
+))
+US_PHASE2.update(_expand(
+    ["LYV", "HAS", "POOL"],
+    "休闲", "休闲", 10e9,
+))
+
+# 国防航天（新 supertrend）
+US_PHASE2.update(_expand(
+    ["BA", "RTX", "LMT", "NOC", "GD", "HII", "TXT", "AXON", "LHX", "TDG", "LDOS",
+     "L3HARRIS"],
+    "航空航天与国防", "航空航天与国防", 100e9,
+))
+US_PHASE2.update(_expand(
+    ["GE", "GEHC", "GEN"],
+    "航空航天与国防", "航空航天与国防", 100e9,
+))
+
+# 生物科技 / 医疗（→ biotech）
+US_PHASE2.update(_expand(
+    ["LLY", "NVO", "REGN", "VRTX", "MRNA", "BIIB", "GILD", "AMGN", "ALNY",
+     "BMRN", "INCY", "SGEN", "BIO", "TECH", "CRL", "WAT", "MTD", "RVTY",
+     "VTRS", "ZTS", "HSIC", "PODD", "RMD", "STE", "SYK", "TFX", "ZBH"],
+    "生物技术", "生物技术", 50e9,
+))
+US_PHASE2.update(_expand(
+    ["ISRG", "DXCM", "EW", "MDT", "ABT", "BSX", "BAX", "BDX", "COO", "HOLX",
+     "DGX", "IDXX", "DHR", "TMO", "ILMN", "WST", "HCA", "UHS", "MOH", "ELV",
+     "CI", "HUM", "UNH", "CNC", "MCK", "COR", "CAH", "CVS"],
+    "医疗设备", "医疗设备", 50e9,
+))
+US_PHASE2.update(_expand(
+    ["IQV", "A", "RVTY"],
+    "诊断与研究", "诊断与研究", 30e9,
+))
+
+# 大盘药企（→ value_consumer）
+US_PHASE2.update(_expand(
+    ["JNJ", "PFE", "MRK", "ABBV", "BMY", "AZN", "NVS", "GSK", "SNY", "GEHC",
+     "OGN"],
+    "一般药品制造商", "一般药品制造商", 100e9,
+))
+
+# 金融服务 / 资本市场 / 资产管理（→ value_cyclical）
+US_PHASE2.update(_expand(
+    ["V", "MA", "AXP", "PYPL", "FIS", "FI", "GPN", "PAYX", "PAYC",
+     "SCHW", "MS", "GS", "C", "BAC", "JPM", "WFC", "USB", "PNC", "TFC",
+     "BK", "STT", "NTRS", "MTB", "CMA", "HBAN", "FITB", "CFG", "RF", "KEY",
+     "SYF", "DFS", "COF", "ALLY", "AXP"],
+    "金融服务", "金融服务", 100e9,
+))
+US_PHASE2.update(_expand(
+    ["BLK", "BX", "TROW", "BEN", "IVZ", "AMP", "RJF", "MKTX", "CBOE", "CME",
+     "ICE", "NDAQ", "SPGI", "MCO", "MSCI", "FDS"],
+    "资本市场", "资本市场", 100e9,
+))
+
+# 保险（→ value_cyclical 现已含 Insurance—Diversified）
+US_PHASE2.update(_expand(
+    ["AIG", "MMC", "AON", "WLTW", "WRB", "TRV", "PGR", "ALL", "CINF", "HIG",
+     "AJG", "BRO", "AIZ", "WTW", "L", "AFL", "MET", "PRU", "PFG", "GL",
+     "EG", "ACGL", "WRB", "RGA", "UNM"],
+    "Insurance—Diversified", "保险", 50e9,
+))
+
+# 能源（→ value_div - 现已扩 E&P / Refining / Equipment）
+US_PHASE2.update(_expand(
+    ["XOM", "CVX", "COP", "EOG", "MPC", "PSX", "VLO", "OXY", "FANG",
+     "PXD", "APA", "EQT", "DVN", "MRO", "HES", "HAL", "SLB", "BKR",
+     "OKE", "TRGP", "WMB", "CTRA", "KMI", "ENB", "ET", "EPD"],
+    "油气勘探与开发", "油气勘探与开发", 50e9,
+))
+
+# 公用事业（→ datacenter broad / value_div）
+US_PHASE2.update(_expand(
+    ["NEE", "DUK", "SO", "AEP", "EXC", "ED", "ETR", "AES", "SRE", "XEL",
+     "WEC", "ES", "PEG", "PCG", "AWK", "EIX", "DTE", "CMS", "PPL", "ATO",
+     "FE", "NI", "LNT", "EVRG", "PNW", "AEE", "CNP", "D"],
+    "受监管电力", "受监管电力", 50e9,
+))
+
+# 电信（→ value_div）
+US_PHASE2.update(_expand(
+    ["VZ", "T", "TMUS", "CMCSA", "CHTR"],
+    "电信服务", "电信服务", 150e9,
+))
+
+# 零售（→ value_consumer）
+US_PHASE2.update(_expand(
+    ["WMT", "COST", "TGT", "DG", "DLTR", "BJ"],
+    "折扣零售", "折扣零售", 100e9,
+))
+US_PHASE2.update(_expand(
+    ["HD", "LOW", "POOL", "BLDR"],
+    "家居装饰零售", "家居装饰零售", 100e9,
+))
+US_PHASE2.update(_expand(
+    ["NKE", "LULU", "TJX", "ROST", "ULTA", "VFC", "GPS", "TPR", "RL",
+     "LVS", "DECK", "ANF", "URBN", "BBWI"],
+    "服装鞋类", "服装鞋类", 30e9,
+))
+
+# 房地产 REIT（部分映射到 datacenter 现已含数据中心 REIT）
+US_PHASE2.update(_expand(
+    ["AMT", "CCI", "SBAC"],
+    "数据中心 REIT", "通讯铁塔", 50e9,
+))
+US_PHASE2.update(_expand(
+    ["EQIX", "DLR"],
+    "数据中心 REIT", "数据中心", 70e9,
+))
+US_PHASE2.update(_expand(
+    ["IRM"],
+    "数据中心 REIT", "数据中心 REIT", 35e9,
+))
+US_PHASE2.update(_expand(
+    ["PLD", "WELL", "AVB", "EQR", "PSA", "MAA", "ESS", "INVH", "UDR", "CPT",
+     "FRT", "REG", "KIM", "BXP", "VTR", "PEAK", "ARE", "EXR", "VICI",
+     "WPC", "O", "STAG", "HST"],
+    "房地产", "房地产 REIT", 30e9,
+))
+
+# 工业制造（→ value_cyclical 现已含 Farm & Heavy Construction Machinery / Specialty Industrial Machinery）
+US_PHASE2.update(_expand(
+    ["CAT", "DE", "PCAR", "PH", "ETN", "EMR", "ROK", "DOV", "ITW", "IR",
+     "GNRC", "IEX", "HUBB", "MMM", "AOS", "AME", "FAST", "FTV", "GWW",
+     "HON", "GWW", "PNR", "SNA", "SWK", "URI", "WAB", "XYL", "NDSN",
+     "HWM", "JCI", "RSG", "WM", "OTIS", "AYI", "ALLE", "PWR", "CARR"],
+    "工业机械", "工业机械", 50e9,
+))
+US_PHASE2.update(_expand(
+    ["UNP", "CSX", "NSC"],
+    "铁路", "铁路", 100e9,
+))
+US_PHASE2.update(_expand(
+    ["UPS", "FDX", "EXPD", "JBHT", "CHRW", "CDW", "ODFL", "XPO", "GXO"],
+    "综合货运与物流", "综合货运与物流", 50e9,
+))
+US_PHASE2.update(_expand(
+    ["AAL", "DAL", "LUV", "UAL", "ALK", "JBLU"],
+    "航空", "航空", 20e9,
+))
+
+# 化工 / 材料（→ value_cyclical）
+US_PHASE2.update(_expand(
+    ["LIN", "APD", "ECL", "SHW", "PPG", "CE", "EMN", "DOW", "DD",
+     "ALB", "LYB", "AVY", "AMCR", "IFF", "FMC", "CTVA", "MOS", "CF"],
+    "化工", "Specialty Chemicals", 50e9,
+))
+US_PHASE2.update(_expand(
+    ["FCX", "NEM", "NUE", "STLD", "MOS", "VMC", "MLM"],
+    "有色金属", "有色金属", 50e9,
+))
+
+# 食品 / 饮料 / 必需消费（→ value_consumer）
+US_PHASE2.update(_expand(
+    ["KO", "PEP", "MNST", "STZ", "KDP", "TAP", "BF.B", "FIZZ"],
+    "饮料", "饮料", 100e9,
+))
+US_PHASE2.update(_expand(
+    ["MDLZ", "KHC", "GIS", "K", "CPB", "CAG", "HRL", "HSY", "SJM", "MKC",
+     "TSN", "PG", "CL", "CHD", "KMB", "EL", "CLX", "ADM", "BG"],
+    "包装食品", "Packaged Foods", 50e9,
+))
+US_PHASE2.update(_expand(
+    ["MO", "PM", "BTI"],
+    "Tobacco", "烟草", 100e9,
+))
+
+# AI 软件 / SaaS（许多已分类，补漏）
+US_PHASE2.update(_expand(
+    ["NOW", "PANW", "FTNT", "CRWD", "ZS", "OKTA", "WDAY", "TEAM", "MDB",
+     "DDOG", "SNOW", "NET", "PLTR", "SPLK", "ESTC", "GTLB", "S",
+     "DOCN", "CFLT", "PATH", "DBX", "TWLO", "BILL"],
+    "应用软件", "SaaS", 50e9,
+))
+US_PHASE2.update(_expand(
+    ["CRM", "ADBE", "INTU", "ORCL"],
+    "应用软件", "应用软件", 200e9,
+))
+
+# 消费电子（→ ai_compute）
+US_PHASE2.update(_expand(
+    ["AAPL"],
+    "消费电子产品", "消费电子产品", 4000e9,
+))
+US_PHASE2.update(_expand(
+    ["DELL", "HPQ", "HPE"],
+    "计算机硬件", "计算机硬件", 50e9,
+))
+US_PHASE2.update(_expand(
+    ["SMCI"],
+    "计算机硬件", "计算机硬件", 50e9,
+))
+
+US_PATCHES.update(US_PHASE2)
+
+# ─── Phase 3: 补 SPX 中盘剩余票 ──────────────────────────────
+US_PHASE3 = {}
+# IT 服务 / 软件（→ ai_compute）
+US_PHASE3.update(_expand(
+    ["ACN", "CTSH", "ANSS", "CTAS", "CDAY", "PAYC", "PAYX", "CPRT", "CSGP",
+     "TRMB", "EFX", "FI", "FLT", "TDY", "GEN", "BR", "J"],
+    "信息技术服务", "信息技术服务", 50e9,
+))
+# 汽车零部件（→ ev_auto via 汽车零部件 broad）
+US_PHASE3.update(_expand(
+    ["APTV", "BWA", "CMI", "GPC", "LKQ", "ORLY", "AZO", "GRMN", "TEL", "APH"],
+    "汽车零部件", "汽车零部件", 30e9,
+))
+# 生物 / 医疗器械（→ biotech）
+US_PHASE3.update(_expand(
+    ["CTLT", "HOLX", "LH", "DVA"],
+    "医疗设备", "医疗设备", 30e9,
+))
+# 保险（→ value_cyclical）
+US_PHASE3.update(_expand(
+    ["CB", "MMC", "AON", "WLTW", "WRB", "TRV", "PGR", "ALL", "CINF", "HIG",
+     "AJG", "BRO", "AIZ", "WTW"],
+    "保险", "Insurance—Property & Casualty", 50e9,
+))
+# 银行 / 金融（→ value_cyclical）
+US_PHASE3.update(_expand(
+    ["CMA", "DFS"],
+    "银行", "Banks - Regional", 25e9,
+))
+# 食品 / 必需消费（→ value_consumer）
+US_PHASE3.update(_expand(
+    ["K", "KR", "LW", "SYY", "MKC"],
+    "食品", "Packaged Foods", 30e9,
+))
+# 油气（→ value_div）
+US_PHASE3.update(_expand(
+    ["MRO", "HES", "PXD"],
+    "油气勘探与开发", "油气勘探与开发", 30e9,
+))
+# 媒体广告（→ consumer_internet）
+US_PHASE3.update(_expand(
+    ["IPG", "PARA", "OMC"],
+    "媒体娱乐", "媒体娱乐", 20e9,
+))
+# 餐饮 / 零售（→ consumer_internet / value_consumer）
+US_PHASE3.update(_expand(
+    ["TSCO", "BBY", "KMX", "ROST", "TJX"],
+    "折扣零售", "折扣零售", 50e9,
+))
+# REIT 综合（→ datacenter via 房地产，部分公用事业）
+US_PHASE3.update(_expand(
+    ["SPG", "PEAK", "WELL", "VTR", "INVH"],
+    "房地产", "房地产 REIT", 50e9,
+))
+# 包装 / 工业（→ value_cyclical 现已含 Specialty Industrial Machinery）
+US_PHASE3.update(_expand(
+    ["BALL", "PKG", "SEE", "IP", "AMCR"],
+    "化工", "包装材料", 20e9,
+))
+US_PHASE3.update(_expand(
+    ["MAS", "JNPR", "TT", "MHK", "ROL"],
+    "工业机械", "工业机械", 30e9,
+))
+# 国防（→ defense_aerospace）
+US_PHASE3.update(_expand(
+    ["TXT", "HII"],
+    "航空航天与国防", "航空航天与国防", 30e9,
+))
+# 综合金融（→ value_cyclical）
+US_PHASE3.update(_expand(
+    ["BRK.B"],
+    "Insurance—Diversified", "保险", 1000e9,
+))
+
+US_PATCHES.update(US_PHASE3)
+
 # ─── HK: 恒生指数 + 恒生科技指数 代表股 ──────────────────────
 # 注：恒生/恒生科技股通常 4 位代码 +.HK，universe 用 5 位 padded 格式
 HK_PATCHES = {
@@ -207,6 +533,38 @@ HK_PATCHES = {
     "00017.HK": {"sector": "房地产", "industry": "房地产开发", "marketCap": 23e9},    # 新世界
     "02688.HK": {"sector": "Utilities - Regulated Gas", "industry": "燃气", "marketCap": 90e9},  # 新奥能源
 }
+
+HK_PHASE2 = {}
+# HSI 蓝筹补充（金融 / 地产 / 能源 / 公用）
+HK_PHASE2.update(_expand(
+    ["00005.HK", "00011.HK", "00939.HK", "01398.HK", "03988.HK", "02388.HK",
+     "00388.HK", "01113.HK", "00016.HK", "00017.HK", "00688.HK",
+     "01038.HK", "00006.HK", "00002.HK", "00003.HK", "01999.HK"],
+    "金融服务", "金融服务", 100e9,
+))
+# 中概互联 / 科技
+HK_PHASE2.update(_expand(
+    ["00700.HK", "09988.HK", "03690.HK", "01024.HK", "06618.HK",
+     "09618.HK", "09888.HK", "01810.HK", "06862.HK", "01177.HK"],
+    "互联网内容", "互联网", 100e9,
+))
+# 电动车 H 股
+HK_PHASE2.update(_expand(
+    ["01211.HK", "02015.HK", "09866.HK", "09868.HK", "00175.HK"],
+    "汽车", "电动车", 50e9,
+))
+# 港交所 / 保险
+HK_PHASE2.update(_expand(
+    ["01299.HK", "02318.HK", "01336.HK", "00966.HK"],
+    "保险", "保险", 100e9,
+))
+# 港股医药
+HK_PHASE2.update(_expand(
+    ["02269.HK", "01093.HK", "01177.HK", "06160.HK", "02196.HK"],
+    "生物技术", "生物技术", 30e9,
+))
+
+HK_PATCHES.update(HK_PHASE2)
 
 # ─── CN: 沪深300 代表股（已在 PR #84 smoke 之外的补充）──────
 CN_PATCHES = {
@@ -248,6 +606,96 @@ CN_PATCHES = {
     # ── 公用事业 + 电力 ──────────────────────────
     "600900.SH": {"sector": "Utilities—Regulated Electric", "industry": "水电", "marketCap": 700e9},  # 长江电力（已含）
 }
+
+CN_PHASE2 = {}
+# 沪深300 银行（→ value_cyclical）
+CN_PHASE2.update(_expand(
+    ["600036.SH", "601398.SH", "601288.SH", "601988.SH", "601939.SH",
+     "601166.SH", "600000.SH", "600015.SH", "601169.SH", "601229.SH",
+     "601328.SH", "601658.SH", "601818.SH", "600016.SH", "601009.SH",
+     "601128.SH", "002142.SZ"],
+    "银行", "银行", 200e9,
+))
+# 保险 + 券商
+CN_PHASE2.update(_expand(
+    ["601318.SH", "601628.SH", "601601.SH", "601336.SH"],
+    "保险", "保险", 200e9,
+))
+CN_PHASE2.update(_expand(
+    ["600030.SH", "601995.SH", "600999.SH", "601066.SH", "601211.SH"],
+    "证券", "证券", 100e9,
+))
+# 沪深300 白酒 + 食品 + 消费
+CN_PHASE2.update(_expand(
+    ["600519.SH", "000858.SZ", "002304.SZ", "000568.SZ", "600809.SH"],
+    "白酒", "白酒", 200e9,
+))
+CN_PHASE2.update(_expand(
+    ["600887.SH", "603288.SH", "000895.SZ", "000333.SZ", "000651.SZ"],
+    "食品", "食品", 100e9,
+))
+# 沪深300 医药 / CXO
+CN_PHASE2.update(_expand(
+    ["600276.SH", "600196.SH", "300122.SZ", "603259.SH", "002007.SZ",
+     "300015.SZ", "300760.SZ", "002821.SZ", "300347.SZ"],
+    "化学制药", "创新药", 100e9,
+))
+# 沪深300 半导体 / 科技
+CN_PHASE2.update(_expand(
+    ["688981.SH", "002371.SZ", "002475.SZ", "002241.SZ", "300782.SZ",
+     "603501.SH", "688012.SH", "300661.SZ", "688256.SH", "688041.SH"],
+    "半导体", "半导体", 100e9,
+))
+# 沪深300 软件 / AI
+CN_PHASE2.update(_expand(
+    ["002230.SZ", "300033.SZ", "300059.SZ", "002405.SZ", "300144.SZ",
+     "002624.SZ"],
+    "应用软件", "应用软件", 50e9,
+))
+# 沪深300 电动车 / 新能源
+CN_PHASE2.update(_expand(
+    ["300750.SZ", "002594.SZ", "601127.SH", "601633.SH", "600104.SH",
+     "601238.SH", "002460.SZ", "300014.SZ", "300316.SZ", "688599.SH"],
+    "新能源", "电动车", 100e9,
+))
+# 沪深300 光伏
+CN_PHASE2.update(_expand(
+    ["601012.SH", "002129.SZ", "601865.SH", "300274.SZ", "688303.SH"],
+    "新能源", "光伏", 50e9,
+))
+# 沪深300 能源
+CN_PHASE2.update(_expand(
+    ["600028.SH", "601857.SH", "600938.SH", "601088.SH", "600188.SH",
+     "601225.SH", "601898.SH"],
+    "石油", "石油", 200e9,
+))
+# 沪深300 电信 / 公用
+CN_PHASE2.update(_expand(
+    ["600941.SH", "601728.SH", "600050.SH"],
+    "电信服务", "电信运营", 100e9,
+))
+CN_PHASE2.update(_expand(
+    ["600900.SH", "600025.SH", "601985.SH", "600886.SH"],
+    "受监管电力", "公用事业", 200e9,
+))
+# 沪深300 化工 / 钢铁 / 有色
+CN_PHASE2.update(_expand(
+    ["600309.SH", "600019.SH", "600362.SH", "601600.SH", "603799.SH",
+     "601899.SH", "600547.SH", "002460.SZ"],
+    "有色金属", "化工", 100e9,
+))
+# 沪深300 家电 / 必需消费
+CN_PHASE2.update(_expand(
+    ["600585.SH", "002714.SZ", "300498.SZ"],
+    "包装食品", "Packaged Foods", 100e9,
+))
+# 沪深300 房地产
+CN_PHASE2.update(_expand(
+    ["000002.SZ", "600048.SH", "600340.SH", "001979.SZ"],
+    "房地产", "房地产 REIT", 50e9,
+))
+
+CN_PATCHES.update(CN_PHASE2)
 
 
 def patch_file(path: Path, patches: dict, label: str) -> tuple[int, int, int]:

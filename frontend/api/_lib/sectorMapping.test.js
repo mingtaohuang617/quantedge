@@ -103,12 +103,13 @@ describe('nameMatchesStrict', () => {
 });
 
 describe('listSupertrendsMeta', () => {
-  it('返回 10 个内置赛道（7 成长 + 3 价值）并保持稳定顺序', () => {
+  it('返回 11 个内置赛道（8 成长 + 3 价值）并保持稳定顺序', () => {
     const meta = listSupertrendsMeta();
-    expect(meta).toHaveLength(10);
+    expect(meta).toHaveLength(11);
     expect(meta.map(m => m.id)).toEqual([
       'ai_compute', 'semi', 'optical', 'datacenter',
       'consumer_internet', 'ev_auto', 'biotech',
+      'defense_aerospace',
       'value_div', 'value_cyclical', 'value_consumer',
     ]);
     for (const m of meta) {
@@ -166,11 +167,12 @@ describe('classifySector — value supertrends', () => {
 });
 
 describe('listSupertrendsMeta — strategy filter', () => {
-  it('strategy="growth" 仅返回 7 个成长赛道（v3.0 加 3 个）', () => {
+  it('strategy="growth" 仅返回 8 个成长赛道（v3.0 加 4 个）', () => {
     const meta = listSupertrendsMeta('growth');
     const ids = meta.map(m => m.id).sort();
     expect(ids).toEqual(['ai_compute', 'biotech', 'consumer_internet',
-                         'datacenter', 'ev_auto', 'optical', 'semi']);
+                         'datacenter', 'defense_aerospace', 'ev_auto',
+                         'optical', 'semi']);
     for (const m of meta) expect(m.strategy).toBe('growth');
   });
 
@@ -181,9 +183,9 @@ describe('listSupertrendsMeta — strategy filter', () => {
     for (const m of meta) expect(m.strategy).toBe('value');
   });
 
-  it('strategy=null（默认）返回全部 10 个', () => {
-    expect(listSupertrendsMeta()).toHaveLength(10);
-    expect(listSupertrendsMeta(null)).toHaveLength(10);
+  it('strategy=null（默认）返回全部 11 个', () => {
+    expect(listSupertrendsMeta()).toHaveLength(11);
+    expect(listSupertrendsMeta(null)).toHaveLength(11);
   });
 
   it('strategy="speculative"（无效）返回空数组', () => {

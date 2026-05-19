@@ -43,6 +43,7 @@ const BUILTIN_SUPERTRENDS_FALLBACK = [
   { id: "consumer_internet", name: "消费互联网", note: "电商 / 流媒体 / 社交 / 旅游 / 出行", source: "builtin", strategy: "growth" },
   { id: "ev_auto", name: "电动车与新能源汽车", note: "整车 / 动力电池 / 充电桩 / 自动驾驶", source: "builtin", strategy: "growth" },
   { id: "biotech", name: "生物科技与创新药", note: "创新药 / GLP-1 / 基因疗法 / 医疗器械", source: "builtin", strategy: "growth" },
+  { id: "defense_aerospace", name: "国防航天", note: "国防 / 航天 / 武器 / 军工电子", source: "builtin", strategy: "growth" },
   { id: "value_div", name: "高股息蓝筹", note: "公用事业 / 银行龙头 / 能源 / 电信（股息率 > 4%）", source: "builtin", strategy: "value" },
   { id: "value_cyclical", name: "周期价值", note: "银行 / 保险 / 化工 / 钢铁（低 PB 入场）", source: "builtin", strategy: "value" },
   { id: "value_consumer", name: "消费稳健", note: "食品饮料 / 必需消费 / 大盘药企", source: "builtin", strategy: "value" },
