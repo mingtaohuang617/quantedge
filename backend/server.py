@@ -1728,6 +1728,21 @@ def _ma_active_dir() -> _Path_ma:
     return _MA_OUTPUT_ROOT
 
 
+def _ma_dir_for(run_id: str | None) -> _Path_ma:
+    """
+    给定显式 run_id 时返回 runs/{run_id}/，否则回落到 _ma_active_dir()。
+    用于路由的 `?run_id=` 查询参数：前端一次 fetchAll 锁定同一个 run，
+    避免在并发 GET 期间 latest.txt 被 switch-run 改写导致跨 run 数据混读。
+    显式给的 run_id 必须存在，否则 404。
+    """
+    if run_id:
+        candidate = _MA_OUTPUT_ROOT / "runs" / run_id
+        if not candidate.exists():
+            raise HTTPException(404, f"run_id={run_id} 不存在")
+        return candidate
+    return _ma_active_dir()
+
+
 _MA_OUTPUT_DIR = _MA_OUTPUT_ROOT  # 兼容旧 import；实际读用 _ma_active_dir()
 
 
@@ -1812,9 +1827,9 @@ def mining_alpha_status():
 
 
 @app.get("/api/mining-alpha/ic-report")
-def mining_alpha_ic_report(top_n: int = 20):
+def mining_alpha_ic_report(top_n: int = 20, run_id: str | None = None):
     """返回单因子 IC 报告（按 |ICIR| 降序），默认 top 20。"""
-    df = _ma_safe_read_csv(_ma_active_dir() / "ic_report.csv")
+    df = _ma_safe_read_csv(_ma_dir_for(run_id) / "ic_report.csv")
     if df is None:
         raise HTTPException(404, "ic_report.csv 不存在；先跑 `mining_alpha.run ic-report`")
     df = df.sort_values("ic_ir", key=lambda s: s.abs(), ascending=False).head(top_n)
@@ -1822,9 +1837,9 @@ def mining_alpha_ic_report(top_n: int = 20):
 
 
 @app.get("/api/mining-alpha/feature-importance")
-def mining_alpha_feature_importance(top_n: int = 20):
+def mining_alpha_feature_importance(top_n: int = 20, run_id: str | None = None):
     """返回 ML 特征重要性（多 fold 平均），按降序排列。"""
-    df = _ma_safe_read_csv(_ma_active_dir() / "feature_importance.csv", index_col=0)
+    df = _ma_safe_read_csv(_ma_dir_for(run_id) / "feature_importance.csv", index_col=0)
     if df is None:
         raise HTTPException(404, "feature_importance.csv 不存在；先跑 `train`")
     # 多 fold 平均
@@ -1836,9 +1851,9 @@ def mining_alpha_feature_importance(top_n: int = 20):
 
 
 @app.get("/api/mining-alpha/backtest")
-def mining_alpha_backtest():
+def mining_alpha_backtest(run_id: str | None = None):
     """返回回测指标 + 策略/基准净值曲线 (采样后)。"""
-    active = _ma_active_dir()
+    active = _ma_dir_for(run_id)
     metrics_path = active / "backtest_report.json"
     if not metrics_path.exists():
         raise HTTPException(404, "backtest_report.json 不存在；先跑 `backtest`")
@@ -1872,9 +1887,9 @@ def mining_alpha_backtest():
 
 
 @app.get("/api/mining-alpha/top-holdings")
-def mining_alpha_top_holdings(top_n: int = 20):
+def mining_alpha_top_holdings(top_n: int = 20, run_id: str | None = None):
     """返回最新一日预测分数 Top-N 个股（含与上一调仓期的 diff 标记）。"""
-    active = _ma_active_dir()
+    active = _ma_dir_for(run_id)
     preds_path = active / "predictions.parquet"
     preds = _ma_safe_read_parquet(preds_path)
     if preds is None or preds.empty:
@@ -1915,9 +1930,9 @@ def mining_alpha_top_holdings(top_n: int = 20):
 
 
 @app.get("/api/mining-alpha/regime")
-def mining_alpha_regime():
+def mining_alpha_regime(run_id: str | None = None):
     """返回 HMM regime 时间序列（用于净值图 overlay）。仅在 train --regime-aware 跑过后可用。"""
-    active = _ma_active_dir()
+    active = _ma_dir_for(run_id)
     df = _ma_safe_read_csv(active / "regime.csv")
     if df is None or df.empty:
         raise HTTPException(404, "regime.csv 不存在；用 train --regime-aware 跑过后生成")
@@ -1936,9 +1951,9 @@ def mining_alpha_regime():
 
 
 @app.get("/api/mining-alpha/fold-ic")
-def mining_alpha_fold_ic():
+def mining_alpha_fold_ic(run_id: str | None = None):
     """返回 walk-forward 各 fold 的测试集 IC 摘要表。"""
-    active = _ma_active_dir()
+    active = _ma_dir_for(run_id)
     df = _ma_safe_read_csv(active / "fold_ic.csv")
     if df is None or df.empty:
         raise HTTPException(404, "fold_ic.csv 不存在；先跑 `train`")
@@ -2080,7 +2095,7 @@ def mining_alpha_health():
 
 
 @app.get("/api/mining-alpha/ic-heatmap")
-def mining_alpha_ic_heatmap(top_n: int = 30, recent_months: int = 24):
+def mining_alpha_ic_heatmap(top_n: int = 30, recent_months: int = 24, run_id: str | None = None):
     """
     返回 factor × month IC 热力图数据。
 
@@ -2088,7 +2103,7 @@ def mining_alpha_ic_heatmap(top_n: int = 30, recent_months: int = 24):
       top_n: 按 |ICIR| 取前 N 个因子（与 ic-report 一致顺序）
       recent_months: 只取最近 N 个月（默认 24，即 2 年）
     """
-    active = _ma_active_dir()
+    active = _ma_dir_for(run_id)
     heatmap = _ma_safe_read_csv(active / "ic_monthly_heatmap.csv", index_col=0)
     if heatmap is None:
         raise HTTPException(404, "ic_monthly_heatmap.csv 不存在；先跑 `ic-report`")
@@ -2220,7 +2235,7 @@ def mining_alpha_run_status():
 
 
 @app.get("/api/mining-alpha/factor-detail/{alpha_num}")
-def mining_alpha_factor_detail(alpha_num: int):
+def mining_alpha_factor_detail(alpha_num: int, run_id: str | None = None):
     """
     返回某个因子的详细信息：公式、描述、近 1 年日 IC 时序、Top decile 超额。
     """
@@ -2236,7 +2251,7 @@ def mining_alpha_factor_detail(alpha_num: int):
         raise HTTPException(404, f"Alpha{alpha_num} 未注册")
 
     # 从 heatmap CSV 取该因子的月度 IC 序列
-    active = _ma_active_dir()
+    active = _ma_dir_for(run_id)
     heatmap = _ma_safe_read_csv(active / "ic_monthly_heatmap.csv", index_col=0)
     monthly_ic = []
     if heatmap is not None and alpha_num in heatmap.index:
