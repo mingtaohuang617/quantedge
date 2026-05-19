@@ -40,6 +40,8 @@ SUPERTRENDS: dict[str, dict] = {
             "AI", "HBM", "算力", "智能计算", "人工智能",
             # AAPL/SONY 等消费电子大厂自研 AI 芯片，归入 AI 算力赛道
             "消费电子",
+            # Yahoo 中文翻译 — 电脑硬件归 AI 基础设施
+            "电脑及周边器材",
         ],
         "keywords_strict_en": [
             "Artificial Intelligence",
@@ -65,7 +67,7 @@ SUPERTRENDS: dict[str, dict] = {
         "note": "设计、制造、设备、材料、存储",
         "keywords_strict_zh": [
             "半导体", "存储", "MCU", "元器件", "NAND", "DRAM", "晶圆", "集成电路",
-            "电子元件",
+            "电子元件", "电子零件",
         ],
         "keywords_strict_en": ["Semiconductor", "Semiconductors", "Memory"],
         # semi 自带就比较精准，broad 为空（没有需要"扩展但有噪声"的词）
@@ -81,7 +83,7 @@ SUPERTRENDS: dict[str, dict] = {
         ],
         "keywords_strict_en": ["Optical", "Photonic", "Laser"],
         # broad：富途/tushare 把光通信归到上层"通讯设备"，加上后会带中兴/烽火等噪音
-        "keywords_broad_zh": ["通讯设备", "通信设备"],
+        "keywords_broad_zh": ["通讯设备", "通信设备", "电讯网路基建设施"],
         "keywords_broad_en": ["Communication Equipment"],
     },
     "datacenter": {
@@ -92,6 +94,8 @@ SUPERTRENDS: dict[str, dict] = {
             "数据中心", "新型电力", "火力发电", "水力发电",
             # AI 数据中心耗电激增 → 独立电力商 (CEG / VST / NRG) 是直接受益者
             "独立电力",
+            # Yahoo 中文翻译变体（公用事业）
+            "常规电力", "水务",
         ],
         "keywords_strict_en": [
             "Data Center",
@@ -118,6 +122,10 @@ SUPERTRENDS: dict[str, dict] = {
             "旅游服务", "电子游戏与多媒体", "互动媒体及服务",
             "消费性电讯设备",
             "餐厅", "度假村与赌场", "住宿", "休闲",
+            # HK / CN Yahoo 翻译
+            "出版", "旅游及观光", "旅游景点",
+            "游戏软件", "互联网", "博彩", "赌场及博彩",
+            "餐饮",   # HK 海底捞 餐饮分类
         ],
         "keywords_strict_en": [
             "Internet Retail", "Internet Content",
@@ -136,7 +144,7 @@ SUPERTRENDS: dict[str, dict] = {
             "电动车", "新能源汽车", "汽车制造", "动力电池",
             "整车", "自动驾驶",
             # Yahoo 中文翻译
-            "汽车", "电气设备",
+            "汽车", "电气设备", "新能源物料",
         ],
         "keywords_strict_en": [
             "Auto Manufacturers",
@@ -156,6 +164,8 @@ SUPERTRENDS: dict[str, dict] = {
             # Yahoo 中文翻译变体
             "生物技术", "医疗设备", "医疗设备和用品",
             "化学制药", "专业与通用药品制造商",
+            # CSI 300 变体
+            "生物制药",
         ],
         "keywords_strict_en": [
             "Biotechnology",
@@ -196,6 +206,8 @@ SUPERTRENDS: dict[str, dict] = {
             # Yahoo 中文翻译
             "电信服务", "受监管电力", "受监管燃气",
             "油气勘探与开发", "油气设备", "油气精炼营销",
+            # HK 港股变体
+            "油气生产商", "电讯服务", "燃气供应",
         ],
         "keywords_strict_en": [
             "Banks—Diversified", "Oil & Gas Integrated",
@@ -218,6 +230,19 @@ SUPERTRENDS: dict[str, dict] = {
             # Yahoo 中文翻译
             "金融服务", "支付", "资本市场", "资产管理",
             "工业机械", "综合货运与物流", "铁路",
+            # HK / CN Yahoo 变体
+            "综合企业", "公共运输", "航运", "航运及港口",
+            "其他金融", "工业零件", "工业零件及器材",
+            "专用机械",
+            "小金属", "黄金", "铜", "铝", "玻璃", "焦炭",
+            "普钢", "水泥",
+            "农业综合", "农业",
+            # 地产（cycle-sensitive 归 cyclical）
+            "地产发展商", "地产投资", "房地产",
+            "全国地产", "园区开发",
+            "物业服务及管理", "房产服务",
+            # 工程机械 / 运输设备 / 空运
+            "工程机械", "运输设备", "空运",
         ],
         "keywords_strict_en": [
             "Banks - Regional", "Banks—Regional",
@@ -248,6 +273,10 @@ SUPERTRENDS: dict[str, dict] = {
             "一般药品制造商", "糖果",
             # 大型零售（WMT/COST/TGT — 防御性消费）
             "折扣零售", "家居装饰零售", "服装鞋类",
+            "服装", "鞋类",   # HK 安踏 / 李宁
+            # HK / CN 翻译变体
+            "家用电器", "家庭电器", "个人护理",
+            "中成药", "药品", "药品分销",
         ],
         "keywords_strict_en": [
             "Beverages—Non-Alcoholic", "Beverages - Non-Alcoholic",

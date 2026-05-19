@@ -7,7 +7,7 @@ export const SUPERTRENDS = {
     name: 'AI 算力',
     strategy: 'growth',
     note: 'AI 软硬件 / 加速器 / HBM / AI 应用',
-    keywords_strict_zh: ['AI', 'HBM', '算力', '智能计算', '人工智能', '消费电子'],
+    keywords_strict_zh: ['AI', 'HBM', '算力', '智能计算', '人工智能', '消费电子', '电脑及周边器材'],
     keywords_strict_en: ['Artificial Intelligence', 'Consumer Electronics'],
     keywords_broad_zh: [
       '应用软件', '软件基础设施', '软件服务',
@@ -22,7 +22,7 @@ export const SUPERTRENDS = {
     name: '半导体',
     strategy: 'growth',
     note: '设计、制造、设备、材料、存储',
-    keywords_strict_zh: ['半导体', '存储', 'MCU', '元器件', 'NAND', 'DRAM', '晶圆', '集成电路', '电子元件'],
+    keywords_strict_zh: ['半导体', '存储', 'MCU', '元器件', 'NAND', 'DRAM', '晶圆', '集成电路', '电子元件', '电子零件'],
     keywords_strict_en: ['Semiconductor', 'Semiconductors', 'Memory'],
     keywords_broad_zh: [],
     keywords_broad_en: [],
@@ -33,14 +33,14 @@ export const SUPERTRENDS = {
     note: '光模块、硅光、CPO、激光器、光纤',
     keywords_strict_zh: ['光通信', '光模块', '硅光', '光纤', '激光'],
     keywords_strict_en: ['Optical', 'Photonic', 'Laser'],
-    keywords_broad_zh: ['通讯设备', '通信设备'],
+    keywords_broad_zh: ['通讯设备', '通信设备', '电讯网路基建设施'],
     keywords_broad_en: ['Communication Equipment'],
   },
   datacenter: {
     name: '算力中心',
     strategy: 'growth',
     note: '数据中心 / 电力 / 公共事业',
-    keywords_strict_zh: ['数据中心', '新型电力', '火力发电', '水力发电', '独立电力'],
+    keywords_strict_zh: ['数据中心', '新型电力', '火力发电', '水力发电', '独立电力', '常规电力', '水务'],
     keywords_strict_en: ['Data Center', 'Power Producers', 'Independent Power'],
     keywords_broad_zh: ['公共事业'],
     keywords_broad_en: ['Utilities - Regulated', 'Utilities - Independent'],
@@ -58,6 +58,10 @@ export const SUPERTRENDS = {
       '旅游服务', '电子游戏与多媒体', '互动媒体及服务',
       '消费性电讯设备',
       '餐厅', '度假村与赌场', '住宿', '休闲',
+      // HK / CN
+      '出版', '旅游及观光', '旅游景点',
+      '游戏软件', '互联网', '博彩', '赌场及博彩',
+      '餐饮',
     ],
     keywords_strict_en: [
       'Internet Retail', 'Internet Content',
@@ -76,7 +80,7 @@ export const SUPERTRENDS = {
       '电动车', '新能源汽车', '汽车制造', '动力电池',
       '整车', '自动驾驶',
       // Yahoo 中文翻译
-      '汽车', '电气设备',
+      '汽车', '电气设备', '新能源物料',
     ],
     keywords_strict_en: ['Auto Manufacturers', 'Auto - Manufacturers', 'Auto Parts'],
     keywords_broad_zh: ['汽车零部件'],
@@ -90,7 +94,7 @@ export const SUPERTRENDS = {
       '生物科技', '创新药', '医疗器械', '基因', '诊断试剂', '诊断与研究',
       // Yahoo 中文翻译变体
       '生物技术', '医疗设备', '医疗设备和用品', '化学制药',
-      '专业与通用药品制造商',
+      '专业与通用药品制造商', '生物制药',
     ],
     keywords_strict_en: [
       'Biotechnology', 'Medical Devices', 'Diagnostics & Research',
@@ -118,6 +122,7 @@ export const SUPERTRENDS = {
       '电信运营', '石油', '天然气', '煤炭',
       '电信服务', '受监管电力', '受监管燃气',
       '油气勘探与开发', '油气设备', '油气精炼营销',
+      '油气生产商', '电讯服务', '燃气供应',
     ],
     keywords_strict_en: [
       'Banks—Diversified', 'Oil & Gas Integrated',
@@ -136,6 +141,17 @@ export const SUPERTRENDS = {
       '银行', '保险', '化工', '钢铁', '有色金属', '建材', '证券', '券商',
       '金融服务', '支付', '资本市场', '资产管理',
       '工业机械', '综合货运与物流', '铁路',
+      // HK / CN 翻译变体
+      '综合企业', '公共运输', '航运', '航运及港口',
+      '其他金融', '工业零件', '工业零件及器材',
+      '专用机械',
+      '小金属', '黄金', '铜', '铝', '玻璃', '焦炭',
+      '普钢', '水泥',
+      '农业综合', '农业',
+      '地产发展商', '地产投资', '房地产',
+      '全国地产', '园区开发',
+      '物业服务及管理', '房产服务',
+      '工程机械', '运输设备', '空运',
     ],
     keywords_strict_en: [
       'Banks - Regional', 'Banks—Regional',
@@ -160,6 +176,9 @@ export const SUPERTRENDS = {
       '大型制药', '制药企业',
       '一般药品制造商', '糖果',
       '折扣零售', '家居装饰零售', '服装鞋类',
+      '服装', '鞋类',
+      '家用电器', '家庭电器', '个人护理',
+      '中成药', '药品', '药品分销',
     ],
     keywords_strict_en: [
       'Beverages—Non-Alcoholic', 'Beverages - Non-Alcoholic',
