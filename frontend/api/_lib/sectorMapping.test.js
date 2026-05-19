@@ -41,7 +41,9 @@ describe('classifySector — builtin', () => {
   });
 
   it('未知 sector 返回空 set', () => {
-    expect(classifySector('Consumer Electronics')).toEqual(new Set());
+    // 注："Consumer Electronics" 现在命中 ai_compute（AAPL/SONY 自研 AI 芯片）
+    // 改用真正不映射的 sector
+    expect(classifySector('Toys & Games')).toEqual(new Set());
   });
 });
 

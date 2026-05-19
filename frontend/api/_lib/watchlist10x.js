@@ -315,9 +315,10 @@ export async function screenCandidates(opts = {}) {
       const secMatched = new Set([...secAll].filter(t => wanted.has(t)));
       const indMatched = new Set([...indAll].filter(t => wanted.has(t)));
 
-      // precise 模式 fallback：sec/ind 都不命中时再查名称
+      // sec/ind 都不命中时 fallback 查名称（broad + precise 都启用 —
+      // sector 为空的票如 TSM/EQIX/BABA 在默认 broad 模式下唯一可救之路）
       let nameReasons = {};
-      if (precise && secMatched.size === 0 && indMatched.size === 0) {
+      if (secMatched.size === 0 && indMatched.size === 0) {
         const r = nameMatchesStrictWithReasons(it.name, [...wanted], userTrends);
         nameReasons = r.reasons;
       }
