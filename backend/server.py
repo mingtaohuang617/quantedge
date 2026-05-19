@@ -1113,6 +1113,85 @@ def db_bars_endpoint(ticker: str, start: str | None = None, end: str | None = No
     return sanitize({"ticker": ticker, "count": len(rows), "bars": rows})
 
 
+# ── Intraday（分钟级行情按需拉取，不落库）────────────────
+@app.get("/api/intraday")
+def intraday_endpoint(
+    ticker: str = Query(..., description="yfinance symbol，例如 SPY / 0005.HK"),
+    interval: str = Query("1m", description="1m / 5m / 15m / 1h / 1d"),
+    lookback_days: int = Query(5, ge=1, le=730),
+    market: str = Query("US"),
+    start: str | None = Query(None, description="ISO8601 起始（含），UTC"),
+    end:   str | None = Query(None, description="ISO8601 结束（含），UTC"),
+):
+    """按需拉 intraday K 线，不落库；start/end 在返回前对 yfinance 滚动窗口做裁剪。
+
+    yfinance interval 滚动窗口（实测）：
+      1m → 7 个交易日 | 5m/15m → 60 天 | 1h → 730 天 | 1d → 6mo
+    """
+    if not HAS_DATA_SOURCES:
+        raise HTTPException(503, "data_sources 模块未加载")
+    from data_sources import Interval as _Interval
+
+    try:
+        iv = _Interval.from_str(interval)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+    cfg = {"yf_symbol": ticker, "market": market.upper(), "name": ticker}
+    try:
+        df, src = fetch_history(cfg, days=lookback_days, interval=iv)
+    except Exception as e:
+        raise HTTPException(502, f"fetch_history 失败 ({ticker} {interval}): {e}")
+
+    # start/end 过滤（仅当用户指定）
+    if start or end:
+        idx = df.index
+        if getattr(idx, "tz", None) is None and iv.is_intraday:
+            # 安全网：理论上 intraday 已 UTC，但兜底以防
+            idx = idx.tz_localize("UTC")
+            df = df.copy()
+            df.index = idx
+        if start:
+            try:
+                ts = pd.Timestamp(start)
+                if ts.tz is None and iv.is_intraday:
+                    ts = ts.tz_localize("UTC")
+                df = df[df.index >= ts]
+            except (ValueError, TypeError) as e:
+                raise HTTPException(400, f"start 解析失败: {e}")
+        if end:
+            try:
+                ts = pd.Timestamp(end)
+                if ts.tz is None and iv.is_intraday:
+                    ts = ts.tz_localize("UTC")
+                df = df[df.index <= ts]
+            except (ValueError, TypeError) as e:
+                raise HTTPException(400, f"end 解析失败: {e}")
+
+    bars = []
+    for ts, row in df.iterrows():
+        if hasattr(ts, "tz") and ts.tz is not None:
+            iso = ts.tz_convert("UTC").isoformat()
+        else:
+            iso = ts.isoformat() if hasattr(ts, "isoformat") else str(ts)
+        bars.append({
+            "timestamp": iso,
+            "open":  float(row["Open"])  if pd.notna(row.get("Open"))  else None,
+            "high":  float(row["High"])  if pd.notna(row.get("High"))  else None,
+            "low":   float(row["Low"])   if pd.notna(row.get("Low"))   else None,
+            "close": float(row["Close"]) if pd.notna(row.get("Close")) else None,
+            "volume": int(row["Volume"]) if pd.notna(row.get("Volume")) else None,
+        })
+
+    return sanitize({
+        "ticker": ticker,
+        "interval": iv.value,
+        "source": src,
+        "count": len(bars),
+        "bars": bars,
+    })
+
+
 # ── LLM (DeepSeek) 端点 (B1 / B5) ────────────────────────
 class LLMSummaryReq(BaseModel):
     """B1: 个股 AI 摘要请求体。所有字段可选，能给多少给多少。"""
