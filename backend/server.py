@@ -98,6 +98,9 @@ except Exception as _e:
     # TypeError 之类的非 ImportError 失败
     print(f"[WARN] data_sources unavailable, falling back to yfinance-direct: {_e}")
     HAS_DATA_SOURCES = False
+    # Python 3: `_e` 在 except 块结束时会被删除（PEP 3110），如果在 health_check
+    # 里直接引用 _e 会 NameError。先 freeze 成字符串闭进 fallback 函数。
+    _data_sources_err = str(_e)
     def fetch_history(cfg, days=120):
         """Fallback: use yfinance directly."""
         symbol = cfg.get("yf_symbol", "")
@@ -105,7 +108,7 @@ except Exception as _e:
         hist = tk.history(period=f"{days}d")
         return hist, "yfinance-direct"
     def health_check():
-        return {"data_sources": (False, str(_e))}
+        return {"data_sources": (False, _data_sources_err)}
 
 # 本地数据库 — SQLite 事实库（C17）
 try:
