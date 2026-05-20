@@ -12,8 +12,8 @@
 //   - 缺字段显示 "—" 不报错
 //   - 与 WatchlistCard 视觉风格一致（glass-card + 8/9/10 字号纪律）
 // ─────────────────────────────────────────────────────────────
-import React from "react";
-import { X, Plus, Activity } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { X, Plus, Activity, TrendingUp, TrendingDown } from "lucide-react";
 
 function fmtMcap(mc) {
   if (mc == null) return "—";
@@ -36,6 +36,40 @@ function defaultTrendName(supertrends) {
   return (id) => supertrends.find((s) => s.id === id)?.name || id;
 }
 
+/** ticker → Yahoo Finance 标准代码（与 Screener10x._tickerToYahoo 同逻辑） */
+function tickerToYahoo(ticker) {
+  if (!ticker) return null;
+  if (ticker.endsWith(".HK")) {
+    const num = ticker.replace(".HK", "").replace(/^0+/, "").padStart(4, "0");
+    return num + ".HK";
+  }
+  if (ticker.endsWith(".SH")) return ticker.replace(".SH", ".SS");
+  return ticker;
+}
+
+/** Sparkline — SVG 折线，30 日涨跌区分色 */
+function Sparkline({ prices, width = 280, height = 50 }) {
+  const valid = (prices || []).filter((p) => typeof p === "number" && isFinite(p));
+  if (valid.length < 2) return null;
+  const min = Math.min(...valid);
+  const max = Math.max(...valid);
+  const range = max - min || 1;
+  const points = valid.map((p, i) => {
+    const x = (i / (valid.length - 1)) * (width - 4) + 2;
+    const y = height - 2 - ((p - min) / range) * (height - 4);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(" ");
+  const isUp = valid[valid.length - 1] >= valid[0];
+  const stroke = isUp ? "#34d399" : "#f87171";
+  const fill = isUp ? "rgba(52,211,153,0.15)" : "rgba(248,113,113,0.15)";
+  return (
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="block w-full">
+      <polygon points={`2,${height} ${points} ${width - 2},${height}`} fill={fill} />
+      <polyline points={points} fill="none" stroke={stroke} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export default function StockDetailPanel({
   open,
   item,
@@ -43,10 +77,40 @@ export default function StockDetailPanel({
   onClose,
   onAddObservation,
 }) {
+  // 30 天价格历史（lazy fetch，仅 modal 打开 + ticker 变化时拉一次）
+  const [priceHistory, setPriceHistory] = useState({ prices: null, loading: false });
+  useEffect(() => {
+    if (!open || !item?.ticker) return;
+    let cancelled = false;
+    setPriceHistory({ prices: null, loading: true });
+    const yfSym = tickerToYahoo(item.ticker);
+    if (!yfSym) {
+      setPriceHistory({ prices: null, loading: false });
+      return;
+    }
+    const path = `/v8/finance/chart/${encodeURIComponent(yfSym)}?interval=1d&range=1mo`;
+    const url = `/api/yahoo?host=query1&path=${encodeURIComponent(path)}`;
+    fetch(url, { signal: AbortSignal.timeout(8000) })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        if (cancelled) return;
+        const closes = j?.chart?.result?.[0]?.indicators?.quote?.[0]?.close;
+        setPriceHistory({ prices: Array.isArray(closes) ? closes : null, loading: false });
+      })
+      .catch(() => {
+        if (!cancelled) setPriceHistory({ prices: null, loading: false });
+      });
+    return () => { cancelled = true; };
+  }, [open, item?.ticker]);
+
   if (!open || !item) return null;
   const trendName = defaultTrendName(supertrends);
   const mc = item.marketCap;
   const mcStr = fmtMcap(mc);
+  const validPrices = (priceHistory.prices || []).filter((p) => typeof p === "number" && isFinite(p));
+  const monthChange = validPrices.length >= 2
+    ? (validPrices[validPrices.length - 1] - validPrices[0]) / validPrices[0]
+    : null;
 
   // 5 维财务行
   const financialRows = [
@@ -93,6 +157,34 @@ export default function StockDetailPanel({
             <Cell label="市值" value={mcStr} valueClass="font-mono" />
             <Cell label="板块" value={item.sector || "—"} fullWidth />
             <Cell label="行业" value={item.industry || "—"} fullWidth />
+          </div>
+
+          {/* 30 天 mini 价格图 */}
+          <div className="border border-white/10 rounded p-2 bg-white/[0.02]">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[9px] text-[#a0aec0]">近 30 天</span>
+              {monthChange != null && (
+                <span className={`text-[10px] font-mono flex items-center gap-0.5 ${
+                  monthChange >= 0 ? "text-emerald-400" : "text-red-400"
+                }`}>
+                  {monthChange >= 0 ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
+                  {(monthChange >= 0 ? "+" : "")}{(monthChange * 100).toFixed(2)}%
+                </span>
+              )}
+            </div>
+            {priceHistory.loading && (
+              <div className="h-[50px] flex items-center justify-center text-[9px] text-[#5a6477]">
+                加载中…
+              </div>
+            )}
+            {!priceHistory.loading && validPrices.length >= 2 && (
+              <Sparkline prices={validPrices} />
+            )}
+            {!priceHistory.loading && validPrices.length < 2 && (
+              <div className="h-[50px] flex items-center justify-center text-[9px] text-[#5a6477]">
+                价格数据不可用
+              </div>
+            )}
           </div>
 
           {/* 5 维财务（仅有任一字段时显示）*/}
