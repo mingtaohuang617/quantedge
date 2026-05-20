@@ -30,6 +30,7 @@ import TenxItemEditor from "../components/TenxItemEditor.jsx";
 import AddSupertrendDialog from "../components/AddSupertrendDialog.jsx";
 import WatchlistCard from "../components/WatchlistCard.jsx";
 import ValueFilters from "../components/ValueFilters.jsx";
+import { serializeWatchlistCsv } from "../lib/csvExport.js";
 
 const STRATEGY_LABEL = { growth: "成长型", value: "价值型" };
 
@@ -574,34 +575,14 @@ export default function Screener10x() {
   };
 
   // 导出 watchlist 为 .csv（Excel-friendly，带 BOM 解决中文乱码）
+  // 序列化逻辑在 src/lib/csvExport.js（pure，可测）
   const handleExportCsv = async () => {
     const json = await apiFetch("/watchlist/10x/export");
     if (!json) {
       window.alert("导出失败：后端不可用（演示模式或网络问题）");
       return;
     }
-    const items = Array.isArray(json.items) ? json.items : [];
-    // CSV 字段顺序：ticker → 投资逻辑（用户最关心的列在前）
-    const headers = [
-      "ticker", "name", "supertrend", "strategy",
-      "bottleneck_layer", "moat_score",
-      "target_price", "stop_loss",
-      "thesis", "falsification_condition",
-      "archived", "added_at", "llm_thesis_cached_at",
-    ];
-    // 标准 CSV 转义：含逗号/换行/双引号 → 包双引号 + 内部双引号 doubled
-    const esc = (v) => {
-      if (v == null) return "";
-      const s = String(v).replace(/\r?\n/g, " | ");   // 多行 thesis 压成单行
-      if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-      return s;
-    };
-    const rows = [headers.join(",")];
-    for (const it of items) {
-      rows.push(headers.map((h) => esc(it[h])).join(","));
-    }
-    // BOM 让 Excel 识别 UTF-8（否则中文乱码）
-    const csv = "﻿" + rows.join("\r\n");
+    const csv = serializeWatchlistCsv(json.items);
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
