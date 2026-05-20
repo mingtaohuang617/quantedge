@@ -8,7 +8,8 @@
     "mc_source": "futu",
     "mc_filled": 5201,
     "fundamentals_smoke_count": 35,
-    "fundamentals_note": "smoke patch v3 (~110 representative tickers across 3 markets); 跑 sync_*.py --enrich-fundamentals 获取全市场（Yahoo 限频严重）"
+    "fundamentals_note": "smoke patch v3 (~110 representative tickers across 3 markets); 跑 sync_*.py --enrich-fundamentals 获取全市场（Yahoo 限频严重）",
+    "index_members_patch_count": 0
   },
   "items": [
     {

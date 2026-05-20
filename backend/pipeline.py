@@ -17,6 +17,15 @@ QuantEdge 数据管道
 
 import json
 import sys
+
+# Windows GBK 控制台兼容：日志含 ✓/✗/⚠/中文等非 GBK 字符，
+# 默认 cp936 终端 print() 会抛 UnicodeEncodeError 卡死整个管道。
+# Python 3.7+ TextIOWrapper.reconfigure 是标准 API；非 Windows 跳过。
+if sys.platform == "win32":
+    for _stream in (sys.stdout, sys.stderr):
+        if hasattr(_stream, "reconfigure"):
+            _stream.reconfigure(encoding="utf-8", errors="replace")
+
 import traceback
 from datetime import datetime, timedelta
 from pathlib import Path
