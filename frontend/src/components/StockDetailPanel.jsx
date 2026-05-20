@@ -111,6 +111,11 @@ export default function StockDetailPanel({
   const monthChange = validPrices.length >= 2
     ? (validPrices[validPrices.length - 1] - validPrices[0]) / validPrices[0]
     : null;
+  // 今日变化 = 最后两天的差（即最近一根 K 线的涨跌）
+  const dayChange = validPrices.length >= 2
+    ? (validPrices[validPrices.length - 1] - validPrices[validPrices.length - 2]) / validPrices[validPrices.length - 2]
+    : null;
+  const lastPrice = validPrices.length >= 1 ? validPrices[validPrices.length - 1] : null;
 
   // 5 维财务行
   const financialRows = [
@@ -176,12 +181,28 @@ export default function StockDetailPanel({
 
           {/* 30 天 mini 价格图 */}
           <div className="border border-white/10 rounded p-2 bg-white/[0.02]">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[9px] text-[#a0aec0]">近 30 天</span>
+            <div className="flex items-center justify-between mb-1 gap-2">
+              <div className="flex items-baseline gap-2 min-w-0">
+                <span className="text-[9px] text-[#a0aec0]">近 30 天</span>
+                {lastPrice != null && (
+                  <span className="text-[10px] font-mono text-white">{lastPrice.toFixed(2)}</span>
+                )}
+                {dayChange != null && (
+                  <span
+                    className={`text-[9px] font-mono ${dayChange >= 0 ? "text-emerald-400" : "text-red-400"}`}
+                    title="今日变化（最近一根 K 线）"
+                  >
+                    今日 {dayChange >= 0 ? "+" : ""}{(dayChange * 100).toFixed(2)}%
+                  </span>
+                )}
+              </div>
               {monthChange != null && (
-                <span className={`text-[10px] font-mono flex items-center gap-0.5 ${
-                  monthChange >= 0 ? "text-emerald-400" : "text-red-400"
-                }`}>
+                <span
+                  className={`text-[10px] font-mono flex items-center gap-0.5 whitespace-nowrap ${
+                    monthChange >= 0 ? "text-emerald-400" : "text-red-400"
+                  }`}
+                  title="30 天累计变化"
+                >
                   {monthChange >= 0 ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
                   {(monthChange >= 0 ? "+" : "")}{(monthChange * 100).toFixed(2)}%
                 </span>
