@@ -11,7 +11,8 @@
     "fundamentals_smoke_count": 57,
     "fundamentals_note": "smoke patch v3 (~110 representative tickers across 3 markets); 跑 sync_*.py --enrich-fundamentals 获取全市场（Yahoo 限频严重）",
     "sector_smoke_patch_count": 25,
-    "sector_smoke_note": "手填 ~22 只主流成长股 sector 数据；解决 yfinance enrich 对 mega-cap 不可靠导致的 supertrend 不命中问题"
+    "sector_smoke_note": "手填 ~22 只主流成长股 sector 数据；解决 yfinance enrich 对 mega-cap 不可靠导致的 supertrend 不命中问题",
+    "index_members_patch_count": 355
   },
   "items": [
     {
@@ -12224,8 +12225,8 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
+      "sector": "综合货运与物流",
+      "industry": "综合货运与物流",
       "marketCap": 20894878224.9
     },
     {
@@ -12308,8 +12309,8 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
+      "sector": "电信服务",
+      "industry": "电信服务",
       "marketCap": 21121364384.38
     },
     {
@@ -12416,8 +12417,8 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
+      "sector": "Insurance—Diversified",
+      "industry": "保险",
       "marketCap": 25066986541.1
     },
     {
@@ -13520,8 +13521,8 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
+      "sector": "医疗设备",
+      "industry": "医疗设备",
       "marketCap": 12167333859.28
     },
     {
@@ -13741,8 +13742,8 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
+      "sector": "包装食品",
+      "industry": "Packaged Foods",
       "marketCap": 6180576696.24
     },
     {
@@ -13825,8 +13826,8 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
+      "sector": "信息技术服务",
+      "industry": "信息技术服务",
       "marketCap": 32049270068.76
     },
     {
@@ -14521,8 +14522,8 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
+      "sector": "通讯设备",
+      "industry": "通讯设备",
       "marketCap": 362797675907.7
     },
     {
@@ -14545,8 +14546,8 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
+      "sector": "信息技术服务",
+      "industry": "信息技术服务",
       "marketCap": 14178110424.8
     },
     {
@@ -14665,8 +14666,8 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
+      "sector": "铁路",
+      "industry": "铁路",
       "marketCap": 83769599790.0
     },
     {
@@ -14713,8 +14714,8 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
+      "sector": "信息技术服务",
+      "industry": "信息技术服务",
       "marketCap": 67858776253.59
     },
     {
@@ -16321,8 +16322,8 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
+      "sector": "折扣零售",
+      "industry": "折扣零售",
       "marketCap": 18678222203.39
     },
     {
@@ -18733,8 +18734,8 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
+      "sector": "信息技术服务",
+      "industry": "信息技术服务",
       "marketCap": 4461369747.0
     },
     {
@@ -22458,8 +22459,8 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
+      "sector": "半导体",
+      "industry": "半导体",
       "marketCap": 22748951480.73
     },
     {
@@ -22746,8 +22747,8 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
+      "sector": "软件基础设施",
+      "industry": "软件基础设施",
       "marketCap": 63173085635.63
     },
     {
@@ -24162,8 +24163,8 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
+      "sector": "Biotechnology",
+      "industry": "Biotechnology",
       "marketCap": 163406878011.45
     },
     {
@@ -27364,8 +27365,8 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
+      "sector": "生物技术",
+      "industry": "生物技术",
       "marketCap": 8483323410.43
     },
     {
@@ -27412,9 +27413,9 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "房地产",
+      "industry": "房地产 REIT",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "HSTM",
@@ -29152,8 +29153,8 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
+      "sector": "Diagnostics & Research",
+      "industry": "Diagnostics & Research",
       "marketCap": 20625920918.7
     },
     {
@@ -34190,8 +34191,8 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
+      "sector": "汽车零部件",
+      "industry": "汽车零部件",
       "marketCap": 7264086705.85
     },
     {
@@ -34394,8 +34395,8 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
+      "sector": "受监管电力",
+      "industry": "受监管电力",
       "marketCap": 19127956330.98
     },
     {
@@ -42000,8 +42001,8 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
+      "sector": "综合货运与物流",
+      "industry": "综合货运与物流",
       "marketCap": 42868601834.63
     },
     {
@@ -43068,8 +43069,8 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
+      "sector": "汽车零部件",
+      "industry": "汽车零部件",
       "marketCap": 80457736855.72
     },
     {
@@ -47081,8 +47082,8 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
+      "sector": "金融服务",
+      "industry": "金融服务",
       "marketCap": 45379555097.24
     },
     {
@@ -47897,8 +47898,8 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
+      "sector": "半导体",
+      "industry": "半导体",
       "marketCap": 8667980986.5
     },
     {
@@ -48989,9 +48990,9 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "房地产",
+      "industry": "房地产 REIT",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "REGCO",
@@ -49025,8 +49026,8 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
+      "sector": "Biotechnology",
+      "industry": "Biotechnology",
       "marketCap": 73536193825.44
     },
     {
@@ -49673,8 +49674,8 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
+      "sector": "汽车制造",
+      "industry": "电动车",
       "marketCap": 18931475265.88
     },
     {
@@ -50177,8 +50178,8 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
+      "sector": "流媒体",
+      "industry": "娱乐",
       "marketCap": 18251993748.58
     },
     {
@@ -50213,8 +50214,8 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
+      "sector": "信息技术服务",
+      "industry": "信息技术服务",
       "marketCap": 36681728000.0
     },
     {
@@ -50225,8 +50226,8 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
+      "sector": "服装鞋类",
+      "industry": "服装鞋类",
       "marketCap": 73720382188.32
     },
     {
@@ -51125,9 +51126,9 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "数据中心 REIT",
+      "industry": "通讯铁塔",
+      "marketCap": 22000000000.0
     },
     {
       "ticker": "SBC",
@@ -51269,8 +51270,8 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
+      "sector": "Restaurants",
+      "industry": "Restaurants",
       "marketCap": 120694230000.0
     },
     {
@@ -53645,8 +53646,8 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": true,
-      "sector": null,
-      "industry": null,
+      "sector": "Drug Manufacturers - General",
+      "industry": "Drug Manufacturers - General",
       "marketCap": 110400779796.48
     },
     {
@@ -55222,8 +55223,8 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
+      "sector": "半导体",
+      "industry": "存储",
       "marketCap": 162998781154.56
     },
     {
@@ -55714,8 +55715,8 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
+      "sector": "半导体",
+      "industry": "半导体",
       "marketCap": 10438173832.2
     },
     {
@@ -56698,8 +56699,8 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
+      "sector": "软件基础设施",
+      "industry": "应用软件",
       "marketCap": 23441573297.12
     },
     {
@@ -56710,8 +56711,8 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
+      "sector": "生物技术",
+      "industry": "生物技术",
       "marketCap": 8608060125.84
     },
     {
@@ -56818,8 +56819,8 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
+      "sector": "半导体",
+      "industry": "半导体",
       "marketCap": 54078757619.76
     },
     {
@@ -58047,8 +58048,8 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
+      "sector": "信息技术服务",
+      "industry": "信息技术服务",
       "marketCap": 15879510975.02
     },
     {
@@ -58131,8 +58132,8 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
+      "sector": "资本市场",
+      "industry": "资本市场",
       "marketCap": 22159452392.52
     },
     {
@@ -58323,8 +58324,8 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
+      "sector": "折扣零售",
+      "industry": "折扣零售",
       "marketCap": 17794793602.62
     },
     {
@@ -58676,8 +58677,8 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
+      "sector": "媒体娱乐",
+      "industry": "娱乐",
       "marketCap": 40003453759.68
     },
     {
@@ -59156,8 +59157,8 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
+      "sector": "航空",
+      "industry": "航空",
       "marketCap": 30029191234.56
     },
     {
@@ -59564,8 +59565,8 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
+      "sector": "服装鞋类",
+      "industry": "服装鞋类",
       "marketCap": 23171963291.2
     },
     {
@@ -59840,8 +59841,8 @@
       "exchange": "NASDAQ",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
+      "sector": "服装鞋类",
+      "industry": "服装鞋类",
       "marketCap": 5907344332.8
     },
     {
@@ -65281,9 +65282,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "诊断与研究",
+      "industry": "诊断与研究",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "AA",
@@ -65694,9 +65695,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Medical Devices",
+      "industry": "Medical Devices",
+      "marketCap": 200000000000.0
     },
     {
       "ticker": "ABUF",
@@ -65958,9 +65959,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "信息技术服务",
+      "industry": "信息技术服务",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "ACP",
@@ -66282,9 +66283,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "包装食品",
+      "industry": "Packaged Foods",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "ADME",
@@ -66366,9 +66367,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "受监管电力",
+      "industry": "受监管电力",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "AEF",
@@ -66486,9 +66487,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "独立电力生产商",
+      "industry": "独立电力",
+      "marketCap": 9000000000.0
     },
     {
       "ticker": "AESI",
@@ -67540,9 +67541,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Insurance—Diversified",
+      "industry": "保险",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "AIZN",
@@ -67576,9 +67577,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Insurance—Diversified",
+      "industry": "保险",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "AJUL",
@@ -67684,9 +67685,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "化工",
+      "industry": "Specialty Chemicals",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "ALB$A",
@@ -67756,9 +67757,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "航空",
+      "industry": "航空",
+      "marketCap": 20000000000.0
     },
     {
       "ticker": "ALL",
@@ -67833,9 +67834,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "工业机械",
+      "industry": "工业机械",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "ALLY",
@@ -67845,9 +67846,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "金融服务",
+      "industry": "金融服务",
+      "marketCap": 100000000000.0
     },
     {
       "ticker": "ALRG",
@@ -68049,9 +68050,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "化工",
+      "industry": "Specialty Chemicals",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "AMDW",
@@ -68085,9 +68086,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "工业机械",
+      "industry": "工业机械",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "AMG",
@@ -68193,9 +68194,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "资本市场",
+      "industry": "资本市场",
+      "marketCap": 100000000000.0
     },
     {
       "ticker": "AMPX",
@@ -68289,9 +68290,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "数据中心 REIT",
+      "industry": "通讯铁塔",
+      "marketCap": 100000000000.0
     },
     {
       "ticker": "AMTB",
@@ -68469,9 +68470,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "通讯设备",
+      "industry": "通讯设备",
+      "marketCap": 130000000000.0
     },
     {
       "ticker": "ANEW",
@@ -68493,9 +68494,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "服装鞋类",
+      "industry": "服装鞋类",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "ANG$D",
@@ -68649,9 +68650,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Insurance—Diversified",
+      "industry": "保险",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "AOR",
@@ -68685,9 +68686,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "工业机械",
+      "industry": "工业机械",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "AOTS",
@@ -68745,9 +68746,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Chemicals",
+      "industry": "Specialty Chemicals",
+      "marketCap": 65000000000.0
     },
     {
       "ticker": "APG",
@@ -68769,9 +68770,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "汽车零部件",
+      "industry": "汽车零部件",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "APHU",
@@ -69021,9 +69022,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "汽车零部件",
+      "industry": "汽车零部件",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "APUE",
@@ -69201,9 +69202,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "房地产",
+      "industry": "房地产 REIT",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "AREN",
@@ -70113,9 +70114,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "受监管电力",
+      "industry": "受监管电力",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "ATR",
@@ -70353,9 +70354,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "房地产",
+      "industry": "房地产 REIT",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "AVBC",
@@ -70809,9 +70810,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "化工",
+      "industry": "Specialty Chemicals",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "AWAY",
@@ -70857,9 +70858,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "受监管电力",
+      "industry": "受监管电力",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "AWP",
@@ -70965,9 +70966,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "金融服务",
+      "industry": "金融服务",
+      "marketCap": 200000000000.0
     },
     {
       "ticker": "AXR",
@@ -71037,9 +71038,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "工业机械",
+      "industry": "工业机械",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "AZN",
@@ -71049,9 +71050,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Drug Manufacturers - General",
+      "industry": "Drug Manufacturers - General",
+      "marketCap": 220000000000.0
     },
     {
       "ticker": "AZO",
@@ -71061,9 +71062,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "汽车零部件",
+      "industry": "汽车零部件",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "AZTD",
@@ -71121,9 +71122,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "航天国防",
+      "industry": "航天",
+      "marketCap": 110000000000.0
     },
     {
       "ticker": "BA$A",
@@ -71390,9 +71391,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "化工",
+      "industry": "包装材料",
+      "marketCap": 20000000000.0
     },
     {
       "ticker": "BALT",
@@ -71654,9 +71655,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "医疗设备",
+      "industry": "医疗设备",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "BB",
@@ -72122,9 +72123,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "服装鞋类",
+      "industry": "服装鞋类",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "BBY",
@@ -72134,9 +72135,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "折扣零售",
+      "industry": "折扣零售",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "BC",
@@ -72650,9 +72651,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "医疗设备",
+      "industry": "医疗设备",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "BE",
@@ -72758,9 +72759,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "资本市场",
+      "industry": "资本市场",
+      "marketCap": 100000000000.0
     },
     {
       "ticker": "BENJ",
@@ -72986,9 +72987,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "饮料",
+      "industry": "饮料",
+      "marketCap": 100000000000.0
     },
     {
       "ticker": "BFAM",
@@ -73214,9 +73215,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "包装食品",
+      "industry": "Packaged Foods",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "BGB",
@@ -73646,9 +73647,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "应用软件",
+      "industry": "SaaS",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "BILS",
@@ -73730,9 +73731,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "生物技术",
+      "industry": "生物技术",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "BIO.B",
@@ -74006,9 +74007,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "折扣零售",
+      "industry": "折扣零售",
+      "marketCap": 100000000000.0
     },
     {
       "ticker": "BJAN",
@@ -74054,9 +74055,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "金融服务",
+      "industry": "金融服务",
+      "marketCap": 100000000000.0
     },
     {
       "ticker": "BK$K",
@@ -74438,9 +74439,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "家居装饰零售",
+      "industry": "家居装饰零售",
+      "marketCap": 100000000000.0
     },
     {
       "ticker": "BLDX",
@@ -74486,9 +74487,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Insurance—Diversified",
+      "industry": "资产管理",
+      "marketCap": 130000000000.0
     },
     {
       "ticker": "BLND",
@@ -74846,9 +74847,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Drug Manufacturers - General",
+      "industry": "Drug Manufacturers - General",
+      "marketCap": 100000000000.0
     },
     {
       "ticker": "BN",
@@ -75362,9 +75363,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "信息技术服务",
+      "industry": "信息技术服务",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "BRAZ",
@@ -75530,9 +75531,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Insurance—Diversified",
+      "industry": "保险",
+      "marketCap": 1000000000000.0
     },
     {
       "ticker": "BRKC",
@@ -75590,9 +75591,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Insurance—Diversified",
+      "industry": "保险",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "BROS",
@@ -75830,9 +75831,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Medical Devices",
+      "industry": "Medical Devices",
+      "marketCap": 130000000000.0
     },
     {
       "ticker": "BTAL",
@@ -75974,9 +75975,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Tobacco",
+      "industry": "烟草",
+      "marketCap": 100000000000.0
     },
     {
       "ticker": "BTO",
@@ -76514,9 +76515,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "汽车零部件",
+      "industry": "汽车零部件",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "BWEB",
@@ -76670,9 +76671,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "金融服务",
+      "industry": "资产管理",
+      "marketCap": 110000000000.0
     },
     {
       "ticker": "BXC",
@@ -76706,9 +76707,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "房地产",
+      "industry": "房地产 REIT",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "BXSL",
@@ -76939,9 +76940,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "包装食品",
+      "industry": "Packaged Foods",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "CAGE",
@@ -76963,9 +76964,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "医疗设备",
+      "industry": "医疗设备",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "CAIE",
@@ -77167,9 +77168,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "工业机械",
+      "industry": "工业机械",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "CARS",
@@ -77280,9 +77281,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "保险",
+      "industry": "Insurance—Property & Casualty",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "CBAN",
@@ -77352,9 +77353,9 @@
       "exchange": "BATS",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "资本市场",
+      "industry": "资本市场",
+      "marketCap": 100000000000.0
     },
     {
       "ticker": "CBOJ",
@@ -77652,9 +77653,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "数据中心 REIT",
+      "industry": "通讯铁塔",
+      "marketCap": 40000000000.0
     },
     {
       "ticker": "CCID",
@@ -77712,9 +77713,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "住宿",
+      "industry": "住宿",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "CCM",
@@ -77928,9 +77929,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "化工",
+      "industry": "Specialty Chemicals",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "CEE",
@@ -78096,9 +78097,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "化工",
+      "industry": "Specialty Chemicals",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "CFG",
@@ -78108,9 +78109,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "金融服务",
+      "industry": "金融服务",
+      "marketCap": 100000000000.0
     },
     {
       "ticker": "CFG$E",
@@ -78600,9 +78601,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "包装食品",
+      "industry": "Packaged Foods",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "CHE",
@@ -78768,9 +78769,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "互联网零售",
+      "industry": "互联网零售",
+      "marketCap": 14000000000.0
     },
     {
       "ticker": "CI",
@@ -78780,9 +78781,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Healthcare Plans",
+      "industry": "Healthcare Plans",
+      "marketCap": 90000000000.0
     },
     {
       "ticker": "CIA",
@@ -79433,9 +79434,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "包装食品",
+      "industry": "Packaged Foods",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "CM",
@@ -79589,9 +79590,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Restaurants",
+      "industry": "Restaurants",
+      "marketCap": 80000000000.0
     },
     {
       "ticker": "CMI",
@@ -79601,9 +79602,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "汽车零部件",
+      "industry": "汽车零部件",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "CMP",
@@ -79673,9 +79674,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "受监管电力",
+      "industry": "受监管电力",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "CMS$B",
@@ -79817,9 +79818,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "医疗设备",
+      "industry": "医疗设备",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "CNEQ",
@@ -79961,9 +79962,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "受监管电力",
+      "industry": "受监管电力",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "CNQ",
@@ -80129,9 +80130,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "金融服务",
+      "industry": "金融服务",
+      "marketCap": 100000000000.0
     },
     {
       "ticker": "COF$I",
@@ -80494,9 +80495,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "医疗设备",
+      "industry": "医疗设备",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "CORB",
@@ -81058,9 +81059,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "房地产",
+      "industry": "房地产 REIT",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "CPXR",
@@ -81370,9 +81371,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "生物技术",
+      "industry": "生物技术",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "CRM",
@@ -81382,9 +81383,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "软件基础设施",
+      "industry": "应用软件",
+      "marketCap": 280000000000.0
     },
     {
       "ticker": "CRMX",
@@ -81898,9 +81899,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "油气勘探与开发",
+      "industry": "油气勘探与开发",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "CTRE",
@@ -81946,9 +81947,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "化工",
+      "industry": "Specialty Chemicals",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "CTWO",
@@ -82246,9 +82247,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Medical Care Facilities",
+      "industry": "Medical Care Facilities",
+      "marketCap": 80000000000.0
     },
     {
       "ticker": "CVSA",
@@ -82587,9 +82588,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "受监管电力",
+      "industry": "受监管电力",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "DABS",
@@ -82623,9 +82624,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "航空",
+      "industry": "航空",
+      "marketCap": 20000000000.0
     },
     {
       "ticker": "DAMD",
@@ -83139,9 +83140,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "化工",
+      "industry": "Specialty Chemicals",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "DDC",
@@ -83612,9 +83613,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "服装鞋类",
+      "industry": "服装鞋类",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "DECM",
@@ -83780,9 +83781,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "计算机硬件",
+      "industry": "计算机硬件",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "DEM",
@@ -84368,9 +84369,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "折扣零售",
+      "industry": "折扣零售",
+      "marketCap": 100000000000.0
     },
     {
       "ticker": "DGAP",
@@ -84476,9 +84477,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "医疗设备",
+      "industry": "医疗设备",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "DGZ",
@@ -84548,9 +84549,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Diagnostics & Research",
+      "industry": "Diagnostics & Research",
+      "marketCap": 175000000000.0
     },
     {
       "ticker": "DHS",
@@ -84752,9 +84753,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "媒体娱乐",
+      "industry": "娱乐",
+      "marketCap": 200000000000.0
     },
     {
       "ticker": "DISO",
@@ -85424,9 +85425,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "应用软件",
+      "industry": "SaaS",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "DOCS",
@@ -85544,9 +85545,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "工业机械",
+      "industry": "工业机械",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "DOW",
@@ -85693,9 +85694,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "餐厅",
+      "industry": "餐厅",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "DRIP",
@@ -86017,9 +86018,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "受监管电力",
+      "industry": "受监管电力",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "DTEC",
@@ -86334,9 +86335,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "医疗设备",
+      "industry": "医疗设备",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "DVDN",
@@ -86358,9 +86359,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "油气勘探与开发",
+      "industry": "油气勘探与开发",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "DVND",
@@ -86490,9 +86491,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "信息技术服务",
+      "industry": "信息技术服务",
+      "marketCap": 20000000000.0
     },
     {
       "ticker": "DXD",
@@ -87042,9 +87043,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "化工",
+      "industry": "Specialty Chemicals",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "ECML",
@@ -87114,9 +87115,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "受监管电力",
+      "industry": "受监管电力",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "EDC",
@@ -87738,9 +87739,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "信息技术服务",
+      "industry": "信息技术服务",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "EFXT",
@@ -87774,9 +87775,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Insurance—Diversified",
+      "industry": "保险",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "EGG",
@@ -88074,9 +88075,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "受监管电力",
+      "industry": "受监管电力",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "EJAN",
@@ -88110,9 +88111,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "包装食品",
+      "industry": "Packaged Foods",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "ELA",
@@ -88278,9 +88279,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Healthcare Plans",
+      "industry": "Healthcare Plans",
+      "marketCap": 110000000000.0
     },
     {
       "ticker": "EMA",
@@ -88566,9 +88567,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "化工",
+      "industry": "Specialty Chemicals",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "EMNT",
@@ -88662,9 +88663,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "工业机械",
+      "industry": "工业机械",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "EMSF",
@@ -88710,9 +88711,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "油气勘探与开发",
+      "industry": "油气勘探与开发",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "ENFR",
@@ -88854,9 +88855,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Oil & Gas E&P",
+      "industry": "Oil & Gas E&P",
+      "marketCap": 78000000000.0
     },
     {
       "ticker": "EOI",
@@ -88986,9 +88987,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "信息技术服务",
+      "industry": "信息技术服务",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "EPC",
@@ -89010,9 +89011,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "油气勘探与开发",
+      "industry": "油气勘探与开发",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "EPEM",
@@ -89370,9 +89371,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "房地产",
+      "industry": "房地产 REIT",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "EQS",
@@ -89394,9 +89395,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "油气勘探与开发",
+      "industry": "油气勘探与开发",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "EQTY",
@@ -89514,9 +89515,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "受监管电力",
+      "industry": "受监管电力",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "ESAB",
@@ -89730,9 +89731,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "房地产",
+      "industry": "房地产 REIT",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "ESSC",
@@ -89754,9 +89755,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "应用软件",
+      "industry": "SaaS",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "ESUM",
@@ -89778,9 +89779,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": true,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "油气勘探与开发",
+      "industry": "油气勘探与开发",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "ET$I",
@@ -89982,9 +89983,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "工业机械",
+      "industry": "工业机械",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "ETO",
@@ -90006,9 +90007,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "独立电力生产商",
+      "industry": "独立电力",
+      "marketCap": 25000000000.0
     },
     {
       "ticker": "ETSY",
@@ -90018,9 +90019,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "互联网零售",
+      "industry": "互联网零售",
+      "marketCap": 7000000000.0
     },
     {
       "ticker": "ETTY",
@@ -90558,9 +90559,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Medical Devices",
+      "industry": "Medical Devices",
+      "marketCap": 45000000000.0
     },
     {
       "ticker": "EWA",
@@ -90918,9 +90919,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "综合货运与物流",
+      "industry": "综合货运与物流",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "EXR",
@@ -90930,9 +90931,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "房地产",
+      "industry": "房地产 REIT",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "EYLD",
@@ -91038,9 +91039,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "汽车制造",
+      "industry": "汽车制造",
+      "marketCap": 44000000000.0
     },
     {
       "ticker": "F$B",
@@ -91602,9 +91603,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "有色金属",
+      "industry": "铜矿",
+      "marketCap": 65000000000.0
     },
     {
       "ticker": "FDAT",
@@ -91830,9 +91831,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "资本市场",
+      "industry": "资本市场",
+      "marketCap": 100000000000.0
     },
     {
       "ticker": "FDV",
@@ -91866,9 +91867,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "综合货运与物流",
+      "industry": "综合货运与物流",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "FE",
@@ -91878,9 +91879,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "受监管电力",
+      "industry": "受监管电力",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "FEAC",
@@ -92658,9 +92659,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "信息技术服务",
+      "industry": "信息技术服务",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "FIDI",
@@ -92790,9 +92791,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "金融服务",
+      "industry": "金融服务",
+      "marketCap": 100000000000.0
     },
     {
       "ticker": "FISK",
@@ -93786,9 +93787,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "化工",
+      "industry": "Specialty Chemicals",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "FMCE",
@@ -94542,9 +94543,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "房地产",
+      "industry": "房地产 REIT",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "FRT$C",
@@ -95142,9 +95143,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "工业机械",
+      "industry": "工业机械",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "FTW",
@@ -96066,9 +96067,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "国防",
+      "industry": "国防",
+      "marketCap": 75000000000.0
     },
     {
       "ticker": "GDDY",
@@ -96342,9 +96343,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "航天",
+      "industry": "航天发动机",
+      "marketCap": 175000000000.0
     },
     {
       "ticker": "GEF",
@@ -97139,9 +97140,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Insurance—Diversified",
+      "industry": "保险",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "GL$D",
@@ -97499,9 +97500,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "通讯设备",
+      "industry": "通讯设备",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "GLXU",
@@ -97523,9 +97524,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "汽车制造",
+      "industry": "汽车制造",
+      "marketCap": 60000000000.0
     },
     {
       "ticker": "GMAR",
@@ -97871,9 +97872,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "工业机械",
+      "industry": "工业机械",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "GNS",
@@ -98147,9 +98148,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "汽车零部件",
+      "industry": "汽车零部件",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "GPGI",
@@ -98231,9 +98232,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "金融服务",
+      "industry": "金融服务",
+      "marketCap": 100000000000.0
     },
     {
       "ticker": "GPOR",
@@ -98459,9 +98460,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "汽车零部件",
+      "industry": "汽车零部件",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "GRN",
@@ -98836,9 +98837,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": true,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Drug Manufacturers - General",
+      "industry": "Drug Manufacturers - General",
+      "marketCap": 75000000000.0
     },
     {
       "ticker": "GSKH",
@@ -99340,9 +99341,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "工业机械",
+      "industry": "工业机械",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "GWX",
@@ -99400,9 +99401,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "综合货运与物流",
+      "industry": "综合货运与物流",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "GXPC",
@@ -99580,9 +99581,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "油气勘探与开发",
+      "industry": "油气勘探与开发",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "HAP",
@@ -99760,9 +99761,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "医疗设备",
+      "industry": "医疗设备",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "HCC",
@@ -99844,9 +99845,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Home Improvement Retail",
+      "industry": "Home Improvement",
+      "marketCap": 400000000000.0
     },
     {
       "ticker": "HDB",
@@ -100432,9 +100433,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Insurance—Diversified",
+      "industry": "保险",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "HIG$G",
@@ -100468,9 +100469,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "航空航天与国防",
+      "industry": "航空航天与国防",
+      "marketCap": 100000000000.0
     },
     {
       "ticker": "HIMS",
@@ -100684,9 +100685,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "酒店",
+      "industry": "酒店",
+      "marketCap": 60000000000.0
     },
     {
       "ticker": "HLX",
@@ -100936,9 +100937,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "计算机硬件",
+      "industry": "计算机硬件",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "HPE$C",
@@ -101008,9 +101009,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "计算机硬件",
+      "industry": "计算机硬件",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "HPS",
@@ -101092,9 +101093,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "包装食品",
+      "industry": "Packaged Foods",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "HRTG",
@@ -101188,9 +101189,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "包装食品",
+      "industry": "Packaged Foods",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "HTAB",
@@ -101332,9 +101333,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "工业机械",
+      "industry": "工业机械",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "HUBS",
@@ -101356,9 +101357,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Healthcare Plans",
+      "industry": "Healthcare Plans",
+      "marketCap": 35000000000.0
     },
     {
       "ticker": "HUMN",
@@ -101452,9 +101453,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "工业机械",
+      "industry": "工业机械",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "HXL",
@@ -102388,9 +102389,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "信息技术服务",
+      "industry": "信息技术服务",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "IBMO",
@@ -102640,9 +102641,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "资本市场",
+      "industry": "资本市场",
+      "marketCap": 100000000000.0
     },
     {
       "ticker": "ICF",
@@ -103144,9 +103145,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "工业机械",
+      "industry": "工业机械",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "IEZ",
@@ -103192,9 +103193,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "化工",
+      "industry": "Specialty Chemicals",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "IFLN",
@@ -104500,9 +104501,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "房地产",
+      "industry": "房地产 REIT",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "INVN",
@@ -104632,9 +104633,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "化工",
+      "industry": "包装材料",
+      "marketCap": 20000000000.0
     },
     {
       "ticker": "IPAC",
@@ -104884,9 +104885,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "诊断与研究",
+      "industry": "诊断与研究",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "IR",
@@ -104896,9 +104897,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "工业机械",
+      "industry": "工业机械",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "IRAB",
@@ -105256,9 +105257,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "信息技术服务",
+      "industry": "信息技术服务",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "ITA",
@@ -105520,9 +105521,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "工业机械",
+      "industry": "工业机械",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "ITWO",
@@ -105748,9 +105749,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "资本市场",
+      "industry": "资本市场",
+      "marketCap": 100000000000.0
     },
     {
       "ticker": "IWB",
@@ -106288,9 +106289,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "信息技术服务",
+      "industry": "信息技术服务",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "JA",
@@ -106672,9 +106673,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "工业机械",
+      "industry": "工业机械",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "JCPB",
@@ -108698,9 +108699,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "金融服务",
+      "industry": "金融服务",
+      "marketCap": 100000000000.0
     },
     {
       "ticker": "KEY$I",
@@ -108758,9 +108759,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "通讯设备",
+      "industry": "通讯设备",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "KF",
@@ -108914,9 +108915,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "房地产",
+      "industry": "房地产 REIT",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "KIM$L",
@@ -109142,9 +109143,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "油气勘探与开发",
+      "industry": "油气勘探与开发",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "KMID",
@@ -109214,9 +109215,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "折扣零售",
+      "industry": "折扣零售",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "KN",
@@ -109591,9 +109592,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "食品",
+      "industry": "Packaged Foods",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "KRBN",
@@ -110071,9 +110072,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Insurance—Diversified",
+      "industry": "保险",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "LABD",
@@ -110443,9 +110444,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "航空航天与国防",
+      "industry": "航空航天与国防",
+      "marketCap": 100000000000.0
     },
     {
       "ticker": "LDP",
@@ -110947,9 +110948,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "医疗设备",
+      "industry": "医疗设备",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "LHX",
@@ -110959,9 +110960,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "航空航天与国防",
+      "industry": "航空航天与国防",
+      "marketCap": 100000000000.0
     },
     {
       "ticker": "LIAE",
@@ -111187,9 +111188,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Drug Manufacturers - Specialty",
+      "industry": "Drug Manufacturers - Specialty",
+      "marketCap": 760000000000.0
     },
     {
       "ticker": "LLYX",
@@ -111223,9 +111224,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "国防",
+      "industry": "国防",
+      "marketCap": 110000000000.0
     },
     {
       "ticker": "LMUB",
@@ -111463,9 +111464,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Home Improvement Retail",
+      "industry": "Home Improvement",
+      "marketCap": 150000000000.0
     },
     {
       "ticker": "LOWV",
@@ -111967,9 +111968,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "航空",
+      "industry": "航空",
+      "marketCap": 20000000000.0
     },
     {
       "ticker": "LUXE",
@@ -112015,9 +112016,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "服装鞋类",
+      "industry": "服装鞋类",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "LVWR",
@@ -112051,9 +112052,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "食品",
+      "industry": "Packaged Foods",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "LXFR",
@@ -112152,9 +112153,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "休闲",
+      "industry": "休闲",
+      "marketCap": 10000000000.0
     },
     {
       "ticker": "LZB",
@@ -112212,9 +112213,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "金融服务",
+      "industry": "金融服务",
+      "marketCap": 480000000000.0
     },
     {
       "ticker": "MAA",
@@ -112224,9 +112225,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "房地产",
+      "industry": "房地产 REIT",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "MAA$I",
@@ -112584,9 +112585,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "工业机械",
+      "industry": "工业机械",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "MATV",
@@ -112908,9 +112909,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Restaurants",
+      "industry": "Restaurants",
+      "marketCap": 200000000000.0
     },
     {
       "ticker": "MCH",
@@ -112944,9 +112945,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "医疗设备",
+      "industry": "医疗设备",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "MCN",
@@ -112968,9 +112969,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "资本市场",
+      "industry": "资本市场",
+      "marketCap": 100000000000.0
     },
     {
       "ticker": "MCOW",
@@ -113136,9 +113137,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Medical Devices",
+      "industry": "Medical Devices",
+      "marketCap": 110000000000.0
     },
     {
       "ticker": "MDU",
@@ -113753,9 +113754,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "住宿",
+      "industry": "住宿",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "MGMT",
@@ -113945,9 +113946,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "工业机械",
+      "industry": "工业机械",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "MHLA",
@@ -114341,9 +114342,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "包装食品",
+      "industry": "Packaged Foods",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "MKC.V",
@@ -114706,9 +114707,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "工业机械",
+      "industry": "工业机械",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "MMMA",
@@ -114963,9 +114964,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "医疗设备",
+      "industry": "医疗设备",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "MOO",
@@ -114999,9 +115000,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "有色金属",
+      "industry": "有色金属",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "MOTG",
@@ -115083,9 +115084,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Oil & Gas Refining",
+      "industry": "Oil & Gas Refining",
+      "marketCap": 60000000000.0
     },
     {
       "ticker": "MPL",
@@ -115513,9 +115514,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "资本市场",
+      "industry": "资本市场",
+      "marketCap": 100000000000.0
     },
     {
       "ticker": "MSD",
@@ -115621,9 +115622,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "通讯设备",
+      "industry": "通讯设备",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "MSIF",
@@ -115921,9 +115922,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "金融服务",
+      "industry": "金融服务",
+      "marketCap": 100000000000.0
     },
     {
       "ticker": "MTB$H",
@@ -115981,9 +115982,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "生物技术",
+      "industry": "生物技术",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "MTDR",
@@ -117193,9 +117194,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "住宿",
+      "industry": "住宿",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "NCLO",
@@ -117510,9 +117511,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "有色金属",
+      "industry": "有色金属",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "NEMD",
@@ -117894,9 +117895,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "受监管电力",
+      "industry": "受监管电力",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "NIC",
@@ -118062,9 +118063,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Footwear & Accessories",
+      "industry": "服装",
+      "marketCap": 100000000000.0
     },
     {
       "ticker": "NKX",
@@ -118470,9 +118471,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "国防",
+      "industry": "国防",
+      "marketCap": 75000000000.0
     },
     {
       "ticker": "NOCT",
@@ -118614,9 +118615,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "软件基础设施",
+      "industry": "软件基础设施",
+      "marketCap": 200000000000.0
     },
     {
       "ticker": "NP",
@@ -118962,9 +118963,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "铁路",
+      "industry": "铁路",
+      "marketCap": 100000000000.0
     },
     {
       "ticker": "NSCI",
@@ -119603,9 +119604,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Drug Manufacturers - Specialty",
+      "industry": "Drug Manufacturers - Specialty",
+      "marketCap": 470000000000.0
     },
     {
       "ticker": "NVOH",
@@ -119663,9 +119664,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Drug Manufacturers - General",
+      "industry": "Drug Manufacturers - General",
+      "marketCap": 250000000000.0
     },
     {
       "ticker": "NVST",
@@ -119975,9 +119976,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "房地产",
+      "industry": "房地产 REIT",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "OACP",
@@ -120479,9 +120480,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "一般药品制造商",
+      "industry": "一般药品制造商",
+      "marketCap": 100000000000.0
     },
     {
       "ticker": "OGS",
@@ -120635,9 +120636,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "油气勘探与开发",
+      "industry": "油气勘探与开发",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "OKLO",
@@ -120707,9 +120708,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "媒体娱乐",
+      "industry": "媒体娱乐",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "OMF",
@@ -121331,9 +121332,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "工业机械",
+      "industry": "工业机械",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "OUNZ",
@@ -121864,9 +121865,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "应用软件",
+      "industry": "SaaS",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "PATX",
@@ -121948,9 +121949,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "金融服务",
+      "industry": "金融服务",
+      "marketCap": 100000000000.0
     },
     {
       "ticker": "PAYH",
@@ -122428,9 +122429,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "受监管电力",
+      "industry": "受监管电力",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "PCG$A",
@@ -122944,9 +122945,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "受监管电力",
+      "industry": "受监管电力",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "PEJ",
@@ -123398,9 +123399,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Insurance—Diversified",
+      "industry": "保险",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "PGRI",
@@ -123458,9 +123459,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "工业机械",
+      "industry": "工业机械",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "PHDG",
@@ -123758,9 +123759,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "社交媒体",
+      "industry": "互联网内容",
+      "marketCap": 23000000000.0
     },
     {
       "ticker": "PIPE",
@@ -123962,9 +123963,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "化工",
+      "industry": "包装材料",
+      "marketCap": 20000000000.0
     },
     {
       "ticker": "PKST",
@@ -124022,9 +124023,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "房地产",
+      "industry": "房地产 REIT",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "PLDR",
@@ -124656,9 +124657,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "工业机械",
+      "industry": "工业机械",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "PNW",
@@ -124668,9 +124669,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "受监管电力",
+      "industry": "受监管电力",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "POAS",
@@ -124812,9 +124813,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "化工",
+      "industry": "Specialty Chemicals",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "PPIE",
@@ -124836,9 +124837,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "受监管电力",
+      "industry": "受监管电力",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "PPLC",
@@ -125345,9 +125346,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "房地产",
+      "industry": "房地产 REIT",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "PSA$F",
@@ -125969,9 +125970,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Oil & Gas Refining",
+      "industry": "Oil & Gas Refining",
+      "marketCap": 55000000000.0
     },
     {
       "ticker": "PTA",
@@ -126281,9 +126282,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "工业机械",
+      "industry": "工业机械",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "PWS",
@@ -127841,9 +127842,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "电子游戏与多媒体",
+      "industry": "电子游戏与多媒体",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "RBLY",
@@ -127961,9 +127962,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "住宿",
+      "industry": "住宿",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "RCLO",
@@ -128477,9 +128478,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "金融服务",
+      "industry": "金融服务",
+      "marketCap": 100000000000.0
     },
     {
       "ticker": "RF$C",
@@ -128657,9 +128658,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Insurance—Diversified",
+      "industry": "保险",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "RGEF",
@@ -129053,9 +129054,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "资本市场",
+      "industry": "资本市场",
+      "marketCap": 100000000000.0
     },
     {
       "ticker": "RJMI",
@@ -129125,9 +129126,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "服装鞋类",
+      "industry": "服装鞋类",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "RLGT",
@@ -129257,9 +129258,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "生物技术",
+      "industry": "生物技术",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "RMI",
@@ -129557,9 +129558,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "工业机械",
+      "industry": "工业机械",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "ROKT",
@@ -129581,9 +129582,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "工业机械",
+      "industry": "工业机械",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "ROLR",
@@ -129893,9 +129894,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "工业机械",
+      "industry": "工业机械",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "RSHO",
@@ -130265,9 +130266,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "国防",
+      "industry": "国防",
+      "marketCap": 170000000000.0
     },
     {
       "ticker": "RULE",
@@ -130361,9 +130362,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "诊断与研究",
+      "industry": "诊断与研究",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "RW",
@@ -130757,9 +130758,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "应用软件",
+      "industry": "SaaS",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "SA",
@@ -131825,9 +131826,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "金融服务",
+      "industry": "金融服务",
+      "marketCap": 130000000000.0
     },
     {
       "ticker": "SCHW$D",
@@ -133193,9 +133194,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "化工",
+      "industry": "Specialty Chemicals",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "SHYD",
@@ -133613,9 +133614,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "包装食品",
+      "industry": "Packaged Foods",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "SJNK",
@@ -133769,9 +133770,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Oil & Gas Equipment",
+      "industry": "Oil & Gas Equipment",
+      "marketCap": 65000000000.0
     },
     {
       "ticker": "SLDR",
@@ -134537,9 +134538,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "工业机械",
+      "industry": "工业机械",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "SNAP",
@@ -134549,9 +134550,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "社交媒体",
+      "industry": "互联网内容",
+      "marketCap": 17000000000.0
     },
     {
       "ticker": "SNAV",
@@ -135334,9 +135335,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "房地产",
+      "industry": "房地产 REIT",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "SPG$J",
@@ -135358,9 +135359,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "资本市场",
+      "industry": "资本市场",
+      "marketCap": 100000000000.0
     },
     {
       "ticker": "SPGM",
@@ -135634,9 +135635,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "流媒体",
+      "industry": "娱乐",
+      "marketCap": 90000000000.0
     },
     {
       "ticker": "SPPP",
@@ -136186,9 +136187,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "受监管电力",
+      "industry": "受监管电力",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "SREA",
@@ -136570,9 +136571,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "房地产",
+      "industry": "房地产 REIT",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "STAX",
@@ -136642,9 +136643,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "生物技术",
+      "industry": "生物技术",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "STEL",
@@ -136750,9 +136751,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "汽车制造",
+      "industry": "汽车制造",
+      "marketCap": 40000000000.0
     },
     {
       "ticker": "STLR",
@@ -136906,9 +136907,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "金融服务",
+      "industry": "金融服务",
+      "marketCap": 100000000000.0
     },
     {
       "ticker": "STT$G",
@@ -137074,9 +137075,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "饮料",
+      "industry": "饮料",
+      "marketCap": 100000000000.0
     },
     {
       "ticker": "SU",
@@ -137326,9 +137327,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "工业机械",
+      "industry": "工业机械",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "SWX",
@@ -137410,9 +137411,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "金融服务",
+      "industry": "金融服务",
+      "marketCap": 100000000000.0
     },
     {
       "ticker": "SYF$A",
@@ -137458,9 +137459,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "生物技术",
+      "industry": "生物技术",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "SYLD",
@@ -137506,9 +137507,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "食品",
+      "industry": "Packaged Foods",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "SZK",
@@ -137775,9 +137776,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "饮料",
+      "industry": "饮料",
+      "marketCap": 100000000000.0
     },
     {
       "ticker": "TAP.A",
@@ -138231,9 +138232,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "航空航天与国防",
+      "industry": "航空航天与国防",
+      "marketCap": 100000000000.0
     },
     {
       "ticker": "TDOC",
@@ -138363,9 +138364,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "信息技术服务",
+      "industry": "信息技术服务",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "TE",
@@ -138483,9 +138484,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "汽车零部件",
+      "industry": "汽车零部件",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "TEMD",
@@ -138884,9 +138885,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "生物技术",
+      "industry": "生物技术",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "TG",
@@ -139028,9 +139029,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Discount Stores",
+      "industry": "Discount Stores",
+      "marketCap": 60000000000.0
     },
     {
       "ticker": "THC",
@@ -139520,9 +139521,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "服装鞋类",
+      "industry": "服装鞋类",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "TK",
@@ -139916,9 +139917,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Diagnostics & Research",
+      "industry": "Diagnostics & Research",
+      "marketCap": 200000000000.0
     },
     {
       "ticker": "TMP",
@@ -140468,9 +140469,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "服装鞋类",
+      "industry": "服装鞋类",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "TPRY",
@@ -140660,9 +140661,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "油气勘探与开发",
+      "industry": "油气勘探与开发",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "TRIO",
@@ -141181,9 +141182,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "包装食品",
+      "industry": "Packaged Foods",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "TSNF",
@@ -141313,9 +141314,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "工业机械",
+      "industry": "工业机械",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "TTAM",
@@ -141553,9 +141554,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "应用软件",
+      "industry": "SaaS",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "TWM",
@@ -141733,9 +141734,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "航空航天与国防",
+      "industry": "航空航天与国防",
+      "marketCap": 100000000000.0
     },
     {
       "ticker": "TXXI",
@@ -141817,9 +141818,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "信息技术服务",
+      "industry": "信息技术服务",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "TYLD",
@@ -142009,9 +142010,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "互联网服务",
+      "industry": "互联网服务",
+      "marketCap": 160000000000.0
     },
     {
       "ticker": "UBEW",
@@ -142213,9 +142214,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "房地产",
+      "industry": "房地产 REIT",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "UE",
@@ -142369,9 +142370,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "医疗设备",
+      "industry": "医疗设备",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "UHT",
@@ -142657,9 +142658,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Healthcare Plans",
+      "industry": "Healthcare Plans",
+      "marketCap": 540000000000.0
     },
     {
       "ticker": "UNHU",
@@ -142705,9 +142706,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Insurance—Diversified",
+      "industry": "保险",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "UNMA",
@@ -142854,9 +142855,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "综合货运与物流",
+      "industry": "综合货运与物流",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "UPSD",
@@ -142974,9 +142975,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "工业机械",
+      "industry": "工业机械",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "URNM",
@@ -143867,9 +143868,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "金融服务",
+      "industry": "金融服务",
+      "marketCap": 600000000000.0
     },
     {
       "ticker": "VABS",
@@ -144407,9 +144408,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "服装鞋类",
+      "industry": "服装鞋类",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "VFH",
@@ -144683,9 +144684,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "房地产",
+      "industry": "房地产 REIT",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "VIDI",
@@ -144911,9 +144912,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Oil & Gas Refining",
+      "industry": "Oil & Gas Refining",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "VLRS",
@@ -145780,9 +145781,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "房地产",
+      "industry": "房地产 REIT",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "VTS",
@@ -146073,9 +146074,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "工业机械",
+      "industry": "工业机械",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "WAGN",
@@ -146145,9 +146146,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "生物技术",
+      "industry": "生物技术",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "WBI",
@@ -146529,9 +146530,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "受监管电力",
+      "industry": "受监管电力",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "WEED",
@@ -146577,9 +146578,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "房地产",
+      "industry": "房地产 REIT",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "WENC.U",
@@ -147002,9 +147003,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "工业机械",
+      "industry": "工业机械",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "WMB",
@@ -147014,9 +147015,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "油气勘探与开发",
+      "industry": "油气勘探与开发",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "WMK",
@@ -147170,9 +147171,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "房地产",
+      "industry": "房地产 REIT",
+      "marketCap": 30000000000.0
     },
     {
       "ticker": "WPM",
@@ -147218,9 +147219,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "Insurance—Diversified",
+      "industry": "保险",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "WRB$E",
@@ -147374,9 +147375,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "医疗设备",
+      "industry": "医疗设备",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "WT",
@@ -148987,9 +148988,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "综合货运与物流",
+      "industry": "综合货运与物流",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "XPOF",
@@ -149527,9 +149528,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "工业机械",
+      "industry": "工业机械",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "XYLD",
@@ -150019,9 +150020,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "餐厅",
+      "industry": "餐厅",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "YUMC",
@@ -150115,9 +150116,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "生物技术",
+      "industry": "生物技术",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "ZCBA",
@@ -150559,9 +150560,9 @@
       "exchange": "NYSE",
       "is_etf": false,
       "is_derivative": false,
-      "sector": null,
-      "industry": null,
-      "marketCap": null
+      "sector": "生物技术",
+      "industry": "生物技术",
+      "marketCap": 50000000000.0
     },
     {
       "ticker": "ZVIA",
