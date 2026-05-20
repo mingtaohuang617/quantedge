@@ -43,10 +43,12 @@
   - 验收标准：新增 `backend/sources/hk_fundamentals.py`，输入港股代码、输出与 yfinance 字段对齐的 dict；`pipeline.py` 在 yfinance 字段为 None 时优先调用此源，仍缺失再回落到 `static_overrides`；写一个最小集成测试验证 0005.HK 能拿到 PE / ROE。
   - 预估工作量：M
 
-- [ ] **[P1]** 数据时效性标记（每个字段附带 `as_of`）
+- [x] **[P1]** 数据时效性标记（每个字段附带 `as_of`）
   - 背景：现在所有字段混在一个 dict 里，无法区分"实时行情 vs 上季度财报 vs 静态兜底"。前端 Footer 也无法告诉用户"这条数据多旧了"。
   - 验收标准：每个标的输出新增 `data_freshness` 子对象，至少包含 `price_as_of`、`fundamentals_as_of`、`source`（`yfinance` / `aastocks` / `static`）；前端 Footer 显示最旧字段的时间和"距现在 N 分钟"。
   - 预估工作量：M
+  - **完成（2026-05-19）**：`backend/pipeline.py` 个股 + ETF 两处 result dict 加 `dataFreshness` 子对象（`priceAsOf` = `hist.index[-1].isoformat()` 最后 K 线收盘日 / `fundamentalsAsOf` = `datetime.now().isoformat()` pipeline 运行时刻 / `source = "yfinance"`，未来多源时扩展为枚举）；`frontend/src/quant-platform.jsx` Footer 数据源诊断悬停面板加"行情时效"行 — 取 stocks 里 `dataFreshness.priceAsOf` 最早一个（reduce min）显示为月日格式，与"最后刷新"（客户端拉数据时间）区分。
+    - **保留 P3 演进空间**：`fundamentalsAsOf` 当前用运行时间占位（yfinance 不暴露财报精确日期），引入 P1 港股财务源（AAStocks / 东方财富）后可填实际报告期；`source` 字段为后续多源切换准备。
 
 ### 评分层
 
@@ -111,11 +113,12 @@
   - 预估工作量：S
   - **完成（2026-05-19）**：`backend/pipeline.py` 个股 + ETF 两处 `np.linspace(...) min(12, len(hist))` 下采样删除，改为 `hist.iterrows()` 全交易日输出；schema 同时含 `date`（ISO 8601 `%Y-%m-%d`，新字段）+ `m`（`%b %d`，legacy alias，下版本删除）+ `p`（收盘价）。`frontend/src/pages/ScoringDashboard.jsx` 两处 priceHistory `<XAxis dataKey="m">` 加 `interval="preserveStartEnd"`（保持 `minTickGap` 不变，Recharts 智能稀疏化兼顾首尾标签）。dataKey 仍用 `m` 保持后向兼容，下次切到 `date` 一并删除 `m`。前端 build 30s 通过。
 
-- [ ] **[P2]** Footer 显示数据延迟时间
+- [x] **[P2]** Footer 显示数据延迟时间
   - 背景：用户需要一眼看出"数据是几分钟前的"，否则容易误判实时性。
   - 验收标准：前端 Footer 固定显示 `数据更新于 HH:MM:SS （N 分钟前）`，N 实时刷新；时间源自 P1 的 `data_freshness.price_as_of`。
   - 预估工作量：S
   - 依赖：P1 的"数据时效性标记"
+  - **完成（2026-05-19）**：双层时效信息已落地。Footer 主行（line 2465）+ DataFreshnessPill 已显示 `formatCacheAge(priceUpdatedAt)`（客户端拉数据时间，对应"N 分钟前"）；本次新加悬停面板"行情时效"行显示后端 `dataFreshness.priceAsOf` 最旧月日（数据本身代表的时间）。两者互补：前者是 UI 友好的"刚拉到 N 秒前"，后者是数据精确时效。
 
 ---
 

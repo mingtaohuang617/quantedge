@@ -202,6 +202,15 @@ def fetch_stock_data(ticker_key: str, cfg: dict) -> dict | None:
             "priceHistory": price_history,
             "description": cfg["description"],
             "subScores": sub_scores,
+            # 数据时效性（ISO 8601）：
+            #   priceAsOf       = 最后一根日 K 线的收盘日（来自 yfinance hist）
+            #   fundamentalsAsOf = pipeline 运行时刻（yfinance 不暴露财报精确日期，先用运行时间占位）
+            #   source           = "yfinance"（未来多源时改为枚举：yfinance / aastocks / static）
+            "dataFreshness": {
+                "priceAsOf": hist.index[-1].isoformat(),
+                "fundamentalsAsOf": datetime.now().isoformat(),
+                "source": "yfinance",
+            },
         }
 
         # 尝试获取下次财报日期
@@ -385,6 +394,12 @@ def fetch_etf_data(ticker_key: str, cfg: dict) -> dict | None:
             "priceHistory": price_history,
             "description": cfg["description"],
             "subScores": sub_scores,
+            # 数据时效性（schema 与个股一致）
+            "dataFreshness": {
+                "priceAsOf": hist.index[-1].isoformat(),
+                "fundamentalsAsOf": datetime.now().isoformat(),
+                "source": "yfinance",
+            },
         }
 
         # 日均成交额
