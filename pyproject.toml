@@ -49,4 +49,5 @@ python_files = ["test_*.py"]
 addopts = "-q"
 markers = [
   "network: requires network access (deselected by default)",
+  "slow: slow test (e.g. e2e / large data); 用 -m 'not slow' 跳过",
 ]
