@@ -56,17 +56,19 @@
   - 预估工作量：M
   - 依赖：上一项时效性标记（用于落历史时间戳）
 
-- [ ] **[P1]** factors.py 单元测试
+- [x] **[P1]** factors.py 单元测试
   - 背景：`calc_rsi` / `calc_momentum` / `calc_stock_score` / `calc_etf_score` 都是纯函数，但目前没有任何测试。任何后续重构（评分平滑、权重调参）都会带风险。
   - 验收标准：`backend/tests/test_factors.py`，pytest 覆盖核心场景：RSI 边界（数据不足 / 全涨 / 全跌）、动量超出区间裁剪、个股评分各档位、ETF 杠杆惩罚生效；`pytest backend/tests` 全绿。
   - 预估工作量：S
+  - **完成（2026-05-19，验证已落地）**：`backend/tests/test_factors_basic.py`（文件名与 TODO 描述略异但实质等价）15 个用例全绿，覆盖：`parse_leverage` 各形态（string/numeric/无杠杆/1x 视作非杠杆）、RSI 数据不足返回 50 / 上涨主导 ≥70 / 下跌主导 ≤30、`calc_momentum` 极端裁剪到 100 / 短序列返回 50、`calc_stock_score` 全优 ≥80 / 全 None 返回基线 / detailed 返回三分项 dict、`calc_etf_score` 杠杆惩罚精确扣 15 分、`calc_leverage_decay` 无杠杆/短序列返回 None + 高波动正磨损。
 
 ### 监控层
 
-- [ ] **[P1]** 监控模块对接真实 alerts.json
+- [x] **[P1]** 监控模块对接真实 alerts.json
   - 背景：`Monitor` 组件里 `sectors` / `fearGreed` 都是写死的，且不读取 `alerts.json`。后端已经能产出真实 alerts，但前端没用上。
   - 验收标准：Monitor 模块从 `stocks.js` 中导入 ALERTS 渲染告警列表；板块流入栏目根据 STOCKS 按 sector 聚合 `change` 实时计算；fearGreed 暂时保留 mock 但加 TODO 注释说明数据源待定。
   - 预估工作量：S
+  - **完成（2026-05-19，验证已落地）**：`frontend/src/pages/Monitor.jsx` 已对接 DataContext（L87 `ctxAlerts3`，L181-184 `mergedAlerts = [...macroAlertsAsItems, ...allAlerts || dynamicAlerts]`），并附加 macro L5 alerts + 客户端动态 alerts 兜底；sectors 按 `s.sector.split("/")[0]` 聚合 change 平均（L272-288，过滤 count<2、按绝对值排序取前 6）；fearGreed 已超出 TODO 要求 —— 不是 mock，而是用 liveStocks 平均涨跌幅 × 0.6 + 上涨广度 × 0.4 实时算（L290-300）。
 
 ---
 
@@ -103,10 +105,11 @@
 
 ### 前端
 
-- [ ] **[P2]** 价格历史图表升级到 60–90 天完整数据
+- [x] **[P2]** 价格历史图表升级到 60–90 天完整数据
   - 背景：`pipeline.py` 现在用 `np.linspace` 把 3 个月数据采样成 12 个点，图表很糙；前端 Recharts 完全可以渲染 60+ 个点。
   - 验收标准：`pipeline.py` 的 `priceHistory` 输出全部交易日（不再下采样），字段从 `m`（短日期）改为 `date`（ISO 8601）；前端图表 X 轴用 `interval="preserveStartEnd"` 自动稀疏化标签；老的 `m` 字段保留作为兼容期 alias，下版本删除。
   - 预估工作量：S
+  - **完成（2026-05-19）**：`backend/pipeline.py` 个股 + ETF 两处 `np.linspace(...) min(12, len(hist))` 下采样删除，改为 `hist.iterrows()` 全交易日输出；schema 同时含 `date`（ISO 8601 `%Y-%m-%d`，新字段）+ `m`（`%b %d`，legacy alias，下版本删除）+ `p`（收盘价）。`frontend/src/pages/ScoringDashboard.jsx` 两处 priceHistory `<XAxis dataKey="m">` 加 `interval="preserveStartEnd"`（保持 `minTickGap` 不变，Recharts 智能稀疏化兼顾首尾标签）。dataKey 仍用 `m` 保持后向兼容，下次切到 `date` 一并删除 `m`。前端 build 30s 通过。
 
 - [ ] **[P2]** Footer 显示数据延迟时间
   - 背景：用户需要一眼看出"数据是几分钟前的"，否则容易误判实时性。
