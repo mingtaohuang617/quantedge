@@ -8,10 +8,11 @@
 
 ## P0 — 阻塞 & 紧急修复
 
-- [ ] **[P0]** 修复 pipeline.py 在 Windows GBK 终端下的 UnicodeEncodeError
+- [x] **[P0]** 修复 pipeline.py 在 Windows GBK 终端下的 UnicodeEncodeError
   - 背景：`pipeline.py` 日志使用 ✓ / ✗ 等 Unicode 字符，Windows 默认 GBK 控制台 `print()` 直接抛 `UnicodeEncodeError`，导致整个管道在第一个标的就崩溃。当前 `backend/output/` 是空的，所有"数据打通"的下游任务都被这一行阻塞。
   - 验收标准：在 PowerShell / cmd / Git Bash 任一 Windows 终端运行 `python pipeline.py` 都能完整跑完 6 个标的，不抛编码异常；同时 macOS / Linux 行为不变。
   - 预估工作量：S
+  - **完成（2026-05-19）**：在 `pipeline.py` 顶部 `import sys` 后立即检测 `sys.platform == "win32"` → 把 stdout/stderr 通过 TextIOWrapper.reconfigure() 强制改为 UTF-8（`errors="replace"` 兜底），Python 3.7+ 标准 API；非 Windows 平台跳过。烟雾测试 `PYTHONIOENCODING=cp936 python -c "from pipeline import log; log('✓ 中文 ⚠')"` 通过，确认 stdout 已被 reconfigure 为 utf-8。
 
 - [x] **[P0]** 打通前后端真实数据流（refresh-data 一键脚本）
   - 背景：前端目前仍在用 `quant-platform.jsx` 内嵌的硬编码 STOCKS / ALERTS。需要 `backend/sync_to_frontend.py` + 根目录 `package.json` 的 `refresh-data` 脚本，把 `output/frontend_data.js` 转为 ES 模块写入 `frontend/src/data/stocks.js`，并让 `quant-platform.jsx` 改为 `import { STOCKS, ALERTS } from './data/stocks.js'`。

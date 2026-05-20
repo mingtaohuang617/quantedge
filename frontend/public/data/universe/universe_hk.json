@@ -8,7 +8,8 @@
     "enriched_market_cap": 3656,
     "enriched_industry": 2739,
     "fundamentals_smoke_count": 24,
-    "fundamentals_note": "smoke patch v3 (~110 representative tickers across 3 markets); 跑 sync_*.py --enrich-fundamentals 获取全市场（Yahoo 限频严重）"
+    "fundamentals_note": "smoke patch v3 (~110 representative tickers across 3 markets); 跑 sync_*.py --enrich-fundamentals 获取全市场（Yahoo 限频严重）",
+    "index_members_patch_count": 0
   },
   "items": [
     {
