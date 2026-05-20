@@ -31,6 +31,7 @@ import TenxItemEditor from "../components/TenxItemEditor.jsx";
 import AddSupertrendDialog from "../components/AddSupertrendDialog.jsx";
 import WatchlistCard from "../components/WatchlistCard.jsx";
 import ValueFilters from "../components/ValueFilters.jsx";
+import { sortCandidates, nextSortState } from "../lib/candidateSort.js";
 
 const STRATEGY_LABEL = { growth: "成长型", value: "价值型" };
 
@@ -314,6 +315,7 @@ export default function Screener10x() {
   }, [runScreen, selectedTrends, isDemoMode]);
 
   // ── 候选搜索过滤（前端） ─────────────────────────────
+  // sort + ranking 逻辑在 src/lib/candidateSort.js（pure，可测）
   const filteredCandidates = useMemo(() => {
     let cs = candidates;
     if (search) {
@@ -322,19 +324,9 @@ export default function Screener10x() {
         c.ticker.toLowerCase().includes(q) || (c.name || "").toLowerCase().includes(q)
       );
     }
-    // 用户列排序优先（如果设了 sortKey）；缺字段排到末尾
+    // 用户列排序优先（如果设了 sortKey）
     if (sortKey) {
-      const dir = sortDir === "desc" ? -1 : 1;
-      cs = [...cs].sort((a, b) => {
-        const av = a[sortKey];
-        const bv = b[sortKey];
-        const aMissing = av == null || !Number.isFinite(av);
-        const bMissing = bv == null || !Number.isFinite(bv);
-        if (aMissing && bMissing) return 0;
-        if (aMissing) return 1;   // 缺字段一律排到末尾，与 sortDir 无关
-        if (bMissing) return -1;
-        return (av - bv) * dir;
-      });
+      cs = sortCandidates(cs, sortKey, sortDir);
     } else if (Object.keys(aiRanking).length > 0) {
       // AI 排序：拿到 moat_score 的标的优先，按分数降序；其余保持原顺序在后
       const ranked = cs.filter((c) => aiRanking[c.ticker] != null);
@@ -347,17 +339,11 @@ export default function Screener10x() {
     return cs;
   }, [candidates, search, aiRanking, sortKey, sortDir]);
 
-  /** 点击列头切换排序：同 key 切方向，新 key 默认数值字段 desc（大值优先），市值 asc（小市值优先） */
+  /** 点击列头切换排序：用 nextSortState 计算（pure，可测） */
   const toggleSort = useCallback((key) => {
-    setSortKey((prev) => {
-      if (prev === key) {
-        // 同 key：切方向；切到第三次回到默认（null）
-        setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-        return key;
-      }
-      // 新 key：marketCap 默认 asc（小市值优先），其他默认 desc
-      setSortDir(key === "marketCap" ? "asc" : "desc");
-      return key;
+    setSortKey((prevKey) => {
+      setSortDir((prevDir) => nextSortState(prevKey, prevDir, key).sortDir);
+      return key;   // nextSortState 的 sortKey 总等于 clickedKey
     });
   }, []);
 
