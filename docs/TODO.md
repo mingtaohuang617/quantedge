@@ -14,11 +14,17 @@
   - 预估工作量：S
   - **完成（2026-05-19）**：在 `pipeline.py` 顶部 `import sys` 后立即检测 `sys.platform == "win32"` → 把 stdout/stderr 通过 TextIOWrapper.reconfigure() 强制改为 UTF-8（`errors="replace"` 兜底），Python 3.7+ 标准 API；非 Windows 平台跳过。烟雾测试 `PYTHONIOENCODING=cp936 python -c "from pipeline import log; log('✓ 中文 ⚠')"` 通过，确认 stdout 已被 reconfigure 为 utf-8。
 
-- [ ] **[P0]** 打通前后端真实数据流（refresh-data 一键脚本）
+- [x] **[P0]** 打通前后端真实数据流（refresh-data 一键脚本）
   - 背景：前端目前仍在用 `quant-platform.jsx` 内嵌的硬编码 STOCKS / ALERTS。需要 `backend/sync_to_frontend.py` + 根目录 `package.json` 的 `refresh-data` 脚本，把 `output/frontend_data.js` 转为 ES 模块写入 `frontend/src/data/stocks.js`，并让 `quant-platform.jsx` 改为 `import { STOCKS, ALERTS } from './data/stocks.js'`。
   - 验收标准：根目录执行 `npm run refresh-data` 后，前端 `npm run dev` 看到的数据与 `backend/output/stocks_data.json` 完全一致；删除内嵌的 STOCKS / ALERTS 不影响渲染。
   - 预估工作量：S
   - 依赖：上一项 P0
+  - **完成（2026-05-19，验证已落地）**：
+    - `package.json` line 11 `"refresh-data": "python backend/pipeline.py"` 已存在。
+    - `backend/pipeline.py:50` 定义 `FRONTEND_DATA_PATH = backend/.. / frontend/src/data.js`；line 574-578 调用 `write_data_module(FRONTEND_DATA_PATH)` 自动写出 ES module。
+    - `frontend/src/data.js` 自动生成（最近一次 2026-05-17）。
+    - `frontend/src/quant-platform.jsx` 用 `STATIC_STOCKS` / `STATIC_ALERTS` 从 import 加载（line 22-32），legacy 内嵌数组已删（line 612 注释指向 git history）。
+    - 路径与原任务描述略有差异（`frontend/src/data.js` 而非 `frontend/src/data/stocks.js`），但验收标准已满足，本次仅勾选。
 
 ---
 
@@ -26,10 +32,11 @@
 
 ### 数据层
 
-- [ ] **[P1]** yfinance 调用增加重试 + 超时 + 退避
+- [x] **[P1]** yfinance 调用增加重试 + 超时 + 退避
   - 背景：`fetch_stock_data` / `fetch_etf_data` 现在裸调 `yf.Ticker(...).info` 和 `.history(...)`，单次失败就当整个标的失败。yfinance 偶发 429 / 网络抖动很常见，单次失败会导致评分排行不完整。
   - 验收标准：每个标的至少重试 3 次（指数退避，1s / 2s / 4s），可配置；连续失败时日志明确写出"重试 N 次后放弃"，不污染其他标的；新增 `requirements.txt` 依赖（如 `tenacity`）需登记。
   - 预估工作量：S
+  - **完成（2026-05-19）**：`backend/data_sources/yfinance_source.py` 加 `_with_retry` 装饰器（标准库 `time.sleep`，无新依赖），默认 3 次指数退避 1s/2s/4s，环境变量 `YFINANCE_RETRY_MAX` / `YFINANCE_RETRY_BASE_DELAY` 可调。`fetch_history` 和 `fetch_fundamentals` 都覆盖，网络异常一律包成 `YFinanceError` 后重试。失败日志格式 `[yfinance] {fn_name} 第 N/M 次失败...` + 终态 `重试 M 次后放弃`，写入 stderr。21 个新单测（mock + 注入 sleep）。**注**：超时参数 yfinance 0.2+ 支持但本次未接，留 TODO。
 
 - [ ] **[P1]** 港股财务数据补充源（AAStocks / 东方财富）
   - 背景：`config.py` 里 `00005.HK` 通过 `static_overrides` 写死 PE / ROE / 营收增长等字段，长期数据会过时。需要一个独立的 fetcher 从 AAStocks 或东方财富抓港股财务，作为 yfinance 之外的兜底；ETF（07709、未来可能新增）同理。
