@@ -40,6 +40,8 @@ SUPERTRENDS: dict[str, dict] = {
             "AI", "HBM", "算力", "智能计算", "人工智能",
             # AAPL/SONY 等消费电子大厂自研 AI 芯片，归入 AI 算力赛道
             "消费电子",
+            # Yahoo 中文翻译 — 电脑硬件归 AI 基础设施
+            "电脑及周边器材",
         ],
         "keywords_strict_en": [
             "Artificial Intelligence",
@@ -65,7 +67,7 @@ SUPERTRENDS: dict[str, dict] = {
         "note": "设计、制造、设备、材料、存储",
         "keywords_strict_zh": [
             "半导体", "存储", "MCU", "元器件", "NAND", "DRAM", "晶圆", "集成电路",
-            "电子元件",
+            "电子元件", "电子零件",
         ],
         "keywords_strict_en": ["Semiconductor", "Semiconductors", "Memory"],
         # semi 自带就比较精准，broad 为空（没有需要"扩展但有噪声"的词）
@@ -81,7 +83,7 @@ SUPERTRENDS: dict[str, dict] = {
         ],
         "keywords_strict_en": ["Optical", "Photonic", "Laser"],
         # broad：富途/tushare 把光通信归到上层"通讯设备"，加上后会带中兴/烽火等噪音
-        "keywords_broad_zh": ["通讯设备", "通信设备"],
+        "keywords_broad_zh": ["通讯设备", "通信设备", "电讯网路基建设施"],
         "keywords_broad_en": ["Communication Equipment"],
     },
     "datacenter": {
@@ -92,6 +94,8 @@ SUPERTRENDS: dict[str, dict] = {
             "数据中心", "新型电力", "火力发电", "水力发电",
             # AI 数据中心耗电激增 → 独立电力商 (CEG / VST / NRG) 是直接受益者
             "独立电力",
+            # Yahoo 中文翻译变体（公用事业）
+            "常规电力", "水务",
         ],
         "keywords_strict_en": [
             "Data Center",
@@ -105,6 +109,92 @@ SUPERTRENDS: dict[str, dict] = {
             "Utilities - Independent",
         ],
     },
+    # ── 成长型 SUPERTRENDS 新增（v3.0）：覆盖 AI infra 之外的主流成长板块 ──
+    "consumer_internet": {
+        "name": "消费互联网",
+        "strategy": "growth",
+        "note": "电商 / 流媒体 / 社交 / 旅游 / 出行 / 餐饮（AMZN/META/BABA/NFLX/UBER/MCD 等）",
+        "keywords_strict_zh": [
+            "互联网零售", "互联网内容", "互联网服务",
+            "流媒体", "社交媒体", "媒体娱乐",
+            "在线广告", "线上零售",
+            # Yahoo 中文翻译变体
+            "旅游服务", "电子游戏与多媒体", "互动媒体及服务",
+            "消费性电讯设备",
+            "餐厅", "度假村与赌场", "住宿", "休闲",
+            # HK / CN Yahoo 翻译
+            "出版", "旅游及观光", "旅游景点",
+            "游戏软件", "互联网", "博彩", "赌场及博彩",
+            "餐饮",   # HK 海底捞 餐饮分类
+        ],
+        "keywords_strict_en": [
+            "Internet Retail", "Internet Content",
+            "Entertainment", "Travel Services",
+            "Restaurants",
+            "Specialty Retail",
+        ],
+        "keywords_broad_zh": ["数字广告", "娱乐", "酒店"],
+        "keywords_broad_en": ["Leisure", "Lodging", "Advertising Agencies"],
+    },
+    "ev_auto": {
+        "name": "电动车与新能源汽车",
+        "strategy": "growth",
+        "note": "整车 / 动力电池 / 充电桩 / 自动驾驶 / 锂电产业链（TSLA/NIO/比亚迪/宁德 等）",
+        "keywords_strict_zh": [
+            "电动车", "新能源汽车", "汽车制造", "动力电池",
+            "整车", "自动驾驶",
+            # Yahoo 中文翻译
+            "汽车", "电气设备", "新能源物料",
+        ],
+        "keywords_strict_en": [
+            "Auto Manufacturers",
+            "Auto - Manufacturers",
+            "Auto Parts",
+        ],
+        "keywords_broad_zh": ["汽车零部件"],
+        "keywords_broad_en": ["Auto & Truck Dealerships"],
+    },
+    "biotech": {
+        "name": "生物科技与创新药",
+        "strategy": "growth",
+        "note": "创新药 / GLP-1 / 基因疗法 / 医疗器械（LLY/NVO/REGN/VRTX/MRNA/ISRG 等）",
+        "keywords_strict_zh": [
+            "生物科技", "创新药", "医疗器械", "基因",
+            "诊断试剂", "诊断与研究",
+            # Yahoo 中文翻译变体
+            "生物技术", "医疗设备", "医疗设备和用品",
+            "化学制药", "专业与通用药品制造商",
+            # CSI 300 变体
+            "生物制药",
+        ],
+        "keywords_strict_en": [
+            "Biotechnology",
+            "Medical Devices",
+            "Diagnostics & Research",
+            "Drug Manufacturers—Specialty & Generic",
+            "Drug Manufacturers - Specialty",
+        ],
+        # 注：大盘药企（Drug Manufacturers—General：JNJ/PFE/MRK）归 value_consumer
+        # 不在此处归 biotech，因为它们是 mature dividend payers
+        "keywords_broad_zh": ["医疗保健"],
+        "keywords_broad_en": ["Healthcare Plans", "Medical Care Facilities"],
+    },
+    "defense_aerospace": {
+        "name": "国防航天",
+        "strategy": "growth",
+        "note": "国防 / 航天 / 武器 / 军工电子（BA/RTX/LMT/NOC/GD/AXON/GE 等）",
+        "keywords_strict_zh": [
+            "国防", "航天", "军工", "武器",
+            "航空航天与国防",
+        ],
+        "keywords_strict_en": [
+            "Aerospace & Defense",
+            "Aerospace",
+            "Defense",
+        ],
+        "keywords_broad_zh": [],
+        "keywords_broad_en": [],
+    },
     # ── 价值型 SUPERTRENDS（v2.0 新增）──────────────────────
     # 价值型选龙头 / 高股息 / 稳健消费，与成长型小市值卡位风格相反
     "value_div": {
@@ -113,11 +203,18 @@ SUPERTRENDS: dict[str, dict] = {
         "note": "公用事业 / 银行龙头 / 能源 / 电信（股息率 > 4%）",
         "keywords_strict_zh": [
             "电信运营", "石油", "天然气", "煤炭",
+            # Yahoo 中文翻译
+            "电信服务", "受监管电力", "受监管燃气",
+            "油气勘探与开发", "油气设备", "油气精炼营销",
+            # HK 港股变体
+            "油气生产商", "电讯服务", "燃气供应",
         ],
         "keywords_strict_en": [
             "Banks—Diversified", "Oil & Gas Integrated",
             "Telecom Services", "Utilities—Regulated Electric",
             "Utilities - Regulated Gas",
+            "Oil & Gas E&P", "Oil & Gas Refining",
+            "Oil & Gas Equipment",
         ],
         # broad: 复用现有 datacenter 的公共事业关键词覆盖（命中也无所谓，价值/成长前端按 tab 过滤）
         "keywords_broad_zh": ["公共事业"],
@@ -126,16 +223,39 @@ SUPERTRENDS: dict[str, dict] = {
     "value_cyclical": {
         "name": "周期价值",
         "strategy": "value",
-        "note": "银行 / 保险 / 化工 / 钢铁（低 PB 入场）",
+        "note": "银行 / 保险 / 化工 / 钢铁 / 券商 / 金融服务（低 PB 入场）",
         "keywords_strict_zh": [
             "银行", "保险", "化工", "钢铁", "有色金属", "建材",
+            "证券", "券商",
+            # Yahoo 中文翻译
+            "金融服务", "支付", "资本市场", "资产管理",
+            "工业机械", "综合货运与物流", "铁路",
+            # HK / CN Yahoo 变体
+            "综合企业", "公共运输", "航运", "航运及港口",
+            "其他金融", "工业零件", "工业零件及器材",
+            "专用机械",
+            "小金属", "黄金", "铜", "铝", "玻璃", "焦炭",
+            "普钢", "水泥",
+            "农业综合", "农业",
+            # 地产（cycle-sensitive 归 cyclical）
+            "地产发展商", "地产投资", "房地产",
+            "全国地产", "园区开发",
+            "物业服务及管理", "房产服务",
+            # 工程机械 / 运输设备 / 空运
+            "工程机械", "运输设备", "空运",
         ],
         "keywords_strict_en": [
             "Banks - Regional", "Banks—Regional",
             "Insurance—Property & Casualty", "Insurance—Life",
+            "Insurance—Diversified", "Insurance Brokers",
+            "Capital Markets", "Asset Management",
+            "Credit Services",
             "Chemicals", "Specialty Chemicals",
             "Steel", "Aluminum",
             "Building Materials",
+            "Farm & Heavy Construction Machinery",
+            "Specialty Industrial Machinery",
+            "Railroads",
         ],
         "keywords_broad_zh": [],
         "keywords_broad_en": [],
@@ -143,9 +263,20 @@ SUPERTRENDS: dict[str, dict] = {
     "value_consumer": {
         "name": "消费稳健",
         "strategy": "value",
-        "note": "食品饮料 / 必需消费（穿越周期 ROE）",
+        "note": "食品饮料 / 必需消费 / 大盘药企 / 大型零售（穿越周期 ROE）",
         "keywords_strict_zh": [
             "食品", "饮料", "白酒", "乳制品", "调味品",
+            # 大盘药企（JNJ/PFE/MRK）—mature dividend payers，归价值；
+            # 创新药 / 生物科技归 biotech (growth)
+            "大型制药", "制药企业",
+            # Yahoo 中文翻译
+            "一般药品制造商", "糖果",
+            # 大型零售（WMT/COST/TGT — 防御性消费）
+            "折扣零售", "家居装饰零售", "服装鞋类",
+            "服装", "鞋类",   # HK 安踏 / 李宁
+            # HK / CN 翻译变体
+            "家用电器", "家庭电器", "个人护理",
+            "中成药", "药品", "药品分销",
         ],
         "keywords_strict_en": [
             "Beverages—Non-Alcoholic", "Beverages - Non-Alcoholic",
@@ -153,6 +284,11 @@ SUPERTRENDS: dict[str, dict] = {
             "Packaged Foods", "Confectioners",
             "Tobacco",
             "Household & Personal Products",
+            # 大盘老牌药企（不含 Specialty / Generic，那归 biotech）
+            "Drug Manufacturers—General", "Drug Manufacturers - General",
+            # 大型零售
+            "Discount Stores", "Home Improvement Retail",
+            "Footwear & Accessories",
         ],
         "keywords_broad_zh": [],
         "keywords_broad_en": [],

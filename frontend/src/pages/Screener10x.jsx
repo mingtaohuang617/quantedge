@@ -34,16 +34,20 @@ import { serializeWatchlistCsv } from "../lib/csvExport.js";
 
 const STRATEGY_LABEL = { growth: "成长型", value: "价值型" };
 
-// production fallback：vercel 部署没有 FastAPI backend 时，至少能看到 7 个内置赛道。
+// production fallback：vercel 部署没有 FastAPI backend 时，至少能看到 10 个内置赛道。
 // 数据须与 backend/sector_mapping.py SUPERTRENDS 保持一致；筛选/观察操作仍需 self-hosted backend。
 const BUILTIN_SUPERTRENDS_FALLBACK = [
   { id: "ai_compute", name: "AI 算力", note: "AI 软硬件 / 加速器 / HBM / AI 应用", source: "builtin", strategy: "growth" },
   { id: "semi", name: "半导体", note: "设计、制造、设备、材料、存储", source: "builtin", strategy: "growth" },
   { id: "optical", name: "光通信", note: "光模块、硅光、CPO、激光器、光纤", source: "builtin", strategy: "growth" },
   { id: "datacenter", name: "算力中心", note: "数据中心 / 电力 / 公共事业", source: "builtin", strategy: "growth" },
+  { id: "consumer_internet", name: "消费互联网", note: "电商 / 流媒体 / 社交 / 旅游 / 出行", source: "builtin", strategy: "growth" },
+  { id: "ev_auto", name: "电动车与新能源汽车", note: "整车 / 动力电池 / 充电桩 / 自动驾驶", source: "builtin", strategy: "growth" },
+  { id: "biotech", name: "生物科技与创新药", note: "创新药 / GLP-1 / 基因疗法 / 医疗器械", source: "builtin", strategy: "growth" },
+  { id: "defense_aerospace", name: "国防航天", note: "国防 / 航天 / 武器 / 军工电子", source: "builtin", strategy: "growth" },
   { id: "value_div", name: "高股息蓝筹", note: "公用事业 / 银行龙头 / 能源 / 电信（股息率 > 4%）", source: "builtin", strategy: "value" },
   { id: "value_cyclical", name: "周期价值", note: "银行 / 保险 / 化工 / 钢铁（低 PB 入场）", source: "builtin", strategy: "value" },
-  { id: "value_consumer", name: "消费稳健", note: "食品饮料 / 必需消费（穿越周期 ROE）", source: "builtin", strategy: "value" },
+  { id: "value_consumer", name: "消费稳健", note: "食品饮料 / 必需消费 / 大盘药企", source: "builtin", strategy: "value" },
 ];
 
 // 价值型 5 维默认值（None = 不启用筛选）
