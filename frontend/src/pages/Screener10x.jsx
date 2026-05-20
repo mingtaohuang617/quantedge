@@ -920,56 +920,59 @@ export default function Screener10x() {
               </div>
             )}
             {aiMatchResult && (
-              <div className="m-3 p-2 bg-violet-500/10 border border-violet-500/30 rounded text-[10px] text-violet-100/90 flex items-start gap-2">
-                <Sparkles size={11} className="text-violet-400 shrink-0 mt-0.5" />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1 mb-1">
-                    <span className="font-mono text-[10px] text-white">{aiMatchResult.ticker}</span>
-                    {aiMatchResult.name && (
-                      <span className="text-[9px] text-[#a0aec0] truncate">{aiMatchResult.name}</span>
-                    )}
-                    {aiMatchResult.cached && <span className="text-[9px] text-amber-300/70">cached</span>}
-                  </div>
-                  {aiMatchResult.error ? (
-                    <div className="text-amber-300/90">{aiMatchResult.error}</div>
-                  ) : aiMatchResult.matched && aiMatchResult.matched.length > 0 ? (
-                    <>
-                      <div className="flex flex-wrap items-center gap-1 mb-1">
-                        <span className="text-[9px] text-[#a0aec0]">AI 认为属于：</span>
-                        {aiMatchResult.matched.map((t) => (
-                          <span key={t} className="text-[9px] px-1 py-px rounded bg-violet-500/20 text-violet-200 border border-violet-500/40">
-                            {trendName(t)}
-                          </span>
-                        ))}
-                        <span className="text-[9px] text-[#7a8497] ml-1">
-                          置信度 {(aiMatchResult.confidence * 100).toFixed(0)}%
-                        </span>
-                      </div>
-                      {aiMatchResult.reason && (
-                        <div className="text-[10px] text-[#d0d7e2]/85 leading-relaxed">{aiMatchResult.reason}</div>
-                      )}
-                    </>
-                  ) : (
-                    <div className="text-amber-300/90">
-                      AI 不认为这只票属于已勾选的赛道
-                      {aiMatchResult.confidence != null && (
-                        <span className="text-[9px] text-[#7a8497] ml-2">
-                          置信度 {(aiMatchResult.confidence * 100).toFixed(0)}%
-                        </span>
-                      )}
-                      {aiMatchResult.reason && (
-                        <div className="text-[10px] text-[#d0d7e2]/85 leading-relaxed mt-1">{aiMatchResult.reason}</div>
-                      )}
-                    </div>
+              // v5: 套 .lead-paragraph（紫色 3px 左边线 + 渐变 bg）— AI 赛道校验从普通卡升级为编辑式 lead paragraph
+              // 与 AIStockSummaryCard / BacktestNarrationCard / ScoreExplainCard 视觉对齐
+              <div className="m-3 lead-paragraph relative">
+                {/* eyebrow row：AI 标识 + ticker + 关闭按钮 */}
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles size={11} className="text-violet-400 shrink-0" />
+                  <span className="text-[10px] uppercase tracking-wider font-semibold text-violet-300/90">AI 赛道校验</span>
+                  <span className="font-mono text-[10px] text-white">{aiMatchResult.ticker}</span>
+                  {aiMatchResult.name && (
+                    <span className="text-[10px] text-[#a0aec0] truncate">{aiMatchResult.name}</span>
                   )}
+                  {aiMatchResult.cached && <span className="text-[9px] text-amber-300/70">cached</span>}
+                  <button
+                    onClick={() => setAiMatchResult(null)}
+                    className="ml-auto text-[#7a8497] hover:text-white p-0.5 rounded hover:bg-white/5 transition"
+                    title="关闭"
+                  >
+                    <X size={11} />
+                  </button>
                 </div>
-                <button
-                  onClick={() => setAiMatchResult(null)}
-                  className="text-[#7a8497] hover:text-white p-0.5 rounded hover:bg-white/5 transition"
-                  title="关闭"
-                >
-                  <X size={10} />
-                </button>
+                {/* body */}
+                {aiMatchResult.error ? (
+                  <div className="text-[11px] text-amber-300/90">{aiMatchResult.error}</div>
+                ) : aiMatchResult.matched && aiMatchResult.matched.length > 0 ? (
+                  <>
+                    <div className="flex flex-wrap items-center gap-1 mb-2">
+                      <span className="text-[10px] text-[#a0aec0]">AI 认为属于：</span>
+                      {aiMatchResult.matched.map((t) => (
+                        <span key={t} className="text-[10px] px-1.5 py-px rounded bg-violet-500/20 text-violet-200 border border-violet-500/40">
+                          {trendName(t)}
+                        </span>
+                      ))}
+                      <span className="text-[10px] text-[#7a8497] ml-1">
+                        置信度 {(aiMatchResult.confidence * 100).toFixed(0)}%
+                      </span>
+                    </div>
+                    {aiMatchResult.reason && (
+                      <p className="lead-paragraph__body" style={{ fontSize: 12 }}>{aiMatchResult.reason}</p>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-[11px] text-amber-300/90">
+                    AI 不认为这只票属于已勾选的赛道
+                    {aiMatchResult.confidence != null && (
+                      <span className="text-[10px] text-[#7a8497] ml-2">
+                        置信度 {(aiMatchResult.confidence * 100).toFixed(0)}%
+                      </span>
+                    )}
+                    {aiMatchResult.reason && (
+                      <p className="lead-paragraph__body mt-1.5" style={{ fontSize: 12 }}>{aiMatchResult.reason}</p>
+                    )}
+                  </div>
+                )}
               </div>
             )}
             {!loadingCands && !errorCands && selectedTrends.length > 0 && filteredCandidates.length === 0 && (
