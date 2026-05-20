@@ -23,7 +23,8 @@ import {
 const PIE_COLORS = ["#6366f1","#8b5cf6","#06b6d4","#00E5A0","#f59e0b","#FF6B6B","#ec4899","#14b8a6","#f97316","#a855f7","#3b82f6","#84cc16"];
 
 // ─── Rotary Knob Component ──────────────────────────────
-const RotaryKnob = ({ value, onChange, size = 76, color = "#6366f1" }) => {
+// v5 编辑式升级：默认 76 → 80px（评审稿规范），active arc 永久软 glow，加载态外环 halo
+const RotaryKnob = ({ value, onChange, size = 80, color = "#6366f1" }) => {
   const [active, setActive] = useState(false);
   const lastY = useRef(null);
   const cx = size / 2, cy = size / 2;
@@ -138,10 +139,14 @@ const RotaryKnob = ({ value, onChange, size = 76, color = "#6366f1" }) => {
       >
         {/* Track background */}
         <path d={describeArc(startAngle, endAngle, r)} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="3" strokeLinecap="round" />
-        {/* Active arc */}
+        {/* v5: 加载态外环 halo（value>0 时永久存在的低透明度更大圆环，让"已分配权重"成为视觉信号） */}
         {value > 0.05 && (
-          <path d={describeArc(startAngle, currentAngle, r)} fill="none" stroke={color} strokeWidth="3.5" strokeLinecap="round" opacity="0.9"
-            style={{ filter: active ? `drop-shadow(0 0 4px ${color}80)` : "none" }}
+          <circle cx={cx} cy={cy} r={r + 4} fill="none" stroke={color} strokeWidth="0.5" opacity="0.18" />
+        )}
+        {/* Active arc · v5：永久软 glow（之前只在 active 时显示），active 时 glow 加强 */}
+        {value > 0.05 && (
+          <path d={describeArc(startAngle, currentAngle, r)} fill="none" stroke={color} strokeWidth="3.5" strokeLinecap="round" opacity="0.92"
+            style={{ filter: `drop-shadow(0 0 ${active ? 5 : 3}px ${color}${active ? "90" : "55"})` }}
           />
         )}
         {/* Tick marks */}
@@ -1398,11 +1403,11 @@ const BacktestEngine = () => {
                   {/* PDF1 P0 收敛：市场标签不需要彩色（neutral default 即可） */}
                   <Badge variant="default">{stk.market}</Badge>
                 </div>
-                {/* Rotary Knob */}
+                {/* Rotary Knob — v5 编辑式 80px */}
                 <RotaryKnob
                   value={weight}
                   onChange={(v) => setWeight(ticker, v)}
-                  size={76}
+                  size={80}
                   color={PIE_COLORS[i % PIE_COLORS.length]}
                 />
               </div>

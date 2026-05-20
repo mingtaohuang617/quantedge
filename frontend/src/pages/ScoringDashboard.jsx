@@ -1955,7 +1955,10 @@ const ScoringDashboard = () => {
                       <span className="text-xs font-medium text-[#a0aec0]">{t('评分归因')}</span>
                       <span className="text-xs font-mono font-bold text-white">{sel.score}<span className="text-[10px] text-[#a0aec0] font-normal">/100</span></span>
                     </div>
-                    <div className="space-y-2.5">
+                    {/* v5 三柱评分：基本面 / 技术面 / 成长性 横向并列（移动端纵向）
+                        每柱 .pillar-card —— 顶部 2.5px 渐变色条 + 32px hero 数字 + 进度条 + 子指标内联
+                        ETF 4 维度走 2×2 网格 */}
+                    <div className={`grid grid-cols-1 ${sel.isETF ? 'sm:grid-cols-2' : 'sm:grid-cols-3'} gap-2`}>
                       {(sel.isETF ? [
                         [t("成本效率"), sel.subScores.cost, "indigo", sectorMedians?.cost,
                           [
@@ -2002,43 +2005,70 @@ const ScoringDashboard = () => {
                         const contribution = !sel.isETF && weightKey && Number.isFinite(value) && totalW > 0
                           ? (value * wPct / totalW)
                           : null;
+                        const pillarColor = `var(--accent-${colorKey})`;
                         return (
-                          <div key={label}>
-                            <div className="flex items-center justify-between mb-0.5">
-                              <span className="text-[10px] text-[#a0aec0]">
-                                {label}
-                                {weightKey && <span className="ml-1 text-[9px] text-[#556] font-mono">{wPct}%</span>}
-                              </span>
-                              <div className="flex items-center gap-1.5">
-                                {delta != null && (
-                                  <span className={`text-[9px] font-mono ${delta >= 0 ? 'text-up' : 'text-down'}`} title={t('vs 行业中位')}>
-                                    {delta >= 0 ? '▲' : '▼'} {Math.abs(delta).toFixed(1)}
-                                  </span>
-                                )}
-                                <span className="text-[10px] font-mono text-white">{value}</span>
-                                {contribution != null && (
-                                  <span className="text-[9px] font-mono text-indigo-300/90" title={t('贡献 = 分值 × 权重')}>
-                                    +{contribution.toFixed(1)}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                            <div className="w-full h-1.5 rounded-full bg-white/5 overflow-hidden relative">
-                              <div className="h-full rounded-full transition-all duration-500" style={{ width: `${value}%`, background: `linear-gradient(90deg, var(--accent-${colorKey}-soft), var(--accent-${colorKey}))` }} />
-                              {peerMed != null && (
-                                <div className="absolute top-0 h-full w-px bg-white/40" style={{ left: `${peerMed}%` }} title={`${t('行业中位')} ${peerMed.toFixed(1)}`} />
+                          <div
+                            key={label}
+                            className="pillar-card"
+                            style={{ '--pillar-color': pillarColor, padding: '12px 12px 10px' }}
+                          >
+                            {/* 顶部：维度名 + 权重 */}
+                            <div className="flex items-baseline justify-between mb-1.5">
+                              <span className="text-[11px] font-semibold text-white">{label}</span>
+                              {weightKey && (
+                                <span className="text-[9px] font-mono uppercase tracking-wider" style={{ color: pillarColor }}>
+                                  {t('权重')} {wPct}%
+                                </span>
                               )}
                             </div>
+                            {/* Hero 数字 32px */}
+                            <div className="flex items-baseline gap-1 mb-2">
+                              <span className="pillar-card__num" style={{ fontSize: 28, color: pillarColor }}>
+                                {Number.isFinite(value) ? Math.round(value) : '—'}
+                              </span>
+                              <span className="text-[9.5px] uppercase tracking-wider text-[#778]">/ 100</span>
+                            </div>
+                            {/* 进度条 */}
+                            <div className="pillar-card__bar relative mb-1.5">
+                              <div
+                                className="pillar-card__bar-fill transition-all duration-500"
+                                style={{ width: Number.isFinite(value) ? `${value}%` : '0%' }}
+                              />
+                              {peerMed != null && (
+                                <div
+                                  className="absolute top-0 h-full w-px bg-white/40"
+                                  style={{ left: `${peerMed}%` }}
+                                  title={`${t('行业中位')} ${peerMed.toFixed(1)}`}
+                                />
+                              )}
+                            </div>
+                            {/* 高亮信息一行：子指标 + delta（v5 范式 "PE 38.6 · ROE 101.5%"） */}
                             {subInds && subInds.length > 0 && (
-                              <div className="flex items-center gap-1 mt-1 flex-wrap">
-                                {subInds.map(([k, v]) => (
-                                  <span key={k} className="inline-flex items-center gap-0.5 text-[9px] text-[#778] bg-white/[0.03] border border-white/8 rounded px-1 py-0.5">
-                                    <span className="text-[#556]">{k}</span>
-                                    <span className="font-mono text-[#a0aec0]">{v}</span>
+                              <div className="text-[10.5px] text-[#cbd5e1] leading-tight mb-1">
+                                {subInds.map(([k, v], i) => (
+                                  <span key={k}>
+                                    <span className="text-[#778]">{k}</span> <span className="font-mono text-white/90">{v}</span>
+                                    {i < subInds.length - 1 && <span className="text-[#556] mx-1">·</span>}
                                   </span>
                                 ))}
                               </div>
                             )}
+                            {/* 底部副信息：vs 同行 + 贡献 */}
+                            <div className="flex items-center justify-between text-[9.5px] font-mono pt-1 border-t border-white/[0.04]">
+                              {delta != null ? (
+                                <span
+                                  className={delta >= 0 ? 'text-up' : 'text-down'}
+                                  title={t('vs 行业中位')}
+                                >
+                                  {delta >= 0 ? '▲' : '▼'} {Math.abs(delta).toFixed(1)}
+                                </span>
+                              ) : <span className="text-[#556]">—</span>}
+                              {contribution != null && (
+                                <span className="text-indigo-300/90" title={t('贡献 = 分值 × 权重')}>
+                                  +{contribution.toFixed(1)}pp
+                                </span>
+                              )}
+                            </div>
                           </div>
                         );
                       })}
