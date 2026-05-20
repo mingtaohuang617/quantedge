@@ -8,26 +8,46 @@ import math
 import pandas as pd
 import yfinance as yf
 
+from ._intervals import Interval, yfinance_period_for
+
 
 class YFinanceError(RuntimeError):
     pass
 
 
-def fetch_history(cfg: dict, days: int = 120) -> pd.DataFrame:
+def fetch_history(
+    cfg: dict,
+    days: int = 120,
+    interval: Interval | str = Interval.DAY_1,
+) -> pd.DataFrame:
     """
-    拉取日 K 线，返回标准化 DataFrame：
-    列：Open / High / Low / Close / Volume
-    索引：DatetimeIndex
+    拉取 K 线，返回标准化 DataFrame：
+      列：Open / High / Low / Close / Volume
+      索引：DatetimeIndex
+        - 日 K（默认）：tz-naive
+        - 分钟/小时级 (intraday)：tz-aware，统一 tz_convert("UTC")
+
+    interval 默认 DAY_1，保持向后兼容。
+    分钟级仅 yfinance 7 天滚动窗口可用；超出请用日 K 或外部历史源。
     """
+    iv = Interval.from_str(interval)
     symbol = cfg["yf_symbol"]
-    period = "6mo" if days > 90 else "3mo"
+    period = yfinance_period_for(iv, days)
     tk = yf.Ticker(symbol)
-    df = tk.history(period=period)
+    df = tk.history(period=period, interval=iv.value)
     if df is None or df.empty:
-        df = tk.history(period="1mo")
+        # 仅日 K 做"再试 1mo"兜底；分钟级直接抛错（period 已是上限）
+        if not iv.is_intraday:
+            df = tk.history(period="1mo")
         if df is None or df.empty:
-            raise YFinanceError(f"yfinance 无法获取 {symbol} 行情数据")
-    return df[["Open", "High", "Low", "Close", "Volume"]]
+            raise YFinanceError(
+                f"yfinance 无法获取 {symbol} 行情数据 (interval={iv.value})"
+            )
+    out = df[["Open", "High", "Low", "Close", "Volume"]].copy()
+    # intraday 统一 UTC；日 K 保持原 tz-naive，避免动既有 daily 调用
+    if iv.is_intraday and getattr(out.index, "tz", None) is not None:
+        out.index = out.index.tz_convert("UTC")
+    return out
 
 
 # ── 价值型基本面字段 ────────────────────────────────────

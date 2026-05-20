@@ -966,7 +966,7 @@ const UserProfilePanel = ({ open, onClose, theme, toggleTheme }) => {
         <div className="flex-1 overflow-y-auto p-4 space-y-4" style={{ scrollbarWidth: "thin", scrollbarColor: "#333 transparent" }}>
           {/* Avatar + Name */}
           <div className="flex flex-col items-center text-center pt-3 pb-1">
-            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-white text-lg font-bold shadow-lg shadow-indigo-500/20 mb-2.5">
+            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-white text-lg font-bold shadow-lg shadow-indigo-500/20 mb-2.5">
               {(user.name || "U").charAt(0).toUpperCase()}
             </div>
             {editing ? (
@@ -2178,7 +2178,7 @@ function QuantPlatformInner() {
       {useSidebar && (
         <aside className="hidden md:flex fixed left-0 top-0 bottom-0 z-40 w-12 flex-col items-stretch border-r border-white/8 bg-white/[0.02] backdrop-blur-md py-2 group/sidebar hover:w-44 transition-[width] duration-200">
           <div className="px-2 py-1 mb-2 flex items-center gap-2 overflow-hidden">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-white font-bold text-[10px] shrink-0">QE</div>
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-white font-bold text-[10px] shrink-0">QE</div>
             <span className="text-[11px] font-semibold text-white opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200 whitespace-nowrap">QuantEdge</span>
           </div>
           <nav role="tablist" aria-label={t('主导航')} className="flex flex-col gap-0.5 px-1.5">

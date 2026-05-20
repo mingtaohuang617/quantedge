@@ -30,6 +30,7 @@ import {
   CartesianGrid, ReferenceArea, Legend,
 } from "recharts";
 import { apiFetch } from "../quant-platform.jsx";
+import { useMiningAlphaData } from "../hooks/useMiningAlphaData.js";
 
 const fmtPct = (v, digits = 2) => (v === null || v === undefined || isNaN(v))
   ? "—" : `${(v * 100).toFixed(digits)}%`;
@@ -622,70 +623,11 @@ const FoldICTable = ({ rows }) => {
 
 // ─── 主组件 ────────────────────────────────────────────────
 export default function MiningAlpha() {
-  const [status, setStatus] = useState(null);
-  const [ic, setIC] = useState([]);
-  const [importance, setImportance] = useState([]);
-  const [backtest, setBacktest] = useState(null);
-  const [topHoldings, setTopHoldings] = useState({ as_of: "", holdings: [] });
-  const [regime, setRegime] = useState([]);
-  const [foldIC, setFoldIC] = useState([]);
-  const [heatmap, setHeatmap] = useState(null);
-  const [alerts, setAlerts] = useState([]);
+  const {
+    status, ic, importance, backtest, topHoldings, regime, foldIC, heatmap, alerts,
+    loading, error, refetch: fetchAll, switchRun: onSwitchRun,
+  } = useMiningAlphaData();
   const [pickedAlpha, setPickedAlpha] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  // 防 fetch 竞态：每次新 fetch 自增 seq，回包时如果 seq 不是当前 latest 就丢弃。
-  // 场景：快速切 run A→B 时，如果 A 的回包慢于 B，旧的 A 数据不会覆盖新的 B 状态。
-  const fetchSeqRef = useRef(0);
-
-  const fetchAll = async () => {
-    const mySeq = ++fetchSeqRef.current;
-    const isStale = () => fetchSeqRef.current !== mySeq;
-    setLoading(true);
-    setError(null);
-    try {
-      const s = await apiFetch("/mining-alpha/status").catch(() => null);
-      if (isStale()) return;
-      setStatus(s);
-      const guarded = (setter) => (val) => { if (!isStale()) setter(val); };
-      // 锁定 status 返回的 run_id，把它显式带进后续 6 个 GET。
-      // 防 switch-run 在 fetchAll 中途改写 latest.txt 导致跨 run 数据混读。
-      const rid = s?.current_run_id ? `&run_id=${encodeURIComponent(s.current_run_id)}` : "";
-      const ridFirst = s?.current_run_id ? `?run_id=${encodeURIComponent(s.current_run_id)}` : "";
-      const tasks = [];
-      if (s?.files?.ic_report) {
-        tasks.push(apiFetch(`/mining-alpha/ic-report?top_n=20${rid}`).catch(() => []).then(guarded(setIC)));
-        tasks.push(apiFetch(`/mining-alpha/ic-heatmap?top_n=20&recent_months=24${rid}`).catch(() => null).then(guarded(setHeatmap)));
-      }
-      if (s?.files?.feature_importance) tasks.push(apiFetch(`/mining-alpha/feature-importance?top_n=20${rid}`).catch(() => []).then(guarded(setImportance)));
-      if (s?.files?.backtest_report) tasks.push(apiFetch(`/mining-alpha/backtest${ridFirst}`).catch(() => null).then(guarded(setBacktest)));
-      if (s?.files?.predictions) tasks.push(apiFetch(`/mining-alpha/top-holdings?top_n=20${rid}`).catch(() => ({})).then(guarded(setTopHoldings)));
-      if (s?.files?.regime) tasks.push(apiFetch(`/mining-alpha/regime${ridFirst}`).catch(() => []).then(guarded(setRegime)));
-      if (s?.files?.fold_ic) tasks.push(apiFetch(`/mining-alpha/fold-ic${ridFirst}`).catch(() => []).then(guarded(setFoldIC)));
-      // alerts: status.files.alerts 暂未声明，直接尝试拉取
-      tasks.push(apiFetch("/mining-alpha/alerts").catch(() => ({ alerts: [] })).then(r => { if (!isStale()) setAlerts(r?.alerts || []); }));
-      await Promise.all(tasks);
-    } catch (e) {
-      if (!isStale()) setError(String(e));
-    } finally {
-      if (!isStale()) setLoading(false);
-    }
-  };
-
-  const onSwitchRun = async (runId) => {
-    try {
-      await apiFetch(`/mining-alpha/switch-run/${runId}`, { method: "POST" });
-      await fetchAll();
-    } catch (e) {
-      setError(String(e));
-    }
-  };
-
-  useEffect(() => {
-    fetchAll();
-    // 卸载时让 in-flight 回包全部失效
-    return () => { fetchSeqRef.current++; };
-  }, []);
 
   const regimeSegments = useMemo(() => mergeRegimeSegments(regime), [regime]);
   const allDone = status && status.files && Object.values(status.files).every(Boolean);
@@ -847,6 +789,6 @@ export default function MiningAlpha() {
   );
 }
 
-// 用于单测：把 3 个子组件 named export 出来。生产代码不消费这些 import，
-// 只有 MiningAlpha.test.jsx 用。
-export { AlertsBanner, TopHoldingsTable, RunPipelinePanel };
+// 用于单测：把 3 个子组件 + 1 个工具函数 named export 出来。生产代码不消费
+// 这些 import，只有 MiningAlpha.test.jsx 用。
+export { AlertsBanner, TopHoldingsTable, RunPipelinePanel, mergeRegimeSegments };

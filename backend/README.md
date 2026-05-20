@@ -30,15 +30,33 @@ ls output/
 
 ## 定时运行
 
+每个工作日收盘后自动跑 `pipeline.py`（评分 + alerts + 推 `frontend/src/data.js`），日志追加到 `backend/output/cron.log`。
+
 ### macOS / Linux (cron)
+
 ```bash
-# 每天美东时间 17:00（收盘后）运行
-# 编辑 crontab: crontab -e
-0 17 * * 1-5 cd /path/to/quant-pipeline && python pipeline.py >> output/cron.log 2>&1
+./backend/scripts/install_cron.sh
 ```
 
+自动安装 `5 17 * * 1-5` crontab 行（周一至周五 17:05 本地时间）。脚本会自动识别 `backend/.venv/bin/python` 或 `python3`。
+
+卸载：`crontab -e` 删掉含 `## QuantEdge` 标识的那行。
+
 ### Windows (Task Scheduler)
-创建计划任务，触发器设为每个工作日 17:00，操作为运行 `python pipeline.py`。
+
+管理员或普通 PowerShell 都可（普通用户会自动用 S4U LogonType 不暴露密码）：
+
+```powershell
+.\backend\scripts\install_pipeline_scheduler.ps1
+```
+
+注册任务 `QuantEdgePipelineDaily`：每周一到周五 16:30 跑 `run_scheduled.bat`（内部 cd 项目根 + 调 venv python + 输出 cron.log）。
+
+立刻测试：`Start-ScheduledTask -TaskName QuantEdgePipelineDaily`
+
+卸载：`Unregister-ScheduledTask -TaskName QuantEdgePipelineDaily -Confirm:$false`
+
+> Mining Alpha 有独立的 `install_task_scheduler.ps1`（跑 A 股 alpha 挖掘流水线），与本主 pipeline 互不干扰。
 
 ## 标的配置
 

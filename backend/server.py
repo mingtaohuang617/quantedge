@@ -34,6 +34,7 @@ except ImportError:
     pass  # python-dotenv 未装时静默跳过；用户可改用 PowerShell setx
 
 import numpy as np
+import pandas as pd  # mining_alpha 路由的 pd.notna/pd.isna 直接用
 import yfinance as yf
 
 import logging_config  # noqa: F401  — 副作用：配置轮转日志
@@ -77,7 +78,7 @@ FRONTEND_DATA_PATH = BASE_DIR.parent / "frontend" / "src" / "data.js"
 
 # ─── Import pipeline components ────────────────────────
 from config import TICKERS as BUILTIN_TICKERS, SECTOR_ETF_MAP
-from factors import calc_rsi, calc_momentum, calc_stock_score, calc_etf_score, parse_leverage
+from factors import calc_rsi, calc_momentum, calc_stock_score, calc_etf_score
 
 # 宏观因子库（Phase 1）— 副作用：导入子模块时装饰器把因子注册进 _REGISTRY
 import db as _macro_db
@@ -97,6 +98,9 @@ except Exception as _e:
     # TypeError 之类的非 ImportError 失败
     print(f"[WARN] data_sources unavailable, falling back to yfinance-direct: {_e}")
     HAS_DATA_SOURCES = False
+    # Python 3: `_e` 在 except 块结束时会被删除（PEP 3110），如果在 health_check
+    # 里直接引用 _e 会 NameError。先 freeze 成字符串闭进 fallback 函数。
+    _data_sources_err = str(_e)
     def fetch_history(cfg, days=120):
         """Fallback: use yfinance directly."""
         symbol = cfg.get("yf_symbol", "")
@@ -104,7 +108,7 @@ except Exception as _e:
         hist = tk.history(period=f"{days}d")
         return hist, "yfinance-direct"
     def health_check():
-        return {"data_sources": (False, str(_e))}
+        return {"data_sources": (False, _data_sources_err)}
 
 # 本地数据库 — SQLite 事实库（C17）
 try:
@@ -175,11 +179,10 @@ def fetch_single_stock(ticker_key: str, cfg: dict) -> dict | None:
     try:
         # Try data source router first, fallback to yfinance
         try:
-            hist, src = fetch_history(cfg, days=120)
+            hist, _src = fetch_history(cfg, days=120)
         except Exception:
             tk_obj = yf.Ticker(symbol)
             hist = tk_obj.history(period="6mo")
-            src = "yfinance-fallback"
 
         if hist is None or hist.empty or len(hist) < 2:
             return None
@@ -246,7 +249,6 @@ def fetch_single_stock(ticker_key: str, cfg: dict) -> dict | None:
                 expense_ratio = cfg.get("static_overrides", {}).get("expenseRatio", 0.5)
 
             leverage_str = cfg.get("leverage")
-            lev_factor = parse_leverage(leverage_str)
 
             aum_raw = safe_get(info, "totalAssets")
             score, sub_scores = calc_etf_score(
@@ -1111,6 +1113,85 @@ def db_bars_endpoint(ticker: str, start: str | None = None, end: str | None = No
     return sanitize({"ticker": ticker, "count": len(rows), "bars": rows})
 
 
+# ── Intraday（分钟级行情按需拉取，不落库）────────────────
+@app.get("/api/intraday")
+def intraday_endpoint(
+    ticker: str = Query(..., description="yfinance symbol，例如 SPY / 0005.HK"),
+    interval: str = Query("1m", description="1m / 5m / 15m / 1h / 1d"),
+    lookback_days: int = Query(5, ge=1, le=730),
+    market: str = Query("US"),
+    start: str | None = Query(None, description="ISO8601 起始（含），UTC"),
+    end:   str | None = Query(None, description="ISO8601 结束（含），UTC"),
+):
+    """按需拉 intraday K 线，不落库；start/end 在返回前对 yfinance 滚动窗口做裁剪。
+
+    yfinance interval 滚动窗口（实测）：
+      1m → 7 个交易日 | 5m/15m → 60 天 | 1h → 730 天 | 1d → 6mo
+    """
+    if not HAS_DATA_SOURCES:
+        raise HTTPException(503, "data_sources 模块未加载")
+    from data_sources import Interval as _Interval
+
+    try:
+        iv = _Interval.from_str(interval)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+    cfg = {"yf_symbol": ticker, "market": market.upper(), "name": ticker}
+    try:
+        df, src = fetch_history(cfg, days=lookback_days, interval=iv)
+    except Exception as e:
+        raise HTTPException(502, f"fetch_history 失败 ({ticker} {interval}): {e}")
+
+    # start/end 过滤（仅当用户指定）
+    if start or end:
+        idx = df.index
+        if getattr(idx, "tz", None) is None and iv.is_intraday:
+            # 安全网：理论上 intraday 已 UTC，但兜底以防
+            idx = idx.tz_localize("UTC")
+            df = df.copy()
+            df.index = idx
+        if start:
+            try:
+                ts = pd.Timestamp(start)
+                if ts.tz is None and iv.is_intraday:
+                    ts = ts.tz_localize("UTC")
+                df = df[df.index >= ts]
+            except (ValueError, TypeError) as e:
+                raise HTTPException(400, f"start 解析失败: {e}")
+        if end:
+            try:
+                ts = pd.Timestamp(end)
+                if ts.tz is None and iv.is_intraday:
+                    ts = ts.tz_localize("UTC")
+                df = df[df.index <= ts]
+            except (ValueError, TypeError) as e:
+                raise HTTPException(400, f"end 解析失败: {e}")
+
+    bars = []
+    for ts, row in df.iterrows():
+        if hasattr(ts, "tz") and ts.tz is not None:
+            iso = ts.tz_convert("UTC").isoformat()
+        else:
+            iso = ts.isoformat() if hasattr(ts, "isoformat") else str(ts)
+        bars.append({
+            "timestamp": iso,
+            "open":  float(row["Open"])  if pd.notna(row.get("Open"))  else None,
+            "high":  float(row["High"])  if pd.notna(row.get("High"))  else None,
+            "low":   float(row["Low"])   if pd.notna(row.get("Low"))   else None,
+            "close": float(row["Close"]) if pd.notna(row.get("Close")) else None,
+            "volume": int(row["Volume"]) if pd.notna(row.get("Volume")) else None,
+        })
+
+    return sanitize({
+        "ticker": ticker,
+        "interval": iv.value,
+        "source": src,
+        "count": len(bars),
+        "bars": bars,
+    })
+
+
 # ── LLM (DeepSeek) 端点 (B1 / B5) ────────────────────────
 class LLMSummaryReq(BaseModel):
     """B1: 个股 AI 摘要请求体。所有字段可选，能给多少给多少。"""
@@ -1898,14 +1979,12 @@ def mining_alpha_top_holdings(top_n: int = 20, run_id: str | None = None):
     latest_row = preds.loc[latest_date].dropna().sort_values(ascending=False).head(top_n)
     latest_set = set(latest_row.index)
 
-    # 上一周（5 个交易日前）的 Top-N
-    prev_holdings = []
-    prev_set = set()
+    # 上一周（5 个交易日前）的 Top-N（只取 ticker 集合，用于打 new/held/dropped 标记）
+    prev_set: set = set()
     if len(preds) > 5:
         prev_date = preds.index[preds.index.get_indexer([latest_date])[0] - 5]
         prev_row = preds.loc[prev_date].dropna().sort_values(ascending=False).head(top_n)
         prev_set = set(prev_row.index)
-        prev_holdings = [{"ticker": str(t), "score": float(s)} for t, s in prev_row.items()]
 
     holdings = []
     for t, s in latest_row.items():

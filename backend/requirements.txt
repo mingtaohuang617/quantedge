@@ -3,6 +3,7 @@ pandas
 numpy
 requests
 fastapi
+httpx              # FastAPI TestClient 依赖（CI 跑 pytest 时需要）
 uvicorn[standard]
 akshare
 python-dotenv
