@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
-// ValueFilters 组件渲染测试 — 5 个 input 显示 / 输入回调 / 空值清除 / step 配置
+// ValueFilters 组件渲染测试 — 5 个 input 显示 / 输入回调 / 空值清除 / step 配置 / preset chips
 import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
-import ValueFilters from './ValueFilters.jsx';
+import ValueFilters, { VALUE_PRESETS, matchesPreset } from './ValueFilters.jsx';
 
 afterEach(() => cleanup());
 
@@ -115,5 +115,89 @@ describe('ValueFilters — tooltip 说明', () => {
     renderFilters();
     const roe = screen.getByText('ROE≥');
     expect(roe.getAttribute('title')).toMatch(/小数/);
+  });
+});
+
+describe('ValueFilters — preset chips', () => {
+  it('渲染 3 个 preset + 1 个清空按钮', () => {
+    renderFilters();
+    expect(screen.getByText('深度低估')).toBeInTheDocument();
+    expect(screen.getByText('高股息')).toBeInTheDocument();
+    expect(screen.getByText('质量价值')).toBeInTheDocument();
+    expect(screen.getByText('清空')).toBeInTheDocument();
+  });
+
+  it('点击「深度低估」→ onChange 收到 max_pe=15, max_pb=2', () => {
+    const { onChange } = renderFilters({ ...EMPTY, max_pe: 25 });
+    fireEvent.click(screen.getByText('深度低估'));
+    expect(onChange).toHaveBeenCalledWith({
+      max_pe: 15, max_pb: 2,
+      min_roe: null, min_dividend_yield: null, max_debt_to_equity: null,
+    });
+  });
+
+  it('点击「高股息」→ onChange 收到 min_dividend_yield=0.04', () => {
+    const { onChange } = renderFilters();
+    fireEvent.click(screen.getByText('高股息'));
+    expect(onChange).toHaveBeenCalledWith({
+      max_pe: 30, max_pb: null,
+      min_roe: null, min_dividend_yield: 0.04, max_debt_to_equity: null,
+    });
+  });
+
+  it('点击「质量价值」→ onChange 收到 max_pe=20, min_roe=0.15', () => {
+    const { onChange } = renderFilters();
+    fireEvent.click(screen.getByText('质量价值'));
+    expect(onChange).toHaveBeenCalledWith({
+      max_pe: 20, max_pb: null,
+      min_roe: 0.15, min_dividend_yield: null, max_debt_to_equity: null,
+    });
+  });
+
+  it('点击「清空」→ 全 null（覆盖旧值）', () => {
+    const { onChange } = renderFilters({ max_pe: 15, max_pb: 2, min_roe: 0.15, min_dividend_yield: null, max_debt_to_equity: null });
+    fireEvent.click(screen.getByText('清空'));
+    expect(onChange).toHaveBeenCalledWith(EMPTY);
+  });
+
+  it('value 匹配某 preset 时该 chip active（含 emerald 类）', () => {
+    renderFilters({ max_pe: 15, max_pb: 2, min_roe: null, min_dividend_yield: null, max_debt_to_equity: null });
+    const chip = screen.getByText('深度低估');
+    expect(chip.className).toMatch(/emerald/);
+  });
+
+  it('value 不匹配任何 preset 时所有 chip 都 inactive（无 emerald）', () => {
+    renderFilters({ ...EMPTY, max_pe: 18 });   // 18 ≠ 15/20/30
+    for (const label of ['深度低估', '高股息', '质量价值']) {
+      expect(screen.getByText(label).className).not.toMatch(/emerald/);
+    }
+  });
+});
+
+describe('VALUE_PRESETS / matchesPreset 导出', () => {
+  it('VALUE_PRESETS 是数组且每条有 id/label/title/filters', () => {
+    expect(Array.isArray(VALUE_PRESETS)).toBe(true);
+    expect(VALUE_PRESETS.length).toBeGreaterThan(0);
+    for (const p of VALUE_PRESETS) {
+      expect(typeof p.id).toBe('string');
+      expect(typeof p.label).toBe('string');
+      expect(typeof p.title).toBe('string');
+      expect(typeof p.filters).toBe('object');
+    }
+  });
+
+  it('matchesPreset 双 null 字段判等', () => {
+    const preset = { max_pe: null, max_pb: null, min_roe: null, min_dividend_yield: null, max_debt_to_equity: null };
+    expect(matchesPreset(EMPTY, preset)).toBe(true);
+  });
+
+  it('matchesPreset 数字字段需相等', () => {
+    expect(matchesPreset({ ...EMPTY, max_pe: 15 }, { max_pe: 15 })).toBe(true);
+    expect(matchesPreset({ ...EMPTY, max_pe: 16 }, { max_pe: 15 })).toBe(false);
+  });
+
+  it('matchesPreset 一边 null 一边数字 → 不等', () => {
+    expect(matchesPreset({ ...EMPTY, max_pe: null }, { max_pe: 15 })).toBe(false);
+    expect(matchesPreset({ ...EMPTY, max_pe: 15 }, { max_pe: null })).toBe(false);
   });
 });
