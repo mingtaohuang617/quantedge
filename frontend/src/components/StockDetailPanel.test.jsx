@@ -156,3 +156,27 @@ describe('StockDetailPanel — 回调', () => {
     expect(props.onClose).toHaveBeenCalled();
   });
 });
+
+describe('StockDetailPanel — Yahoo Finance 外链', () => {
+  it('US ticker 显示 Yahoo Finance 链接', () => {
+    renderPanel();
+    const link = screen.getByLabelText('在 Yahoo Finance 打开');
+    expect(link).toBeInTheDocument();
+    expect(link.tagName).toBe('A');
+    expect(link.href).toMatch(/finance\.yahoo\.com\/quote\/NVDA/);
+    expect(link.target).toBe('_blank');
+    expect(link.rel).toMatch(/noopener/);
+  });
+
+  it('HK ticker 翻译成 5 位填充格式', () => {
+    renderPanel({ item: { ...FULL_ITEM, ticker: '700.HK' } });
+    const link = screen.getByLabelText('在 Yahoo Finance 打开');
+    expect(link.href).toMatch(/finance\.yahoo\.com\/quote\/0700\.HK/);
+  });
+
+  it('A 股 .SH → .SS', () => {
+    renderPanel({ item: { ...FULL_ITEM, ticker: '600519.SH' } });
+    const link = screen.getByLabelText('在 Yahoo Finance 打开');
+    expect(link.href).toMatch(/finance\.yahoo\.com\/quote\/600519\.SS/);
+  });
+});

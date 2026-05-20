@@ -13,7 +13,7 @@
 //   - 与 WatchlistCard 视觉风格一致（glass-card + 8/9/10 字号纪律）
 // ─────────────────────────────────────────────────────────────
 import React, { useEffect, useState } from "react";
-import { X, Plus, Activity, TrendingUp, TrendingDown } from "lucide-react";
+import { X, Plus, Activity, TrendingUp, TrendingDown, ExternalLink } from "lucide-react";
 
 function fmtMcap(mc) {
   if (mc == null) return "—";
@@ -136,6 +136,21 @@ export default function StockDetailPanel({
         <div className="flex items-center justify-between px-3 py-2 border-b border-white/8">
           <div className="flex items-center gap-2 min-w-0">
             <span className="font-mono text-[14px] font-bold text-white">{item.ticker}</span>
+            {(() => {
+              const yfSym = tickerToYahoo(item.ticker);
+              return yfSym ? (
+                <a
+                  href={`https://finance.yahoo.com/quote/${encodeURIComponent(yfSym)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="在 Yahoo Finance 打开（新标签页）"
+                  className="text-[#7a8497] hover:text-cyan-300 transition-colors p-0.5 rounded hover:bg-white/5"
+                  aria-label="在 Yahoo Finance 打开"
+                >
+                  <ExternalLink size={10} />
+                </a>
+              ) : null;
+            })()}
             <span className="text-[11px] text-[#d0d7e2] truncate" title={item.name}>
               {item.name || item.ticker}
             </span>
