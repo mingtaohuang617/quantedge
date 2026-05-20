@@ -30,6 +30,7 @@ import TenxItemEditor from "../components/TenxItemEditor.jsx";
 import AddSupertrendDialog from "../components/AddSupertrendDialog.jsx";
 import WatchlistCard from "../components/WatchlistCard.jsx";
 import ValueFilters from "../components/ValueFilters.jsx";
+import { loadPrefs, savePrefs } from "../lib/screener10xPrefs.js";
 
 const STRATEGY_LABEL = { growth: "成长型", value: "价值型" };
 
@@ -124,18 +125,21 @@ export default function Screener10x() {
   const [items, setItems] = useState([]);                   // watchlist
   const [universeStats, setUniverseStats] = useState(null);
   const [isDemoMode, setIsDemoMode] = useState(false);      // production 后端不可用 → fallback
+  // localStorage 持久化的 UI 偏好（首次渲染时一次性读取）
+  // 用 lazy initial state 避免每次 render 都读 localStorage
+  const _initialPrefs = useMemo(() => loadPrefs(), []);
   // 策略切换（成长型 / 价值型 tab）
-  const [activeStrategy, setActiveStrategy] = useState("growth"); // "growth" | "value"
+  const [activeStrategy, setActiveStrategy] = useState(_initialPrefs.activeStrategy);
   // 筛选条件
-  const [selectedTrends, setSelectedTrends] = useState([]); // string[]
-  const [maxMcapInput, setMaxMcapInput] = useState(50);     // 单位 B（input 即时绑定）
-  const [maxMcapB, setMaxMcapB] = useState(50);             // 300ms debounced，喂 runScreen
-  const [includeETF, setIncludeETF] = useState(false);
-  const [precise, setPrecise] = useState(false);    // 精严模式：仅核心赛道关键词
-  const [markets, setMarkets] = useState(["US", "HK", "CN"]);
+  const [selectedTrends, setSelectedTrends] = useState([]); // string[]（不持久化：赛道 ID 可能变）
+  const [maxMcapInput, setMaxMcapInput] = useState(_initialPrefs.maxMcapInput);     // 单位 B（input 即时绑定）
+  const [maxMcapB, setMaxMcapB] = useState(_initialPrefs.maxMcapInput);             // 300ms debounced，喂 runScreen
+  const [includeETF, setIncludeETF] = useState(_initialPrefs.includeETF);
+  const [precise, setPrecise] = useState(_initialPrefs.precise);    // 精严模式：仅核心赛道关键词
+  const [markets, setMarkets] = useState(_initialPrefs.markets);
   const [search, setSearch] = useState("");
   // 价值型 5 维筛选（仅 activeStrategy="value" 时启用）
-  const [valueFilters, setValueFilters] = useState(DEFAULT_VALUE_FILTERS);
+  const [valueFilters, setValueFilters] = useState(_initialPrefs.valueFilters);
   // 候选 + loading
   const [candidates, setCandidates] = useState([]);
   const [loadingCands, setLoadingCands] = useState(false);
@@ -156,12 +160,25 @@ export default function Screener10x() {
   // 添加赛道对话框
   const [addTrendOpen, setAddTrendOpen] = useState(false);
   // 归档显示开关
-  const [showArchived, setShowArchived] = useState(false);
+  const [showArchived, setShowArchived] = useState(_initialPrefs.showArchived);
   // 导入/导出 loading
   const [importLoading, setImportLoading] = useState(false);
   const importInputRef = useRef(null);
   // 当前价（用于 target/stop 预警 badge）；只对设了 target 或 stop 的 item 拉
   const [pricesByTicker, setPricesByTicker] = useState({});
+
+  // ── localStorage 偏好持久化（依赖变化时序列化写回，静默忽略写失败）─
+  useEffect(() => {
+    savePrefs({
+      markets,
+      includeETF,
+      precise,
+      maxMcapInput,
+      activeStrategy,
+      valueFilters,
+      showArchived,
+    });
+  }, [markets, includeETF, precise, maxMcapInput, activeStrategy, valueFilters, showArchived]);
 
   // ── 拉初始数据（watchlist + universe stats）─────────────
   const reloadWatchlist = useCallback(async (opts = {}) => {
