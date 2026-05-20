@@ -145,13 +145,17 @@ def fetch_stock_data(ticker_key: str, cfg: dict) -> dict | None:
         score, sub_scores = calc_stock_score(pe, roe, revenue_growth, profit_margin, momentum, rsi, detailed=True)
 
         # 构建价格历史 (用于前端图表)
-        price_history = []
-        # 取最近10个交易日的样本点
-        sample_indices = np.linspace(0, len(hist) - 1, min(12, len(hist)), dtype=int)
-        for idx in sample_indices:
-            row = hist.iloc[idx]
-            date_str = row.name.strftime("%b %d")
-            price_history.append({"m": date_str, "p": round(float(row["Close"]), 2)})
+        # 输出全部交易日，前端 Recharts 用 interval="preserveStartEnd" 自动稀疏化标签
+        # - date: ISO 8601 完整日期（新字段，前端排序/筛选用）
+        # - m:    短日期别名（legacy，下版本移除）
+        price_history = [
+            {
+                "date": row.name.strftime("%Y-%m-%d"),
+                "m": row.name.strftime("%b %d"),
+                "p": round(float(row["Close"]), 2),
+            }
+            for _, row in hist.iterrows()
+        ]
 
         # 格式化大数字
         def fmt_big(val):
@@ -326,13 +330,15 @@ def fetch_etf_data(ticker_key: str, cfg: dict) -> dict | None:
             detailed=True,
         )
 
-        # 价格历史
-        price_history = []
-        sample_indices = np.linspace(0, len(hist) - 1, min(12, len(hist)), dtype=int)
-        for idx in sample_indices:
-            row = hist.iloc[idx]
-            date_str = row.name.strftime("%b %d")
-            price_history.append({"m": date_str, "p": round(float(row["Close"]), 2)})
+        # 价格历史 — 输出全部交易日（ETF 同上 schema）
+        price_history = [
+            {
+                "date": row.name.strftime("%Y-%m-%d"),
+                "m": row.name.strftime("%b %d"),
+                "p": round(float(row["Close"]), 2),
+            }
+            for _, row in hist.iterrows()
+        ]
 
         result = {
             "ticker": ticker_key,
