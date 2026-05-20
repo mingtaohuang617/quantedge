@@ -573,6 +573,46 @@ export default function Screener10x() {
     URL.revokeObjectURL(url);
   };
 
+  // 导出 watchlist 为 .csv（Excel-friendly，带 BOM 解决中文乱码）
+  const handleExportCsv = async () => {
+    const json = await apiFetch("/watchlist/10x/export");
+    if (!json) {
+      window.alert("导出失败：后端不可用（演示模式或网络问题）");
+      return;
+    }
+    const items = Array.isArray(json.items) ? json.items : [];
+    // CSV 字段顺序：ticker → 投资逻辑（用户最关心的列在前）
+    const headers = [
+      "ticker", "name", "supertrend", "strategy",
+      "bottleneck_layer", "moat_score",
+      "target_price", "stop_loss",
+      "thesis", "falsification_condition",
+      "archived", "added_at", "llm_thesis_cached_at",
+    ];
+    // 标准 CSV 转义：含逗号/换行/双引号 → 包双引号 + 内部双引号 doubled
+    const esc = (v) => {
+      if (v == null) return "";
+      const s = String(v).replace(/\r?\n/g, " | ");   // 多行 thesis 压成单行
+      if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+      return s;
+    };
+    const rows = [headers.join(",")];
+    for (const it of items) {
+      rows.push(headers.map((h) => esc(it[h])).join(","));
+    }
+    // BOM 让 Excel 识别 UTF-8（否则中文乱码）
+    const csv = "﻿" + rows.join("\r\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `quantedge-watchlist-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
   // 选文件 → 解析 JSON → 选 merge / replace → POST import
   const handleImportFile = async (file) => {
     if (!file) return;
@@ -1157,6 +1197,14 @@ export default function Screener10x() {
                 title="导出 JSON 备份（含所有观察项 + 自定义赛道）"
               >
                 <Download size={11} />
+              </button>
+              <button
+                onClick={handleExportCsv}
+                disabled={isDemoMode}
+                className="flex items-center justify-center px-1 h-5 text-[9px] font-mono text-[#a0aec0] hover:text-white hover:bg-white/10 rounded transition disabled:opacity-30 disabled:cursor-not-allowed"
+                title="导出 CSV（Excel 友好，含 BOM 中文不乱码）"
+              >
+                CSV
               </button>
               <button
                 onClick={() => importInputRef.current?.click()}
