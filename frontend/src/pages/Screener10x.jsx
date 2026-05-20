@@ -684,8 +684,29 @@ export default function Screener10x() {
         </div>
         <div className="flex items-center gap-3 text-[10px] text-[#a0aec0]">
           {universeStats && (
-            <span className="flex items-center gap-1">
+            <span className="flex items-center gap-1" title="可筛全宇宙（US/HK/CN）">
               <Database size={11} /> US {universeStats.US?.count || 0} · HK {universeStats.HK?.count || 0} · CN {universeStats.CN?.count || 0}
+            </span>
+          )}
+          {/* v5 漏斗叙事：候选 → AI 审过 → 观察（仅在有候选或观察时显示） */}
+          {(candidates.length > 0 || items.length > 0) && (
+            <span className="flex items-center gap-1.5" title="筛选漏斗：赛道命中 → AI 校验 → 加入观察">
+              <span className="text-[#556]">→</span>
+              <span className="font-mono">
+                <span className="text-[#778]">候选</span> <b className="text-white">{candidates.length}</b>
+              </span>
+              {aiPipelineState.matched > 0 && (
+                <>
+                  <span className="text-[#556]">→</span>
+                  <span className="font-mono">
+                    <span className="text-[#778]">AI</span> <b className="text-violet-300">{aiPipelineState.matched}</b>
+                  </span>
+                </>
+              )}
+              <span className="text-[#556]">→</span>
+              <span className="font-mono">
+                <span className="text-[#778]">观察</span> <b className="text-amber-300">{items.length}</b>
+              </span>
             </span>
           )}
           <button
