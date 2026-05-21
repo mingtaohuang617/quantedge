@@ -118,7 +118,7 @@ describe('loadPrefs / savePrefs — localStorage IO', () => {
     const loaded = loadPrefs();
     expect(loaded.markets).toEqual(['US']);             // INVALID 被过滤
     expect(loaded.activeStrategy).toBe('growth');       // hacker 回退默认
-    expect(loaded.maxMcapInput).toBe(50);               // 负数回退默认
+    expect(loaded.maxMcapInput).toBe(1000);             // 负数回退默认
     teardownLocalStorage();
   });
 

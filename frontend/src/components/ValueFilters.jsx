@@ -14,8 +14,46 @@
 //   - PE 默认 25（避免亏损股 + 极高估值）；其它默认 null
 //   - 输入框允许空值清除（清空 = 不启用该维筛选）
 //   - 小数 step：ROE / 股息率 用更细 step 适配百分比小数
+//   - Quick preset chips：一键切常用组合（深度低估 / 高股息 / 质量价值）
 // ─────────────────────────────────────────────────────────────
 import React from "react";
+
+// 常用价值型筛选预设（数据驱动 UI，便于扩展 / 测试）
+export const VALUE_PRESETS = [
+  {
+    id: "deep_value",
+    label: "深度低估",
+    title: "Graham 风格 — PE ≤ 15 / PB ≤ 2",
+    filters: { max_pe: 15, max_pb: 2, min_roe: null, min_dividend_yield: null, max_debt_to_equity: null },
+  },
+  {
+    id: "high_div",
+    label: "高股息",
+    title: "蓝筹股息策略 — 股息率 ≥ 4%（PE 上限放宽到 30）",
+    filters: { max_pe: 30, max_pb: null, min_roe: null, min_dividend_yield: 0.04, max_debt_to_equity: null },
+  },
+  {
+    id: "quality_value",
+    label: "质量价值",
+    title: "Buffett 风格 — PE ≤ 20 / ROE ≥ 15%",
+    filters: { max_pe: 20, max_pb: null, min_roe: 0.15, min_dividend_yield: null, max_debt_to_equity: null },
+  },
+];
+
+const EMPTY_FILTERS = { max_pe: null, max_pb: null, min_roe: null, min_dividend_yield: null, max_debt_to_equity: null };
+
+/** 判断当前 value 是否完全匹配某 preset（用于高亮 active chip）。 */
+export function matchesPreset(value, presetFilters) {
+  for (const k of Object.keys(presetFilters)) {
+    const a = value[k];
+    const b = presetFilters[k];
+    // 数字按 epsilon 比；null 全等
+    if (a == null && b == null) continue;
+    if (a == null || b == null) return false;
+    if (Math.abs(Number(a) - Number(b)) > 1e-9) return false;
+  }
+  return true;
+}
 
 export default function ValueFilters({ value, onChange }) {
   const set = (k, v) => onChange({ ...value, [k]: v === "" ? null : v });
@@ -32,7 +70,33 @@ export default function ValueFilters({ value, onChange }) {
     />
   );
   return (
-    <div className="flex items-center gap-1 text-[10px] text-[#a0aec0]">
+    <div className="flex items-center gap-1 text-[10px] text-[#a0aec0] flex-wrap">
+      {/* Quick preset chips */}
+      {VALUE_PRESETS.map((p) => {
+        const active = matchesPreset(value, p.filters);
+        return (
+          <button
+            key={p.id}
+            onClick={() => onChange({ ...EMPTY_FILTERS, ...p.filters })}
+            title={p.title}
+            className={`px-1.5 py-0.5 rounded text-[9px] border transition ${
+              active
+                ? "bg-emerald-500/20 text-emerald-200 border-emerald-500/40"
+                : "bg-white/5 text-[#a0aec0] border-white/10 hover:bg-white/10 hover:text-white"
+            }`}
+          >
+            {p.label}
+          </button>
+        );
+      })}
+      <button
+        onClick={() => onChange({ ...EMPTY_FILTERS })}
+        title="清空 5 维筛选（保留赛道）"
+        className="px-1.5 py-0.5 rounded text-[9px] text-[#7a8497] hover:text-white hover:bg-white/10 transition border border-transparent"
+      >
+        清空
+      </button>
+      <span className="text-[#5a6477]">|</span>
       <span title="PE 上限（< 0 视为亏损一律剔除）">PE≤</span>
       <Input k="max_pe" placeholder="25" title="PE 上限" />
       <span title="PB 上限">PB≤</span>

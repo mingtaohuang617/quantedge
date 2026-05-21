@@ -18,7 +18,7 @@ export const DEFAULT_PREFS = {
   markets: ["US", "HK", "CN"],
   includeETF: false,
   precise: false,
-  maxMcapInput: 50,
+  maxMcapInput: 1000,
   activeStrategy: "growth",
   valueFilters: {
     max_pe: 25,

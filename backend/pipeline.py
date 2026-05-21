@@ -17,6 +17,15 @@ QuantEdge 数据管道
 
 import json
 import sys
+
+# Windows GBK 控制台兼容：日志含 ✓/✗/⚠/中文等非 GBK 字符，
+# 默认 cp936 终端 print() 会抛 UnicodeEncodeError 卡死整个管道。
+# Python 3.7+ TextIOWrapper.reconfigure 是标准 API；非 Windows 跳过。
+if sys.platform == "win32":
+    for _stream in (sys.stdout, sys.stderr):
+        if hasattr(_stream, "reconfigure"):
+            _stream.reconfigure(encoding="utf-8", errors="replace")
+
 import traceback
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -136,13 +145,17 @@ def fetch_stock_data(ticker_key: str, cfg: dict) -> dict | None:
         score, sub_scores = calc_stock_score(pe, roe, revenue_growth, profit_margin, momentum, rsi, detailed=True)
 
         # 构建价格历史 (用于前端图表)
-        price_history = []
-        # 取最近10个交易日的样本点
-        sample_indices = np.linspace(0, len(hist) - 1, min(12, len(hist)), dtype=int)
-        for idx in sample_indices:
-            row = hist.iloc[idx]
-            date_str = row.name.strftime("%b %d")
-            price_history.append({"m": date_str, "p": round(float(row["Close"]), 2)})
+        # 输出全部交易日，前端 Recharts 用 interval="preserveStartEnd" 自动稀疏化标签
+        # - date: ISO 8601 完整日期（新字段，前端排序/筛选用）
+        # - m:    短日期别名（legacy，下版本移除）
+        price_history = [
+            {
+                "date": row.name.strftime("%Y-%m-%d"),
+                "m": row.name.strftime("%b %d"),
+                "p": round(float(row["Close"]), 2),
+            }
+            for _, row in hist.iterrows()
+        ]
 
         # 格式化大数字
         def fmt_big(val):
@@ -189,6 +202,15 @@ def fetch_stock_data(ticker_key: str, cfg: dict) -> dict | None:
             "priceHistory": price_history,
             "description": cfg["description"],
             "subScores": sub_scores,
+            # 数据时效性（ISO 8601）：
+            #   priceAsOf       = 最后一根日 K 线的收盘日（来自 yfinance hist）
+            #   fundamentalsAsOf = pipeline 运行时刻（yfinance 不暴露财报精确日期，先用运行时间占位）
+            #   source           = "yfinance"（未来多源时改为枚举：yfinance / aastocks / static）
+            "dataFreshness": {
+                "priceAsOf": hist.index[-1].isoformat(),
+                "fundamentalsAsOf": datetime.now().isoformat(),
+                "source": "yfinance",
+            },
         }
 
         # 尝试获取下次财报日期
@@ -317,13 +339,15 @@ def fetch_etf_data(ticker_key: str, cfg: dict) -> dict | None:
             detailed=True,
         )
 
-        # 价格历史
-        price_history = []
-        sample_indices = np.linspace(0, len(hist) - 1, min(12, len(hist)), dtype=int)
-        for idx in sample_indices:
-            row = hist.iloc[idx]
-            date_str = row.name.strftime("%b %d")
-            price_history.append({"m": date_str, "p": round(float(row["Close"]), 2)})
+        # 价格历史 — 输出全部交易日（ETF 同上 schema）
+        price_history = [
+            {
+                "date": row.name.strftime("%Y-%m-%d"),
+                "m": row.name.strftime("%b %d"),
+                "p": round(float(row["Close"]), 2),
+            }
+            for _, row in hist.iterrows()
+        ]
 
         result = {
             "ticker": ticker_key,
@@ -370,6 +394,12 @@ def fetch_etf_data(ticker_key: str, cfg: dict) -> dict | None:
             "priceHistory": price_history,
             "description": cfg["description"],
             "subScores": sub_scores,
+            # 数据时效性（schema 与个股一致）
+            "dataFreshness": {
+                "priceAsOf": hist.index[-1].isoformat(),
+                "fundamentalsAsOf": datetime.now().isoformat(),
+                "source": "yfinance",
+            },
         }
 
         # 日均成交额

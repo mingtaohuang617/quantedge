@@ -5,6 +5,22 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+- **10x 猎手 5 大指数全覆盖** (PR #117)：让标普500 / 纳斯达克100 / 恒生 / 恒生科技 / 沪深300 里的每只股票都至少命中 1 个 supertrend
+  - **新增 4 个 growth supertrend**（4 → 8 个 growth，11 个 total）：
+    - `consumer_internet` 消费互联网（AMZN/META/NFLX/UBER/BABA/美团/快手 等）
+    - `ev_auto` 电动车与新能源汽车（TSLA/RIVN/比亚迪/蔚来/小鹏/宁德 等）
+    - `biotech` 生物科技与创新药（LLY/NVO/REGN/VRTX/MRNA/恒瑞/迈瑞 等）
+    - `defense_aerospace` 国防航天（BA/RTX/LMT/NOC/GD/GE 等）
+  - **关键词 100+ 扩充**（覆盖 Yahoo Chinese / 英文行业翻译变体）：
+    - 油气勘探与开发 / Independent Power / Insurance—Diversified / Capital Markets / Asset Management / Railroads / Footwear & Accessories / Discount Stores / Home Improvement Retail / 一般药品制造商 / Drug Manufacturers - General / 生物制药 / 化学制药 / 医疗设备 / 消费电子 / 数据中心 REIT / 综合企业 / 公共运输 / 航运及港口 / 地产发展商 / 物业服务及管理 / 工程机械 等
+  - **`patch_index_members.py`** — 5 大指数代表股 sector 数据手填（~300 票 US + ~30 HK + ~75 CN），使用 `_expand()` helper 批量定义同 sector 的 ticker 组
+  - **`BUILTIN_SUPERTRENDS_FALLBACK`** Screener10x.jsx 扩到 11 个（standalone fallback 与 sector_mapping 对齐）
+  - **screen limit 200 → 2000** (PR #105)：之前 limit=200 + marketCap 升序排序导致 MU/NVDA/AVGO 等 mega-cap 永远进不了候选；改 5 处 limit
+  - **name fallback 兼顾 broad 模式** (PR #108)：之前 sector 空的 TSM/EQIX 在默认 broad 模式下永远 0 命中；移除 `precise and` 守卫
+  - 测试：vitest 374 passed / backend pytest test_sector_mapping + test_watchlist_10x 全过
+  - Audit 命中率（5 大指数）：SPX 500 88% / NDX ~95% / HSI 97% / HSTECH 100% / CSI 300 99%
+
 ## [0.8.0] - 2026-05-19 — UI/UX optimization sprint
 
 > 本版本聚焦 UI/UX 体验深度抛光，基于两份独立 design critique PDF
