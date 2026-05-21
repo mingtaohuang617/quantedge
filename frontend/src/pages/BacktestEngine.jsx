@@ -1788,6 +1788,45 @@ const BacktestEngine = () => {
               </div>
             </div>
             {resultsOpen && (<>
+            {/* v5 编辑式 Hero · 把年化收益作为视觉锚点（36-44px Fraunces serif）
+                现有 6 卡 KPI grid 保留 — 提供数据精度，本块负责"主结论一眼可读"
+                vs 基准差值用 pp（percentage points）chip 强调超额跑赢 */}
+            <div className="glass-card p-3 sm:p-4">
+              <div className="t-eyebrow mb-1.5">{t('组合年化收益')} · {({
+                "1M":t("近1月"),"6M":t("近6月"),"YTD":t("年初至今"),"1Y":t("近1年"),"5Y":t("近5年"),"ALL":t("全部历史"),
+                "CUSTOM": customStart && customEnd ? `${customStart} ~ ${customEnd}` : t("自定义")
+              })[btRange] || btRange}</div>
+              <div className="flex items-end flex-wrap gap-x-4 gap-y-2">
+                <div className="flex items-baseline gap-2.5">
+                  <span className={`t-hero font-serif tabular-nums ${m.annReturn >= 0 ? 'text-up' : 'text-down'}`}>
+                    {m.annReturn >= 0 ? '+' : ''}{m.annReturn}%
+                  </span>
+                  {m.annBenchReturn != null && (
+                    <span className={`text-[11px] font-mono px-2 py-0.5 rounded-md border ${
+                      (m.annReturn - m.annBenchReturn) >= 0
+                        ? 'bg-up/10 text-up border-up/20'
+                        : 'bg-down/10 text-down border-down/20'
+                    }`}>
+                      vs {benchTicker} {(m.annReturn - m.annBenchReturn) >= 0 ? '+' : ''}{(m.annReturn - m.annBenchReturn).toFixed(1)}pp
+                    </span>
+                  )}
+                </div>
+                <div className="flex-1" />
+                {/* 副 KPI 一行（桌面端）— 与下方 6-卡 grid 视觉分层：hero 主结论 → 三 KPI 关键参照 → 6 卡完整数据 */}
+                <div className="hidden md:flex items-end gap-3 pb-0.5">
+                  {[
+                    [m.sharpe.toFixed(2), t('夏普'), m.sharpe > 1 ? 'text-up' : 'text-white'],
+                    [`${m.maxDD.toFixed(1)}%`, t('最大回撤'), 'text-down'],
+                    [`${m.winRate.toFixed(0)}%`, t('胜率'), 'text-white'],
+                  ].map(([v, l, c]) => (
+                    <div key={l} className="pl-3 border-l border-white/5">
+                      <div className="text-[9.5px] uppercase tracking-wider text-[#778] mb-0.5">{l}</div>
+                      <div className={`text-base md:text-lg font-mono font-semibold tabular-nums leading-none ${c}`}>{v}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
             {/* KPI 卡片 — 核心指标（PDF1：每张卡加 vs.基准 副行，让数字有参照） */}
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-1.5">
               {[

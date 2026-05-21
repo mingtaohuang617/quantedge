@@ -1557,7 +1557,7 @@ const ScoringDashboard = () => {
                         <stop offset="100%" stopColor="#6366f1" stopOpacity="0" />
                       </linearGradient>
                     </defs>
-                    <XAxis dataKey="m" tick={{ fontSize: 9, fill: "#667" }} axisLine={false} tickLine={false} minTickGap={28} />
+                    <XAxis dataKey="m" tick={{ fontSize: 9, fill: "#667" }} axisLine={false} tickLine={false} minTickGap={28} interval="preserveStartEnd" />
                     <YAxis yAxisId="price" tick={{ fontSize: 10, fill: "#667" }} axisLine={false} tickLine={false} domain={["auto", "auto"]} width={(sel.currency === "KRW" || sel.currency === "JPY") ? 64 : 45}
                       tickFormatter={(v) => {
                         // KRW/JPY 用千分位整数；其他保持原样
@@ -2374,7 +2374,7 @@ const ScoringDashboard = () => {
                     <stop offset="100%" stopColor="#4169E1" />
                   </linearGradient>
                 </defs>
-                <XAxis dataKey="m" tick={{ fontSize: 11, fill: "#a0aec0" }} axisLine={false} tickLine={false} minTickGap={40} />
+                <XAxis dataKey="m" tick={{ fontSize: 11, fill: "#a0aec0" }} axisLine={false} tickLine={false} minTickGap={40} interval="preserveStartEnd" />
                 <YAxis yAxisId="price" tick={{ fontSize: 11, fill: "#a0aec0" }} axisLine={false} tickLine={false} domain={["auto", "auto"]} width={(sel.currency === "KRW" || sel.currency === "JPY") ? 80 : 60}
                   tickFormatter={(v) => {
                     if (sel.currency === "KRW" || sel.currency === "JPY") return Math.round(v).toLocaleString();
