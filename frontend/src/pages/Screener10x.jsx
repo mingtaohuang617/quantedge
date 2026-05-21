@@ -31,6 +31,7 @@ import AddSupertrendDialog from "../components/AddSupertrendDialog.jsx";
 import WatchlistCard from "../components/WatchlistCard.jsx";
 import ValueFilters from "../components/ValueFilters.jsx";
 import StockDetailPanel from "../components/StockDetailPanel.jsx";
+import { serializeWatchlistCsv } from "../lib/csvExport.js";
 
 const STRATEGY_LABEL = { growth: "成长型", value: "价值型" };
 
@@ -603,6 +604,26 @@ export default function Screener10x() {
     URL.revokeObjectURL(url);
   };
 
+  // 导出 watchlist 为 .csv（Excel-friendly，带 BOM 解决中文乱码）
+  // 序列化逻辑在 src/lib/csvExport.js（pure，可测）
+  const handleExportCsv = async () => {
+    const json = await apiFetch("/watchlist/10x/export");
+    if (!json) {
+      window.alert("导出失败：后端不可用（演示模式或网络问题）");
+      return;
+    }
+    const csv = serializeWatchlistCsv(json.items);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `quantedge-watchlist-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
   // 选文件 → 解析 JSON → 选 merge / replace → POST import
   const handleImportFile = async (file) => {
     if (!file) return;
@@ -710,8 +731,29 @@ export default function Screener10x() {
         </div>
         <div className="flex items-center gap-3 text-[10px] text-[#a0aec0]">
           {universeStats && (
-            <span className="flex items-center gap-1">
+            <span className="flex items-center gap-1" title="可筛全宇宙（US/HK/CN）">
               <Database size={11} /> US {universeStats.US?.count || 0} · HK {universeStats.HK?.count || 0} · CN {universeStats.CN?.count || 0}
+            </span>
+          )}
+          {/* v5 漏斗叙事：候选 → AI 审过 → 观察（仅在有候选或观察时显示） */}
+          {(candidates.length > 0 || items.length > 0) && (
+            <span className="flex items-center gap-1.5" title="筛选漏斗：赛道命中 → AI 校验 → 加入观察">
+              <span className="text-[#556]">→</span>
+              <span className="font-mono">
+                <span className="text-[#778]">候选</span> <b className="text-white">{candidates.length}</b>
+              </span>
+              {aiPipelineState.matched > 0 && (
+                <>
+                  <span className="text-[#556]">→</span>
+                  <span className="font-mono">
+                    <span className="text-[#778]">AI</span> <b className="text-violet-300">{aiPipelineState.matched}</b>
+                  </span>
+                </>
+              )}
+              <span className="text-[#556]">→</span>
+              <span className="font-mono">
+                <span className="text-[#778]">观察</span> <b className="text-amber-300">{items.length}</b>
+              </span>
             </span>
           )}
           <button
@@ -960,56 +1002,59 @@ export default function Screener10x() {
               </div>
             )}
             {aiMatchResult && (
-              <div className="m-3 p-2 bg-violet-500/10 border border-violet-500/30 rounded text-[10px] text-violet-100/90 flex items-start gap-2">
-                <Sparkles size={11} className="text-violet-400 shrink-0 mt-0.5" />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1 mb-1">
-                    <span className="font-mono text-[10px] text-white">{aiMatchResult.ticker}</span>
-                    {aiMatchResult.name && (
-                      <span className="text-[9px] text-[#a0aec0] truncate">{aiMatchResult.name}</span>
-                    )}
-                    {aiMatchResult.cached && <span className="text-[9px] text-amber-300/70">cached</span>}
-                  </div>
-                  {aiMatchResult.error ? (
-                    <div className="text-amber-300/90">{aiMatchResult.error}</div>
-                  ) : aiMatchResult.matched && aiMatchResult.matched.length > 0 ? (
-                    <>
-                      <div className="flex flex-wrap items-center gap-1 mb-1">
-                        <span className="text-[9px] text-[#a0aec0]">AI 认为属于：</span>
-                        {aiMatchResult.matched.map((t) => (
-                          <span key={t} className="text-[9px] px-1 py-px rounded bg-violet-500/20 text-violet-200 border border-violet-500/40">
-                            {trendName(t)}
-                          </span>
-                        ))}
-                        <span className="text-[9px] text-[#7a8497] ml-1">
-                          置信度 {(aiMatchResult.confidence * 100).toFixed(0)}%
-                        </span>
-                      </div>
-                      {aiMatchResult.reason && (
-                        <div className="text-[10px] text-[#d0d7e2]/85 leading-relaxed">{aiMatchResult.reason}</div>
-                      )}
-                    </>
-                  ) : (
-                    <div className="text-amber-300/90">
-                      AI 不认为这只票属于已勾选的赛道
-                      {aiMatchResult.confidence != null && (
-                        <span className="text-[9px] text-[#7a8497] ml-2">
-                          置信度 {(aiMatchResult.confidence * 100).toFixed(0)}%
-                        </span>
-                      )}
-                      {aiMatchResult.reason && (
-                        <div className="text-[10px] text-[#d0d7e2]/85 leading-relaxed mt-1">{aiMatchResult.reason}</div>
-                      )}
-                    </div>
+              // v5: 套 .lead-paragraph（紫色 3px 左边线 + 渐变 bg）— AI 赛道校验从普通卡升级为编辑式 lead paragraph
+              // 与 AIStockSummaryCard / BacktestNarrationCard / ScoreExplainCard 视觉对齐
+              <div className="m-3 lead-paragraph relative">
+                {/* eyebrow row：AI 标识 + ticker + 关闭按钮 */}
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles size={11} className="text-violet-400 shrink-0" />
+                  <span className="text-[10px] uppercase tracking-wider font-semibold text-violet-300/90">AI 赛道校验</span>
+                  <span className="font-mono text-[10px] text-white">{aiMatchResult.ticker}</span>
+                  {aiMatchResult.name && (
+                    <span className="text-[10px] text-[#a0aec0] truncate">{aiMatchResult.name}</span>
                   )}
+                  {aiMatchResult.cached && <span className="text-[9px] text-amber-300/70">cached</span>}
+                  <button
+                    onClick={() => setAiMatchResult(null)}
+                    className="ml-auto text-[#7a8497] hover:text-white p-0.5 rounded hover:bg-white/5 transition"
+                    title="关闭"
+                  >
+                    <X size={11} />
+                  </button>
                 </div>
-                <button
-                  onClick={() => setAiMatchResult(null)}
-                  className="text-[#7a8497] hover:text-white p-0.5 rounded hover:bg-white/5 transition"
-                  title="关闭"
-                >
-                  <X size={10} />
-                </button>
+                {/* body */}
+                {aiMatchResult.error ? (
+                  <div className="text-[11px] text-amber-300/90">{aiMatchResult.error}</div>
+                ) : aiMatchResult.matched && aiMatchResult.matched.length > 0 ? (
+                  <>
+                    <div className="flex flex-wrap items-center gap-1 mb-2">
+                      <span className="text-[10px] text-[#a0aec0]">AI 认为属于：</span>
+                      {aiMatchResult.matched.map((t) => (
+                        <span key={t} className="text-[10px] px-1.5 py-px rounded bg-violet-500/20 text-violet-200 border border-violet-500/40">
+                          {trendName(t)}
+                        </span>
+                      ))}
+                      <span className="text-[10px] text-[#7a8497] ml-1">
+                        置信度 {(aiMatchResult.confidence * 100).toFixed(0)}%
+                      </span>
+                    </div>
+                    {aiMatchResult.reason && (
+                      <p className="lead-paragraph__body" style={{ fontSize: 12 }}>{aiMatchResult.reason}</p>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-[11px] text-amber-300/90">
+                    AI 不认为这只票属于已勾选的赛道
+                    {aiMatchResult.confidence != null && (
+                      <span className="text-[10px] text-[#7a8497] ml-2">
+                        置信度 {(aiMatchResult.confidence * 100).toFixed(0)}%
+                      </span>
+                    )}
+                    {aiMatchResult.reason && (
+                      <p className="lead-paragraph__body mt-1.5" style={{ fontSize: 12 }}>{aiMatchResult.reason}</p>
+                    )}
+                  </div>
+                )}
               </div>
             )}
             {!loadingCands && !errorCands && selectedTrends.length > 0 && filteredCandidates.length === 0 && (
@@ -1257,6 +1302,14 @@ export default function Screener10x() {
                 title="导出 JSON 备份（含所有观察项 + 自定义赛道）"
               >
                 <Download size={11} />
+              </button>
+              <button
+                onClick={handleExportCsv}
+                disabled={isDemoMode}
+                className="flex items-center justify-center px-1 h-5 text-[9px] font-mono text-[#a0aec0] hover:text-white hover:bg-white/10 rounded transition disabled:opacity-30 disabled:cursor-not-allowed"
+                title="导出 CSV（Excel 友好，含 BOM 中文不乱码）"
+              >
+                CSV
               </button>
               <button
                 onClick={() => importInputRef.current?.click()}
