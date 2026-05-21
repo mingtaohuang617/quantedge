@@ -24,12 +24,14 @@ import {
   Archive,
   Download, Upload,
   Activity,
+  ArrowUp, ArrowDown, ArrowUpDown,
 } from "lucide-react";
 import { apiFetch } from "../quant-platform.jsx";
 import TenxItemEditor from "../components/TenxItemEditor.jsx";
 import AddSupertrendDialog from "../components/AddSupertrendDialog.jsx";
 import WatchlistCard from "../components/WatchlistCard.jsx";
 import ValueFilters from "../components/ValueFilters.jsx";
+import { sortCandidates, nextSortState } from "../lib/candidateSort.js";
 import StockDetailPanel from "../components/StockDetailPanel.jsx";
 import { serializeWatchlistCsv } from "../lib/csvExport.js";
 
@@ -124,6 +126,27 @@ function fmtPct(v) {
   return typeof v === "number" ? `${(v * 100).toFixed(1)}%` : "—";
 }
 
+/** 可排序的 <th>。点击循环 asc → desc → 默认（清空 sortKey）。当列高亮时显示方向箭头。 */
+function SortHeader({ label, sortKey, currentKey, currentDir, onToggle, align = "right", title }) {
+  const isActive = sortKey === currentKey;
+  const Icon = !isActive ? ArrowUpDown : currentDir === "asc" ? ArrowUp : ArrowDown;
+  const alignClass = align === "right" ? "text-right justify-end" : "text-left justify-start";
+  return (
+    <th className={`px-2 py-1.5 ${align === "right" ? "text-right" : "text-left"}`}>
+      <button
+        onClick={() => onToggle(sortKey)}
+        title={title || `按 ${label} 排序`}
+        className={`inline-flex items-center gap-0.5 hover:text-white transition focus:outline-none ${alignClass} ${
+          isActive ? "text-cyan-300" : "text-[#7a8497]"
+        }`}
+      >
+        <span>{label}</span>
+        <Icon size={9} className={isActive ? "opacity-100" : "opacity-40"} />
+      </button>
+    </th>
+  );
+}
+
 export default function Screener10x() {
   // 数据状态
   const [supertrends, setSupertrends] = useState([]);
@@ -172,6 +195,10 @@ export default function Screener10x() {
   // 导入/导出 loading
   const [importLoading, setImportLoading] = useState(false);
   const importInputRef = useRef(null);
+  // 候选表列排序：sortKey=null 用 backend 默认（市值升序 + AI 排序覆盖）
+  // 可选 sortKey: marketCap | pe | pb | dividend_yield | roe；sortDir: asc | desc
+  const [sortKey, setSortKey] = useState(null);
+  const [sortDir, setSortDir] = useState("asc");
   // 当前价（用于 target/stop 预警 badge）；只对设了 target 或 stop 的 item 拉
   const [pricesByTicker, setPricesByTicker] = useState({});
 
@@ -308,6 +335,7 @@ export default function Screener10x() {
   }, [runScreen, selectedTrends, isDemoMode]);
 
   // ── 候选搜索过滤（前端） ─────────────────────────────
+  // sort + ranking 逻辑在 src/lib/candidateSort.js（pure，可测）
   const filteredCandidates = useMemo(() => {
     let cs = candidates;
     if (search) {
@@ -316,8 +344,11 @@ export default function Screener10x() {
         c.ticker.toLowerCase().includes(q) || (c.name || "").toLowerCase().includes(q)
       );
     }
-    // AI 排序：拿到 moat_score 的标的优先，按分数降序；其余保持原顺序在后
-    if (Object.keys(aiRanking).length > 0) {
+    // 用户列排序优先（如果设了 sortKey）
+    if (sortKey) {
+      cs = sortCandidates(cs, sortKey, sortDir);
+    } else if (Object.keys(aiRanking).length > 0) {
+      // AI 排序：拿到 moat_score 的标的优先，按分数降序；其余保持原顺序在后
       const ranked = cs.filter((c) => aiRanking[c.ticker] != null);
       const unranked = cs.filter((c) => aiRanking[c.ticker] == null);
       ranked.sort((a, b) =>
@@ -326,7 +357,20 @@ export default function Screener10x() {
       cs = [...ranked, ...unranked];
     }
     return cs;
-  }, [candidates, search, aiRanking]);
+  }, [candidates, search, aiRanking, sortKey, sortDir]);
+
+  /** 点击列头切换排序：用 nextSortState 计算（pure，可测） */
+  const toggleSort = useCallback((key) => {
+    setSortKey((prevKey) => {
+      setSortDir((prevDir) => nextSortState(prevKey, prevDir, key).sortDir);
+      return key;   // nextSortState 的 sortKey 总等于 clickedKey
+    });
+  }, []);
+
+  const clearSort = useCallback(() => {
+    setSortKey(null);
+    setSortDir("asc");
+  }, []);
 
   // 候选按市场分组计数（顶部 chip 显示 US:N HK:M CN:K）
   const marketBreakdown = useMemo(() => {
@@ -838,6 +882,15 @@ export default function Screener10x() {
                 </span>
               )}
             </span>
+            {sortKey && (
+              <button
+                onClick={clearSort}
+                className="text-[9px] px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-200 border border-cyan-500/30 hover:bg-cyan-500/25 transition flex items-center gap-0.5"
+                title="清除排序 — 回到默认（市值升序 + AI 排序覆盖）"
+              >
+                <X size={9} /> 排序：{sortKey}{sortDir === "desc" ? "↓" : "↑"}
+              </button>
+            )}
 
             <div className="flex-1" />
 
@@ -1118,14 +1171,20 @@ export default function Screener10x() {
                     <th className="text-left px-2 py-1.5">名称</th>
                     <th className="text-left px-2 py-1.5">市场</th>
                     <th className="text-left px-2 py-1.5">行业</th>
-                    <th className="text-right px-2 py-1.5">市值</th>
+                    <SortHeader
+                      label="市值"
+                      sortKey="marketCap"
+                      currentKey={sortKey}
+                      currentDir={sortDir}
+                      onToggle={toggleSort}
+                    />
                     {/* 价值型额外列：PE / PB / 股息 / ROE */}
                     {activeStrategy === "value" && (
                       <>
-                        <th className="text-right px-2 py-1.5">PE</th>
-                        <th className="text-right px-2 py-1.5">PB</th>
-                        <th className="text-right px-2 py-1.5" title="股息率">股息</th>
-                        <th className="text-right px-2 py-1.5">ROE</th>
+                        <SortHeader label="PE" sortKey="pe" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} />
+                        <SortHeader label="PB" sortKey="pb" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} />
+                        <SortHeader label="股息" sortKey="dividend_yield" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} title="按股息率排序" />
+                        <SortHeader label="ROE" sortKey="roe" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} />
                       </>
                     )}
                     {Object.keys(aiRanking).length > 0 && (
