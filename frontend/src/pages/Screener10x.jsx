@@ -30,6 +30,7 @@ import TenxItemEditor from "../components/TenxItemEditor.jsx";
 import AddSupertrendDialog from "../components/AddSupertrendDialog.jsx";
 import WatchlistCard from "../components/WatchlistCard.jsx";
 import ValueFilters from "../components/ValueFilters.jsx";
+import { serializeWatchlistCsv } from "../lib/csvExport.js";
 
 const STRATEGY_LABEL = { growth: "成长型", value: "价值型" };
 
@@ -594,6 +595,26 @@ export default function Screener10x() {
     const a = document.createElement("a");
     a.href = url;
     a.download = `quantedge-watchlist-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  // 导出 watchlist 为 .csv（Excel-friendly，带 BOM 解决中文乱码）
+  // 序列化逻辑在 src/lib/csvExport.js（pure，可测）
+  const handleExportCsv = async () => {
+    const json = await apiFetch("/watchlist/10x/export");
+    if (!json) {
+      window.alert("导出失败：后端不可用（演示模式或网络问题）");
+      return;
+    }
+    const csv = serializeWatchlistCsv(json.items);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `quantedge-watchlist-${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -1246,6 +1267,14 @@ export default function Screener10x() {
                 title="导出 JSON 备份（含所有观察项 + 自定义赛道）"
               >
                 <Download size={11} />
+              </button>
+              <button
+                onClick={handleExportCsv}
+                disabled={isDemoMode}
+                className="flex items-center justify-center px-1 h-5 text-[9px] font-mono text-[#a0aec0] hover:text-white hover:bg-white/10 rounded transition disabled:opacity-30 disabled:cursor-not-allowed"
+                title="导出 CSV（Excel 友好，含 BOM 中文不乱码）"
+              >
+                CSV
               </button>
               <button
                 onClick={() => importInputRef.current?.click()}
