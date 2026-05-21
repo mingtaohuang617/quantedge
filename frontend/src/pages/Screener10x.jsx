@@ -132,14 +132,18 @@ export default function Screener10x() {
   const [activeStrategy, setActiveStrategy] = useState("growth"); // "growth" | "value"
   // 筛选条件
   const [selectedTrends, setSelectedTrends] = useState([]); // string[]
-  const [maxMcapInput, setMaxMcapInput] = useState(50);     // 单位 B（input 即时绑定）
-  const [maxMcapB, setMaxMcapB] = useState(50);             // 300ms debounced，喂 runScreen
+  // 默认 1000B —— 包含绝大多数大盘股（NVDA 4800B 等极少数 mega-cap 用户可手动调高）
+  // 之前 50B 太严，把 MU/NVDA/AVGO/腾讯 等主流标的全过滤掉，新用户首次看到候选列表只剩小盘股
+  const [maxMcapInput, setMaxMcapInput] = useState(1000);
+  const [maxMcapB, setMaxMcapB] = useState(1000);
   const [includeETF, setIncludeETF] = useState(false);
   const [precise, setPrecise] = useState(false);    // 精严模式：仅核心赛道关键词
   const [markets, setMarkets] = useState(["US", "HK", "CN"]);
   const [search, setSearch] = useState("");
   // 价值型 5 维筛选（仅 activeStrategy="value" 时启用）
+  // 双 state：valueFilters 即时绑定 input；valueFiltersDebounced 喂 runScreen（300ms 防抖）
   const [valueFilters, setValueFilters] = useState(DEFAULT_VALUE_FILTERS);
+  const [valueFiltersDebounced, setValueFiltersDebounced] = useState(DEFAULT_VALUE_FILTERS);
   // 候选 + loading
   const [candidates, setCandidates] = useState([]);
   const [loadingCands, setLoadingCands] = useState(false);
@@ -235,6 +239,14 @@ export default function Screener10x() {
     return () => clearTimeout(t);
   }, [maxMcapInput]);
 
+  // ── value filters debounce（300ms）──────────────────────
+  // 价值型 5 维 input 同样按 300ms 节流避免每按一键就 screen
+  // preset chip 是整对象切换 → 立即生效（不浪费等待）
+  useEffect(() => {
+    const t = setTimeout(() => setValueFiltersDebounced(valueFilters), 300);
+    return () => clearTimeout(t);
+  }, [valueFilters]);
+
   // ── 候选筛选（赛道 / 市值 / 市场变化时 trigger）─────────
   const runScreen = useCallback(async () => {
     setLoadingCands(true);
@@ -253,7 +265,7 @@ export default function Screener10x() {
         body.max_market_cap_b = maxMcapB > 0 ? maxMcapB : null;
       } else {
         // 价值型：5 维财务过滤（None 字段不传，避免误启用）
-        for (const [k, v] of Object.entries(valueFilters)) {
+        for (const [k, v] of Object.entries(valueFiltersDebounced)) {
           if (v != null && v !== "" && !Number.isNaN(v)) body[k] = Number(v);
         }
       }
@@ -270,7 +282,7 @@ export default function Screener10x() {
     } finally {
       setLoadingCands(false);
     }
-  }, [selectedTrends, markets, maxMcapB, includeETF, precise, activeStrategy, valueFilters]);
+  }, [selectedTrends, markets, maxMcapB, includeETF, precise, activeStrategy, valueFiltersDebounced]);
 
   // 自动 re-screen（赛道 / 市场 / 市值上限 / ETF / 精严切换都会触发）
   // 注：items 变化（加入/删除观察）不在此触发，由 handleSaved / handleDelete 主动处理：
@@ -311,6 +323,17 @@ export default function Screener10x() {
     }
     return cs;
   }, [candidates, search, aiRanking]);
+
+  // 候选按市场分组计数（顶部 chip 显示 US:N HK:M CN:K）
+  const marketBreakdown = useMemo(() => {
+    const counts = { US: 0, HK: 0, CN: 0, other: 0 };
+    for (const c of filteredCandidates) {
+      const m = c.market;
+      if (m === "US" || m === "HK" || m === "CN") counts[m] += 1;
+      else counts.other += 1;
+    }
+    return counts;
+  }, [filteredCandidates]);
 
   // candidates 一旦刷新（赛道/市场/市值切换），清空 AI 排序
   useEffect(() => {
@@ -776,7 +799,21 @@ export default function Screener10x() {
           <div className="px-3 py-2 border-b border-white/8 flex items-center gap-2 flex-wrap">
             <Filter size={12} className="text-indigo-300" />
             <span className="text-[11px] font-semibold text-white">候选个股</span>
-            <span className="text-[9px] text-[#a0aec0]">{filteredCandidates.length} / {candidates.length}</span>
+            <span
+              className="text-[9px] text-[#a0aec0]"
+              title={`US: ${marketBreakdown.US} / HK: ${marketBreakdown.HK} / CN: ${marketBreakdown.CN}${marketBreakdown.other > 0 ? ` / 其他: ${marketBreakdown.other}` : ""}`}
+            >
+              {filteredCandidates.length} / {candidates.length}
+              {filteredCandidates.length > 0 && (
+                <span className="ml-1 text-[#5a6477]">
+                  {[
+                    marketBreakdown.US > 0 && `US ${marketBreakdown.US}`,
+                    marketBreakdown.HK > 0 && `HK ${marketBreakdown.HK}`,
+                    marketBreakdown.CN > 0 && `CN ${marketBreakdown.CN}`,
+                  ].filter(Boolean).join(" · ")}
+                </span>
+              )}
+            </span>
 
             <div className="flex-1" />
 
@@ -997,8 +1034,56 @@ export default function Screener10x() {
               </div>
             )}
             {!loadingCands && !errorCands && selectedTrends.length > 0 && filteredCandidates.length === 0 && (
-              <div className="h-full flex items-center justify-center text-[11px] text-[#7a8497] p-4 text-center">
-                没有匹配的候选股 — 尝试放宽市值上限、勾选更多赛道、{precise ? "关闭精严模式、" : ""}或启用 ETF
+              <div className="h-full flex flex-col items-center justify-center text-[11px] text-[#7a8497] p-4 text-center gap-3">
+                <div>没有匹配的候选股</div>
+                <div className="text-[10px] text-[#5a6477]">点击下方一键放宽筛选条件：</div>
+                <div className="flex flex-wrap gap-1.5 justify-center max-w-[320px]">
+                  {activeStrategy === "growth" && maxMcapInput > 0 && maxMcapInput < 5000 && (
+                    <button
+                      onClick={() => setMaxMcapInput(5000)}
+                      className="px-2 py-0.5 text-[10px] rounded bg-cyan-500/15 text-cyan-200 border border-cyan-500/30 hover:bg-cyan-500/25 transition"
+                      title="把市值上限放到 5000B（含全部大市值）"
+                    >
+                      市值放宽到 5000B
+                    </button>
+                  )}
+                  {precise && (
+                    <button
+                      onClick={() => setPrecise(false)}
+                      className="px-2 py-0.5 text-[10px] rounded bg-cyan-500/15 text-cyan-200 border border-cyan-500/30 hover:bg-cyan-500/25 transition"
+                      title="关闭精严模式（用宽泛关键词扩大候选池）"
+                    >
+                      关闭精严模式
+                    </button>
+                  )}
+                  {!includeETF && (
+                    <button
+                      onClick={() => setIncludeETF(true)}
+                      className="px-2 py-0.5 text-[10px] rounded bg-cyan-500/15 text-cyan-200 border border-cyan-500/30 hover:bg-cyan-500/25 transition"
+                      title="包含 ETF（如 SOXX、SMH 等行业 ETF）"
+                    >
+                      包含 ETF
+                    </button>
+                  )}
+                  {activeStrategy === "value" && Object.values(valueFilters).some((v) => v != null) && (
+                    <button
+                      onClick={() => setValueFilters(DEFAULT_VALUE_FILTERS)}
+                      className="px-2 py-0.5 text-[10px] rounded bg-cyan-500/15 text-cyan-200 border border-cyan-500/30 hover:bg-cyan-500/25 transition"
+                      title="清空 5 维筛选保留赛道"
+                    >
+                      清空 5 维筛选
+                    </button>
+                  )}
+                  {markets.length < 3 && (
+                    <button
+                      onClick={() => setMarkets(["US", "HK", "CN"])}
+                      className="px-2 py-0.5 text-[10px] rounded bg-cyan-500/15 text-cyan-200 border border-cyan-500/30 hover:bg-cyan-500/25 transition"
+                      title="启用全部 3 个市场（US / HK / CN）"
+                    >
+                      启用全部市场
+                    </button>
+                  )}
+                </div>
               </div>
             )}
             {!loadingCands && filteredCandidates.length > 0 && (
