@@ -103,12 +103,18 @@ export default function MonthlyReviewModal({ open, onClose }) {
           <div className="text-[10px] text-[#a0aec0] py-1">分析本月交易和持仓中... (~5s)</div>
         )}
 
-        {/* 复盘结果 */}
+        {/* 复盘结果 · v5: 套 .lead-paragraph（紫色 3px 左边线 + 渐变 bg + 13.5px serif body）
+            提升 1000 字长文的阅读体验，从"裸 pre 文本"升级为编辑式 lead paragraph */}
         {result?.review && (
           <div className="flex-1 overflow-auto pr-1">
-            <pre className="text-[11px] text-[#d0d7e2] leading-relaxed whitespace-pre-wrap font-sans">
-              {result.review}
-            </pre>
+            <div className="lead-paragraph">
+              <pre className="lead-paragraph__body whitespace-pre-wrap font-sans" style={{ fontFamily: "inherit" }}>
+                {result.review}
+              </pre>
+              <div className="lead-paragraph__based-on">
+                based on · {result?.month || month} · SQLite transactions + 月末持仓快照
+              </div>
+            </div>
           </div>
         )}
 
