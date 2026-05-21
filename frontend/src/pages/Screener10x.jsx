@@ -133,8 +133,10 @@ export default function Screener10x() {
   const [activeStrategy, setActiveStrategy] = useState("growth"); // "growth" | "value"
   // 筛选条件
   const [selectedTrends, setSelectedTrends] = useState([]); // string[]
-  const [maxMcapInput, setMaxMcapInput] = useState(50);     // 单位 B（input 即时绑定）
-  const [maxMcapB, setMaxMcapB] = useState(50);             // 300ms debounced，喂 runScreen
+  // 默认 1000B —— 包含绝大多数大盘股（NVDA 4800B 等极少数 mega-cap 用户可手动调高）
+  // 之前 50B 太严，把 MU/NVDA/AVGO/腾讯 等主流标的全过滤掉，新用户首次看到候选列表只剩小盘股
+  const [maxMcapInput, setMaxMcapInput] = useState(1000);
+  const [maxMcapB, setMaxMcapB] = useState(1000);
   const [includeETF, setIncludeETF] = useState(false);
   const [precise, setPrecise] = useState(false);    // 精严模式：仅核心赛道关键词
   const [markets, setMarkets] = useState(["US", "HK", "CN"]);
