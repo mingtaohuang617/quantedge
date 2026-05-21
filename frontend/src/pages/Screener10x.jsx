@@ -327,6 +327,17 @@ export default function Screener10x() {
     return cs;
   }, [candidates, search, aiRanking]);
 
+  // 候选按市场分组计数（顶部 chip 显示 US:N HK:M CN:K）
+  const marketBreakdown = useMemo(() => {
+    const counts = { US: 0, HK: 0, CN: 0, other: 0 };
+    for (const c of filteredCandidates) {
+      const m = c.market;
+      if (m === "US" || m === "HK" || m === "CN") counts[m] += 1;
+      else counts.other += 1;
+    }
+    return counts;
+  }, [filteredCandidates]);
+
   // candidates 一旦刷新（赛道/市场/市值切换），清空 AI 排序
   useEffect(() => {
     setAiRanking({});
@@ -770,7 +781,21 @@ export default function Screener10x() {
           <div className="px-3 py-2 border-b border-white/8 flex items-center gap-2 flex-wrap">
             <Filter size={12} className="text-indigo-300" />
             <span className="text-[11px] font-semibold text-white">候选个股</span>
-            <span className="text-[9px] text-[#a0aec0]">{filteredCandidates.length} / {candidates.length}</span>
+            <span
+              className="text-[9px] text-[#a0aec0]"
+              title={`US: ${marketBreakdown.US} / HK: ${marketBreakdown.HK} / CN: ${marketBreakdown.CN}${marketBreakdown.other > 0 ? ` / 其他: ${marketBreakdown.other}` : ""}`}
+            >
+              {filteredCandidates.length} / {candidates.length}
+              {filteredCandidates.length > 0 && (
+                <span className="ml-1 text-[#5a6477]">
+                  {[
+                    marketBreakdown.US > 0 && `US ${marketBreakdown.US}`,
+                    marketBreakdown.HK > 0 && `HK ${marketBreakdown.HK}`,
+                    marketBreakdown.CN > 0 && `CN ${marketBreakdown.CN}`,
+                  ].filter(Boolean).join(" · ")}
+                </span>
+              )}
+            </span>
 
             <div className="flex-1" />
 
