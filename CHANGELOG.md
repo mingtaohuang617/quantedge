@@ -5,6 +5,39 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added — v5 编辑式设计语言（2026-05）
+- **v5 设计基础层 + AI Lead Paragraph** (PR #140)：
+  - `frontend/index.html` 加载 Fraunces serif 字体（OPT-IN via `.font-serif`，不替换 DM Sans 默认）
+  - `index.css` 追加 4 个 v5 工具类：`.t-eyebrow`（indigo mono uppercase 编辑式小标）/ `.t-hero` 三档（28/36/44px）/ `.t-hero-gradient`（白→浅灰渐变）/ `.lead-paragraph`（紫 3px 左边线 + 渐变 bg + 13.5px serif body + `--indigo` 变体 + `__based-on` 出处 footer）/ `.pillar-card`（顶部色条 + 大数字 + 进度条）
+  - `AIStockSummaryCard` / `BacktestNarrationCard` / `ScoreExplainCard` 3 个 AI 卡全部升级为 Lead Paragraph
+  - BacktestEngine 加 v5 Hero 块：年化收益 36px Fraunces serif + vs 基准 pp chip + 3 副 KPI 纵向分隔（夏普 / 最大回撤 / 胜率）
+  - 严守"现有 5-tier 字号 + 5 语义色 token + glass-card 体系 100% 保留"原则
+- **v5 增量 polish · 3 个剩余 AI narrative 块** (PR #143)：
+  - `MonthlyReviewModal` 月度复盘 1000 字：裸 `<pre>` 11px → `.lead-paragraph` 13.5px + based-on 出处
+  - `StockGene ScoreDetail` AI 解读：`bg-violet-500/8` 小卡 → `.lead-paragraph` + uppercase eyebrow
+  - `Screener10x` AI 赛道校验 toast：`p-2 bg-violet-500/10` → `.lead-paragraph` + 重组 eyebrow（ticker/close 上提）
+  - **Screener10x 顶栏 4 阶段漏斗叙事**：内联追加 `候选 N → AI N → 观察 N` chip 串，无 layout 重构（仅 universe stats 之后追加）
+  - 关键克制（吸取 #141/#142 layout 重构被回退的教训）：纯 CSS 类替换 + eyebrow 微调，不动 grid / layout / 字号梯度 / 数据流
+
+### Added — 测试覆盖填空（2026-05）
+- **breadth_engine 13 单测** (PR #145)：`backend/breadth_engine.py` 179 行 0 测试覆盖 → 补 13 个用例
+  - `compute_snapshots` 主流程（9 个）：空成分股 / 空 matrix 短路 · 合成 500×400 schema · advancing+declining ≤ universe · pct ∈ [0,100] · 上涨趋势 pct_above_200ma > 50 · universe < 300 守门 · start 过滤 · new_highs/lows int dtype
+  - `upsert_snapshots` DB 写入（3 个）：空 → 0 行 · executemany 12-tuple INSERT + ON CONFLICT · NaN pct → SQLite NULL
+  - `update_snapshots` orchestrator（1 个）：无成分股 → 0
+  - Mock：`patch.object(_load_constituents / _load_close_matrix)` + 合成 close matrix `rng(42)` 固定种子
+  - 跑完 1.40s，零外部依赖
+- **db transactions / positions 24 单测** (PR #146)：补 `db.py` 中 6 个未测函数 + `get_bars` 范围查询
+  - `get_bars` 范围（4）：无 filter 升序 · start only · start+end BETWEEN 双闭 · 不存在 ticker 空列表
+  - `db_stats` 摘要（3）：空库 0 计数 · daily_bars/by_source/coverage 正确 · db_size_mb ≥ 0
+  - `insert_transaction`（5）：返回 id · side 非法 ValueError · qty/price ≤ 0 ValueError · traded_at 缺省今天 · fee+notes 持久化
+  - `list_transactions`（3）：ticker filter · 无 filter 全部 · limit 生效
+  - `delete_transaction`（2）：存在 → True · 不存在 → False
+  - `compute_positions`（7）：无交易空 · 单 buy 计算 · 全 sell closed · 两次 buy 加权平均 · 无 daily_bars 字段 None · 部分 sell open+realized+unrealized · 多持仓按 mv 降序
+  - 复用 test_db.py 的 `fresh_db` fixture（临时 sqlite 文件），跑完 0.27s
+- **llm `_safe_json_parse` 6 单测** (PR #147)：处理 LLM markdown 围栏的容错 JSON 解析此前 0 覆盖
+  - 裸 JSON · markdown ```json``` 围栏 · 无语言后缀 ``` 围栏 · 前后空白容错 · 嵌套 dict/list · 非法 JSON → JSONDecodeError
+  - 追加到既有 test_llm_helpers.py，与 `_clamp_int` / `value_thesis` 共生
+
 ### Added
 - **10x 猎手 5 大指数全覆盖** (PR #117)：让标普500 / 纳斯达克100 / 恒生 / 恒生科技 / 沪深300 里的每只股票都至少命中 1 个 supertrend
   - **新增 4 个 growth supertrend**（4 → 8 个 growth，11 个 total）：
