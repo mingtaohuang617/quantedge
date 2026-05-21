@@ -996,8 +996,56 @@ export default function Screener10x() {
               </div>
             )}
             {!loadingCands && !errorCands && selectedTrends.length > 0 && filteredCandidates.length === 0 && (
-              <div className="h-full flex items-center justify-center text-[11px] text-[#7a8497] p-4 text-center">
-                没有匹配的候选股 — 尝试放宽市值上限、勾选更多赛道、{precise ? "关闭精严模式、" : ""}或启用 ETF
+              <div className="h-full flex flex-col items-center justify-center text-[11px] text-[#7a8497] p-4 text-center gap-3">
+                <div>没有匹配的候选股</div>
+                <div className="text-[10px] text-[#5a6477]">点击下方一键放宽筛选条件：</div>
+                <div className="flex flex-wrap gap-1.5 justify-center max-w-[320px]">
+                  {activeStrategy === "growth" && maxMcapInput > 0 && maxMcapInput < 5000 && (
+                    <button
+                      onClick={() => setMaxMcapInput(5000)}
+                      className="px-2 py-0.5 text-[10px] rounded bg-cyan-500/15 text-cyan-200 border border-cyan-500/30 hover:bg-cyan-500/25 transition"
+                      title="把市值上限放到 5000B（含全部大市值）"
+                    >
+                      市值放宽到 5000B
+                    </button>
+                  )}
+                  {precise && (
+                    <button
+                      onClick={() => setPrecise(false)}
+                      className="px-2 py-0.5 text-[10px] rounded bg-cyan-500/15 text-cyan-200 border border-cyan-500/30 hover:bg-cyan-500/25 transition"
+                      title="关闭精严模式（用宽泛关键词扩大候选池）"
+                    >
+                      关闭精严模式
+                    </button>
+                  )}
+                  {!includeETF && (
+                    <button
+                      onClick={() => setIncludeETF(true)}
+                      className="px-2 py-0.5 text-[10px] rounded bg-cyan-500/15 text-cyan-200 border border-cyan-500/30 hover:bg-cyan-500/25 transition"
+                      title="包含 ETF（如 SOXX、SMH 等行业 ETF）"
+                    >
+                      包含 ETF
+                    </button>
+                  )}
+                  {activeStrategy === "value" && Object.values(valueFilters).some((v) => v != null) && (
+                    <button
+                      onClick={() => setValueFilters(DEFAULT_VALUE_FILTERS)}
+                      className="px-2 py-0.5 text-[10px] rounded bg-cyan-500/15 text-cyan-200 border border-cyan-500/30 hover:bg-cyan-500/25 transition"
+                      title="清空 5 维筛选保留赛道"
+                    >
+                      清空 5 维筛选
+                    </button>
+                  )}
+                  {markets.length < 3 && (
+                    <button
+                      onClick={() => setMarkets(["US", "HK", "CN"])}
+                      className="px-2 py-0.5 text-[10px] rounded bg-cyan-500/15 text-cyan-200 border border-cyan-500/30 hover:bg-cyan-500/25 transition"
+                      title="启用全部 3 个市场（US / HK / CN）"
+                    >
+                      启用全部市场
+                    </button>
+                  )}
+                </div>
               </div>
             )}
             {!loadingCands && filteredCandidates.length > 0 && (
