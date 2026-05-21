@@ -142,7 +142,9 @@ export default function Screener10x() {
   const [markets, setMarkets] = useState(["US", "HK", "CN"]);
   const [search, setSearch] = useState("");
   // 价值型 5 维筛选（仅 activeStrategy="value" 时启用）
+  // 双 state：valueFilters 即时绑定 input；valueFiltersDebounced 喂 runScreen（300ms 防抖）
   const [valueFilters, setValueFilters] = useState(DEFAULT_VALUE_FILTERS);
+  const [valueFiltersDebounced, setValueFiltersDebounced] = useState(DEFAULT_VALUE_FILTERS);
   // 候选 + loading
   const [candidates, setCandidates] = useState([]);
   const [loadingCands, setLoadingCands] = useState(false);
@@ -240,6 +242,14 @@ export default function Screener10x() {
     return () => clearTimeout(t);
   }, [maxMcapInput]);
 
+  // ── value filters debounce（300ms）──────────────────────
+  // 价值型 5 维 input 同样按 300ms 节流避免每按一键就 screen
+  // preset chip 是整对象切换 → 立即生效（不浪费等待）
+  useEffect(() => {
+    const t = setTimeout(() => setValueFiltersDebounced(valueFilters), 300);
+    return () => clearTimeout(t);
+  }, [valueFilters]);
+
   // ── 候选筛选（赛道 / 市值 / 市场变化时 trigger）─────────
   const runScreen = useCallback(async () => {
     setLoadingCands(true);
@@ -258,7 +268,7 @@ export default function Screener10x() {
         body.max_market_cap_b = maxMcapB > 0 ? maxMcapB : null;
       } else {
         // 价值型：5 维财务过滤（None 字段不传，避免误启用）
-        for (const [k, v] of Object.entries(valueFilters)) {
+        for (const [k, v] of Object.entries(valueFiltersDebounced)) {
           if (v != null && v !== "" && !Number.isNaN(v)) body[k] = Number(v);
         }
       }
@@ -275,7 +285,7 @@ export default function Screener10x() {
     } finally {
       setLoadingCands(false);
     }
-  }, [selectedTrends, markets, maxMcapB, includeETF, precise, activeStrategy, valueFilters]);
+  }, [selectedTrends, markets, maxMcapB, includeETF, precise, activeStrategy, valueFiltersDebounced]);
 
   // 自动 re-screen（赛道 / 市场 / 市值上限 / ETF / 精严切换都会触发）
   // 注：items 变化（加入/删除观察）不在此触发，由 handleSaved / handleDelete 主动处理：
