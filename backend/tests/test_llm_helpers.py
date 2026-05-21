@@ -5,9 +5,52 @@ LLM 模块内的纯函数 helpers 测试。
 import sys
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from llm import _clamp_int  # noqa: E402
+from llm import _clamp_int, _safe_json_parse  # noqa: E402
+
+
+# ── _safe_json_parse（处理 LLM markdown 包裹的 JSON） ──────
+def test_safe_json_parse_plain():
+    """裸 JSON 直接解析。"""
+    out = _safe_json_parse('{"a": 1, "b": "hi"}')
+    assert out == {"a": 1, "b": "hi"}
+
+
+def test_safe_json_parse_strips_markdown_json_fence():
+    """LLM 常常用 ```json ... ``` 包裹返回 — 应去除围栏。"""
+    text = '```json\n{"key": "value"}\n```'
+    out = _safe_json_parse(text)
+    assert out == {"key": "value"}
+
+
+def test_safe_json_parse_strips_plain_markdown_fence():
+    """无语言后缀的 ``` 围栏也应被剥掉。"""
+    text = '```\n{"x": 42}\n```'
+    out = _safe_json_parse(text)
+    assert out == {"x": 42}
+
+
+def test_safe_json_parse_handles_leading_trailing_whitespace():
+    """LLM 输出常带前后空白 — 应先 strip。"""
+    out = _safe_json_parse('   \n  {"trim": true}  \n  ')
+    assert out == {"trim": True}
+
+
+def test_safe_json_parse_nested_structure():
+    """嵌套 dict / list 都应正确解析。"""
+    text = '```json\n{"items": [1, 2, {"nested": "yes"}], "count": 3}\n```'
+    out = _safe_json_parse(text)
+    assert out == {"items": [1, 2, {"nested": "yes"}], "count": 3}
+
+
+def test_safe_json_parse_invalid_raises():
+    """非法 JSON 应该抛 JSONDecodeError，调用方自行处理。"""
+    import json as _json
+    with pytest.raises(_json.JSONDecodeError):
+        _safe_json_parse("not a json")
 
 
 # ── _clamp_int（10x thesis 结构化数字字段容错） ──────────
