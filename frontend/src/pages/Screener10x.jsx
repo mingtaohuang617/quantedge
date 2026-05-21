@@ -31,6 +31,7 @@ import AddSupertrendDialog from "../components/AddSupertrendDialog.jsx";
 import WatchlistCard from "../components/WatchlistCard.jsx";
 import ValueFilters from "../components/ValueFilters.jsx";
 import { loadPrefs, savePrefs } from "../lib/screener10xPrefs.js";
+import StockDetailPanel from "../components/StockDetailPanel.jsx";
 import { serializeWatchlistCsv } from "../lib/csvExport.js";
 
 const STRATEGY_LABEL = { growth: "成长型", value: "价值型" };
@@ -166,6 +167,8 @@ export default function Screener10x() {
   const [editorOpen, setEditorOpen] = useState(false);
   const [editing, setEditing] = useState(null);             // null = 新增
   const [pendingCandidate, setPendingCandidate] = useState(null);
+  // 候选股详情面板（点 ticker 弹出）
+  const [detailItem, setDetailItem] = useState(null);
   // 添加赛道对话框
   const [addTrendOpen, setAddTrendOpen] = useState(false);
   // 归档显示开关
@@ -1165,7 +1168,15 @@ export default function Screener10x() {
                     const ai = aiRanking[c.ticker];
                     return (
                       <tr key={c.ticker} className="border-t border-white/5 hover:bg-white/[0.04] transition">
-                        <td className="px-2 py-1.5 font-mono text-[10px] text-white">{c.ticker}</td>
+                        <td className="px-2 py-1.5 font-mono text-[10px] text-white">
+                          <button
+                            onClick={() => setDetailItem(c)}
+                            className="hover:text-cyan-300 hover:underline focus:outline-none focus:text-cyan-300"
+                            title="点击查看详情"
+                          >
+                            {c.ticker}
+                          </button>
+                        </td>
                         <td className="px-2 py-1.5 text-[10px] text-[#d0d7e2] truncate max-w-[140px]" title={c.name}>{c.name}</td>
                         <td className="px-2 py-1.5 text-[9px] text-[#a0aec0]">{c.market}{c.exchange && `·${c.exchange}`}</td>
                         <td className="px-2 py-1.5 text-[9px] text-[#a0aec0] truncate max-w-[100px]" title={c.sector || c.industry}>{c.sector || c.industry || "—"}</td>
@@ -1367,6 +1378,15 @@ export default function Screener10x() {
         supertrends={supertrends}
         currentPrice={pricesByTicker[editing?.ticker || pendingCandidate?.ticker]}
         onClose={() => { setEditorOpen(false); setEditing(null); setPendingCandidate(null); }}
+      />
+
+      {/* 候选股详情面板 — 点 ticker 弹出 */}
+      <StockDetailPanel
+        open={!!detailItem}
+        item={detailItem}
+        supertrends={supertrends}
+        onClose={() => setDetailItem(null)}
+        onAddObservation={openAdd}
         onSaved={handleSaved}
       />
 
