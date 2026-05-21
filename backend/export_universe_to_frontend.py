@@ -24,7 +24,7 @@ export_universe_to_frontend — 把 backend/output/universe_*.json 复制到 fro
 """
 from __future__ import annotations
 
-import shutil
+import json
 import sys
 from pathlib import Path
 
@@ -33,6 +33,13 @@ SRC_DIR = ROOT / "backend" / "output"
 DST_DIR = ROOT / "frontend" / "public" / "data" / "universe"
 
 MARKETS = ["us", "cn", "hk"]
+
+# 复制时剥离 frontend 不用的字段（瘦身）
+# - futu_code: 仅 backend sync 用，frontend 完全不引用
+# - is_derivative: frontend 不引用
+# 保留：ticker / name / market / exchange / sector / industry / marketCap /
+#       is_etf / pe / pb / dividend_yield / roe / debt_to_equity
+DROP_FIELDS = ("futu_code", "is_derivative")
 
 
 def fmt_size(n: int) -> str:
@@ -64,11 +71,37 @@ def main() -> int:
             print(f"  [skip] {fname} not found at {src}")
             continue
 
-        shutil.copy2(src, dst)
+        # 读 → 剥离 → 写（不再 shutil.copy2 整文件复制）
+        with open(src, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        src_size = src.stat().st_size
+
+        n_stripped = 0
+        # Strip frontend-unused fields + 空字符串 / null（缺字段 = 老数据，frontend
+        # 已用 `it.sector || ''` / `mc == null` 等防御性读法处理 undefined）
+        for it in data.get("items", []):
+            for k in DROP_FIELDS:
+                if k in it:
+                    del it[k]
+                    n_stripped += 1
+            # 空字符串 sector / industry / exchange / market — 丢
+            for k in ("sector", "industry", "exchange", "market"):
+                if it.get(k) == "":
+                    del it[k]
+                    n_stripped += 1
+            # marketCap = None / 0 也丢（frontend 用 `mc == null` 判断）
+            if it.get("marketCap") in (None, 0):
+                if "marketCap" in it:
+                    del it["marketCap"]
+                    n_stripped += 1
+
+        with open(dst, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2, allow_nan=False)
         size = dst.stat().st_size
         total_bytes += size
         copied.append((fname, size))
-        print(f"  [ok]   {fname} -> {fmt_size(size)}")
+        saving = src_size - size
+        print(f"  [ok]   {fname} -> {fmt_size(size)} (剥离 {n_stripped} 字段，省 {fmt_size(saving)})")
 
     print()
     print(f"copied {len(copied)} file(s), total {fmt_size(total_bytes)}")
