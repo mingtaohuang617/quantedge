@@ -74,16 +74,18 @@ export default function AIStockSummaryCard({ stock }) {
   const isCollapsed = !state.expanded;
   const hasData = !!state.data;
 
+  // v5 编辑式：AI 从"附属解读"升级为"主导论点 lead paragraph"
+  // 容器改用 .lead-paragraph（紫色 3px 左边线 + 渐变 bg），body 字号 10→12.5px serif
   return (
-    <div className="glass-card p-3 border border-violet-500/20">
-      <div className="flex items-center justify-between mb-2">
+    <div className="lead-paragraph">
+      <div className="flex items-center justify-between mb-2.5">
         <div className="flex items-center gap-1.5">
           <Sparkles size={12} className="text-violet-400" />
-          <span className="text-[11px] font-medium text-violet-300">AI 解读</span>
+          <span className="text-[10.5px] font-semibold tracking-wider uppercase text-violet-300/90">AI 解读 · 主导论点</span>
           {state.cached && (
             <span
               title="命中缓存（无 token 消耗）"
-              className="inline-flex items-center gap-0.5 text-[9px] text-amber-300/80"
+              className="inline-flex items-center gap-0.5 text-[9px] text-amber-300/80 ml-1"
             >
               <Zap size={9} /> 缓存
             </span>
@@ -92,7 +94,7 @@ export default function AIStockSummaryCard({ stock }) {
         {!hasData && !state.loading && (
           <button
             onClick={handleGenerate}
-            className="px-2 py-0.5 text-[10px] rounded-md bg-violet-500/20 hover:bg-violet-500/30 text-violet-200 border border-violet-500/40 transition"
+            className="px-2.5 py-0.5 text-[10px] rounded-md bg-violet-500/20 hover:bg-violet-500/30 text-violet-200 border border-violet-500/40 transition"
           >
             生成解读
           </button>
@@ -109,7 +111,7 @@ export default function AIStockSummaryCard({ stock }) {
 
       {/* 加载态 */}
       {state.loading && (
-        <div className="flex items-center gap-2 text-[10px] text-[#a0aec0] py-2">
+        <div className="flex items-center gap-2 text-[11px] text-[#a0aec0] py-1">
           <Loader size={11} className="animate-spin text-violet-400" />
           <span>正在调用 DeepSeek...</span>
         </div>
@@ -123,18 +125,19 @@ export default function AIStockSummaryCard({ stock }) {
         </div>
       )}
 
-      {/* 数据态 */}
+      {/* 数据态 — 编辑式 body：大字号 + 行高 1.7 + 三段并列 */}
       {hasData && !state.loading && (
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           <Row icon="📈" label="看点" text={state.data["看点"]} />
           <Row icon="⚠️" label="风险" text={state.data["风险"]} />
           <Row icon="💎" label="估值" text={state.data["估值"]} />
+          <div className="lead-paragraph__based-on">based on · PE · ROE · 营收 · RSI · 52W 区间</div>
         </div>
       )}
 
       {/* 默认提示 */}
       {isCollapsed && !state.loading && !state.error && (
-        <div className="text-[10px] text-[#778] py-1">
+        <div className="text-[11px] text-[#a0aec0] py-0.5">
           点"生成解读"让 DeepSeek 用 3 句话总结看点 / 风险 / 估值
         </div>
       )}
@@ -144,11 +147,11 @@ export default function AIStockSummaryCard({ stock }) {
 
 function Row({ icon, label, text }) {
   return (
-    <div className="flex items-start gap-1.5">
-      <span className="text-[11px] shrink-0 select-none" aria-hidden>{icon}</span>
+    <div className="flex items-start gap-2">
+      <span className="text-[12px] shrink-0 select-none mt-0.5" aria-hidden>{icon}</span>
       <div className="flex-1">
-        <span className="text-[9px] text-violet-300/70 mr-1.5">{label}</span>
-        <span className="text-[10px] text-[#d0d7e2] leading-relaxed">{text || "—"}</span>
+        <span className="text-[10px] font-semibold tracking-wider uppercase text-violet-300/80 mr-2">{label}</span>
+        <span className="lead-paragraph__body text-[12.5px]">{text || "—"}</span>
       </div>
     </div>
   );

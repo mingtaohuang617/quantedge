@@ -153,10 +153,15 @@ class TestYFinanceSourceFetchHistory:
         tk.history.assert_called_once_with(period="60d", interval="5m")
 
     def test_empty_intraday_raises_immediately(self):
-        """分钟级空 df 直接抛错（不再 fallback 1mo）。"""
+        """分钟级空 df 直接抛错（不再 fallback 1mo）。
+
+        禁用重试（max_attempts=1）以隔离"是否 fallback 1mo"这个行为；
+        重试本身另见 test_yfinance_retry.py。
+        """
         empty = pd.DataFrame()
         tk = _mock_ticker(empty)
-        with patch.object(yfinance_source.yf, "Ticker", return_value=tk):
+        with patch.object(yfinance_source.yf, "Ticker", return_value=tk), \
+             patch.object(yfinance_source, "YFINANCE_RETRY_MAX", 1):
             with pytest.raises(yfinance_source.YFinanceError, match="interval=1m"):
                 yfinance_source.fetch_history(SPY_CFG, days=5, interval=Interval.MIN_1)
         # 仅 1 次调用，不像日 K 那样再试 1mo
