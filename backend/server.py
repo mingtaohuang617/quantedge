@@ -1199,7 +1199,7 @@ _SMART_BETA_TTL_SEC = 1800  # 30 分钟
 
 
 def _fetch_etf_prices(
-    ticker: str, days: int = 280, min_bars: int = 130,
+    ticker: str, days: int = 280, min_bars: int = 120,
 ) -> tuple[pd.Series | None, pd.Series | None]:
     """从 router 拉一只 ETF 的 close + volume；失败返回 (None, None)。
 
