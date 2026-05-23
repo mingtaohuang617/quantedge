@@ -72,6 +72,7 @@
   - 验收标准：Monitor 模块从 `stocks.js` 中导入 ALERTS 渲染告警列表；板块流入栏目根据 STOCKS 按 sector 聚合 `change` 实时计算；fearGreed 暂时保留 mock 但加 TODO 注释说明数据源待定。
   - 预估工作量：S
   - **完成（2026-05-19，验证已落地）**：`frontend/src/pages/Monitor.jsx` 已对接 DataContext（L87 `ctxAlerts3`，L181-184 `mergedAlerts = [...macroAlertsAsItems, ...allAlerts || dynamicAlerts]`），并附加 macro L5 alerts + 客户端动态 alerts 兜底；sectors 按 `s.sector.split("/")[0]` 聚合 change 平均（L272-288，过滤 count<2、按绝对值排序取前 6）；fearGreed 已超出 TODO 要求 —— 不是 mock，而是用 liveStocks 平均涨跌幅 × 0.6 + 上涨广度 × 0.4 实时算（L290-300）。
+  - **追加（2026-05-20，PR #136）**：补 fearGreed `TODO[data-source]` 注释（Monitor.jsx:290-295）说明这是 watchlist-only proxy，列出候选数据源（CNN F&G scrape / 自建因子）。零功能影响、仅注释。
 
 ---
 

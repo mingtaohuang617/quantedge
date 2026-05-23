@@ -287,6 +287,12 @@ const Monitor = () => {
     return result.map(s => ({ ...s, displayName: t(s.name) }));
   }, [liveStocks, t]);
 
+  // TODO[data-source]: 当前 fearGreed 是 watchlist-only proxy —— 用 6-30 个标的的平均涨跌幅
+  // (60%) + 市场宽度 (40%) 估算，并非真正的大盘恐惧贪婪指数。未来候选数据源（按性价比降序）：
+  //   1. CNN Fear & Greed Index（无官方 API，需 scrape；moneycnn.com/data/fear-and-greed/）
+  //   2. Alternative.me Crypto F&G API（仅加密，参考实现）
+  //   3. 自建：SPX 5d 动量 + VIX 倒数 + 期权 P/C ratio + breadth 加权（要 IBKR/Polygon 数据）
+  // 在数据源确定前保持当前实现，UI 文案已注明"基于 N 个标的"避免误导。
   const fearGreed = useMemo(() => {
     if (!liveStocks || liveStocks.length === 0) return 50;
     const valid = liveStocks.map(s => safeChange(s.change)).filter(c => isFinite(c));
