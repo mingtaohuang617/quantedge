@@ -543,7 +543,7 @@ const BacktestNarrationPanel = ({ metrics }) => {
   const [cached, setCached] = useState(false);
   const [open, setOpen] = useState(false);
 
-  const fetchNarration = async () => {
+  const fetchNarration = async (force = false) => {
     if (!metrics) return;
     setLoading(true);
     setErr(null);
@@ -559,7 +559,8 @@ const BacktestNarrationPanel = ({ metrics }) => {
         ? metrics.benchmark_annual_return * 100 : null,
     };
     try {
-      const r = await apiFetch("/llm/backtest-narrate", {
+      const path = force ? "/llm/backtest-narrate?force=true" : "/llm/backtest-narrate";
+      const r = await apiFetch(path, {
         method: "POST",
         body: JSON.stringify(body),
       });
@@ -609,9 +610,9 @@ const BacktestNarrationPanel = ({ metrics }) => {
         </button>
         {narration && !loading && (
           <button
-            onClick={fetchNarration}
+            onClick={() => fetchNarration(true)}
             className="text-[10px] text-[#a0aec0] hover:text-white px-1.5 py-0.5 rounded hover:bg-white/5"
-            title="重新生成（绕过缓存需后端 force=true，此处仍可能命中 30 分钟缓存）"
+            title="强制重新生成（force=true 跳过 30 分钟后端缓存，重新调 DeepSeek）"
           >
             <RefreshCw size={10} />
           </button>

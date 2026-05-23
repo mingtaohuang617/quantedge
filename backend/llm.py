@@ -115,7 +115,7 @@ def _safe_json_parse(text: str) -> dict:
 
 
 # ── 高阶端点 ────────────────────────────────────────────────
-def summary(stock: dict, ttl_seconds: int = 3600) -> dict:
+def summary(stock: dict, ttl_seconds: int = 3600, force: bool = False) -> dict:
     """
     B1: 个股 AI 摘要卡。
     输入 stock dict 应含: ticker, name(可选), sector, pe, roe, momentum, rsi,
@@ -161,7 +161,7 @@ def summary(stock: dict, ttl_seconds: int = 3600) -> dict:
     cache_key = _db.llm_cache_key("summary", DEFAULT_MODEL, prompt)
 
     # 缓存命中
-    cached = _db.llm_cache_get(cache_key)
+    cached = None if force else _db.llm_cache_get(cache_key)
     if cached:
         return {
             "ok": True,
@@ -200,7 +200,7 @@ def summary(stock: dict, ttl_seconds: int = 3600) -> dict:
         return {"ok": False, "ticker": ticker, "error": f"LLM 返回非合法 JSON: {e}"}
 
 
-def journal_structure(text: str, watchlist: list[str], ttl_seconds: int = 0) -> dict:
+def journal_structure(text: str, watchlist: list[str], ttl_seconds: int = 0, force: bool = False) -> dict:
     """
     B5: 一句话投资日志 → 结构化字段。
     text: 用户原文（"今天加仓 NVDA 100 股@201，看好财报"）
@@ -223,7 +223,7 @@ def journal_structure(text: str, watchlist: list[str], ttl_seconds: int = 0) -> 
     )
 
     cache_key = _db.llm_cache_key("journal-structure", DEFAULT_MODEL, prompt)
-    cached = _db.llm_cache_get(cache_key)
+    cached = None if force else _db.llm_cache_get(cache_key)
     if cached:
         return {"ok": True, "structured": cached["response"], "cached": True}
 
@@ -248,7 +248,7 @@ def journal_structure(text: str, watchlist: list[str], ttl_seconds: int = 0) -> 
         return {"ok": False, "error": f"LLM 返回非合法 JSON: {e}"}
 
 
-def explain_score(stock: dict, weights: dict, ttl_seconds: int = 86400) -> dict:
+def explain_score(stock: dict, weights: dict, ttl_seconds: int = 86400, force: bool = False) -> dict:
     """
     B2: 评分解读 — 解释为什么这只票得这个分。
     输入:
@@ -287,7 +287,7 @@ def explain_score(stock: dict, weights: dict, ttl_seconds: int = 86400) -> dict:
         )
 
     cache_key = _db.llm_cache_key("explain-score", DEFAULT_MODEL, prompt)
-    cached = _db.llm_cache_get(cache_key)
+    cached = None if force else _db.llm_cache_get(cache_key)
     if cached:
         return {"ok": True, "ticker": ticker, "explanation": cached["response"].get("text", ""), "cached": True}
 
@@ -309,7 +309,7 @@ def explain_score(stock: dict, weights: dict, ttl_seconds: int = 86400) -> dict:
         return {"ok": False, "ticker": ticker, "error": str(e)}
 
 
-def explain_gene_score(payload: dict, ttl_seconds: int = 86400) -> dict:
+def explain_gene_score(payload: dict, ttl_seconds: int = 86400, force: bool = False) -> dict:
     """
     Stock Gene 评分解读 — 把 8 维趋势或 6 维价值的特征结果丢给 LLM，给一段话画像。
 
@@ -367,7 +367,7 @@ def explain_gene_score(payload: dict, ttl_seconds: int = 86400) -> dict:
     )
 
     cache_key = _db.llm_cache_key("stock-gene-explain", DEFAULT_MODEL, prompt)
-    cached = _db.llm_cache_get(cache_key)
+    cached = None if force else _db.llm_cache_get(cache_key)
     if cached:
         return {
             "ok": True, "ticker": ticker, "engine": engine,
@@ -396,7 +396,7 @@ def explain_gene_score(payload: dict, ttl_seconds: int = 86400) -> dict:
         return {"ok": False, "ticker": ticker, "engine": engine, "error": str(e)}
 
 
-def backtest_narrate(payload: dict, ttl_seconds: int = 1800) -> dict:
+def backtest_narrate(payload: dict, ttl_seconds: int = 1800, force: bool = False) -> dict:
     """
     B4: 回测结果 AI 解读。
     payload 应含: tickers (list), weights (dict ticker→weight),
@@ -435,7 +435,7 @@ def backtest_narrate(payload: dict, ttl_seconds: int = 1800) -> dict:
     )
 
     cache_key = _db.llm_cache_key("backtest-narrate", DEFAULT_MODEL, prompt)
-    cached = _db.llm_cache_get(cache_key)
+    cached = None if force else _db.llm_cache_get(cache_key)
     if cached:
         return {"ok": True, "narration": cached["response"].get("text", ""), "cached": True}
 
@@ -468,7 +468,7 @@ def _clamp_int(v, lo: int, hi: int, default: int) -> int:
     return default
 
 
-def tenx_thesis(stock: dict, supertrend: dict, ttl_seconds: int = 86400) -> dict:
+def tenx_thesis(stock: dict, supertrend: dict, ttl_seconds: int = 86400, force: bool = False) -> dict:
     """
     10x 猎手 — 卡位分析草稿生成。
     按"成长型十倍股"策略框架给出 5 段文字 + 2 个结构化数字，作为用户编辑 thesis 的起草。
@@ -522,7 +522,7 @@ def tenx_thesis(stock: dict, supertrend: dict, ttl_seconds: int = 86400) -> dict
 
     cache_key = _db.llm_cache_key("10x-thesis", DEFAULT_MODEL, prompt)
 
-    cached = _db.llm_cache_get(cache_key)
+    cached = None if force else _db.llm_cache_get(cache_key)
     if cached:
         return {"ok": True, "ticker": ticker, "thesis": cached["response"], "cached": True}
 
@@ -552,7 +552,7 @@ def tenx_thesis(stock: dict, supertrend: dict, ttl_seconds: int = 86400) -> dict
         return {"ok": False, "ticker": ticker, "error": f"LLM 返回非合法 JSON: {e}"}
 
 
-def value_thesis(stock: dict, supertrend: dict, ttl_seconds: int = 86400) -> dict:
+def value_thesis(stock: dict, supertrend: dict, ttl_seconds: int = 86400, force: bool = False) -> dict:
     """
     10x 猎手 价值型 — Graham 安全边际分析草稿。
 
@@ -629,7 +629,7 @@ def value_thesis(stock: dict, supertrend: dict, ttl_seconds: int = 86400) -> dic
     # cache key 用 value-thesis 前缀，与 10x-thesis 隔离（避免缓存污染）
     cache_key = _db.llm_cache_key("value-thesis", DEFAULT_MODEL, prompt)
 
-    cached = _db.llm_cache_get(cache_key)
+    cached = None if force else _db.llm_cache_get(cache_key)
     if cached:
         return {"ok": True, "ticker": ticker, "thesis": cached["response"], "cached": True}
 
@@ -724,7 +724,7 @@ def macro_narrative(composite: dict, ttl_seconds: int = 43200, force: bool = Fal
 
     cache_key = _db.llm_cache_key("macro-narrative", DEFAULT_MODEL, prompt)
     if not force:
-        cached = _db.llm_cache_get(cache_key)
+        cached = None if force else _db.llm_cache_get(cache_key)
         if cached:
             return {
                 "ok": True,
@@ -750,7 +750,7 @@ def macro_narrative(composite: dict, ttl_seconds: int = 43200, force: bool = Fal
         return {"ok": False, "error": str(e)}
 
 
-def parse_strategy(text: str, candidates: list[dict]) -> dict:
+def parse_strategy(text: str, candidates: list[dict], force: bool = False) -> dict:
     """
     B3: NL 策略描述 → portfolio dict。
     text: "科技 7 + 防御 3 等权" / "半导体龙头 + 高股息 ETF" 等
@@ -771,7 +771,7 @@ def parse_strategy(text: str, candidates: list[dict]) -> dict:
     )
 
     cache_key = _db.llm_cache_key("parse-strategy", DEFAULT_MODEL, prompt)
-    cached = _db.llm_cache_get(cache_key)
+    cached = None if force else _db.llm_cache_get(cache_key)
     if cached:
         return {"ok": True, **cached["response"], "cached": True}
 
@@ -802,7 +802,7 @@ def parse_strategy(text: str, candidates: list[dict]) -> dict:
 
 def monthly_review(month_label: str, transactions: list[dict],
                    positions: list[dict], journal_summaries: list[str] | None = None,
-                   ttl_seconds: int = 0) -> dict:
+                   ttl_seconds: int = 0, force: bool = False) -> dict:
     """
     B7: 月度复盘自动撰写。
     month_label: '2026-04' 类格式
@@ -845,7 +845,7 @@ def monthly_review(month_label: str, transactions: list[dict],
     )
 
     cache_key = _db.llm_cache_key("monthly-review", DEFAULT_MODEL, prompt)
-    cached = _db.llm_cache_get(cache_key)
+    cached = None if force else _db.llm_cache_get(cache_key)
     if cached:
         return {"ok": True, "review": cached["response"].get("text", ""), "cached": True}
 
