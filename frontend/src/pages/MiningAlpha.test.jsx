@@ -14,9 +14,42 @@ vi.mock('../quant-platform.jsx', () => ({
 }));
 import { apiFetch } from '../quant-platform.jsx';
 
-import { AlertsBanner, TopHoldingsTable, RunPipelinePanel, mergeRegimeSegments } from './MiningAlpha.jsx';
+import { AlertsBanner, TopHoldingsTable, RunPipelinePanel, mergeRegimeSegments, BackendUnreachableNotice } from './MiningAlpha.jsx';
 
 afterEach(() => cleanup());
+
+// ─────────────────────────────────────────────────────────────
+// BackendUnreachableNotice — Vercel 这类纯前端部署的友好兜底
+// ─────────────────────────────────────────────────────────────
+describe('BackendUnreachableNotice', () => {
+  it('渲染标题 + 启动命令 + 重试按钮', () => {
+    render(<BackendUnreachableNotice onRetry={() => {}} loading={false} />);
+    expect(screen.getByText(/Mining Alpha 需要 self-hosted backend/)).toBeInTheDocument();
+    expect(screen.getByText(/cd backend && python server\.py/)).toBeInTheDocument();
+    expect(screen.getByText(/重试连接/)).toBeInTheDocument();
+  });
+
+  it('提示其他不依赖 backend 的页面在 Vercel 上仍可用', () => {
+    render(<BackendUnreachableNotice onRetry={() => {}} loading={false} />);
+    expect(screen.getByText(/量化评分.*投资日志.*宏观/)).toBeInTheDocument();
+  });
+
+  it('点重试按钮 → 调 onRetry', () => {
+    const onRetry = vi.fn();
+    render(<BackendUnreachableNotice onRetry={onRetry} loading={false} />);
+    fireEvent.click(screen.getByText(/重试连接/));
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
+  it('loading=true → 按钮 disabled 且不响应点击', () => {
+    const onRetry = vi.fn();
+    render(<BackendUnreachableNotice onRetry={onRetry} loading={true} />);
+    const btn = screen.getByText(/重试连接/).closest('button');
+    expect(btn).toBeDisabled();
+    fireEvent.click(btn);
+    expect(onRetry).not.toHaveBeenCalled();
+  });
+});
 
 // ─────────────────────────────────────────────────────────────
 // mergeRegimeSegments — 把连续同 label 合并成区段（用于 ReferenceArea）

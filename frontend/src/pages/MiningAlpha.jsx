@@ -373,6 +373,40 @@ const RunPipelinePanel = ({ runId, onJobDone }) => {
   );
 };
 
+// ─── Backend 不可达兜底（Vercel 等纯前端部署）─────────────────
+// 显示场景：apiFetch /status 已经回来但返回 null（fetch 抛错被吞掉了）。
+// 区分于「后端在跑但缺产物」的场景 — 那种情况 status 非 null，文案该
+// 提示具体 CLI 命令；这里是后端整体不可达，给个清晰指引就够，避免在
+// 每个面板里都喷 `mining_alpha.run xxx`，对 demo 访客来说是噪音。
+const BackendUnreachableNotice = ({ onRetry, loading }) => (
+  <div className="bg-white/[0.02] border border-white/10 rounded-lg p-5 md:p-6 text-center">
+    <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-violet-500/10 border border-violet-500/30 mb-3">
+      <Database size={18} className="text-violet-400" />
+    </div>
+    <h3 className="text-sm md:text-base font-bold text-white mb-1.5">Mining Alpha 需要 self-hosted backend</h3>
+    <p className="text-[11px] md:text-xs text-[#a0aec0] max-w-[520px] mx-auto leading-relaxed mb-4">
+      本页面读取 <code className="text-cyan-300">/api/mining-alpha/*</code> 数据（IC 报告、回测、Top 持仓、流水线 subprocess 控制）。
+      当前部署看不到这些路由 — Vercel 这类静态托管只提供前端 SPA，没在跑 FastAPI 后端。
+    </p>
+    <div className="bg-black/30 border border-white/5 rounded-md p-3 text-left max-w-[520px] mx-auto mb-4 font-mono text-[10px] md:text-[11px] leading-relaxed">
+      <div className="text-[#a0aec0] mb-1"># 启动后端 + 前端 dev，访问 localhost:5173</div>
+      <div className="text-emerald-300">cd backend && python server.py</div>
+      <div className="text-emerald-300">cd frontend && npm run dev</div>
+    </div>
+    <p className="text-[10px] text-[#a0aec0]/80 mb-4">
+      其他不依赖后端的页面（量化评分 / 投资日志 / 宏观）在 Vercel 上仍然可用。
+    </p>
+    <button
+      onClick={onRetry}
+      disabled={loading}
+      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium bg-violet-500/15 hover:bg-violet-500/25 text-violet-200 border border-violet-500/40 disabled:opacity-50"
+    >
+      {loading ? <Loader size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+      重试连接
+    </button>
+  </div>
+);
+
 // ─── Alerts banner ───────────────────────────────────────────
 const AlertsBanner = ({ alerts }) => {
   if (!alerts?.length) return null;
@@ -634,6 +668,9 @@ export default function MiningAlpha() {
   const summary = topHoldings ? {
     n_new: topHoldings.n_new, n_held: topHoldings.n_held, n_dropped: topHoldings.n_dropped,
   } : {};
+  // 后端整体不可达：首次 fetchAll 完成、status 仍为 null、也没有 error。
+  // 这里短路出去渲染单一友好提示，而不是在 8 个面板里都喷 CLI 命令。
+  const backendUnreachable = !loading && status === null && !error;
 
   return (
     <div className="p-3 md:p-4 space-y-3 max-w-[1400px] mx-auto">
@@ -646,10 +683,12 @@ export default function MiningAlpha() {
         </div>
         <div className="flex items-center gap-2">
           {status && <RunSwitcher status={status} onSwitch={onSwitchRun} />}
-          <button onClick={fetchAll} disabled={loading} className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium bg-white/5 hover:bg-white/10 text-white border border-white/10 disabled:opacity-50">
-            {loading ? <Loader size={12} className="animate-spin" /> : <RefreshCw size={12} />}
-            刷新
-          </button>
+          {!backendUnreachable && (
+            <button onClick={fetchAll} disabled={loading} className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium bg-white/5 hover:bg-white/10 text-white border border-white/10 disabled:opacity-50">
+              {loading ? <Loader size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+              刷新
+            </button>
+          )}
         </div>
       </div>
 
@@ -659,8 +698,14 @@ export default function MiningAlpha() {
         </div>
       )}
 
+      {/* 后端不可达：短路出去，不渲染下面任何依赖 backend 的面板 */}
+      {backendUnreachable && <BackendUnreachableNotice onRetry={fetchAll} loading={loading} />}
+
       {/* 告警 banner */}
-      <AlertsBanner alerts={alerts} />
+      {!backendUnreachable && <AlertsBanner alerts={alerts} />}
+
+      {/* 后端不可达时下面所有依赖 backend 的面板都不渲染 */}
+      {!backendUnreachable && (<>
 
       {/* Run Pipeline 面板 */}
       <RunPipelinePanel runId={status?.current_run_id} onJobDone={fetchAll} />
@@ -783,7 +828,9 @@ export default function MiningAlpha() {
         </div>
       )}
 
-      {/* 因子详情 modal */}
+      </>)}
+
+      {/* 因子详情 modal — 由 pickedAlpha 控制，不依赖 backend 全局可用 */}
       <FactorDetailModal alphaNum={pickedAlpha} runId={status?.current_run_id} onClose={() => setPickedAlpha(null)} />
     </div>
   );
@@ -791,4 +838,4 @@ export default function MiningAlpha() {
 
 // 用于单测：把 3 个子组件 + 1 个工具函数 named export 出来。生产代码不消费
 // 这些 import，只有 MiningAlpha.test.jsx 用。
-export { AlertsBanner, TopHoldingsTable, RunPipelinePanel, mergeRegimeSegments };
+export { AlertsBanner, TopHoldingsTable, RunPipelinePanel, mergeRegimeSegments, BackendUnreachableNotice };
