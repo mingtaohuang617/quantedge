@@ -1198,21 +1198,45 @@ _smart_beta_cache: dict = {}
 _SMART_BETA_TTL_SEC = 1800  # 30 分钟
 
 
-def _fetch_etf_prices(ticker: str, days: int = 280) -> tuple[pd.Series | None, pd.Series | None]:
-    """从 router 拉一只 ETF 的 close + volume；失败返回 (None, None)。"""
+def _fetch_etf_prices(
+    ticker: str, days: int = 280, min_bars: int = 120,
+) -> tuple[pd.Series | None, pd.Series | None]:
+    """从 router 拉一只 ETF 的 close + volume；失败返回 (None, None)。
+
+    L0 SQLite cache 可能只有少量 bars（首次部署后逐步增长），不够 Smart Beta
+    评分用（min_bars 默认 130 ≈ 6 个月）。命中但 bars 不足时强制 prefer_db=False
+    走远程拉 280 天历史，保证算法能正常打分。
+    """
     if not HAS_DATA_SOURCES:
         return None, None
     cfg = {"yf_symbol": ticker, "market": "US", "name": ticker, "type": "etf"}
+
+    def _extract(df):
+        if df is None or df.empty or "Close" not in df.columns:
+            return None, None
+        return df["Close"].dropna(), (df["Volume"].dropna() if "Volume" in df.columns else None)
+
     try:
         df, _src = fetch_history(cfg, days=days)
     except Exception as e:
         print(f"[smart-beta] fetch_history({ticker}) failed: {e}")
         return None, None
-    if df is None or df.empty or "Close" not in df.columns:
-        return None, None
-    close = df["Close"].dropna()
-    volume = df["Volume"].dropna() if "Volume" in df.columns else None
-    return close, volume
+
+    close, volume = _extract(df)
+    if close is not None and len(close) >= min_bars:
+        return close, volume
+
+    # Cache 命中但 bars 不够 → 绕过 cache 走远程拉满
+    print(
+        f"[smart-beta] {ticker} cache 只有 "
+        f"{len(close) if close is not None else 0} bars，重新远程拉 {days} 天"
+    )
+    try:
+        df2, _src2 = fetch_history(cfg, days=days, prefer_db=False)
+    except Exception as e:
+        print(f"[smart-beta] {ticker} 远程 fetch_history 失败: {e}")
+        return close, volume  # 退化：返回 cache 数据，让上层决定是否扔
+    return _extract(df2)
 
 
 def _fetch_fred_latest(series_id: str, days_back: int = 90) -> tuple[float | None, float | None]:

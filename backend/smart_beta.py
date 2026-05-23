@@ -130,7 +130,9 @@ def score_sector_etf(
     """
     empty = {"score": 0.0, "components": {"trend": 0, "relative": 0,
                                           "flow": 0, "sharpe": 0, "rsi": 50}}
-    if len(prices) < 130:
+    # yfinance period="6mo" 实际返回 ~120-126 交易日；用 120 而非 130 兜底，
+    # 保证够算 r_3m + RSI + 短 sharpe；r_6m 在 ≥127 时自动启用（见下方）。
+    if len(prices) < 120:
         return empty
 
     # 趋势动量：1M*0.3 + 3M*0.5 + 6M*0.2
@@ -296,7 +298,7 @@ def build_snapshot(
     ranked: list[dict] = []
     for ticker, payload in sector_data.items():
         prices = payload.get("prices")
-        if prices is None or len(prices) < 130:
+        if prices is None or len(prices) < 120:
             continue
         sc = score_sector_etf(prices, spy_prices, payload.get("volumes"))
         meta = sector_meta.get(ticker, {})

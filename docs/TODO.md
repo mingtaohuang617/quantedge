@@ -62,7 +62,8 @@
   - 背景：`calc_rsi` / `calc_momentum` / `calc_stock_score` / `calc_etf_score` 都是纯函数，但目前没有任何测试。任何后续重构（评分平滑、权重调参）都会带风险。
   - 验收标准：`backend/tests/test_factors.py`，pytest 覆盖核心场景：RSI 边界（数据不足 / 全涨 / 全跌）、动量超出区间裁剪、个股评分各档位、ETF 杠杆惩罚生效；`pytest backend/tests` 全绿。
   - 预估工作量：S
-  - **完成（2026-05-19，验证已落地）**：`backend/tests/test_factors_basic.py`（文件名与 TODO 描述略异但实质等价）15 个用例全绿，覆盖：`parse_leverage` 各形态（string/numeric/无杠杆/1x 视作非杠杆）、RSI 数据不足返回 50 / 上涨主导 ≥70 / 下跌主导 ≤30、`calc_momentum` 极端裁剪到 100 / 短序列返回 50、`calc_stock_score` 全优 ≥80 / 全 None 返回基线 / detailed 返回三分项 dict、`calc_etf_score` 杠杆惩罚精确扣 15 分、`calc_leverage_decay` 无杠杆/短序列返回 None + 高波动正磨损。
+  - **完成（2026-05-19）**：`backend/tests/test_factors_basic.py` 15 个用例覆盖核心场景：`parse_leverage` 各形态（string/numeric/无杠杆/1x 视作非杠杆）、RSI 数据不足返回 50 / 上涨主导 ≥70 / 下跌主导 ≤30、`calc_momentum` 极端裁剪到 100 / 短序列返回 50、`calc_stock_score` 全优 ≥80 / 全 None 返回基线 / detailed 返回三分项 dict、`calc_etf_score` 杠杆惩罚精确扣 15 分、`calc_leverage_decay` 无杠杆/短序列返回 None + 高波动正磨损。
+  - **追加（2026-05-20，PR #134）**：`backend/tests/test_factors.py` 55 个测试做更深覆盖（与 basic 并存，不重复但角度更细）：calc_rsi（边界 / 全涨 / 全跌 / 横盘 / mixed / 自定义 period 7 个子测）、calc_momentum（裁剪 + 已知值 + period 7 个子测）、calc_stock_score（PE/ROE/利润率/增长率/RSI 各档位单调性 + None 默认值 + detailed + 自定义权重 + clip 100，共 19 个）、parse_leverage（None/字符串/数字/1x/-2x，9 个）、calc_leverage_decay（无杠杆 / 样本不足 / 2x drag > 0 / 波动率单调 / 3x > 2x，5 个）、calc_etf_score（各档位单调 + 折溢价对称 + 杠杆惩罚 -15 + clip [0,100] + detailed，10 个）。**未改 factors.py 业务代码**。⚠ 文档化了 2 个已知 quirk（RSI 全涨返回 50 而非 100；parse_leverage("-1x") 因 abs<=1.0001 被当非杠杆），待后续重构时一并处理。
 
 ### 监控层
 
@@ -71,6 +72,7 @@
   - 验收标准：Monitor 模块从 `stocks.js` 中导入 ALERTS 渲染告警列表；板块流入栏目根据 STOCKS 按 sector 聚合 `change` 实时计算；fearGreed 暂时保留 mock 但加 TODO 注释说明数据源待定。
   - 预估工作量：S
   - **完成（2026-05-19，验证已落地）**：`frontend/src/pages/Monitor.jsx` 已对接 DataContext（L87 `ctxAlerts3`，L181-184 `mergedAlerts = [...macroAlertsAsItems, ...allAlerts || dynamicAlerts]`），并附加 macro L5 alerts + 客户端动态 alerts 兜底；sectors 按 `s.sector.split("/")[0]` 聚合 change 平均（L272-288，过滤 count<2、按绝对值排序取前 6）；fearGreed 已超出 TODO 要求 —— 不是 mock，而是用 liveStocks 平均涨跌幅 × 0.6 + 上涨广度 × 0.4 实时算（L290-300）。
+  - **追加（2026-05-20，PR #136）**：补 fearGreed `TODO[data-source]` 注释（Monitor.jsx:290-295）说明这是 watchlist-only proxy，列出候选数据源（CNN F&G scrape / 自建因子）。零功能影响、仅注释。
 
 ---
 
