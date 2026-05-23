@@ -1192,6 +1192,157 @@ def intraday_endpoint(
     })
 
 
+# ── Smart Beta 端点 ──────────────────────────────────────
+# 模块级缓存：避免每次刷新都重拉 20+ 只 ETF
+_smart_beta_cache: dict = {}
+_SMART_BETA_TTL_SEC = 1800  # 30 分钟
+
+
+def _fetch_etf_prices(
+    ticker: str, days: int = 280, min_bars: int = 120,
+) -> tuple[pd.Series | None, pd.Series | None]:
+    """从 router 拉一只 ETF 的 close + volume；失败返回 (None, None)。
+
+    L0 SQLite cache 可能只有少量 bars（首次部署后逐步增长），不够 Smart Beta
+    评分用（min_bars 默认 130 ≈ 6 个月）。命中但 bars 不足时强制 prefer_db=False
+    走远程拉 280 天历史，保证算法能正常打分。
+    """
+    if not HAS_DATA_SOURCES:
+        return None, None
+    cfg = {"yf_symbol": ticker, "market": "US", "name": ticker, "type": "etf"}
+
+    def _extract(df):
+        if df is None or df.empty or "Close" not in df.columns:
+            return None, None
+        return df["Close"].dropna(), (df["Volume"].dropna() if "Volume" in df.columns else None)
+
+    try:
+        df, _src = fetch_history(cfg, days=days)
+    except Exception as e:
+        print(f"[smart-beta] fetch_history({ticker}) failed: {e}")
+        return None, None
+
+    close, volume = _extract(df)
+    if close is not None and len(close) >= min_bars:
+        return close, volume
+
+    # Cache 命中但 bars 不够 → 绕过 cache 走远程拉满
+    print(
+        f"[smart-beta] {ticker} cache 只有 "
+        f"{len(close) if close is not None else 0} bars，重新远程拉 {days} 天"
+    )
+    try:
+        df2, _src2 = fetch_history(cfg, days=days, prefer_db=False)
+    except Exception as e:
+        print(f"[smart-beta] {ticker} 远程 fetch_history 失败: {e}")
+        return close, volume  # 退化：返回 cache 数据，让上层决定是否扔
+    return _extract(df2)
+
+
+def _fetch_fred_latest(series_id: str, days_back: int = 90) -> tuple[float | None, float | None]:
+    """返回 (最新值, 30 天前值)；FRED 不可用或 key 缺失返回 (None, None)。"""
+    try:
+        from data_sources.fred_source import fetch_observations
+    except Exception:
+        return None, None
+    try:
+        from datetime import datetime, timedelta
+        start = (datetime.now() - timedelta(days=days_back)).strftime("%Y-%m-%d")
+        rows = fetch_observations(series_id, start=start)
+    except Exception as e:
+        print(f"[smart-beta] FRED({series_id}) failed: {e}")
+        return None, None
+    if not rows:
+        return None, None
+    latest = rows[-1]["value"]
+    older = rows[0]["value"] if len(rows) >= 2 else None
+    return latest, older
+
+
+@app.get("/api/smart-beta/snapshot")
+def smart_beta_snapshot(
+    core_preset: str = Query("balanced", description="balanced / simple / factor"),
+    k: int = Query(3, ge=1, le=10),
+    weight_mode: str = Query("equal", description="equal / momentum"),
+    current_holdings: str | None = Query(None, description="逗号分隔的当前持仓行业 ETF"),
+):
+    """Smart Beta 三层策略快照。
+
+    数据源：
+      - SPY / VIX / 行业 ETF: yfinance (经 data_sources router)
+      - HY 信用利差: FRED BAMLH0A0HYM2 (可选，缺失则给中性 0.5)
+      - 实际利率: FRED DFII10 (同上)
+    """
+    import smart_beta as sb
+
+    holdings_list = None
+    if current_holdings and current_holdings.strip():
+        holdings_list = [s.strip().upper() for s in current_holdings.split(",") if s.strip()]
+
+    # 缓存键：策略参数变了重算；market 数据 30min 内复用
+    cache_key = (core_preset, k, weight_mode, tuple(holdings_list or ()))
+    now_ts = time.time()
+    cached = _smart_beta_cache.get(cache_key)
+    if cached and (now_ts - cached["_cached_at"]) < _SMART_BETA_TTL_SEC:
+        return sanitize({**cached["data"], "_cached": True})
+
+    universe = sb.load_universe()
+
+    # SPY (~280 天，覆盖 200D MA + 缓冲)
+    spy_close, _ = _fetch_etf_prices("SPY", days=280)
+    if spy_close is None or len(spy_close) < 100:
+        raise HTTPException(503, "SPY 数据不可用 — 请检查 yfinance 网络")
+
+    # VIX 最新
+    vix_close, _ = _fetch_etf_prices("^VIX", days=10)
+    vix_val = float(vix_close.iloc[-1]) if vix_close is not None and len(vix_close) else None
+
+    # FRED 信用利差 + 实际利率（可选）
+    hy_latest, hy_older = _fetch_fred_latest("BAMLH0A0HYM2", days_back=45)
+    rr_latest, rr_older = _fetch_fred_latest("DFII10", days_back=45)
+    real_rate_chg = None
+    if rr_latest is not None and rr_older is not None:
+        real_rate_chg = rr_latest - rr_older
+
+    # 拉所有行业 ETF
+    sector_data: dict = {}
+    fetch_errors: list[str] = []
+    for entry in universe.get("sector", []):
+        ticker = entry["ticker"]
+        close, volume = _fetch_etf_prices(ticker, days=280)
+        if close is None or len(close) < 130:
+            fetch_errors.append(ticker)
+            continue
+        sector_data[ticker] = {
+            "prices":  close,
+            "volumes": volume,
+            "name":    entry.get("name", ticker),
+        }
+
+    snap = sb.build_snapshot(
+        spy_prices=spy_close,
+        sector_data=sector_data,
+        vix=vix_val,
+        hy_spread=hy_latest,
+        real_rate_chg=real_rate_chg,
+        core_preset=core_preset,
+        k=k,
+        weight_mode=weight_mode,
+        current_holdings=holdings_list,
+        universe=universe,
+    )
+    snap["fetch_errors"] = fetch_errors
+    snap["data_sources"] = {
+        "vix":           vix_val,
+        "hy_spread":     hy_latest,
+        "real_rate_now": rr_latest,
+        "real_rate_chg": real_rate_chg,
+    }
+
+    _smart_beta_cache[cache_key] = {"data": snap, "_cached_at": now_ts}
+    return sanitize(snap)
+
+
 # ── LLM (DeepSeek) 端点 (B1 / B5) ────────────────────────
 class LLMSummaryReq(BaseModel):
     """B1: 个股 AI 摘要请求体。所有字段可选，能给多少给多少。"""

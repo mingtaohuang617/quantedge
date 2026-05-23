@@ -176,6 +176,34 @@ A 股 Alpha191 因子挖掘 + ML 合成 + 回测 — 已交付：
 
 ---
 
+## 已落地 — Smart Beta（2026-05-21）
+
+> PR [#152](https://github.com/mingtaohuang617/quantedge/pull/152) merged · 关键文件
+> `backend/smart_beta.py` / `backend/universe/etf_us.json` /
+> `backend/tests/test_smart_beta.py` / `frontend/src/pages/SmartBeta.jsx`
+
+美股 ETF 三层动态轮动策略 — 已交付：
+- **L1 风险层**：VIX 30% + 50/200 趋势 30% + HY 信用利差 20% + TIPS 实际利率 20% → `core_weight ∈ [40%, 90%]`
+- **L2 Core 层**：balanced (SPY60+QQQ25+IWM15) / simple (SPY100) / factor (MTUM+QUAL+VLUE+USMV) 三档预设
+- **L3 Sector 层**：11 SPDR + 5 主题，5 维评分（趋势 35% + 相对强度 25% + 资金流 15% + 夏普 15% + RSI 过热惩罚 10%），月度 + 缓冲带 K+2 换仓
+- FastAPI 路由 `/api/smart-beta/snapshot`（30min 缓存）
+- 前端 tab `Smart Beta`（idx=2，组合回测 ↔ Mining Alpha 之间）
+- 20 个单测全绿
+
+**后续路线图**（按工作量 S→L）：
+- [ ] **[P2]** Smart Beta 接入 BacktestEngine 跑 3-5 年真实回测 vs SPY 基准 (M)
+  - 在 `BacktestEngine.jsx` 加策略类型 "Smart Beta"
+  - 月度再平衡 + 缓冲带 K+2，输出净值曲线 / Sharpe / MaxDD
+- [ ] **[P2]** ETF Universe Manager 前端筛选器 (M)
+  - AUM / 费率 / 折溢价 / 杠杆 / 分类 多维 slider+chip
+  - 复用现有 `calc_etf_score` 排序，门槛过滤后给 Smart Beta L3 用
+- [ ] **[P2]** FastAPI smart-beta 路由集成测试 (S)
+  - FastAPI TestClient + mocked `fetch_history`，避免端到端回归
+- [ ] **[P3]** 用 `regime/` HMM 替换 L1 规则版风险检测 (M)
+- [ ] **[P3]** 智能 ETF 匹配（关键词 → top-K 推荐，按 top_holdings 重叠度）(M)
+
+---
+
 ## 优先级分布
 
 | 优先级 | 总数 | 已完成 | 未完成 | 备注                                  |
@@ -186,7 +214,7 @@ A 股 Alpha191 因子挖掘 + ML 合成 + 回测 — 已交付：
 | **P3** | 4    | 3      | 1      | 剩 TimescaleDB L（SQLite 已替代）       |
 | **总计** | **18** | **13** | **5**  | 完成率 72%                            |
 
-### 剩余未完成项快查（2026-05-19）
+### 剩余未完成项快查（2026-05-21）
 
 | 项 | 优先级 | 工作量 | 状态 |
 |---|---|---|---|
@@ -194,16 +222,24 @@ A 股 Alpha191 因子挖掘 + ML 合成 + 回测 — 已交付：
 | 评分平滑 + 评分变化率字段 | P1 | M | 另一会话 stash 在做 |
 | Telegram / 企业微信 Webhook 推送 | P2 | M | 另一会话 stash 在做 |
 | 接入 vectorbt 做向量化回测 | P2 | L | 依赖后端 backtest.py（当前 client-side 实现） |
+| **Smart Beta FastAPI 路由集成测试** | **P2** | **S** | **新增 2026-05-21（小活，可直接挑）** |
+| Smart Beta 接入 BacktestEngine | P2 | M | 新增 2026-05-21 |
+| Smart Beta · ETF Universe 筛选器 UI | P2 | M | 新增 2026-05-21 |
+| Smart Beta · HMM regime 替换规则版 L1 | P3 | M | 新增 2026-05-21 |
+| Smart Beta · 智能 ETF 匹配 | P3 | M | 新增 2026-05-21 |
 | PostgreSQL + TimescaleDB 数据持久化 | P3 | L | 架构决策保留 —— SQLite 已替代 |
 
 ## 下一次对话的默认入口
 
 > "找一个 small todo 并完成它"
 
-→ **当前已无 S 级未完成任务**。剩余项均为 M / L 级，按以下决策：
+→ **当前 S 级首选：Smart Beta FastAPI 路由集成测试（P2 / S）** — 用 TestClient + mocked `fetch_history`，避免未来回归。
+
+其他剩余项均为 M / L 级，按以下决策：
 1. **港股财务 / 评分平滑 / Telegram**：避开（其他会话 stash 在做）
 2. **vectorbt**：依赖后端 backtest.py 化，纳入 P3 FastAPI 后续迭代
-3. **TimescaleDB**：架构保留项，按需触发
-4. **新的小问题**：欢迎按需添加 P0/P1/P2 S 级任务到本文件
+3. **Smart Beta 后续 M 级**（BacktestEngine 接入 / ETF 筛选器）：按用户优先级挑
+4. **TimescaleDB**：架构保留项，按需触发
+5. **新的小问题**：欢迎按需添加 P0/P1/P2 S 级任务到本文件
 
 完成一个 S 任务后请勾选本文件对应的 `- [ ]`，并在 commit / 对话末尾报告。
