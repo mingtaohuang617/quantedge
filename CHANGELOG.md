@@ -5,6 +5,28 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added — v5 编辑式设计语言（2026-05）
+- **v5 设计基础层 + AI Lead Paragraph** (PR #140)：
+  - `frontend/index.html` 加载 Fraunces serif 字体（OPT-IN via `.font-serif`，不替换 DM Sans 默认）
+  - `index.css` 追加 4 个 v5 工具类：`.t-eyebrow`（indigo mono uppercase 编辑式小标）/ `.t-hero` 三档（28/36/44px）/ `.t-hero-gradient`（白→浅灰渐变）/ `.lead-paragraph`（紫 3px 左边线 + 渐变 bg + 13.5px serif body + `--indigo` 变体 + `__based-on` 出处 footer）/ `.pillar-card`（顶部色条 + 大数字 + 进度条）
+  - `AIStockSummaryCard` / `BacktestNarrationCard` / `ScoreExplainCard` 3 个 AI 卡全部升级为 Lead Paragraph
+  - BacktestEngine 加 v5 Hero 块：年化收益 36px Fraunces serif + vs 基准 pp chip + 3 副 KPI 纵向分隔（夏普 / 最大回撤 / 胜率）
+  - 严守"现有 5-tier 字号 + 5 语义色 token + glass-card 体系 100% 保留"原则
+- **v5 增量 polish · 3 个剩余 AI narrative 块** (PR #143)：
+  - `MonthlyReviewModal` 月度复盘 1000 字：裸 `<pre>` 11px → `.lead-paragraph` 13.5px + based-on 出处
+  - `StockGene ScoreDetail` AI 解读：`bg-violet-500/8` 小卡 → `.lead-paragraph` + uppercase eyebrow
+  - `Screener10x` AI 赛道校验 toast：`p-2 bg-violet-500/10` → `.lead-paragraph` + 重组 eyebrow（ticker/close 上提）
+  - **Screener10x 顶栏 4 阶段漏斗叙事**：内联追加 `候选 N → AI N → 观察 N` chip 串，无 layout 重构（仅 universe stats 之后追加）
+  - 关键克制（吸取 #141/#142 layout 重构被回退的教训）：纯 CSS 类替换 + eyebrow 微调，不动 grid / layout / 字号梯度 / 数据流
+
+### Added — 测试覆盖（2026-05）
+- **breadth_engine 13 单测** (PR #145)：`backend/breadth_engine.py` 179 行 0 测试覆盖 → 补 13 个用例
+  - `compute_snapshots` 主流程（9 个）：空成分股 / 空 matrix 短路 · 合成 500×400 schema · advancing+declining ≤ universe · pct ∈ [0,100] · 上涨趋势 pct_above_200ma > 50 · universe < 300 守门 · start 过滤 · new_highs/lows int dtype
+  - `upsert_snapshots` DB 写入（3 个）：空 → 0 行 · executemany 12-tuple INSERT + ON CONFLICT · NaN pct → SQLite NULL
+  - `update_snapshots` orchestrator（1 个）：无成分股 → 0
+  - Mock：`patch.object(_load_constituents / _load_close_matrix)` + 合成 close matrix `rng(42)` 固定种子
+  - 跑完 1.40s，零外部依赖
+
 ### Added
 - **10x 猎手 5 大指数全覆盖** (PR #117)：让标普500 / 纳斯达克100 / 恒生 / 恒生科技 / 沪深300 里的每只股票都至少命中 1 个 supertrend
   - **新增 4 个 growth supertrend**（4 → 8 个 growth，11 个 total）：

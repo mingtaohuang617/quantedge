@@ -1,0 +1,41 @@
+{
+  "_meta": {
+    "description": "Smart Beta ETF universe — 美股市场，按 Core/Sector/Style 分类",
+    "as_of": "2026-05-21",
+    "source": "manual curation; expense_ratio / aum 来自各发行商最新事实表"
+  },
+  "core": {
+    "balanced": {
+      "_label": "平衡版 SPY+QQQ+IWM",
+      "weights": {"SPY": 0.60, "QQQ": 0.25, "IWM": 0.15}
+    },
+    "simple": {
+      "_label": "简洁版 SPY 100%",
+      "weights": {"SPY": 1.0}
+    },
+    "factor": {
+      "_label": "因子版 MTUM+QUAL+VLUE+USMV",
+      "weights": {"MTUM": 0.30, "QUAL": 0.30, "VLUE": 0.20, "USMV": 0.20}
+    }
+  },
+  "sector": [
+    {"ticker": "XLK",  "name": "Technology Select Sector SPDR",     "category": "sector", "expense_ratio": 0.0009, "aum_usd_b": 78.0},
+    {"ticker": "XLF",  "name": "Financial Select Sector SPDR",      "category": "sector", "expense_ratio": 0.0009, "aum_usd_b": 50.0},
+    {"ticker": "XLV",  "name": "Health Care Select Sector SPDR",    "category": "sector", "expense_ratio": 0.0009, "aum_usd_b": 38.0},
+    {"ticker": "XLE",  "name": "Energy Select Sector SPDR",         "category": "sector", "expense_ratio": 0.0009, "aum_usd_b": 35.0},
+    {"ticker": "XLI",  "name": "Industrial Select Sector SPDR",     "category": "sector", "expense_ratio": 0.0009, "aum_usd_b": 22.0},
+    {"ticker": "XLY",  "name": "Consumer Discretionary SPDR",       "category": "sector", "expense_ratio": 0.0009, "aum_usd_b": 21.0},
+    {"ticker": "XLP",  "name": "Consumer Staples Select Sector SPDR","category": "sector", "expense_ratio": 0.0009, "aum_usd_b": 16.0},
+    {"ticker": "XLU",  "name": "Utilities Select Sector SPDR",      "category": "sector", "expense_ratio": 0.0009, "aum_usd_b": 14.0},
+    {"ticker": "XLB",  "name": "Materials Select Sector SPDR",      "category": "sector", "expense_ratio": 0.0009, "aum_usd_b": 6.0},
+    {"ticker": "XLRE", "name": "Real Estate Select Sector SPDR",    "category": "sector", "expense_ratio": 0.0009, "aum_usd_b": 6.5},
+    {"ticker": "XLC",  "name": "Communication Services SPDR",       "category": "sector", "expense_ratio": 0.0009, "aum_usd_b": 18.0},
+    {"ticker": "SOXX", "name": "iShares Semiconductor ETF",         "category": "theme",  "expense_ratio": 0.0035, "aum_usd_b": 14.0},
+    {"ticker": "SMH",  "name": "VanEck Semiconductor ETF",          "category": "theme",  "expense_ratio": 0.0035, "aum_usd_b": 26.0},
+    {"ticker": "HACK", "name": "ETFMG Prime Cyber Security ETF",    "category": "theme",  "expense_ratio": 0.0060, "aum_usd_b": 1.7},
+    {"ticker": "ICLN", "name": "iShares Global Clean Energy ETF",   "category": "theme",  "expense_ratio": 0.0041, "aum_usd_b": 2.0},
+    {"ticker": "ARKK", "name": "ARK Innovation ETF",                "category": "theme",  "expense_ratio": 0.0075, "aum_usd_b": 6.0}
+  ],
+  "benchmark": {"ticker": "SPY", "name": "SPDR S&P 500 ETF"},
+  "vix": {"ticker": "^VIX", "name": "CBOE Volatility Index"}
+}
