@@ -659,7 +659,7 @@ const FoldICTable = ({ rows }) => {
 export default function MiningAlpha() {
   const {
     status, ic, importance, backtest, topHoldings, regime, foldIC, heatmap, alerts,
-    loading, error, refetch: fetchAll, switchRun: onSwitchRun,
+    loading, error, isDemoMode, refetch: fetchAll, switchRun: onSwitchRun,
   } = useMiningAlphaData();
   const [pickedAlpha, setPickedAlpha] = useState(null);
 
@@ -680,13 +680,18 @@ export default function MiningAlpha() {
           <Zap size={18} className="text-violet-400" />
           <h2 className="text-base md:text-lg font-bold text-white">Mining Alpha</h2>
           <span className="text-[10px] text-[#a0aec0]">因子挖掘 · ML 合成 · 回测</span>
+          {isDemoMode && (
+            <span className="ml-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-amber-500/15 border border-amber-500/40 text-amber-200">
+              DEMO 模式
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2">
-          {status && <RunSwitcher status={status} onSwitch={onSwitchRun} />}
+          {status && !isDemoMode && <RunSwitcher status={status} onSwitch={onSwitchRun} />}
           {!backendUnreachable && (
             <button onClick={fetchAll} disabled={loading} className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium bg-white/5 hover:bg-white/10 text-white border border-white/10 disabled:opacity-50">
               {loading ? <Loader size={12} className="animate-spin" /> : <RefreshCw size={12} />}
-              刷新
+              {isDemoMode ? "重试真实后端" : "刷新"}
             </button>
           )}
         </div>
@@ -698,7 +703,20 @@ export default function MiningAlpha() {
         </div>
       )}
 
-      {/* 后端不可达：短路出去，不渲染下面任何依赖 backend 的面板 */}
+      {/* Demo 模式 banner：解释这是示例数据 + 启动真实后端的命令 */}
+      {isDemoMode && (
+        <div className="bg-amber-500/5 border border-amber-500/30 rounded-lg px-3 py-2 flex items-start gap-2 text-[11px]">
+          <Info size={14} className="text-amber-300 mt-0.5 shrink-0" />
+          <div className="flex-1">
+            <span className="text-amber-200 font-semibold">这是示例数据。</span>
+            <span className="text-white/80"> 当前部署没接 backend，展示的是固定 mock。要看真实因子/回测：</span>
+            <code className="ml-1 text-emerald-300 font-mono">cd backend && python server.py</code>
+            <span className="text-white/60"> 后访问 localhost:5173。</span>
+          </div>
+        </div>
+      )}
+
+      {/* 后端不可达 + demo 也加载失败（罕见）→ 显示兜底 notice */}
       {backendUnreachable && <BackendUnreachableNotice onRetry={fetchAll} loading={loading} />}
 
       {/* 告警 banner */}

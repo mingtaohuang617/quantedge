@@ -31,16 +31,53 @@ export function useMiningAlphaData() {
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  // demo 模式标志：backend 不可达时灌入静态 demo 数据，UI 上加 badge。
+  const [isDemoMode, setIsDemoMode] = useState(false);
   const fetchSeqRef = useRef(0);
+
+  const loadDemoData = async (setters) => {
+    // 动态 import：vite 把 demo 数据拆成独立 chunk，只在 fallback 时下载，
+    // 不污染本地开发时的主 bundle。
+    const demo = await import("../data/miningAlphaDemo.js");
+    setters.status(demo.demoStatus);
+    setters.ic(demo.demoIC);
+    setters.importance(demo.demoImportance);
+    setters.backtest(demo.demoBacktest);
+    setters.topHoldings(demo.demoTopHoldings);
+    setters.regime(demo.demoRegime);
+    setters.foldIC(demo.demoFoldIC);
+    setters.heatmap(demo.demoHeatmap);
+    setters.alerts(demo.demoAlerts);
+    setIsDemoMode(true);
+  };
 
   const fetchAll = async () => {
     const mySeq = ++fetchSeqRef.current;
     const isStale = () => fetchSeqRef.current !== mySeq;
     setLoading(true);
     setError(null);
+    setIsDemoMode(false);
     try {
       const s = await apiFetch("/mining-alpha/status").catch(() => null);
       if (isStale()) return;
+
+      // 后端不可达 → 灌 demo 数据让 Vercel 等纯前端部署也能看到完整界面
+      if (s === null) {
+        const guardedSetters = {
+          status: (v) => { if (!isStale()) setStatus(v); },
+          ic: (v) => { if (!isStale()) setIC(v); },
+          importance: (v) => { if (!isStale()) setImportance(v); },
+          backtest: (v) => { if (!isStale()) setBacktest(v); },
+          topHoldings: (v) => { if (!isStale()) setTopHoldings(v); },
+          regime: (v) => { if (!isStale()) setRegime(v); },
+          foldIC: (v) => { if (!isStale()) setFoldIC(v); },
+          heatmap: (v) => { if (!isStale()) setHeatmap(v); },
+          alerts: (v) => { if (!isStale()) setAlerts(v); },
+        };
+        await loadDemoData(guardedSetters);
+        return;
+      }
+
       setStatus(s);
       const guarded = (setter) => (val) => { if (!isStale()) setter(val); };
       const rid = s?.current_run_id ? `&run_id=${encodeURIComponent(s.current_run_id)}` : "";
@@ -66,6 +103,8 @@ export function useMiningAlphaData() {
   };
 
   const switchRun = async (runId) => {
+    // demo 模式下 switch-run 没有后端可调，no-op 即可（demo 数据本身固定）
+    if (isDemoMode) return;
     try {
       await apiFetch(`/mining-alpha/switch-run/${runId}`, { method: "POST" });
       await fetchAll();
@@ -82,7 +121,7 @@ export function useMiningAlphaData() {
 
   return {
     status, ic, importance, backtest, topHoldings, regime, foldIC, heatmap, alerts,
-    loading, error,
+    loading, error, isDemoMode,
     refetch: fetchAll,
     switchRun,
   };

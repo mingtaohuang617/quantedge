@@ -83,16 +83,40 @@ describe('useMiningAlphaData — mount 与 status 分流', () => {
     expect(paths.some(p => p.startsWith('/mining-alpha/top-holdings'))).toBe(false);
   });
 
-  it('status 返回 null → 不发其他 GET，loading 收尾，error 不被设', async () => {
+  it('status 返回 null → 进入 demo 模式，灌入 demo 数据', async () => {
+    // backend 不可达：apiFetch /status reject → hook catch(() => null) → 检测到 null
+    // → 动态 import demo 数据；其他 GET 不应当被发出。
     apiFetch.mockImplementation((path) => {
       if (path === '/mining-alpha/status') return Promise.reject(new Error('boom'));
-      if (path === '/mining-alpha/alerts') return Promise.resolve({ alerts: [] });
       return Promise.resolve(null);
     });
     const { result } = renderHook(() => useMiningAlphaData());
     await waitFor(() => expect(result.current.loading).toBe(false));
-    expect(result.current.status).toBeNull();
-    expect(result.current.error).toBeNull();  // status 的 catch(() => null) 吞掉异常，error 不应设
+    // demo 模式标志开启
+    expect(result.current.isDemoMode).toBe(true);
+    // status 灌入了 demoStatus（非 null）
+    expect(result.current.status).not.toBeNull();
+    expect(result.current.status.current_run_id).toMatch(/^demo_/);
+    // 9 个 demo 数据都应当被灌入
+    expect(result.current.ic.length).toBeGreaterThan(0);
+    expect(result.current.backtest).not.toBeNull();
+    expect(result.current.topHoldings.holdings.length).toBeGreaterThan(0);
+    expect(result.current.error).toBeNull();
+    // /status 调过一次后就不应该再调其他 GET（demo 模式下走静态 import）
+    const realApiCalls = apiFetch.mock.calls.filter(c =>
+      c[0].startsWith('/mining-alpha/') && c[0] !== '/mining-alpha/status'
+    );
+    expect(realApiCalls.length).toBe(0);
+  });
+
+  it('真实 backend 数据加载完 → isDemoMode=false', async () => {
+    setupApiMock([
+      ['/mining-alpha/status', makeStatus({ files: {} })],
+      ['/mining-alpha/alerts', { alerts: [] }],
+    ]);
+    const { result } = renderHook(() => useMiningAlphaData());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.isDemoMode).toBe(false);
   });
 });
 
