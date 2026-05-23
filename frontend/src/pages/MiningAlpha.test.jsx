@@ -14,9 +14,52 @@ vi.mock('../quant-platform.jsx', () => ({
 }));
 import { apiFetch } from '../quant-platform.jsx';
 
-import { AlertsBanner, TopHoldingsTable, RunPipelinePanel, mergeRegimeSegments, BackendUnreachableNotice } from './MiningAlpha.jsx';
+import MiningAlpha, { AlertsBanner, TopHoldingsTable, RunPipelinePanel, mergeRegimeSegments, BackendUnreachableNotice } from './MiningAlpha.jsx';
 
 afterEach(() => cleanup());
+
+// ─────────────────────────────────────────────────────────────
+// MiningAlpha 整页 demo 模式 smoke 测 — backend 不可达时整条链路
+//   apiFetch /status → null
+//   → hook dynamic import miningAlphaDemo
+//   → setState 灌入 9 个 demo 数据
+//   → 整页用 demo 数据渲染（无 React 错误、可见 DEMO badge + 关键面板）
+// ─────────────────────────────────────────────────────────────
+describe('MiningAlpha — Vercel demo 模式 smoke', () => {
+  beforeEach(() => {
+    apiFetch.mockReset();
+    // backend 全部不可达：所有 apiFetch 都返回 null（模拟 catch → null 的 fetch 失败）
+    apiFetch.mockResolvedValue(null);
+  });
+
+  it('backend 不可达 → 整页用 demo 数据渲染，无 React 错误', async () => {
+    // ErrorBoundary 触发或 React render error 会进 console.error
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    render(<MiningAlpha />);
+
+    // 等 demo 数据加载完成 → DEMO badge 出现
+    await waitFor(() => {
+      expect(screen.getByText(/DEMO 模式/)).toBeInTheDocument();
+    }, { timeout: 3000 });
+
+    // 关键面板都用 demo 数据渲染了（不再是"未生成"占位文案）
+    // demo 数据里有 NVDA / AAPL / RKLB 这些 ticker
+    expect(screen.getByText('NVDA')).toBeInTheDocument();
+    expect(screen.getByText(/示例数据/)).toBeInTheDocument();
+    expect(screen.getByText(/重试真实后端/)).toBeInTheDocument();
+
+    // 不应当有"未生成"这种本地 dev 才需要的 CLI 提示文案
+    expect(screen.queryByText(/IC 报告未生成/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/回测净值未生成/)).not.toBeInTheDocument();
+
+    // 全程没有 React render error
+    const reactErrors = errSpy.mock.calls.filter(args =>
+      args.some(a => typeof a === 'string' && (a.includes('Warning:') || a.includes('Error:')))
+    );
+    expect(reactErrors).toEqual([]);
+    errSpy.mockRestore();
+  });
+});
 
 // ─────────────────────────────────────────────────────────────
 // BackendUnreachableNotice — Vercel 这类纯前端部署的友好兜底
