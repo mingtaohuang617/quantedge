@@ -10,8 +10,9 @@
 │  Python 3.11 │               │  server.py    ──► /api/* (FastAPI 20+) │
 └──────┬───────┘               │  data/quantedge.db  (SQLite)            │
        │                       └────────────────────────────────────────┘
-       │  data_sources/* 链路（多源容错）
+       │  data_sources/* 链路（多源容错，router.py 调度）
        ├─► yfinance (Yahoo)             ── 行情主源 + .info 兜底
+       ├─► iTick (REST + token)         ── 全市场行情 / 财务（router 优先级靠前，可选）
        ├─► Finnhub (REST + token)       ── 美股 PE/PB/ROE 补充（限频自动 retry）
        ├─► AKShare (REST)               ── 港股 / A 股财务补充
        ├─► Futu OpenD (本地 socket)     ── 港/A 行情备选
