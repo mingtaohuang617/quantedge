@@ -190,6 +190,12 @@ const Monitor = () => {
     return true;
   });
   const hiddenCount = mergedAlerts.length - liveAlerts.length;
+  // v5 主从节奏：抽取第一条 high severity 作为 featured spotlight；其余进入"其余告警"
+  // 仅在「全部 / 严重」筛选下显示 spotlight，避免与用户主动筛选冲突
+  const featuredAlert = (filterSev === "all" || filterSev === "high")
+    ? liveAlerts.find(a => a.severity === "high")
+    : null;
+  const restAlerts = featuredAlert ? liveAlerts.filter(a => a.id !== featuredAlert.id) : liveAlerts;
 
   // 每个 severity/type 的当前 count（用于 chip badge）
   const sevCounts = useMemo(() => {
@@ -522,6 +528,61 @@ const Monitor = () => {
               ))}
             </div>
           )}
+          {/* v5 编辑式：Featured Alert Spotlight — 最严重的一条单独成大卡 + 3 个明确 CTA（不藏 hover） */}
+          {featuredAlert && (
+            <div className="mb-2 p-3 rounded-xl border border-rose-500/35 bg-gradient-to-br from-rose-500/12 via-rose-500/4 to-transparent relative overflow-hidden">
+              <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-rose-400 to-transparent" />
+              <div className="flex items-center gap-2 mb-2">
+                <span className="w-2 h-2 rounded-full bg-rose-400 shadow-[0_0_8px_rgba(248,113,113,0.7)] animate-breathe" />
+                <span className="text-[9px] uppercase tracking-wider font-semibold text-rose-300">{t('需要处理 · 当下最重要')}</span>
+                <span className="text-[9px] text-[#778] font-mono ml-auto">{featuredAlert.time}</span>
+              </div>
+              <div className="flex items-baseline gap-2 flex-wrap mb-1.5">
+                {featuredAlert.type === "macro" ? (
+                  <span className="flex items-center gap-1 text-lg font-semibold text-violet-200">
+                    <Globe size={14} /> {t("宏观")}
+                  </span>
+                ) : (
+                  <span className="text-lg font-bold font-mono text-white" title={featuredAlert.ticker}>
+                    {displayTicker(featuredAlert.ticker, liveStocks.find(s => s.ticker === featuredAlert.ticker), lang)}
+                  </span>
+                )}
+                <Badge variant="danger">
+                  {featuredAlert.type === "macro" ? t("L5") :
+                   featuredAlert.type === "score" ? t("评级") :
+                   featuredAlert.type === "technical" ? t("技术") :
+                   featuredAlert.type === "price" ? t("价格") : t("新闻")}
+                </Badge>
+              </div>
+              <p className="text-xs text-[#cdd5e0] leading-relaxed mb-2">{featuredAlert.message}</p>
+              {featuredAlert.action && (
+                <p className="text-[11px] text-violet-200/90 leading-relaxed mb-2 pt-1.5 border-t border-white/[0.04]">
+                  {t('建议')}：{featuredAlert.action}
+                </p>
+              )}
+              <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-rose-400/15">
+                {featuredAlert.type === "macro" && (
+                  <button onClick={() => window.dispatchEvent(new CustomEvent("quantedge:nav", { detail: "macro" }))}
+                    aria-label={t('打开宏观看板')}
+                    className="text-[10px] px-2.5 py-1 rounded-md bg-rose-500/15 border border-rose-400/35 text-rose-100 hover:bg-rose-500/25 transition font-medium">
+                    → {t('打开宏观看板')}
+                  </button>
+                )}
+                <button onClick={() => ackAlert(featuredAlert.id)}
+                  aria-label={t('标记为已处理')}
+                  className="text-[10px] px-2.5 py-1 rounded-md bg-up/15 border border-up/30 text-up hover:bg-up/25 transition font-medium">
+                  ✓ {t('标记已处理')}
+                </button>
+                {featuredAlert.type !== "macro" && (
+                  <button onClick={() => muteTicker(featuredAlert.ticker)}
+                    aria-label={`${t('静音')} ${featuredAlert.ticker} 24h`}
+                    className="text-[10px] px-2.5 py-1 rounded-md bg-white/[0.05] border border-white/15 text-[#a0aec0] hover:bg-amber-400/15 hover:text-amber-200 hover:border-amber-400/35 transition font-medium">
+                    🔕 {t('静音 24h')}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
           <div className="md:flex-1 md:overflow-auto space-y-2">
             {liveAlerts.length === 0 && (
               <div className="flex flex-col items-center justify-center py-10 gap-2">
@@ -534,7 +595,7 @@ const Monitor = () => {
                 </div>
               </div>
             )}
-            {liveAlerts.map((a, idx) => {
+            {restAlerts.map((a, idx) => {
               const isAcked = ackedIds.has(a.id);
               const stkForAlert = liveStocks.find(s => s.ticker === a.ticker);
               const alertLabel = displayTicker(a.ticker, stkForAlert, lang);

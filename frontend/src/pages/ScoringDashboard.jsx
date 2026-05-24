@@ -1483,6 +1483,87 @@ const ScoringDashboard = () => {
                   <ScoreExplainCard stock={sel} weights={weights} />
                 </div>
               )}
+              {/* v5 编辑式：三大要素 pillar cards — 把评分归因从深埋的 hover tooltip 提升为主视图
+                  顶部色条 + 32px 大数字 + 进度条 + 高亮指标 — 一眼 grok "为什么是 X 分"
+                  仅非 ETF：ETF 用 cost/liquidity/momentum/risk 四维（已有深处归因卡覆盖） */}
+              {sel.subScores && !sel.isETF && typeof sel.subScores.fundamental === 'number' && (
+                <div className="mb-3">
+                  <div className="flex items-baseline justify-between mb-1.5">
+                    <h3 className="text-[11px] font-medium text-white/90">{t('评分由三大要素构成')}</h3>
+                    {sectorMedians?.score != null && (
+                      <span className="text-[9px] text-[#778]">
+                        vs {t('行业中位')} <span className={`font-mono ${(sel.score - sectorMedians.score) >= 0 ? 'text-up' : 'text-down'}`}>
+                          {(sel.score - sectorMedians.score) >= 0 ? '+' : ''}{(sel.score - sectorMedians.score).toFixed(1)}
+                        </span>
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {[
+                      {
+                        key: 'fundamental',
+                        label: t('基本面'),
+                        color: '#818cf8',
+                        value: sel.subScores.fundamental,
+                        weight: weights.fundamental,
+                        highlight: [
+                          sel.pe != null && sel.pe > 0 && `PE ${sel.pe.toFixed(1)}`,
+                          sel.roe != null && `ROE ${sel.roe.toFixed(1)}%`,
+                        ].filter(Boolean).join(' · ') || t('盈利质量'),
+                        sub: t('盈利质量与估值'),
+                      },
+                      {
+                        key: 'technical',
+                        label: t('技术面'),
+                        color: '#f5b53c',
+                        value: sel.subScores.technical,
+                        weight: weights.technical,
+                        highlight: [
+                          sel.rsi != null && `RSI ${typeof sel.rsi === 'number' ? sel.rsi.toFixed(1) : sel.rsi}`,
+                          sel.beta != null && `β ${sel.beta}`,
+                        ].filter(Boolean).join(' · ') || t('价格动能'),
+                        sub: t('价格动能与位置'),
+                      },
+                      {
+                        key: 'growth',
+                        label: t('成长性'),
+                        color: '#1ed395',
+                        value: sel.subScores.growth,
+                        weight: weights.growth,
+                        highlight: [
+                          sel.revenueGrowth != null && `${t('营收')} ${sel.revenueGrowth.toFixed(1)}%`,
+                          sel.profitMargin != null && `${t('利润率')} ${sel.profitMargin.toFixed(1)}%`,
+                        ].filter(Boolean).join(' · ') || t('未来增长曲线'),
+                        sub: t('未来增长曲线'),
+                      },
+                    ].map(p => {
+                      const v = Number.isFinite(p.value) ? p.value : 0;
+                      return (
+                        <div
+                          key={p.key}
+                          className="pillar-card"
+                          style={{ '--pillar-color': p.color }}
+                          title={`${p.label} ${v.toFixed(1)} / 100 · ${t('权重')} ${p.weight}%`}
+                        >
+                          <div className="flex items-baseline justify-between mb-2">
+                            <span className="text-[11px] font-semibold text-white">{p.label}</span>
+                            <span className="text-[9px] font-mono" style={{ color: p.color }}>{t('权重')} {p.weight}%</span>
+                          </div>
+                          <div className="flex items-baseline gap-1 mb-2">
+                            <span className="pillar-card__num">{v.toFixed(0)}</span>
+                            <span className="text-[9px] text-[#778] font-mono">/100</span>
+                          </div>
+                          <div className="pillar-card__bar mb-2">
+                            <div className="pillar-card__bar-fill" style={{ width: `${Math.max(2, Math.min(100, v))}%` }} />
+                          </div>
+                          <div className="text-[11px] text-white/90 font-medium leading-tight">{p.highlight}</div>
+                          <div className="text-[10px] text-[#778] mt-0.5">{p.sub}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
               {/* 图表标题 */}
               <div className="flex items-center gap-1.5 mb-1.5">
                 <Activity size={11} className="text-indigo-400" />
