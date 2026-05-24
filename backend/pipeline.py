@@ -39,7 +39,7 @@ from factors import (
     calc_rsi, calc_momentum, calc_stock_score, calc_etf_score,
     calc_leverage_decay, parse_leverage,
 )
-from data_sources import fetch_history, health_check
+from data_sources import fetch_history, fetch_hk_fundamentals, health_check
 
 
 BASE_DIR = Path(__file__).resolve().parent  # backend/
@@ -50,6 +50,44 @@ OUTPUT_DIR.mkdir(exist_ok=True)
 FRONTEND_DATA_PATH = BASE_DIR.parent / "frontend" / "src" / "data.js"
 
 LOG_LINES: list[str] = []
+
+
+# akshare → result 字段名映射（snake_case → result 的 camelCase）
+# 仅 4 个数值字段；marketCap/eps 留给 yfinance/static_overrides 避免 fmt_big 复杂度
+_HK_FALLBACK_FIELDS = {
+    "pe": "pe",
+    "roe": "roe",
+    "revenue_growth": "revenueGrowth",
+    "profit_margin": "profitMargin",
+}
+
+
+def apply_hk_fundamentals_fallback(result: dict, cfg: dict) -> dict:
+    """
+    对港股标的，在 yfinance 字段缺失时用 AKShare（东方财富）补齐。
+    顺序：yfinance → AKShare → static_overrides（外层 apply_overrides 兜底）。
+
+    仅在 market=HK 且 result[key] is None 时填入 AKShare 值。
+    AKShare 调用失败一律静默（不影响其他标的）。
+    """
+    market = (cfg.get("market") or "").upper()
+    if market != "HK":
+        return result
+    try:
+        ak_data, src = fetch_hk_fundamentals(cfg)
+    except Exception as e:
+        log(f"    [AKShare 港股财务] 失败 {cfg.get('yf_symbol')}: {e}")
+        return result
+    if not ak_data:
+        return result
+    filled = []
+    for ak_key, result_key in _HK_FALLBACK_FIELDS.items():
+        if result.get(result_key) is None and ak_data.get(ak_key) is not None:
+            result[result_key] = ak_data[ak_key]
+            filled.append(result_key)
+    if filled:
+        log(f"    [AKShare 港股财务] 补齐 {len(filled)} 字段: {', '.join(filled)} (src={src})")
+    return result
 
 
 def apply_overrides(result: dict, cfg: dict, latest_price: float = None) -> dict:
@@ -225,6 +263,7 @@ def fetch_stock_data(ticker_key: str, cfg: dict) -> dict | None:
             pass
 
         log(f"  ✓ {ticker_key}: ${latest_price} ({change_pct:+.2f}%) 评分={score}")
+        result = apply_hk_fundamentals_fallback(result, cfg)
         result = apply_overrides(result, cfg, latest_price)
         # 兜底后重新计算评分（如果财务字段被补充了）
         if cfg.get("static_overrides"):
@@ -415,6 +454,7 @@ def fetch_etf_data(ticker_key: str, cfg: dict) -> dict | None:
                 result["adv"] = f"{adv:.0f}"
 
         log(f"  ✓ {ticker_key}: {cfg['currency']} {latest_price} ({change_pct:+.2f}%) 评分={score}")
+        result = apply_hk_fundamentals_fallback(result, cfg)
         result = apply_overrides(result, cfg, latest_price)
         # 兜底后重算 ETF 评分
         if cfg.get("static_overrides"):
