@@ -7,11 +7,15 @@
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 
 import pytest
 
-from backend.export_universe_to_frontend import (
+# backend/tests/ → backend/（与 test_sector_mapping.py 同模式，CI 上 cwd ≠ root）
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from export_universe_to_frontend import (  # noqa: E402
     DROP_FIELDS,
     EMPTY_STRING_FIELDS,
     fmt_size,
