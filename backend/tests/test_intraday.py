@@ -99,7 +99,9 @@ class TestYFinanceSourceFetchHistory:
         tk = _mock_ticker(df)
         with patch.object(yfinance_source.yf, "Ticker", return_value=tk):
             out = yfinance_source.fetch_history(SPY_CFG, days=30)
-        tk.history.assert_called_once_with(period="3mo", interval="1d")
+        tk.history.assert_called_once_with(
+            period="3mo", interval="1d", timeout=yfinance_source.YFINANCE_HISTORY_TIMEOUT
+        )
         assert list(out.columns) == ["Open", "High", "Low", "Close", "Volume"]
         # 日 K 保持 tz-naive
         assert out.index.tz is None
@@ -112,7 +114,9 @@ class TestYFinanceSourceFetchHistory:
         tk = _mock_ticker(df)
         with patch.object(yfinance_source.yf, "Ticker", return_value=tk):
             yfinance_source.fetch_history(SPY_CFG, days=180)
-        tk.history.assert_called_once_with(period="6mo", interval="1d")
+        tk.history.assert_called_once_with(
+            period="6mo", interval="1d", timeout=yfinance_source.YFINANCE_HISTORY_TIMEOUT
+        )
 
     def test_intraday_1m_passes_7d_and_converts_to_utc(self):
         """分钟级：period='7d' interval='1m'，且 ET tz-aware → UTC。"""
@@ -132,7 +136,9 @@ class TestYFinanceSourceFetchHistory:
         tk = _mock_ticker(df)
         with patch.object(yfinance_source.yf, "Ticker", return_value=tk):
             out = yfinance_source.fetch_history(SPY_CFG, days=5, interval=Interval.MIN_1)
-        tk.history.assert_called_once_with(period="7d", interval="1m")
+        tk.history.assert_called_once_with(
+            period="7d", interval="1m", timeout=yfinance_source.YFINANCE_HISTORY_TIMEOUT
+        )
         # 列被规范化为 OHLCV
         assert list(out.columns) == ["Open", "High", "Low", "Close", "Volume"]
         # tz 转 UTC
@@ -150,7 +156,9 @@ class TestYFinanceSourceFetchHistory:
         tk = _mock_ticker(df)
         with patch.object(yfinance_source.yf, "Ticker", return_value=tk):
             yfinance_source.fetch_history(SPY_CFG, days=5, interval="5m")
-        tk.history.assert_called_once_with(period="60d", interval="5m")
+        tk.history.assert_called_once_with(
+            period="60d", interval="5m", timeout=yfinance_source.YFINANCE_HISTORY_TIMEOUT
+        )
 
     def test_empty_intraday_raises_immediately(self):
         """分钟级空 df 直接抛错（不再 fallback 1mo）。
@@ -179,7 +187,9 @@ class TestYFinanceSourceFetchHistory:
         with patch.object(yfinance_source.yf, "Ticker", return_value=tk):
             out = yfinance_source.fetch_history(SPY_CFG, days=30)
         assert tk.history.call_count == 2
-        assert tk.history.call_args_list[1].kwargs == {"period": "1mo"}
+        assert tk.history.call_args_list[1].kwargs == {
+            "period": "1mo", "timeout": yfinance_source.YFINANCE_HISTORY_TIMEOUT,
+        }
         assert len(out) == 1
 
 
