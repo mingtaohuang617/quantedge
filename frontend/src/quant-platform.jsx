@@ -2289,34 +2289,9 @@ function QuantPlatformInner() {
 
         {/* 右侧 cluster：侧边栏模式下 flex-1 占满剩余空间让 ticker tape 撑长 */}
         <div className={`hidden md:flex items-center gap-2 ${useSidebar ? 'flex-1 ml-3 min-w-0 justify-end' : ''}`}>
-          {/* Header ticker tape — 60s 循环 marquee, hover 暂停（prefers-reduced-motion 自动停）
-              · 侧边栏模式：flex-1 自适应（min 200 max 900）
-              · 非侧边栏：自适应到响应式宽度，避免硬编码 300px */}
-          {stocks.length > 0 && (
-            <div
-              className={`relative flex items-center h-7 overflow-hidden rounded-md bg-white/[0.02] border border-white/5 ${useSidebar ? 'flex-1 min-w-[200px] max-w-[900px]' : 'w-[260px] lg:w-[300px] xl:w-[360px] 2xl:w-[420px]'}`}
-              style={{
-                maskImage: 'linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent)',
-                WebkitMaskImage: 'linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent)',
-              }}
-              aria-label={t('实时行情滚动')}
-            >
-              <div className="flex items-center gap-5 animate-marquee whitespace-nowrap pr-5 hover:[animation-play-state:paused]">
-                {[...stocks, ...stocks].slice(0, 36).map((s, i) => (
-                  <div key={`${s.ticker}-${i}`} className="flex items-center gap-1.5 text-[10px] font-mono tabular-nums shrink-0">
-                    <span className="text-[#c8cdd3] font-semibold">{s.ticker}</span>
-                    <span className={safeChange(s.change) >= 0 ? "text-up" : "text-down"}>
-                      {s.currency === "HKD" ? "HK$" : "$"}{s.price}
-                    </span>
-                    <span className={`text-[9px] ${safeChange(s.change) >= 0 ? "text-up" : "text-down"}`}>
-                      {safeChange(s.change) >= 0 ? "+" : ""}{fmtChange(s.change)}%
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          <div className="w-px h-5 bg-white/8" />
+          {/* 顶栏 ticker tape 与其后分隔符按用户要求已移除（2026-05-24）。
+              「复利之力」tab 与「默认工作区」切换器之间不再插入实时行情滚动条。
+              依赖 safeChange / fmtChange 仍被其他地方使用；如需恢复见 git log。 */}
           {/* C16: 工作区切换器 */}
           <WorkspaceSwitcher />
           <div className="w-px h-5 bg-white/8" />
