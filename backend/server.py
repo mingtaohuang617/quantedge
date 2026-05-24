@@ -1304,20 +1304,48 @@ def smart_beta_snapshot(
     if rr_latest is not None and rr_older is not None:
         real_rate_chg = rr_latest - rr_older
 
-    # 拉所有行业 ETF
+    # 拉所有行业 ETF — 并行 8 worker，避免 16 只串行 30s+
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    sector_entries = universe.get("sector", [])
     sector_data: dict = {}
-    fetch_errors: list[str] = []
-    for entry in universe.get("sector", []):
+    fetch_errors: list[dict] = []
+    MIN_BARS = 120  # 与 score_sector_etf 阈值保持一致
+
+    def _fetch_one(entry):
+        """返回 (entry, close, volume, error_dict_or_None)。"""
         ticker = entry["ticker"]
-        close, volume = _fetch_etf_prices(ticker, days=280)
-        if close is None or len(close) < 130:
-            fetch_errors.append(ticker)
-            continue
-        sector_data[ticker] = {
-            "prices":  close,
-            "volumes": volume,
-            "name":    entry.get("name", ticker),
-        }
+        try:
+            close, volume = _fetch_etf_prices(ticker, days=280)
+        except Exception as e:  # noqa: BLE001 — 上层需要原因
+            return entry, None, None, {
+                "ticker": ticker, "reason": "fetch_exception", "detail": str(e),
+            }
+        if close is None:
+            return entry, None, None, {"ticker": ticker, "reason": "no_data", "bars": 0}
+        if len(close) < MIN_BARS:
+            return entry, close, volume, {
+                "ticker": ticker, "reason": "insufficient_bars",
+                "bars": len(close), "min": MIN_BARS,
+            }
+        return entry, close, volume, None
+
+    max_workers = min(8, len(sector_entries)) or 1
+    with ThreadPoolExecutor(max_workers=max_workers) as pool:
+        futures = [pool.submit(_fetch_one, e) for e in sector_entries]
+        for fut in as_completed(futures):
+            entry, close, volume, err = fut.result()
+            if err is not None:
+                fetch_errors.append(err)
+                continue
+            sector_data[entry["ticker"]] = {
+                "prices":  close,
+                "volumes": volume,
+                "name":    entry.get("name", entry["ticker"]),
+            }
+    # 按 universe 原顺序排序 fetch_errors，方便对照
+    _order = {e["ticker"]: i for i, e in enumerate(sector_entries)}
+    fetch_errors.sort(key=lambda x: _order.get(x.get("ticker"), 999))
 
     snap = sb.build_snapshot(
         spy_prices=spy_close,
