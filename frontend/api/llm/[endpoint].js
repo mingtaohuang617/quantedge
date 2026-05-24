@@ -1,40 +1,39 @@
-// /api/llm/[endpoint]  —  通用反向代理 → Render 后端 FastAPI 的 /api/llm/*
+// /api/llm/[endpoint]  —  v0.8 单点路由
 //
-// 解决问题：backend/llm.py 有 11 个高阶 LLM 函数（server.py 暴露 12 个 endpoint），
-// 但 frontend/api/llm/ 里只有 4 个独立 lambda（10x-thesis / generate-keywords /
-// match-supertrend / rank-candidates）。其余 8 个在 production 调不通。
+// 路由顺序：
+//   1) endpoint 命中本地 KNOWN_HANDLERS → 在 Vercel 内运行（DeepSeek 直连 + KV 缓存）
+//   2) 兜底反向代理到 Render 后端 FastAPI /api/llm/{endpoint}
 //
-// 设计选择：catch-all 反向代理而不是再写 8 个独立 lambda。原因：
-//   1) Vercel Hobby plan 12 lambda 上限；现在 4 个，再加 8 个就挤满；
-//   2) 后端 prompt 修改可立即生效，避免前后端 prompt 双份维护；
-//   3) 复用后端的 30 分钟 LLM cache（db.llm_cache_*）。
+// 本地 handler（不走代理，独立 lambda 上限不变）：
+//   - generate-keywords / match-supertrend / rank-candidates / 10x-thesis
+//   handler 文件 _*.js 同目录，Vercel 自动忽略不当 function
 //
-// 已有独立 lambda 不受影响（Vercel 静态路由优先于动态路由）：
-//   - /api/llm/10x-thesis        → frontend/api/llm/10x-thesis.js
-//   - /api/llm/generate-keywords → frontend/api/llm/generate-keywords.js
-//   - /api/llm/match-supertrend  → frontend/api/llm/match-supertrend.js
-//   - /api/llm/rank-candidates   → frontend/api/llm/rank-candidates.js
+// 代理（后端已实现，本地无 handler 的）：
+//   summary / backtest-narrate / journal-structure / explain-score / monthly-review /
+//   parse-strategy / value-thesis / health / stats
 //
-// 经过本 proxy（后端已实现，前端原本调不通的）：
-//   - /api/llm/summary           — 个股摘要
-//   - /api/llm/backtest-narrate  — 回测 AI 解读
-//   - /api/llm/journal-structure — 一句话日志 → 结构化
-//   - /api/llm/explain-score     — 评分解读
-//   - /api/llm/monthly-review    — 月度复盘
-//   - /api/llm/parse-strategy    — NL 策略 → portfolio
-//   - /api/llm/value-thesis      — 价值型 thesis（不通过 10x-thesis 路由的旧调用）
-//   - /api/llm/health            — DeepSeek 探活
-//   - /api/llm/stats             — token 用量
+// 设计选择回顾：原本 4 个独立 lambda + 1 catch-all proxy（合计 5）。v0.8 整合到 1 个
+// 文件（这个）+ 4 个 _*.js handler（被 import 不当 function），共 1 个 lambda。
 //
-// 不覆盖（不在 /api/llm/* 路径下，需独立 proxy/lambda）：
+// 不覆盖（不在 /api/llm/* 路径下）：
 //   - /api/macro/narrative       — 宏观画像
 //   - /api/stock-gene/explain    — Stock Gene 解读
 //
-// 环境变量（必填）：
+// 环境变量（仅 proxy 路径需要）：
 //   QUANTEDGE_BACKEND_URL  Render 后端 URL，如 https://quantedge-xxx.onrender.com
-//   后端 .env 里需配置 DEEPSEEK_API_KEY（Render dashboard → Environment）
 
 import { requireReferer } from '../_lib/auth.js';
+import generateKeywords from './_generate-keywords.js';
+import matchSupertrend from './_match-supertrend.js';
+import rankCandidates from './_rank-candidates.js';
+import tenXThesis from './_10x-thesis.js';
+
+const KNOWN_HANDLERS = {
+  'generate-keywords': generateKeywords,
+  'match-supertrend': matchSupertrend,
+  'rank-candidates': rankCandidates,
+  '10x-thesis': tenXThesis,
+};
 
 export const config = {
   // Hobby plan 上限 60s；Render free tier cold start ~30s + DeepSeek 调用 ~5-10s 可能逼近。
@@ -62,7 +61,11 @@ export default async function handler(req, res) {
     return res.status(400).json({ ok: false, error: 'missing endpoint name in path' });
   }
 
-  // 透传到后端 /api/llm/{endpoint}
+  // 1) 本地 handler 优先：generate-keywords / match-supertrend / rank-candidates / 10x-thesis
+  const localFn = KNOWN_HANDLERS[endpoint];
+  if (localFn) return localFn(req, res);
+
+  // 2) 兜底反向代理 — 后端 /api/llm/{endpoint}
   let url;
   try {
     url = new URL(`/api/llm/${encodeURIComponent(endpoint)}`, BACKEND_URL);
