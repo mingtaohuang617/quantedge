@@ -147,6 +147,21 @@ const CompareModal = ({ open, onClose, stocks }) => {
                   [t("现价"), s => `${currencySymbol(s.currency)}${s.price}`, "text-white", null],
                   [t("涨跌"), s => `${safeChange(s.change) >= 0 ? "+" : ""}${fmtChange(s.change)}%`, s => safeChange(s.change) >= 0 ? "text-up" : "text-down", "higher"],
                   [t("评分"), s => s.score?.toFixed(1), "text-indigo-300 font-semibold", "higher"],
+                  // 趋势：基于 backend scoreDelta5d（5 日评分变化）。|delta|>2 显示箭头，否则横线。
+                  // scoreSmoothed/scoreDelta5d 由 backend/score_history.py 计算，回落 None → "—"。
+                  [t("趋势"), s => {
+                    const d = s.scoreDelta5d;
+                    if (d == null || !isFinite(d)) return "—";
+                    if (d > 2) return `↑ +${d.toFixed(1)}`;
+                    if (d < -2) return `↓ ${d.toFixed(1)}`;
+                    return `→ ${d >= 0 ? "+" : ""}${d.toFixed(1)}`;
+                  }, s => {
+                    const d = s.scoreDelta5d;
+                    if (d == null || !isFinite(d)) return "text-[#778]";
+                    if (d > 2) return "text-up";
+                    if (d < -2) return "text-down";
+                    return "text-[#a0aec0]";
+                  }, null],
                   ["PE", s => s.pe?.toFixed(1) ?? "—", "text-white", "lower"],
                   ["ROE", s => s.roe ? `${s.roe.toFixed(1)}%` : "—", "text-white", "higher"],
                   [t("动量"), s => s.momentum?.toFixed(0) ?? "—", "text-white", "higher"],

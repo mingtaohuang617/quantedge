@@ -40,6 +40,8 @@ from factors import (
     calc_leverage_decay, parse_leverage,
 )
 from data_sources import fetch_history, fetch_hk_fundamentals, health_check
+import score_history
+from _format import fmt_big
 
 
 BASE_DIR = Path(__file__).resolve().parent  # backend/
@@ -194,18 +196,6 @@ def fetch_stock_data(ticker_key: str, cfg: dict) -> dict | None:
             }
             for _, row in hist.iterrows()
         ]
-
-        # 格式化大数字
-        def fmt_big(val):
-            if val is None:
-                return None
-            if abs(val) >= 1e12:
-                return f"{val/1e12:.2f}T"
-            if abs(val) >= 1e9:
-                return f"{val/1e9:.1f}B"
-            if abs(val) >= 1e6:
-                return f"{val/1e6:.0f}M"
-            return f"{val:.0f}"
 
         market_cap_raw = safe_get(info, "marketCap")
         revenue_raw = safe_get(info, "totalRevenue")
@@ -600,6 +590,23 @@ def run_pipeline():
     all_stocks.sort(key=lambda x: x["score"], reverse=True)
     for i, stk in enumerate(all_stocks):
         stk["rank"] = i + 1
+
+    # 评分平滑（P1）：写入历史 + 计算 scoreSmoothed / scoreDelta5d
+    # 用 priceAsOf 作为 history 的日期 key，避免周末多次运行污染均值。
+    log("\n─── 评分平滑（5 日均值 + 5 日变化）───")
+    score_hist = score_history.load_history()
+    today_fallback = datetime.now().strftime("%Y-%m-%d")
+    for stk in all_stocks:
+        ticker = stk["ticker"]
+        price_as_of = (stk.get("dataFreshness") or {}).get("priceAsOf")
+        date_str = score_history.date_from_price_as_of(price_as_of) or today_fallback
+        smoothed, delta = score_history.update_for_ticker(
+            score_hist, ticker, stk["score"], date_str=date_str,
+        )
+        stk["scoreSmoothed"] = smoothed
+        stk["scoreDelta5d"] = delta
+    score_history.save_history(score_hist)
+    log(f"✓ {score_history.HISTORY_PATH} ({len(score_hist)} 个 ticker 历史)")
 
     # 生成预警
     alerts = generate_alerts(all_stocks)
