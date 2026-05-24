@@ -41,6 +41,7 @@ from factors import (
 )
 from data_sources import fetch_history, fetch_hk_fundamentals, health_check
 import score_history
+from _format import fmt_big
 
 
 BASE_DIR = Path(__file__).resolve().parent  # backend/
@@ -195,18 +196,6 @@ def fetch_stock_data(ticker_key: str, cfg: dict) -> dict | None:
             }
             for _, row in hist.iterrows()
         ]
-
-        # 格式化大数字
-        def fmt_big(val):
-            if val is None:
-                return None
-            if abs(val) >= 1e12:
-                return f"{val/1e12:.2f}T"
-            if abs(val) >= 1e9:
-                return f"{val/1e9:.1f}B"
-            if abs(val) >= 1e6:
-                return f"{val/1e6:.0f}M"
-            return f"{val:.0f}"
 
         market_cap_raw = safe_get(info, "marketCap")
         revenue_raw = safe_get(info, "totalRevenue")

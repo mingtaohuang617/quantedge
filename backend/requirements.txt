@@ -13,7 +13,6 @@ duckdb
 pyarrow            # parquet I/O (mining_alpha 因子/掩码缓存)
 hmmlearn
 openai
-akshare
 # alpha191 因子库 + ML + 回测
 lightgbm
 scikit-learn
