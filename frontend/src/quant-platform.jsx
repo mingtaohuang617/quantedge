@@ -19,6 +19,7 @@ const Screener10x = lazy(() => import("./pages/Screener10x.jsx"));
 const MiningAlpha = lazy(() => import("./pages/MiningAlpha.jsx"));
 const StockGene = lazy(() => import("./pages/StockGene.jsx"));
 const SmartBeta = lazy(() => import("./pages/SmartBeta.jsx"));
+const CompoundPower = lazy(() => import("./pages/CompoundPower.jsx"));
 
 let STATIC_STOCKS = [];
 let STATIC_ALERTS = [];
@@ -1235,6 +1236,7 @@ const TAB_CFG = [
   { id: "macro",       label: "宏观看板",     short: ["宏观", "看板"],     icon: Globe },
   { id: "screener10x", label: "10x 猎手",     short: ["10x", "猎手"],      icon: Target },
   { id: "stockgene",   label: "股性检测",     short: ["股性", "检测"],     icon: Zap },
+  { id: "compound",    label: "复利的力量",   short: ["复利", "之力"],     icon: TrendingUp },
 ];
 
 // ─── Scoring ──────────────────────────────────────────────
@@ -2376,6 +2378,7 @@ function QuantPlatformInner() {
           {tab === "miningAlpha" && <MiningAlpha />}
           {tab === "stockgene" && <StockGene />}
           {tab === "smartBeta" && <SmartBeta />}
+          {tab === "compound" && <CompoundPower />}
         </Suspense>
       </main>
 
