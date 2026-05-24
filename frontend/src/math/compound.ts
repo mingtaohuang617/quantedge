@@ -109,20 +109,23 @@ export function monteCarloAnnual(
 
 /**
  * 大数字格式化 — 用于复利终值显示。
- * 1.23 → "1.23"
- * 1234 → "1,234"
- * 1.23e6 → "1.23M"
- * 1.23e9 → "1.23B"
- * 1.23e12 → "1.23T"
- * 1.23e15 → "1.23e+15"（超出常用区间用科学计数法）
+ * SI / 金融常用后缀，覆盖到 quintillion (Qa = 1e18)，再大用科学计数法。
+ *   M  = 百万   (1e6)
+ *   B  = 十亿   (1e9)
+ *   T  = 万亿   (1e12)
+ *   Q  = 千万亿 (1e15) — quadrillion
+ *   Qa = 百亿亿 (1e18) — quintillion
+ * 超过 1e21 用科学计数法。
  */
 export function formatBigNumber(v: number, digits = 2): string {
   if (!isFinite(v)) return "∞";
   const abs = Math.abs(v);
   if (abs < 1000) return v.toFixed(digits);
-  if (abs < 1e6) return v.toLocaleString(undefined, { maximumFractionDigits: 0 });
-  if (abs < 1e9) return (v / 1e6).toFixed(digits) + "M";
-  if (abs < 1e12) return (v / 1e9).toFixed(digits) + "B";
+  if (abs < 1e6)  return v.toLocaleString(undefined, { maximumFractionDigits: 0 });
+  if (abs < 1e9)  return (v / 1e6).toFixed(digits)  + "M";
+  if (abs < 1e12) return (v / 1e9).toFixed(digits)  + "B";
   if (abs < 1e15) return (v / 1e12).toFixed(digits) + "T";
+  if (abs < 1e18) return (v / 1e15).toFixed(digits) + "Q";
+  if (abs < 1e21) return (v / 1e18).toFixed(digits) + "Qa";
   return v.toExponential(digits);
 }

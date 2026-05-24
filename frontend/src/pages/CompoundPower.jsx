@@ -104,10 +104,10 @@ const fmtMult = (v) => `×${formatBigNumber(v, 2)}`;
 
 // ─── 子组件 ──────────────────────────────────────────────
 
-/** 按钮组（rate / years），选中态高亮 */
-function ButtonGroup({ options, value, onChange, getLabel, getKey, warningOf }) {
+/** 按钮组（rate / years），选中态高亮。语义上是单选 radiogroup */
+function ButtonGroup({ options, value, onChange, getLabel, getKey, warningOf, ariaLabel }) {
   return (
-    <div className="flex flex-wrap gap-1">
+    <div className="flex flex-wrap gap-1" role="radiogroup" aria-label={ariaLabel}>
       {options.map((opt) => {
         const k = getKey(opt);
         const isActive = value === k;
@@ -116,7 +116,9 @@ function ButtonGroup({ options, value, onChange, getLabel, getKey, warningOf }) 
           <button
             key={k}
             onClick={() => onChange(k)}
-            className={`px-2.5 py-1 rounded text-[11px] font-mono border transition ${
+            role="radio"
+            aria-checked={isActive}
+            className={`px-2.5 py-1 rounded text-[11px] font-mono border transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
               isActive
                 ? "bg-indigo-500/20 text-indigo-200 border-indigo-500/50"
                 : "bg-white/[0.02] text-white/70 border-white/10 hover:border-white/30"
@@ -124,7 +126,7 @@ function ButtonGroup({ options, value, onChange, getLabel, getKey, warningOf }) 
             title={warn || ""}
           >
             {getLabel(opt)}
-            {warn && <span className="ml-1 text-amber-400">⚠</span>}
+            {warn && <span className="ml-1 text-amber-400" aria-label="风险警示">⚠</span>}
           </button>
         );
       })}
@@ -158,7 +160,9 @@ function RiskTierCard({ tierId, active, onClick }) {
   return (
     <button
       onClick={onClick}
-      className={`text-left rounded-lg border p-2.5 transition w-full ${
+      aria-pressed={active}
+      aria-label={`${t.label}：目标年化 ${fmtPct(t.targetReturn[0], 0)}–${fmtPct(t.targetReturn[1], 0)}，历史波动 ${fmtPct(t.volatility, 0)}`}
+      className={`text-left rounded-lg border p-2.5 transition w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
         active
           ? `${c.bg} ${c.border} ring-1 ring-current ${c.text}`
           : "bg-white/[0.02] border-white/10 hover:border-white/30"
@@ -216,7 +220,9 @@ function StrategyCard({ strategy }) {
 }
 
 /** 复利曲线图：确定值 + 蒙特卡洛区间 + SPY + 通胀 */
-function GrowthChart({ data }) {
+function GrowthChart({ data, showSpy = true, useLogScale = false }) {
+  // 对数轴 + 0 起点会断（log 0 = -Infinity），所以最小值用第一年（principal > 0）
+  const minDataValue = data.length > 0 ? data[0].nominal : 1;
   return (
     <ResponsiveContainer width="100%" height={300}>
       <ComposedChart data={data} margin={{ left: 10, right: 20, top: 10, bottom: 4 }}>
@@ -229,6 +235,9 @@ function GrowthChart({ data }) {
           stroke="#6b7280" fontSize={10}
           tickFormatter={(v) => formatBigNumber(v, 1)}
           width={64}
+          scale={useLogScale ? "log" : "auto"}
+          domain={useLogScale ? [minDataValue * 0.5, "auto"] : ["auto", "auto"]}
+          allowDataOverflow={useLogScale}
         />
         <Tooltip
           contentStyle={{ background: "#0d1117", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6, fontSize: 11 }}
@@ -242,30 +251,37 @@ function GrowthChart({ data }) {
           type="monotone" dataKey="mcBand"
           stroke="none" fill="#6366f1" fillOpacity={0.12}
           name="蒙特卡洛 5%-95% 区间" legendType="rect"
+          isAnimationActive={false}
         />
         {/* 蒙特卡洛中位数 */}
         <Line
           type="monotone" dataKey="mcMedian"
           stroke="#6366f1" strokeWidth={1.5} strokeDasharray="3 3"
           dot={false} name="蒙特卡洛中位数"
+          isAnimationActive={false}
         />
         {/* 名义确定值 */}
         <Line
           type="monotone" dataKey="nominal"
           stroke="#10b981" strokeWidth={2}
           dot={false} name="名义复利"
+          isAnimationActive={false}
         />
-        {/* SPY 基准 */}
-        <Line
-          type="monotone" dataKey="spy"
-          stroke="#f59e0b" strokeWidth={1.5} strokeDasharray="5 3"
-          dot={false} name="SPY 基准 (10%)"
-        />
+        {/* SPY 基准 — rate=10% 时与名义完全重合，隐藏避免视觉混淆 */}
+        {showSpy && (
+          <Line
+            type="monotone" dataKey="spy"
+            stroke="#f59e0b" strokeWidth={1.5} strokeDasharray="5 3"
+            dot={false} name="SPY 基准 (10%)"
+            isAnimationActive={false}
+          />
+        )}
         {/* 通胀调整后 */}
         <Line
           type="monotone" dataKey="real"
           stroke="#a0aec0" strokeWidth={1.5} strokeDasharray="2 2"
           dot={false} name="实际购买力 (扣 3% 通胀)"
+          isAnimationActive={false}
         />
       </ComposedChart>
     </ResponsiveContainer>
@@ -284,6 +300,14 @@ export default function CompoundPower() {
   const principal = useMemo(() => {
     const n = parseFloat(principalStr);
     return isFinite(n) && n > 0 ? n : 1;
+  }, [principalStr]);
+
+  // 用户输入了内容但解析失败/非正数 — 用于 UI 反馈
+  const principalInvalid = useMemo(() => {
+    const trimmed = principalStr.trim();
+    if (trimmed === "") return false;
+    const n = parseFloat(trimmed);
+    return !(isFinite(n) && n > 0);
   }, [principalStr]);
 
   const rateOpt = useMemo(
@@ -333,6 +357,22 @@ export default function CompoundPower() {
   const finalSpy = spySeries[spySeries.length - 1];
   const multiplier = finalNominal / principal;
 
+  // SPY 跟用户选的 rate 完全一致时（10%），曲线/SPY 卡片就是重复信息
+  const isSPYRate = Math.abs(selectedRate - SPY_LONG_RUN) < 1e-9;
+
+  // 中位数 vs 名义值 偏离度 — 高 σ × 长年限时 lognormal 偏度让中位数远低于名义
+  // 用倍数（ratio = nominal / median）而非百分比，因极端时 ratio 可达 10000+，
+  // 百分比会饱和到 99%/100% 失去信息
+  const divergenceRatio = useMemo(() => {
+    if (mc.summary.p50 <= 0) return Infinity;
+    return finalNominal / mc.summary.p50;
+  }, [finalNominal, mc.summary.p50]);
+  const showDivergenceBanner = divergenceRatio > 1.5; // 名义比中位数高 50%+
+
+  // 终值跨度太大（>10000 倍）时启用对数 Y 轴，否则低年早期被压扁看不见
+  const valueRange = finalNominal / principal;
+  const useLogScale = valueRange > 10_000;
+
   // 当前展示的策略
   const strategies = STRATEGY_LIBRARY[currentTier] || [];
 
@@ -356,6 +396,7 @@ export default function CompoundPower() {
             <div>
               <label className="text-[10px] text-[#a0aec0] mb-1 block">年化收益率</label>
               <ButtonGroup
+                ariaLabel="年化收益率"
                 options={RETURN_OPTIONS}
                 value={selectedRate}
                 onChange={(v) => { setSelectedRate(v); setTierOverride(null); }}
@@ -367,6 +408,7 @@ export default function CompoundPower() {
             <div>
               <label className="text-[10px] text-[#a0aec0] mb-1 block">年限</label>
               <ButtonGroup
+                ariaLabel="投资年限"
                 options={YEAR_OPTIONS}
                 value={years}
                 onChange={setYears}
@@ -388,10 +430,19 @@ export default function CompoundPower() {
                 placeholder="留空 = 1"
                 min="0"
                 step="any"
-                className="w-full bg-white/[0.03] border border-white/10 rounded px-2 py-1.5 text-[11px] text-white font-mono placeholder:text-[#6b7280] focus:outline-none focus:border-indigo-500/50"
+                aria-invalid={principalInvalid}
+                className={`w-full bg-white/[0.03] border rounded px-2 py-1.5 text-[11px] text-white font-mono placeholder:text-[#6b7280] focus:outline-none ${
+                  principalInvalid
+                    ? "border-rose-500/50 focus:border-rose-500"
+                    : "border-white/10 focus:border-indigo-500/50"
+                }`}
               />
-              <div className="text-[10px] text-[#a0aec0] mt-0.5 font-mono">
-                当前：{formatBigNumber(principal, 2)}
+              <div className={`text-[10px] mt-0.5 font-mono ${
+                principalInvalid ? "text-rose-400" : "text-[#a0aec0]"
+              }`}>
+                {principalInvalid
+                  ? `非法输入，已回退到 1`
+                  : `当前：${formatBigNumber(principal, 2)}`}
               </div>
             </div>
           </div>
@@ -417,7 +468,9 @@ export default function CompoundPower() {
             />
             <StatCard
               label="SPY 基准对照" value={fmtMoney(finalSpy)}
-              hint={`年化 ${fmtPct(SPY_LONG_RUN, 0)} × ${years} 年`}
+              hint={isSPYRate
+                ? `= 名义（你正选 SPY 长期均值）`
+                : `年化 ${fmtPct(SPY_LONG_RUN, 0)} × ${years} 年`}
               accent="amber"
             />
             <StatCard
@@ -430,20 +483,38 @@ export default function CompoundPower() {
                 : null}
             />
           </div>
+
+          {/* lognormal 偏度解读 — 名义复利 vs 中位数严重偏离时显示 */}
+          {showDivergenceBanner && (
+            <div className="mt-3 rounded-md bg-indigo-500/10 border border-indigo-500/30 px-3 py-2 text-[11px] text-indigo-200 flex items-start gap-2">
+              <Info size={12} className="shrink-0 mt-0.5" />
+              <span>
+                <strong>波动放大：</strong>名义复利
+                <span className="font-mono mx-1">{fmtMoney(finalNominal)}</span>
+                是"运气一直在线"的上限；蒙特卡洛中位数
+                <span className="font-mono mx-1">{fmtMoney(mc.summary.p50)}</span>
+                才是 50% 概率水平 — 名义是中位数的
+                <span className="font-mono mx-1">{formatBigNumber(divergenceRatio, 1)} 倍</span>。
+                σ 越高、年限越长，这个差距越极端（lognormal 偏度）。
+              </span>
+            </div>
+          )}
         </div>
 
         {/* 增长曲线 */}
         <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3">
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
             <h3 className="text-[11px] font-semibold text-white/90 flex items-center gap-1.5">
               <TrendingUp size={13} className="text-emerald-400" />
               增长曲线 · {fmtPct(selectedRate, 0)} × {years} 年
             </h3>
-            <span className="text-[10px] text-[#a0aec0] font-mono">
-              σ = {fmtPct(RISK_TIERS[autoTier].volatility, 0)} · 1000 路径
+            <span className="text-[10px] text-[#a0aec0] font-mono space-x-2">
+              <span>σ = {fmtPct(RISK_TIERS[autoTier].volatility, 0)} · 1000 路径</span>
+              {useLogScale && <span className="text-indigo-400">· 对数 Y 轴</span>}
+              {isSPYRate && <span className="text-amber-400">· SPY 重叠已隐藏</span>}
             </span>
           </div>
-          <GrowthChart data={chartData} />
+          <GrowthChart data={chartData} showSpy={!isSPYRate} useLogScale={useLogScale} />
         </div>
 
         {/* ── §2 风险等级对照表 ─────────────────────── */}

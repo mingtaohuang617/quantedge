@@ -120,7 +120,25 @@ describe('formatBigNumber', () => {
   it('trillions get T suffix', () => {
     expect(formatBigNumber(1.5e12)).toBe('1.50T');
   });
-  it('beyond trillions uses scientific', () => {
-    expect(formatBigNumber(1e16).includes('e+')).toBe(true);
+  it('quadrillions get Q suffix (1e15)', () => {
+    expect(formatBigNumber(1.13e15)).toBe('1.13Q');
+  });
+  it('quintillions get Qa suffix (1e18)', () => {
+    expect(formatBigNumber(2.5e18)).toBe('2.50Qa');
+  });
+  it('beyond Qa (>= 1e21) uses scientific', () => {
+    expect(formatBigNumber(1e22).includes('e+')).toBe(true);
+  });
+  it('zero', () => {
+    expect(formatBigNumber(0)).toBe('0.00');
+  });
+  it('negative uses suffix on absolute value', () => {
+    expect(formatBigNumber(-2.5e6)).toBe('-2.50M');
+  });
+  it('Infinity returns ∞ symbol', () => {
+    expect(formatBigNumber(Infinity)).toBe('∞');
+  });
+  it('NaN returns ∞ symbol (not isFinite)', () => {
+    expect(formatBigNumber(NaN)).toBe('∞');
   });
 });
