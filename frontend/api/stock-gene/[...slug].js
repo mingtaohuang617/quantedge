@@ -1,7 +1,9 @@
-// /api/stock-gene/[[...slug]]  —  v0.8 单点 dispatcher（绕过 Vercel Hobby plan 12 函数上限）
+// /api/stock-gene/[...slug]  —  v0.8 单点 dispatcher（绕过 Vercel Hobby plan 12 函数上限）
+//
+// Vercel API filesystem 路由只支持 [name] 和 [...name]，不支持 [[...name]]（Next.js 特性）。
+// 所以根路径 /api/stock-gene/ 走单独 index.js；本文件只接 1+ 段 slug。
 //
 // 路由表（slug 是 path segments 数组）：
-//   []                                    → _index.js           GET list / POST add
 //   ["alerts"]                            → _alerts.js          评分变化预警
 //   ["export"]                            → _export.js          JSON 导出
 //   ["import"]                            → _import.js          JSON 导入
@@ -17,7 +19,7 @@
 //
 // 实际 handler 文件以 `_` 开头，Vercel 自动忽略不当成 serverless function。
 
-import indexHandler from "./_index.js";
+// 注意：根路径走单独 index.js，本文件无需 indexHandler
 import alertsHandler from "./_alerts.js";
 import exportHandler from "./_export.js";
 import importHandler from "./_import.js";
@@ -41,8 +43,11 @@ export default async function handler(req, res) {
   const slug = req.query.slug;
   const segs = Array.isArray(slug) ? slug : (slug ? [slug] : []);
 
-  // /api/stock-gene/
-  if (segs.length === 0) return indexHandler(req, res);
+  // /api/stock-gene/ 走单独 index.js — 本文件至少 1 段
+  if (segs.length === 0) {
+    res.setHeader("Cache-Control", "no-store");
+    return res.status(400).json({ ok: false, error: "missing path segment" });
+  }
 
   const [first, second] = segs;
 
