@@ -879,6 +879,122 @@ def monthly_review(month_label: str, transactions: list[dict],
         return {"ok": False, "error": str(e)}
 
 
+def generate_keywords(name: str, note: str = "", strategy: str = "growth",
+                      ttl_seconds: int = 7 * 86400, force: bool = False) -> dict:
+    """
+    给定一个赛道名 + 注释，让 LLM 起草 sector_mapping 关键词列表（中英文）。
+
+    移植自 frontend/api/llm/generate-keywords.js（v2.0）。按 strategy 切两套 prompt：
+      - growth: 偏产业链关键词（光伏 / 储能 / 半导体 / Solar / Semiconductors）
+      - value:  偏防御 / 周期 / 必需消费（银行 / 石油 / 食品饮料 / Banks / Utilities）
+
+    返回 {ok, keywords_zh, keywords_en, reason, cached, prompt_tokens, completion_tokens}
+    cache key prefix 按 strategy 隔离，避免同名赛道拿错框架缓存。
+    """
+    name = (name or "").strip()
+    note = (note or "").strip()
+    if not name:
+        return {"ok": False, "error": "name required"}
+    if strategy not in ("growth", "value"):
+        strategy = "growth"
+
+    MAX_KEYWORDS = 25
+
+    if strategy == "value":
+        prompt = (
+            "你是价值投资研究助手。给定一个'价值赛道'名称和注释，"
+            "请生成用于行业字符串匹配的关键词列表（中英文都要）。\n\n"
+            f"赛道名: {name}\n"
+            f"注释: {note or '（无）'}\n\n"
+            "要求（针对价值投资场景）：\n"
+            "- 应选稳定/周期性/防御性行业：公用事业、银行、保险、能源、电信、消费必需品、化工、钢铁、有色等。\n"
+            "- 避免选纯成长行业（AI、半导体、新能源、生物科技）— 这些属于 growth 范畴。\n"
+            "- 中文关键词：A 股研报常见行业词，如\"银行\"、\"石油\"、\"煤炭\"、\"白酒\"、\"食品饮料\"、\"公共事业\"、\"化工\"、\"钢铁\"、\"保险\"\n"
+            "- 英文关键词：yfinance / GICS 价值类行业词，如 \"Banks—Diversified\"、\"Oil & Gas Integrated\"、"
+            "\"Utilities—Regulated Electric\"、\"Tobacco\"、\"Beverages—Non-Alcoholic\"、\"Insurance\"、\"Steel\"\n"
+            f"- 各语言不超过 {MAX_KEYWORDS} 个；越精准的关键词越好\n\n"
+            "请严格输出 JSON：\n"
+            "{\n"
+            "  \"keywords_zh\": [\"<>\", ...],\n"
+            "  \"keywords_en\": [\"<>\", ...],\n"
+            "  \"reason\": \"<≤80 字 解释你为什么选这些，强调防御/周期/必需消费特征>\"\n"
+            "}"
+        )
+        endpoint = "generate-keywords-value"
+    else:
+        prompt = (
+            "你是产业研究助手。给定一个'超级赛道'名称和注释，"
+            "请生成用于行业字符串匹配的关键词列表（中英文都要）。\n\n"
+            f"赛道名: {name}\n"
+            f"注释: {note or '（无）'}\n\n"
+            "要求：\n"
+            "- 中文关键词：用中国 A 股研报常见行业词，如\"光伏\"、\"储能\"、\"半导体\"、\"新型电力\"。"
+            "一些大类（如\"通讯设备\"）会带噪音，谨慎放入\n"
+            "- 英文关键词：用 yfinance / GICS 行业分类常见英文词，如 \"Solar\"、\"Battery\"、"
+            "\"Semiconductors\"、\"Communication Equipment\"\n"
+            f"- 各语言不超过 {MAX_KEYWORDS} 个；越精准的关键词越好，避免过于宽泛的词\n\n"
+            "请严格输出 JSON：\n"
+            "{\n"
+            "  \"keywords_zh\": [\"<>\", ...],\n"
+            "  \"keywords_en\": [\"<>\", ...],\n"
+            "  \"reason\": \"<≤80 字 解释你为什么选这些>\"\n"
+            "}"
+        )
+        endpoint = "generate-keywords"
+
+    cache_key = _db.llm_cache_key(endpoint, DEFAULT_MODEL, prompt)
+    cached = None if force else _db.llm_cache_get(cache_key)
+    if cached:
+        resp = cached["response"]
+        return {
+            "ok": True,
+            "keywords_zh": resp.get("keywords_zh") or [],
+            "keywords_en": resp.get("keywords_en") or [],
+            "reason": resp.get("reason") or "",
+            "cached": True,
+            "prompt_tokens": cached.get("prompt_tokens") or 0,
+            "completion_tokens": cached.get("completion_tokens") or 0,
+        }
+
+    try:
+        content, p_tok, c_tok = _chat(
+            [{"role": "user", "content": prompt}],
+            json_mode=True,
+            max_tokens=600,
+            temperature=0.3,
+        )
+        parsed = _safe_json_parse(content)
+        # 与 lambda 保持一致：trim + dedupe-via-filter + 截断到 MAX_KEYWORDS
+        def _clean_list(v):
+            if not isinstance(v, list):
+                return []
+            out = []
+            for k in v:
+                s = str(k).strip()
+                if s:
+                    out.append(s)
+            return out[:MAX_KEYWORDS]
+
+        result = {
+            "keywords_zh": _clean_list(parsed.get("keywords_zh")),
+            "keywords_en": _clean_list(parsed.get("keywords_en")),
+            "reason": str(parsed.get("reason") or "")[:200],
+        }
+        _db.llm_cache_put(
+            cache_key, endpoint, DEFAULT_MODEL, result,
+            prompt_tokens=p_tok, completion_tokens=c_tok,
+            ttl_seconds=ttl_seconds,
+        )
+        return {
+            "ok": True, **result, "cached": False,
+            "prompt_tokens": p_tok, "completion_tokens": c_tok,
+        }
+    except LLMError as e:
+        return {"ok": False, "error": str(e)}
+    except json.JSONDecodeError as e:
+        return {"ok": False, "error": f"LLM 返回非合法 JSON: {e}"}
+
+
 def health_check() -> tuple[bool, str]:
     """轻量探活，不消耗有意义的 token。"""
     if not HAS_OPENAI:

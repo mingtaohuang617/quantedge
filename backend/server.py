@@ -1523,6 +1523,27 @@ def llm_parse_strategy(req: LLMParseStrategyReq, force: bool = False):
     return sanitize(_llm_mod.parse_strategy(req.text, req.candidates, force=force))
 
 
+# ── D P1: generate-keywords 后端实现（与 frontend/api/llm/ lambda 等价）─
+# 注意：Vercel 上 lambda 静态路由优先于 catch-all proxy，所以 production
+# 仍走 lambda。本端点用于：
+#   1) 本地 dev 联调（不需要起 vercel dev）
+#   2) 未来想去掉 lambda 时无痛切换到 catch-all proxy
+class LLMGenerateKeywordsReq(BaseModel):
+    name: str
+    note: str = ""
+    strategy: str = "growth"  # "growth" | "value"
+
+
+@app.post("/api/llm/generate-keywords")
+def llm_generate_keywords(req: LLMGenerateKeywordsReq, force: bool = False):
+    """根据赛道名 + 注释，LLM 起草 sector_mapping 关键词列表（中英双语）。?force=true 跳过缓存重生。"""
+    if not HAS_LLM or _llm_mod is None:
+        raise HTTPException(503, "llm 模块未加载（DEEPSEEK_API_KEY 未设？）")
+    return sanitize(_llm_mod.generate_keywords(
+        req.name, req.note, req.strategy, force=force,
+    ))
+
+
 # ── B7: 月度复盘端点 ─────────────────────────────────────
 @app.post("/api/llm/monthly-review")
 def llm_monthly_review(month: str | None = None, force: bool = False):
