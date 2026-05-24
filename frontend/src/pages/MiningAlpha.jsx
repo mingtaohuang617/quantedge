@@ -536,11 +536,16 @@ const MetricsCard = ({ metrics }) => {
 // ─── 回测指标 AI 解读面板 ────────────────────────────────────
 //   调 /api/llm/backtest-narrate (DeepSeek)，把 metrics 翻译成 4-5 句中文叙事
 //   首次点击拉取，后续点击 toggle 展开/收起；右上小按钮强制重生
+// DeepSeek deepseek-chat 定价（2026Q2）：$0.14/M input, $0.28/M output
+//   一次 backtest-narrate 通常 ~250 in + ~200 out ≈ $0.0001（1/100 美分）
+const estimateLLMCost = (p, c) => (p * 0.14 + c * 0.28) / 1e6;
+
 const BacktestNarrationPanel = ({ metrics }) => {
   const [narration, setNarration] = useState(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState(null);
   const [cached, setCached] = useState(false);
+  const [usage, setUsage] = useState(null);  // {prompt_tokens, completion_tokens}
   const [open, setOpen] = useState(false);
 
   const fetchNarration = async (force = false) => {
@@ -569,6 +574,10 @@ const BacktestNarrationPanel = ({ metrics }) => {
       } else if (r.ok) {
         setNarration(r.narration || "");
         setCached(!!r.cached);
+        setUsage({
+          prompt_tokens: r.prompt_tokens || 0,
+          completion_tokens: r.completion_tokens || 0,
+        });
       } else {
         setErr(r.error || "LLM 调用失败");
       }
@@ -617,8 +626,17 @@ const BacktestNarrationPanel = ({ metrics }) => {
             <RefreshCw size={10} />
           </button>
         )}
-        {cached && narration && open && (
-          <span className="text-[9px] text-[#a0aec0]">⚡ 缓存命中</span>
+        {usage && narration && open && (
+          <span
+            className={`text-[9px] tabular-nums font-mono ${cached ? "text-emerald-400/80" : "text-[#a0aec0]"}`}
+            title={cached
+              ? "命中后端 30 分钟缓存，本次零成本（显示的是历史首次调用的 token 数）"
+              : "本次实际消耗的 DeepSeek token（input + output）"}
+          >
+            {cached
+              ? `⚡ 缓存命中 · 省 ≈$${estimateLLMCost(usage.prompt_tokens, usage.completion_tokens).toFixed(6)}`
+              : `💎 ${usage.prompt_tokens}+${usage.completion_tokens} tok · ≈$${estimateLLMCost(usage.prompt_tokens, usage.completion_tokens).toFixed(6)}`}
+          </span>
         )}
       </div>
       {open && (narration || err) && (

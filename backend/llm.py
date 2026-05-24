@@ -437,7 +437,14 @@ def backtest_narrate(payload: dict, ttl_seconds: int = 1800, force: bool = False
     cache_key = _db.llm_cache_key("backtest-narrate", DEFAULT_MODEL, prompt)
     cached = None if force else _db.llm_cache_get(cache_key)
     if cached:
-        return {"ok": True, "narration": cached["response"].get("text", ""), "cached": True}
+        # cache 命中也回报历史 token 数（让前端能算"这次省了多少钱"）
+        return {
+            "ok": True,
+            "narration": cached["response"].get("text", ""),
+            "cached": True,
+            "prompt_tokens": cached.get("prompt_tokens") or 0,
+            "completion_tokens": cached.get("completion_tokens") or 0,
+        }
 
     try:
         content, p_tok, c_tok = _chat(
@@ -452,7 +459,13 @@ def backtest_narrate(payload: dict, ttl_seconds: int = 1800, force: bool = False
             ticker=None, prompt_tokens=p_tok, completion_tokens=c_tok,
             ttl_seconds=ttl_seconds,
         )
-        return {"ok": True, "narration": text, "cached": False}
+        return {
+            "ok": True,
+            "narration": text,
+            "cached": False,
+            "prompt_tokens": p_tok,
+            "completion_tokens": c_tok,
+        }
     except LLMError as e:
         return {"ok": False, "error": str(e)}
 
