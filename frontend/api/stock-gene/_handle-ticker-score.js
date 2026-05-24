@@ -1,6 +1,6 @@
 // /api/stock-gene/[ticker]/score - 也接 value-score / signal-score / risk-score（通过 vercel.json rewrites）
 // 评分需 self-hosted backend（pandas/numpy 计算）
-import { requireReferer } from '../../_lib/auth.js';
+import { requireReferer } from '../_lib/auth.js';
 
 export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();

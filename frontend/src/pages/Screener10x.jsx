@@ -24,12 +24,15 @@ import {
   Archive,
   Download, Upload,
   Activity,
+  ArrowUp, ArrowDown, ArrowUpDown, ArrowRight,
 } from "lucide-react";
 import { apiFetch } from "../quant-platform.jsx";
 import TenxItemEditor from "../components/TenxItemEditor.jsx";
 import AddSupertrendDialog from "../components/AddSupertrendDialog.jsx";
 import WatchlistCard from "../components/WatchlistCard.jsx";
 import ValueFilters from "../components/ValueFilters.jsx";
+import { loadPrefs, savePrefs } from "../lib/screener10xPrefs.js";
+import { sortCandidates, nextSortState } from "../lib/candidateSort.js";
 import StockDetailPanel from "../components/StockDetailPanel.jsx";
 import { serializeWatchlistCsv } from "../lib/csvExport.js";
 
@@ -124,28 +127,52 @@ function fmtPct(v) {
   return typeof v === "number" ? `${(v * 100).toFixed(1)}%` : "—";
 }
 
+/** 可排序的 <th>。点击循环 asc → desc → 默认（清空 sortKey）。当列高亮时显示方向箭头。 */
+function SortHeader({ label, sortKey, currentKey, currentDir, onToggle, align = "right", title }) {
+  const isActive = sortKey === currentKey;
+  const Icon = !isActive ? ArrowUpDown : currentDir === "asc" ? ArrowUp : ArrowDown;
+  const alignClass = align === "right" ? "text-right justify-end" : "text-left justify-start";
+  return (
+    <th className={`px-2 py-1.5 ${align === "right" ? "text-right" : "text-left"}`}>
+      <button
+        onClick={() => onToggle(sortKey)}
+        title={title || `按 ${label} 排序`}
+        className={`inline-flex items-center gap-0.5 hover:text-white transition focus:outline-none ${alignClass} ${
+          isActive ? "text-cyan-300" : "text-[#7a8497]"
+        }`}
+      >
+        <span>{label}</span>
+        <Icon size={9} className={isActive ? "opacity-100" : "opacity-40"} />
+      </button>
+    </th>
+  );
+}
+
 export default function Screener10x() {
   // 数据状态
   const [supertrends, setSupertrends] = useState([]);
   const [items, setItems] = useState([]);                   // watchlist
   const [universeStats, setUniverseStats] = useState(null);
   const [isDemoMode, setIsDemoMode] = useState(false);      // production 后端不可用 → fallback
+  // localStorage 持久化的 UI 偏好（首次渲染时一次性读取）
+  // 用 lazy initial state 避免每次 render 都读 localStorage
+  const _initialPrefs = useMemo(() => loadPrefs(), []);
   // 策略切换（成长型 / 价值型 tab）
-  const [activeStrategy, setActiveStrategy] = useState("growth"); // "growth" | "value"
+  const [activeStrategy, setActiveStrategy] = useState(_initialPrefs.activeStrategy);
   // 筛选条件
-  const [selectedTrends, setSelectedTrends] = useState([]); // string[]
+  const [selectedTrends, setSelectedTrends] = useState([]); // string[]（不持久化：赛道 ID 可能变）
   // 默认 1000B —— 包含绝大多数大盘股（NVDA 4800B 等极少数 mega-cap 用户可手动调高）
-  // 之前 50B 太严，把 MU/NVDA/AVGO/腾讯 等主流标的全过滤掉，新用户首次看到候选列表只剩小盘股
-  const [maxMcapInput, setMaxMcapInput] = useState(1000);
-  const [maxMcapB, setMaxMcapB] = useState(1000);
-  const [includeETF, setIncludeETF] = useState(false);
-  const [precise, setPrecise] = useState(false);    // 精严模式：仅核心赛道关键词
-  const [markets, setMarkets] = useState(["US", "HK", "CN"]);
+  // 之前 50B 太严，把 MU/NVDA/AVGO/腾讯 等主流标的全过滤掉
+  const [maxMcapInput, setMaxMcapInput] = useState(_initialPrefs.maxMcapInput);     // 单位 B（input 即时绑定）
+  const [maxMcapB, setMaxMcapB] = useState(_initialPrefs.maxMcapInput);             // 300ms debounced，喂 runScreen
+  const [includeETF, setIncludeETF] = useState(_initialPrefs.includeETF);
+  const [precise, setPrecise] = useState(_initialPrefs.precise);    // 精严模式：仅核心赛道关键词
+  const [markets, setMarkets] = useState(_initialPrefs.markets);
   const [search, setSearch] = useState("");
   // 价值型 5 维筛选（仅 activeStrategy="value" 时启用）
   // 双 state：valueFilters 即时绑定 input；valueFiltersDebounced 喂 runScreen（300ms 防抖）
-  const [valueFilters, setValueFilters] = useState(DEFAULT_VALUE_FILTERS);
-  const [valueFiltersDebounced, setValueFiltersDebounced] = useState(DEFAULT_VALUE_FILTERS);
+  const [valueFilters, setValueFilters] = useState(_initialPrefs.valueFilters);
+  const [valueFiltersDebounced, setValueFiltersDebounced] = useState(_initialPrefs.valueFilters);
   // 候选 + loading
   const [candidates, setCandidates] = useState([]);
   const [loadingCands, setLoadingCands] = useState(false);
@@ -168,12 +195,29 @@ export default function Screener10x() {
   // 添加赛道对话框
   const [addTrendOpen, setAddTrendOpen] = useState(false);
   // 归档显示开关
-  const [showArchived, setShowArchived] = useState(false);
+  const [showArchived, setShowArchived] = useState(_initialPrefs.showArchived);
   // 导入/导出 loading
   const [importLoading, setImportLoading] = useState(false);
   const importInputRef = useRef(null);
+  // 候选表列排序：sortKey=null 用 backend 默认（市值升序 + AI 排序覆盖）
+  // 可选 sortKey: marketCap | pe | pb | dividend_yield | roe；sortDir: asc | desc
+  const [sortKey, setSortKey] = useState(null);
+  const [sortDir, setSortDir] = useState("asc");
   // 当前价（用于 target/stop 预警 badge）；只对设了 target 或 stop 的 item 拉
   const [pricesByTicker, setPricesByTicker] = useState({});
+
+  // ── localStorage 偏好持久化（依赖变化时序列化写回，静默忽略写失败）─
+  useEffect(() => {
+    savePrefs({
+      markets,
+      includeETF,
+      precise,
+      maxMcapInput,
+      activeStrategy,
+      valueFilters,
+      showArchived,
+    });
+  }, [markets, includeETF, precise, maxMcapInput, activeStrategy, valueFilters, showArchived]);
 
   // ── 拉初始数据（watchlist + universe stats）─────────────
   const reloadWatchlist = useCallback(async (opts = {}) => {
@@ -308,6 +352,7 @@ export default function Screener10x() {
   }, [runScreen, selectedTrends, isDemoMode]);
 
   // ── 候选搜索过滤（前端） ─────────────────────────────
+  // sort + ranking 逻辑在 src/lib/candidateSort.js（pure，可测）
   const filteredCandidates = useMemo(() => {
     let cs = candidates;
     if (search) {
@@ -316,8 +361,11 @@ export default function Screener10x() {
         c.ticker.toLowerCase().includes(q) || (c.name || "").toLowerCase().includes(q)
       );
     }
-    // AI 排序：拿到 moat_score 的标的优先，按分数降序；其余保持原顺序在后
-    if (Object.keys(aiRanking).length > 0) {
+    // 用户列排序优先（如果设了 sortKey）
+    if (sortKey) {
+      cs = sortCandidates(cs, sortKey, sortDir);
+    } else if (Object.keys(aiRanking).length > 0) {
+      // AI 排序：拿到 moat_score 的标的优先，按分数降序；其余保持原顺序在后
       const ranked = cs.filter((c) => aiRanking[c.ticker] != null);
       const unranked = cs.filter((c) => aiRanking[c.ticker] == null);
       ranked.sort((a, b) =>
@@ -326,7 +374,20 @@ export default function Screener10x() {
       cs = [...ranked, ...unranked];
     }
     return cs;
-  }, [candidates, search, aiRanking]);
+  }, [candidates, search, aiRanking, sortKey, sortDir]);
+
+  /** 点击列头切换排序：用 nextSortState 计算（pure，可测） */
+  const toggleSort = useCallback((key) => {
+    setSortKey((prevKey) => {
+      setSortDir((prevDir) => nextSortState(prevKey, prevDir, key).sortDir);
+      return key;   // nextSortState 的 sortKey 总等于 clickedKey
+    });
+  }, []);
+
+  const clearSort = useCallback(() => {
+    setSortKey(null);
+    setSortDir("asc");
+  }, []);
 
   // 候选按市场分组计数（顶部 chip 显示 US:N HK:M CN:K）
   const marketBreakdown = useMemo(() => {
@@ -730,32 +791,6 @@ export default function Screener10x() {
           )}
         </div>
         <div className="flex items-center gap-3 text-[10px] text-[#a0aec0]">
-          {universeStats && (
-            <span className="flex items-center gap-1" title="可筛全宇宙（US/HK/CN）">
-              <Database size={11} /> US {universeStats.US?.count || 0} · HK {universeStats.HK?.count || 0} · CN {universeStats.CN?.count || 0}
-            </span>
-          )}
-          {/* v5 漏斗叙事：候选 → AI 审过 → 观察（仅在有候选或观察时显示） */}
-          {(candidates.length > 0 || items.length > 0) && (
-            <span className="flex items-center gap-1.5" title="筛选漏斗：赛道命中 → AI 校验 → 加入观察">
-              <span className="text-[#556]">→</span>
-              <span className="font-mono">
-                <span className="text-[#778]">候选</span> <b className="text-white">{candidates.length}</b>
-              </span>
-              {aiPipelineState.matched > 0 && (
-                <>
-                  <span className="text-[#556]">→</span>
-                  <span className="font-mono">
-                    <span className="text-[#778]">AI</span> <b className="text-violet-300">{aiPipelineState.matched}</b>
-                  </span>
-                </>
-              )}
-              <span className="text-[#556]">→</span>
-              <span className="font-mono">
-                <span className="text-[#778]">观察</span> <b className="text-amber-300">{items.length}</b>
-              </span>
-            </span>
-          )}
           <button
             onClick={() => { reloadWatchlist(); reloadUniverseStats(); runScreen(); }}
             className="flex items-center gap-1 px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white transition border border-white/10"
@@ -765,6 +800,72 @@ export default function Screener10x() {
           </button>
         </div>
       </div>
+
+      {/* v5 漏斗叙事：4 段 hero header — 全宇宙 → 匹配赛道 → AI 已审 → 你的观察
+          serif 数字 + 箭头连接，把"狩猎"过程做成可视化叙事 */}
+      {(() => {
+        const totalUniverse = universeStats
+          ? (universeStats.US?.count || 0) + (universeStats.HK?.count || 0) + (universeStats.CN?.count || 0)
+          : 0;
+        const steps = [
+          {
+            label: "全宇宙",
+            n: totalUniverse > 0 ? totalUniverse.toLocaleString() : "—",
+            desc: universeStats
+              ? `US ${universeStats.US?.count || 0} · HK ${universeStats.HK?.count || 0} · CN ${universeStats.CN?.count || 0}`
+              : "US + HK + CN",
+            color: "text-[#7a8497]",
+            border: "border-white/10",
+          },
+          {
+            label: "匹配赛道",
+            n: candidates.length || 0,
+            desc: selectedTrends.length > 0
+              ? `${selectedTrends.length} 个赛道命中`
+              : "未选赛道",
+            color: "text-indigo-200",
+            border: "border-indigo-400/25",
+          },
+          {
+            label: "AI 已审过",
+            n: aiPipelineState.matched || 0,
+            desc: aiPipelineState.matched > 0
+              ? `moat ≥ ${aiPipelineState.threshold || 54}`
+              : "AI Pipeline 未运行",
+            color: "text-violet-200",
+            border: "border-violet-400/25",
+          },
+          {
+            label: "你的观察",
+            n: items.length || 0,
+            desc: items.length > 0 ? `${items.length} 个跟踪中` : "未加观察",
+            color: "text-amber-200",
+            border: "border-amber-400/25",
+          },
+        ];
+        return (
+          <div className="flex items-stretch gap-1.5">
+            {steps.map((s, i) => (
+              <React.Fragment key={s.label}>
+                <div className={`flex-1 px-3 py-2 rounded-lg border bg-white/[0.022] ${s.border}`}>
+                  <div className="text-[9px] uppercase tracking-wider text-[#778] mb-0.5">{s.label}</div>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className={`font-serif text-2xl font-semibold tabular-nums leading-none ${s.color}`} style={{ letterSpacing: "-0.02em" }}>
+                      {typeof s.n === "number" ? s.n.toLocaleString() : s.n}
+                    </span>
+                    <span className="text-[10px] text-[#7a8497] truncate">{s.desc}</span>
+                  </div>
+                </div>
+                {i < steps.length - 1 && (
+                  <div className="flex items-center justify-center text-[#556]" style={{ width: 14 }}>
+                    <ArrowRight size={14} />
+                  </div>
+                )}
+              </React.Fragment>
+            ))}
+          </div>
+        );
+      })()}
 
       {/* 三栏 grid */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-[220px_1fr_320px] gap-3 overflow-hidden min-h-0">
@@ -838,6 +939,15 @@ export default function Screener10x() {
                 </span>
               )}
             </span>
+            {sortKey && (
+              <button
+                onClick={clearSort}
+                className="text-[9px] px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-200 border border-cyan-500/30 hover:bg-cyan-500/25 transition flex items-center gap-0.5"
+                title="清除排序 — 回到默认（市值升序 + AI 排序覆盖）"
+              >
+                <X size={9} /> 排序：{sortKey}{sortDir === "desc" ? "↓" : "↑"}
+              </button>
+            )}
 
             <div className="flex-1" />
 
@@ -957,6 +1067,28 @@ export default function Screener10x() {
             </div>
           </div>
 
+          {/* v5: AI Pipeline 结果 banner — pipeline 完成后展示总览，给用户「下一步看 top 3」的引导 */}
+          {!aiPipelineState.loading && aiPipelineState.matched > 0 && (
+            <div className="mx-3 mt-2 mb-1 px-3 py-2 rounded-lg border border-violet-400/35 bg-gradient-to-r from-violet-500/12 via-violet-500/5 to-transparent flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-md bg-violet-500/20 border border-violet-400/35 flex items-center justify-center shrink-0">
+                <Sparkles size={13} className="text-violet-300" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[11.5px] font-semibold text-white">AI Pipeline 已完成</div>
+                <div className="text-[10px] text-[#a0aec0] mt-0.5">
+                  校验 top <span className="font-mono text-white/85">{aiPipelineState.total}</span> · 命中 <span className="font-mono text-violet-200">{aiPipelineState.matched}</span> · 前 3 名已紫色高亮
+                </div>
+              </div>
+              <button
+                onClick={handleAiPipeline}
+                disabled={aiPipelineState.loading || aiRankingState.loading || isDemoMode || selectedTrends.length === 0 || candidates.length === 0}
+                className="text-[10px] px-2 py-1 rounded bg-violet-500/20 border border-violet-400/35 text-violet-200 hover:bg-violet-500/30 transition disabled:opacity-40"
+                title="重新运行 AI Pipeline"
+              >
+                重新运行 →
+              </button>
+            </div>
+          )}
           <div className="flex-1 overflow-auto">
             {selectedTrends.length === 0 && (
               <div className="h-full flex items-center justify-center text-[11px] text-[#7a8497] p-4 text-center">
@@ -1118,14 +1250,20 @@ export default function Screener10x() {
                     <th className="text-left px-2 py-1.5">名称</th>
                     <th className="text-left px-2 py-1.5">市场</th>
                     <th className="text-left px-2 py-1.5">行业</th>
-                    <th className="text-right px-2 py-1.5">市值</th>
+                    <SortHeader
+                      label="市值"
+                      sortKey="marketCap"
+                      currentKey={sortKey}
+                      currentDir={sortDir}
+                      onToggle={toggleSort}
+                    />
                     {/* 价值型额外列：PE / PB / 股息 / ROE */}
                     {activeStrategy === "value" && (
                       <>
-                        <th className="text-right px-2 py-1.5">PE</th>
-                        <th className="text-right px-2 py-1.5">PB</th>
-                        <th className="text-right px-2 py-1.5" title="股息率">股息</th>
-                        <th className="text-right px-2 py-1.5">ROE</th>
+                        <SortHeader label="PE" sortKey="pe" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} />
+                        <SortHeader label="PB" sortKey="pb" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} />
+                        <SortHeader label="股息" sortKey="dividend_yield" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} title="按股息率排序" />
+                        <SortHeader label="ROE" sortKey="roe" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} />
                       </>
                     )}
                     {Object.keys(aiRanking).length > 0 && (
@@ -1147,18 +1285,32 @@ export default function Screener10x() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredCandidates.map((c) => {
+                  {filteredCandidates.map((c, idx) => {
                     const ai = aiRanking[c.ticker];
+                    // v5: Top 3（已 AI 排序时）紫色高亮，引导用户优先关注
+                    const isTop3 = idx < 3 && Object.keys(aiRanking).length > 0 && ai != null;
                     return (
-                      <tr key={c.ticker} className="border-t border-white/5 hover:bg-white/[0.04] transition">
+                      <tr key={c.ticker} className={`border-t border-white/5 transition ${
+                        isTop3 ? "bg-violet-500/[0.06] hover:bg-violet-500/[0.10]" : "hover:bg-white/[0.04]"
+                      }`}>
                         <td className="px-2 py-1.5 font-mono text-[10px] text-white">
-                          <button
-                            onClick={() => setDetailItem(c)}
-                            className="hover:text-cyan-300 hover:underline focus:outline-none focus:text-cyan-300"
-                            title="点击查看详情"
-                          >
-                            {c.ticker}
-                          </button>
+                          <div className="flex items-center gap-1">
+                            {isTop3 && (
+                              <span
+                                className="text-[9px] font-mono font-bold text-violet-300 w-3.5 text-center shrink-0"
+                                title={`AI 已审过 top 3 之 #${idx + 1}`}
+                              >
+                                {idx + 1}
+                              </span>
+                            )}
+                            <button
+                              onClick={() => setDetailItem(c)}
+                              className="hover:text-cyan-300 hover:underline focus:outline-none focus:text-cyan-300"
+                              title="点击查看详情"
+                            >
+                              {c.ticker}
+                            </button>
+                          </div>
                         </td>
                         <td className="px-2 py-1.5 text-[10px] text-[#d0d7e2] truncate max-w-[140px]" title={c.name}>{c.name}</td>
                         <td className="px-2 py-1.5 text-[9px] text-[#a0aec0]">{c.market}{c.exchange && `·${c.exchange}`}</td>

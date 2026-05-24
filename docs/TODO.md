@@ -67,7 +67,8 @@
   - 背景：`calc_rsi` / `calc_momentum` / `calc_stock_score` / `calc_etf_score` 都是纯函数，但目前没有任何测试。任何后续重构（评分平滑、权重调参）都会带风险。
   - 验收标准：`backend/tests/test_factors.py`，pytest 覆盖核心场景：RSI 边界（数据不足 / 全涨 / 全跌）、动量超出区间裁剪、个股评分各档位、ETF 杠杆惩罚生效；`pytest backend/tests` 全绿。
   - 预估工作量：S
-  - **完成（2026-05-19，验证已落地）**：`backend/tests/test_factors_basic.py`（文件名与 TODO 描述略异但实质等价）15 个用例全绿，覆盖：`parse_leverage` 各形态（string/numeric/无杠杆/1x 视作非杠杆）、RSI 数据不足返回 50 / 上涨主导 ≥70 / 下跌主导 ≤30、`calc_momentum` 极端裁剪到 100 / 短序列返回 50、`calc_stock_score` 全优 ≥80 / 全 None 返回基线 / detailed 返回三分项 dict、`calc_etf_score` 杠杆惩罚精确扣 15 分、`calc_leverage_decay` 无杠杆/短序列返回 None + 高波动正磨损。
+  - **完成（2026-05-19）**：`backend/tests/test_factors_basic.py` 15 个用例覆盖核心场景：`parse_leverage` 各形态（string/numeric/无杠杆/1x 视作非杠杆）、RSI 数据不足返回 50 / 上涨主导 ≥70 / 下跌主导 ≤30、`calc_momentum` 极端裁剪到 100 / 短序列返回 50、`calc_stock_score` 全优 ≥80 / 全 None 返回基线 / detailed 返回三分项 dict、`calc_etf_score` 杠杆惩罚精确扣 15 分、`calc_leverage_decay` 无杠杆/短序列返回 None + 高波动正磨损。
+  - **追加（2026-05-20，PR #134）**：`backend/tests/test_factors.py` 55 个测试做更深覆盖（与 basic 并存，不重复但角度更细）：calc_rsi（边界 / 全涨 / 全跌 / 横盘 / mixed / 自定义 period 7 个子测）、calc_momentum（裁剪 + 已知值 + period 7 个子测）、calc_stock_score（PE/ROE/利润率/增长率/RSI 各档位单调性 + None 默认值 + detailed + 自定义权重 + clip 100，共 19 个）、parse_leverage（None/字符串/数字/1x/-2x，9 个）、calc_leverage_decay（无杠杆 / 样本不足 / 2x drag > 0 / 波动率单调 / 3x > 2x，5 个）、calc_etf_score（各档位单调 + 折溢价对称 + 杠杆惩罚 -15 + clip [0,100] + detailed，10 个）。**未改 factors.py 业务代码**。⚠ 文档化了 2 个已知 quirk（RSI 全涨返回 50 而非 100；parse_leverage("-1x") 因 abs<=1.0001 被当非杠杆），待后续重构时一并处理。
 
 ### 监控层
 
@@ -76,6 +77,7 @@
   - 验收标准：Monitor 模块从 `stocks.js` 中导入 ALERTS 渲染告警列表；板块流入栏目根据 STOCKS 按 sector 聚合 `change` 实时计算；fearGreed 暂时保留 mock 但加 TODO 注释说明数据源待定。
   - 预估工作量：S
   - **完成（2026-05-19，验证已落地）**：`frontend/src/pages/Monitor.jsx` 已对接 DataContext（L87 `ctxAlerts3`，L181-184 `mergedAlerts = [...macroAlertsAsItems, ...allAlerts || dynamicAlerts]`），并附加 macro L5 alerts + 客户端动态 alerts 兜底；sectors 按 `s.sector.split("/")[0]` 聚合 change 平均（L272-288，过滤 count<2、按绝对值排序取前 6）；fearGreed 已超出 TODO 要求 —— 不是 mock，而是用 liveStocks 平均涨跌幅 × 0.6 + 上涨广度 × 0.4 实时算（L290-300）。
+  - **追加（2026-05-20，PR #136）**：补 fearGreed `TODO[data-source]` 注释（Monitor.jsx:290-295）说明这是 watchlist-only proxy，列出候选数据源（CNN F&G scrape / 自建因子）。零功能影响、仅注释。
 
 ---
 
@@ -180,6 +182,34 @@ A 股 Alpha191 因子挖掘 + ML 合成 + 回测 — 已交付：
 
 ---
 
+## 已落地 — Smart Beta（2026-05-21）
+
+> PR [#152](https://github.com/mingtaohuang617/quantedge/pull/152) merged · 关键文件
+> `backend/smart_beta.py` / `backend/universe/etf_us.json` /
+> `backend/tests/test_smart_beta.py` / `frontend/src/pages/SmartBeta.jsx`
+
+美股 ETF 三层动态轮动策略 — 已交付：
+- **L1 风险层**：VIX 30% + 50/200 趋势 30% + HY 信用利差 20% + TIPS 实际利率 20% → `core_weight ∈ [40%, 90%]`
+- **L2 Core 层**：balanced (SPY60+QQQ25+IWM15) / simple (SPY100) / factor (MTUM+QUAL+VLUE+USMV) 三档预设
+- **L3 Sector 层**：11 SPDR + 5 主题，5 维评分（趋势 35% + 相对强度 25% + 资金流 15% + 夏普 15% + RSI 过热惩罚 10%），月度 + 缓冲带 K+2 换仓
+- FastAPI 路由 `/api/smart-beta/snapshot`（30min 缓存）
+- 前端 tab `Smart Beta`（idx=2，组合回测 ↔ Mining Alpha 之间）
+- 20 个单测全绿
+
+**后续路线图**（按工作量 S→L）：
+- [ ] **[P2]** Smart Beta 接入 BacktestEngine 跑 3-5 年真实回测 vs SPY 基准 (M)
+  - 在 `BacktestEngine.jsx` 加策略类型 "Smart Beta"
+  - 月度再平衡 + 缓冲带 K+2，输出净值曲线 / Sharpe / MaxDD
+- [ ] **[P2]** ETF Universe Manager 前端筛选器 (M)
+  - AUM / 费率 / 折溢价 / 杠杆 / 分类 多维 slider+chip
+  - 复用现有 `calc_etf_score` 排序，门槛过滤后给 Smart Beta L3 用
+- [ ] **[P2]** FastAPI smart-beta 路由集成测试 (S)
+  - FastAPI TestClient + mocked `fetch_history`，避免端到端回归
+- [ ] **[P3]** 用 `regime/` HMM 替换 L1 规则版风险检测 (M)
+- [ ] **[P3]** 智能 ETF 匹配（关键词 → top-K 推荐，按 top_holdings 重叠度）(M)
+
+---
+
 ## 优先级分布
 
 | 优先级 | 总数 | 已完成 | 未完成 | 备注                                  |
@@ -190,7 +220,7 @@ A 股 Alpha191 因子挖掘 + ML 合成 + 回测 — 已交付：
 | **P3** | 4    | 3      | 1      | 剩 TimescaleDB L（SQLite 已替代）       |
 | **总计** | **18** | **13** | **5**  | 完成率 72%                            |
 
-### 剩余未完成项快查（2026-05-19）
+### 剩余未完成项快查（2026-05-21）
 
 | 项 | 优先级 | 工作量 | 状态 |
 |---|---|---|---|
@@ -198,16 +228,24 @@ A 股 Alpha191 因子挖掘 + ML 合成 + 回测 — 已交付：
 | 评分平滑 + 评分变化率字段 | P1 | M | 另一会话 stash 在做 |
 | Telegram / 企业微信 Webhook 推送 | P2 | M | 另一会话 stash 在做 |
 | 接入 vectorbt 做向量化回测 | P2 | L | 依赖后端 backtest.py（当前 client-side 实现） |
+| **Smart Beta FastAPI 路由集成测试** | **P2** | **S** | **新增 2026-05-21（小活，可直接挑）** |
+| Smart Beta 接入 BacktestEngine | P2 | M | 新增 2026-05-21 |
+| Smart Beta · ETF Universe 筛选器 UI | P2 | M | 新增 2026-05-21 |
+| Smart Beta · HMM regime 替换规则版 L1 | P3 | M | 新增 2026-05-21 |
+| Smart Beta · 智能 ETF 匹配 | P3 | M | 新增 2026-05-21 |
 | PostgreSQL + TimescaleDB 数据持久化 | P3 | L | 架构决策保留 —— SQLite 已替代 |
 
 ## 下一次对话的默认入口
 
 > "找一个 small todo 并完成它"
 
-→ **当前已无 S 级未完成任务**。剩余项均为 M / L 级，按以下决策：
+→ **当前 S 级首选：Smart Beta FastAPI 路由集成测试（P2 / S）** — 用 TestClient + mocked `fetch_history`，避免未来回归。
+
+其他剩余项均为 M / L 级，按以下决策：
 1. **港股财务 / 评分平滑 / Telegram**：避开（其他会话 stash 在做）
 2. **vectorbt**：依赖后端 backtest.py 化，纳入 P3 FastAPI 后续迭代
-3. **TimescaleDB**：架构保留项，按需触发
-4. **新的小问题**：欢迎按需添加 P0/P1/P2 S 级任务到本文件
+3. **Smart Beta 后续 M 级**（BacktestEngine 接入 / ETF 筛选器）：按用户优先级挑
+4. **TimescaleDB**：架构保留项，按需触发
+5. **新的小问题**：欢迎按需添加 P0/P1/P2 S 级任务到本文件
 
 完成一个 S 任务后请勾选本文件对应的 `- [ ]`，并在 commit / 对话末尾报告。
