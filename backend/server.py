@@ -160,16 +160,8 @@ def safe_get(info: dict, key: str, default=None):
         return default
     return val
 
-def fmt_big(val):
-    if val is None:
-        return None
-    if abs(val) >= 1e12:
-        return f"{val/1e12:.2f}T"
-    if abs(val) >= 1e9:
-        return f"{val/1e9:.1f}B"
-    if abs(val) >= 1e6:
-        return f"{val/1e6:.0f}M"
-    return f"{val:.0f}"
+from _format import fmt_big  # 大数字 → T/B/M 格式化
+
 
 def fetch_single_stock(ticker_key: str, cfg: dict) -> dict | None:
     """Fetch data for a single stock/ETF. Reuses pipeline logic."""

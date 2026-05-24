@@ -57,11 +57,16 @@
 
 ### 评分层
 
-- [ ] **[P1]** 评分平滑 + 评分变化率字段
+- [x] **[P1]** 评分平滑 + 评分变化率字段
   - 背景：当前 `score` 是基于"今天一天"的快照，单日波动会让排行剧烈跳动。需要保留历史评分（至少 5 日），输出平滑后的 `score_smoothed`（5 日均值）和 `score_delta_5d`（与 5 日前差值），前端排行能显示"上升 / 下降 / 持平"。
   - 验收标准：`backend/output/` 新增 `score_history.json` 持久化每日评分；输出新增 `score_smoothed` / `score_delta_5d` 字段；前端排行表新增趋势箭头列。
   - 预估工作量：M
   - 依赖：上一项时效性标记（用于落历史时间戳）
+  - **完成（2026-05-20）**：
+    - **持久化层**：新增 `backend/score_history.py`（load/save/append_score/compute_smoothed_and_delta/update_for_ticker），按日期去重（同日多次运行只留最新）、按 priceAsOf 作为日期 key（避免周末多次运行污染均值）、保留 90 天滚动窗口。29 个单测覆盖边界（空/单条/不足 window/正好 window/超出 window/负 delta/重复日期/损坏 JSON）。
+    - **pipeline.py 集成**：main 循环后插入"评分平滑"步骤——load_history → 对每个 stk update_for_ticker（取 dataFreshness.priceAsOf 为 date_str）→ 写回 `stk.scoreSmoothed` / `stk.scoreDelta5d` → save_history。日志记录 `✓ score_history.json (N 个 ticker 历史)`。
+    - **前端**：`ScoringDashboard.jsx` hero compare 表（line 149 之后）新增"趋势"列：基于 `scoreDelta5d`，|delta|>2 显示 ↑/↓（绿/红）+ 数值，否则 → 横线（灰）。空值显示 "—"。颜色用现有 `text-up`/`text-down` 类。
+    - **测试**：29 个新 score_history 单测全绿；全套 984 passed + 1 skipped + 0 failed（基线维持，pipeline 集成靠 import smoke + 真跑一次手动验证）。
 
 - [x] **[P1]** factors.py 单元测试
   - 背景：`calc_rsi` / `calc_momentum` / `calc_stock_score` / `calc_etf_score` 都是纯函数，但目前没有任何测试。任何后续重构（评分平滑、权重调参）都会带风险。
