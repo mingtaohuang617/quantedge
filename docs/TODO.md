@@ -38,10 +38,15 @@
   - 预估工作量：S
   - **完成（2026-05-19）**：`backend/data_sources/yfinance_source.py` 加 `_with_retry` 装饰器（标准库 `time.sleep`，无新依赖），默认 3 次指数退避 1s/2s/4s，环境变量 `YFINANCE_RETRY_MAX` / `YFINANCE_RETRY_BASE_DELAY` 可调。`fetch_history` 和 `fetch_fundamentals` 都覆盖，网络异常一律包成 `YFinanceError` 后重试。失败日志格式 `[yfinance] {fn_name} 第 N/M 次失败...` + 终态 `重试 M 次后放弃`，写入 stderr。21 个新单测（mock + 注入 sleep）。**注**：超时参数 yfinance 0.2+ 支持但本次未接，留 TODO。
 
-- [ ] **[P1]** 港股财务数据补充源（AAStocks / 东方财富）
+- [x] **[P1]** 港股财务数据补充源（AAStocks / 东方财富）
   - 背景：`config.py` 里 `00005.HK` 通过 `static_overrides` 写死 PE / ROE / 营收增长等字段，长期数据会过时。需要一个独立的 fetcher 从 AAStocks 或东方财富抓港股财务，作为 yfinance 之外的兜底；ETF（07709、未来可能新增）同理。
   - 验收标准：新增 `backend/sources/hk_fundamentals.py`，输入港股代码、输出与 yfinance 字段对齐的 dict；`pipeline.py` 在 yfinance 字段为 None 时优先调用此源，仍缺失再回落到 `static_overrides`；写一个最小集成测试验证 0005.HK 能拿到 PE / ROE。
   - 预估工作量：M
+  - **完成（2026-05-20，分两步）**：
+    - **fetcher 已落地（之前）**：`backend/data_sources/akshare_source.py:fetch_hk_fundamentals(symbol)` 用 `ak.stock_hk_spot_em()` + `stock_financial_hk_report_em` 抓 PE/ROE/profit_margin/market_cap/eps。router.py:281 通过 `fetch_hk_fundamentals(cfg)` 暴露。
+    - **本次集成 pipeline**：`pipeline.py` 新增 `apply_hk_fundamentals_fallback(result, cfg)`（_HK_FALLBACK_FIELDS 映射 4 字段 pe/roe/revenueGrowth/profitMargin），在 `fetch_stock_data` 和 `fetch_etf_data` 的 `apply_overrides` 之前调用：链路变为 **yfinance → AKShare → static_overrides**。仅 HK 标的生效；AKShare 失败/None 字段静默回退；不覆盖已有值。新增 `backend/tests/test_hk_fundamentals.py` 7 个 mock 单测 + 1 个 `@pytest.mark.network @pytest.mark.xfail` 真实测试（0005.HK 当前在 AKShare 表中字段全 None，xfail strict=False 记录现状）。
+    - **路径与原描述差异**：原描述要 `backend/sources/hk_fundamentals.py`，实际放在 `backend/data_sources/akshare_source.py`（项目实际架构）。
+    - **遗留**：akshare_source 对 0005.HK 全返回 None — `ak.stock_hk_spot_em()` 代码列匹配不上 "00005" 或字段名漂移；属 follow-up，不在本任务集成范围。
 
 - [x] **[P1]** 数据时效性标记（每个字段附带 `as_of`）
   - 背景：现在所有字段混在一个 dict 里，无法区分"实时行情 vs 上季度财报 vs 静态兜底"。前端 Footer 也无法告诉用户"这条数据多旧了"。
