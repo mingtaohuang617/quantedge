@@ -40,6 +40,7 @@ from factors import (
     calc_leverage_decay, parse_leverage,
 )
 from data_sources import fetch_history, fetch_hk_fundamentals, health_check
+import score_history
 
 
 BASE_DIR = Path(__file__).resolve().parent  # backend/
@@ -600,6 +601,23 @@ def run_pipeline():
     all_stocks.sort(key=lambda x: x["score"], reverse=True)
     for i, stk in enumerate(all_stocks):
         stk["rank"] = i + 1
+
+    # 评分平滑（P1）：写入历史 + 计算 scoreSmoothed / scoreDelta5d
+    # 用 priceAsOf 作为 history 的日期 key，避免周末多次运行污染均值。
+    log("\n─── 评分平滑（5 日均值 + 5 日变化）───")
+    score_hist = score_history.load_history()
+    today_fallback = datetime.now().strftime("%Y-%m-%d")
+    for stk in all_stocks:
+        ticker = stk["ticker"]
+        price_as_of = (stk.get("dataFreshness") or {}).get("priceAsOf")
+        date_str = score_history.date_from_price_as_of(price_as_of) or today_fallback
+        smoothed, delta = score_history.update_for_ticker(
+            score_hist, ticker, stk["score"], date_str=date_str,
+        )
+        stk["scoreSmoothed"] = smoothed
+        stk["scoreDelta5d"] = delta
+    score_history.save_history(score_hist)
+    log(f"✓ {score_history.HISTORY_PATH} ({len(score_hist)} 个 ticker 历史)")
 
     # 生成预警
     alerts = generate_alerts(all_stocks)
