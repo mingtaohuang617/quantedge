@@ -220,6 +220,8 @@ const BacktestEngine = () => {
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState(() => new Date().toISOString().slice(0, 10));
   const [rebalance, setRebalance] = useState("none"); // none|quarterly|yearly
+  // v5 编辑式：3 Tab 结构（perf=表现 / risk=风险 / resilience=韧性）— 把 14 个分析面板分层
+  const [resultTab, setResultTab] = useState("perf");
   // C11: exportPNG 必须放在 portfolio + btRange 都已声明之后 — 否则 prod minify 后 dep 数组触发 TDZ
   const exportPNG = useCallback(async () => {
     if (!reportRef.current) return;
@@ -1751,7 +1753,7 @@ const BacktestEngine = () => {
             )}
           </div>
         ) : btResult && (
-          <div ref={reportRef} className="flex flex-col gap-2">
+          <div ref={reportRef} className={`flex flex-col gap-2 backtest-tabs tab-${resultTab}`}>
             {/* 回测结果 header — 可折叠 + C11 PNG 导出按钮 */}
             <div className="rounded-xl px-3 py-2.5 border border-indigo-500/15 bg-indigo-500/[0.04]">
               <div className="flex items-center justify-between select-none">
@@ -1860,6 +1862,33 @@ const BacktestEngine = () => {
             {/* B4: 回测 AI 总结卡（DeepSeek） */}
             <BacktestNarrationCard btResult={btResult} portfolio={portfolio} benchMetrics={null} />
 
+            {/* v5 编辑式：3-Tab 导航（表现 / 风险 / 韧性）— 把 14 个分析面板按读者意图分层 */}
+            <div className="flex items-center gap-1 self-start p-1 bg-white/[0.03] rounded-lg border border-white/8" role="tablist">
+              {[
+                { id: "perf", label: t("表现"), hint: t("NAV · KPI · 板块 · 收益分布") },
+                { id: "risk", label: t("风险"), hint: t("回撤 · 归因 · 压力 · 相关性") },
+                { id: "resilience", label: t("韧性"), hint: t("Monte Carlo · 仓位建议") },
+              ].map(tab => {
+                const active = resultTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    role="tab"
+                    aria-selected={active}
+                    onClick={() => setResultTab(tab.id)}
+                    title={tab.hint}
+                    className={`px-3 py-1 rounded-md text-[11px] font-medium transition-all ${
+                      active
+                        ? "bg-gradient-to-b from-indigo-500/25 to-indigo-500/10 text-indigo-200 border border-indigo-400/40 shadow-sm"
+                        : "text-[#a0aec0] hover:bg-white/[0.04] border border-transparent"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+
             {/* 净值曲线 */}
             {(() => {
               const baseNav = zoomRange
@@ -1876,7 +1905,7 @@ const BacktestEngine = () => {
               });
               const xInterval = Math.max(1, Math.floor(navData.length / 8));
               return (
-              <div className="glass-card p-3" style={{ minHeight: 240 }}>
+              <div className="glass-card p-3" data-tab="perf" style={{ minHeight: 240 }}>
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-medium text-[#a0aec0]">{t('组合净值曲线')} ({({
@@ -2093,7 +2122,7 @@ const BacktestEngine = () => {
                 winners[r.key] = valid.find(x => x.v === target).i;
               });
               return (
-                <div className="glass-card p-3 mt-2 overflow-x-auto">
+                <div className="glass-card p-3 mt-2 overflow-x-auto" data-tab="perf">
                   <div className="section-header mb-2" style={{ marginBottom: 8 }}>
                     <Layers size={11} className="text-indigo-400" />
                     <span className="section-title">{t('策略横评 ({n} 组)', { n: all.length })}</span>
@@ -2158,7 +2187,7 @@ const BacktestEngine = () => {
                 }, 100);
               };
               return (
-                <div className="glass-card p-3" style={{ minHeight: 180 }}>
+                <div className="glass-card p-3" data-tab="resilience" style={{ minHeight: 180 }}>
                   <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
                     <div className="section-header mb-0" style={{ marginBottom: 0 }}>
                       <Zap size={11} className="text-indigo-400" />
@@ -2271,7 +2300,7 @@ const BacktestEngine = () => {
               const effectiveN = effN(weightArr);
 
               return (
-                <div className="glass-card p-3">
+                <div className="glass-card p-3" data-tab="perf">
                   <div className="section-header mb-3">
                     <Layers size={11} className="text-indigo-400" />
                     <span className="section-title">{t('因子暴露分析')}</span>
@@ -2363,7 +2392,7 @@ const BacktestEngine = () => {
             })()}
 
             {/* 第二行: 个股贡献 + 年度收益 + 区间收益 */}
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-3" data-tab="perf">
               {/* 持仓收益 */}
               <div className="md:col-span-4 glass-card p-3">
                 <div className="section-header">
@@ -2456,7 +2485,7 @@ const BacktestEngine = () => {
             </div>
 
             {/* 第三行: Underwater 曲线（含基准对比）+ 风险指标 */}
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-3" data-tab="risk">
               {/* Underwater 曲线 */}
               <div className="md:col-span-8 glass-card p-3">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2 gap-1">
@@ -2527,7 +2556,7 @@ const BacktestEngine = () => {
             </div>
 
             {/* 相关性矩阵 */}
-            <div className="glass-card p-3">
+            <div className="glass-card p-3" data-tab="risk">
               <div className="flex items-center justify-between mb-2">
                 <div className="section-header mb-0" style={{ marginBottom: 0 }}>
                   <Layers size={12} className="text-indigo-400" />
@@ -2600,7 +2629,7 @@ const BacktestEngine = () => {
               const stabLabel = wf.stability >= 70 ? t('稳定') : wf.stability >= 40 ? t('一般') : t('不稳');
               const concentrationWarn = wf.maxWinContribPct >= 50;
               return (
-                <div className="glass-card p-3">
+                <div className="glass-card p-3" data-tab="risk">
                   <div className="section-header flex items-center gap-2 flex-wrap">
                     <Layers size={12} className="text-cyan-400" />
                     <span className="section-title">{t('滚动回测 · Walk-Forward')}</span>
@@ -2670,7 +2699,7 @@ const BacktestEngine = () => {
             {btResult.riskAttribution && (() => {
               const ra = btResult.riskAttribution;
               return (
-                <div className="glass-card p-3">
+                <div className="glass-card p-3" data-tab="risk">
                   <div className="section-header flex items-center gap-2 flex-wrap">
                     <Target size={12} className="text-violet-400" />
                     <span className="section-title">{t('风险归因 · 波动来源拆解')}</span>
@@ -2740,7 +2769,7 @@ const BacktestEngine = () => {
             })()}
 
             {/* ─── 压力测试 ─── */}
-            <div className="glass-card p-3">
+            <div className="glass-card p-3" data-tab="risk">
               <div className="section-header">
                 <AlertTriangle size={12} className="text-amber-400" />
                 <span className="section-title">{t('压力测试 · 极端场景模拟')}</span>
@@ -2783,7 +2812,7 @@ const BacktestEngine = () => {
             </div>
 
             {/* ─── 仓位管理建议 ─── */}
-            <div className="glass-card p-3">
+            <div className="glass-card p-3" data-tab="resilience">
               <div className="section-header">
                 <Target size={12} className="text-indigo-400" />
                 <span className="section-title">{t('仓位管理建议')}</span>
@@ -2816,13 +2845,13 @@ const BacktestEngine = () => {
                 <div className="p-2.5 rounded-lg border border-white/10 bg-white/[0.02]">
                   <div className="text-[11px] font-medium text-white mb-2">{t('风险平价权重 vs 当前')}</div>
                   <div className="space-y-1.5">
-                    {btResult.corrTickers.map((t, i) => {
+                    {btResult.corrTickers.map((tk, i) => {
                       const rp = btResult.riskParityWeights[i] || 0;
-                      const cur = btResult.holdingResults.find(h => h.ticker === t)?.weight || 0;
+                      const cur = btResult.holdingResults.find(h => h.ticker === tk)?.weight || 0;
                       const diff = rp - cur;
                       return (
-                        <div key={t} className="flex items-center gap-2 text-[10px]">
-                          <span className="font-mono text-white w-16 shrink-0">{t}</span>
+                        <div key={tk} className="flex items-center gap-2 text-[10px]">
+                          <span className="font-mono text-white w-16 shrink-0">{tk}</span>
                           <div className="flex-1 flex items-center gap-1">
                             <div className="flex-1 h-3 rounded-full bg-white/5 overflow-hidden relative">
                               <div className="absolute inset-y-0 left-0 rounded-full bg-indigo-500/40" style={{ width: `${rp}%` }} />
@@ -2838,12 +2867,32 @@ const BacktestEngine = () => {
                     })}
                   </div>
                   <div className="mt-2 text-[9px] text-[#778]">{t('按波动率倒数分配，使每个标的对组合风险贡献相等')}</div>
+                  {/* v5: Apply CTA — 把推荐权重直接覆写当前组合并重跑 */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newPortfolio = {};
+                      btResult.corrTickers.forEach((tk, i) => {
+                        const w = btResult.riskParityWeights[i];
+                        if (w > 0) newPortfolio[tk] = Math.round(w * 10) / 10;
+                      });
+                      // 防御：避免零权重时清空组合
+                      if (Object.keys(newPortfolio).length === 0) return;
+                      setPortfolio(newPortfolio);
+                      setTimeout(() => runBacktest(), 120);
+                    }}
+                    disabled={running}
+                    className="w-full mt-2 py-1.5 rounded-md text-[10px] font-semibold bg-gradient-to-r from-cyan-500/20 to-cyan-500/10 text-cyan-200 border border-cyan-400/35 hover:from-cyan-500/30 hover:to-cyan-500/15 transition disabled:opacity-40 flex items-center justify-center gap-1.5"
+                    title={t('用 RP 权重覆写当前组合并立即重跑回测')}
+                  >
+                    <Zap size={11} /> {t('应用风险平价并重跑')}
+                  </button>
                 </div>
               </div>
             </div>
 
             {/* ─── 回测偏差声明 ─── */}
-            <div className="rounded-lg border border-amber-500/15 bg-amber-500/[0.02] p-3">
+            <div className="rounded-lg border border-amber-500/15 bg-amber-500/[0.02] p-3" data-tab="resilience">
               <div className="flex items-start gap-2.5">
                 <div className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0 mt-0.5">
                   <AlertTriangle size={13} className="text-amber-400" />

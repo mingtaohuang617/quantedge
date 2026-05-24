@@ -1170,3 +1170,13 @@ select:focus-visible {
   .lead-paragraph__body { font-size: 12.5px; line-height: 1.65; }
   .pillar-card__num { font-size: 26px; }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   v5 Backtest 3-Tab — 用 data-tab 属性选择器分组显示 14 个分析面板
+   每个面板加 data-tab="perf|risk|resilience"，根据父容器当前 .tab-X 显示对应
+   ───────────────────────────────────────────────────────────────────────── */
+.backtest-tabs.tab-perf [data-tab]:not([data-tab="perf"]),
+.backtest-tabs.tab-risk [data-tab]:not([data-tab="risk"]),
+.backtest-tabs.tab-resilience [data-tab]:not([data-tab="resilience"]) {
+  display: none !important;
+}
