@@ -1408,35 +1408,41 @@ const ScoringDashboard = () => {
             <div className="glass-card p-3 sm:p-4">
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-2 gap-1">
                 <div>
+                  {/* v5 编辑式 hero：ticker 抬到 28/36px + Fraunces serif — 让单只标的成为主角 */}
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <h3 className="text-base sm:text-lg font-bold text-white tracking-tight">{sel.ticker}</h3>
+                    <h3 className="text-[28px] sm:text-[36px] font-serif font-semibold text-white leading-none tracking-tight" style={{ letterSpacing: '-0.02em' }}>{sel.ticker}</h3>
                     {/* PDF1 收敛：sector 从 accent Badge 改 neutral 文字（信息性，无需视觉权重） */}
                     <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>{sel.market} · {sel.sector}</span>
                     {/* PDF1 P0 收敛：etfType（国家/主题/行业 ETF）是分类信息，不是 warning。
                         leverage 保留 danger（杠杆是真风险标记）；普通 ETF 用 default neutral。 */}
                     {sel.isETF && <Badge variant={sel.leverage ? "danger" : "default"} size="sm">{sel.etfType}</Badge>}
-                    {/* PDF2 抛光：28px 评分环 stroke 描边动画（1.1s）+ 双色品牌渐变 */}
+                    {/* v5 编辑式：评分环抬到 40px（含中心数字）— 让评分作为视觉锚点而非小图标 */}
                     {sel.score != null && (() => {
-                      const C = 69.12;  // 2π × r=11
+                      const C = 100.53;  // 2π × r=16
                       const s = Math.min(100, Math.max(0, sel.score));
                       const gradId = `score-ring-grad-${sel.ticker || 'sel'}`;
                       return (
-                        <svg width="28" height="28" viewBox="0 0 28 28" className="shrink-0" aria-hidden="true">
-                          <defs>
-                            <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
-                              <stop offset="0%" stopColor="var(--accent-indigo)" />
-                              <stop offset="100%" stopColor="var(--accent-cyan)" />
-                            </linearGradient>
-                          </defs>
-                          <circle cx="14" cy="14" r="11" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="2.5" />
-                          <circle cx="14" cy="14" r="11" fill="none"
-                            stroke={`url(#${gradId})`} strokeWidth="2.5" strokeLinecap="round"
-                            strokeDasharray={C}
-                            strokeDashoffset={C * (1 - s / 100)}
-                            transform="rotate(-90 14 14)"
-                            style={{ transition: 'stroke-dashoffset 1.1s cubic-bezier(0.2,0.7,0.1,1)' }}
-                          />
-                        </svg>
+                        <div className="relative w-10 h-10 shrink-0" aria-hidden="true">
+                          <svg width="40" height="40" viewBox="0 0 40 40">
+                            <defs>
+                              <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stopColor="var(--accent-indigo)" />
+                                <stop offset="100%" stopColor="var(--accent-cyan)" />
+                              </linearGradient>
+                            </defs>
+                            <circle cx="20" cy="20" r="16" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="3" />
+                            <circle cx="20" cy="20" r="16" fill="none"
+                              stroke={`url(#${gradId})`} strokeWidth="3" strokeLinecap="round"
+                              strokeDasharray={C}
+                              strokeDashoffset={C * (1 - s / 100)}
+                              transform="rotate(-90 20 20)"
+                              style={{ transition: 'stroke-dashoffset 1.1s cubic-bezier(0.2,0.7,0.1,1)' }}
+                            />
+                          </svg>
+                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <span className="text-[11px] font-mono font-bold tabular-nums text-white leading-none">{s.toFixed(0)}</span>
+                          </div>
+                        </div>
                       );
                     })()}
                     {/* PDF1 P0：评分数字 + vs 行业中位 ▲▼ delta（chip 与环并排） */}
@@ -1481,6 +1487,87 @@ const ScoringDashboard = () => {
               {sel.subScores && (
                 <div className="mb-2">
                   <ScoreExplainCard stock={sel} weights={weights} />
+                </div>
+              )}
+              {/* v5 编辑式：三大要素 pillar cards — 把评分归因从深埋的 hover tooltip 提升为主视图
+                  顶部色条 + 32px 大数字 + 进度条 + 高亮指标 — 一眼 grok "为什么是 X 分"
+                  仅非 ETF：ETF 用 cost/liquidity/momentum/risk 四维（已有深处归因卡覆盖） */}
+              {sel.subScores && !sel.isETF && typeof sel.subScores.fundamental === 'number' && (
+                <div className="mb-3">
+                  <div className="flex items-baseline justify-between mb-1.5">
+                    <h3 className="text-[11px] font-medium text-white/90">{t('评分由三大要素构成')}</h3>
+                    {sectorMedians?.score != null && (
+                      <span className="text-[9px] text-[#778]">
+                        vs {t('行业中位')} <span className={`font-mono ${(sel.score - sectorMedians.score) >= 0 ? 'text-up' : 'text-down'}`}>
+                          {(sel.score - sectorMedians.score) >= 0 ? '+' : ''}{(sel.score - sectorMedians.score).toFixed(1)}
+                        </span>
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {[
+                      {
+                        key: 'fundamental',
+                        label: t('基本面'),
+                        color: '#818cf8',
+                        value: sel.subScores.fundamental,
+                        weight: weights.fundamental,
+                        highlight: [
+                          sel.pe != null && sel.pe > 0 && `PE ${sel.pe.toFixed(1)}`,
+                          sel.roe != null && `ROE ${sel.roe.toFixed(1)}%`,
+                        ].filter(Boolean).join(' · ') || t('盈利质量'),
+                        sub: t('盈利质量与估值'),
+                      },
+                      {
+                        key: 'technical',
+                        label: t('技术面'),
+                        color: '#f5b53c',
+                        value: sel.subScores.technical,
+                        weight: weights.technical,
+                        highlight: [
+                          sel.rsi != null && `RSI ${typeof sel.rsi === 'number' ? sel.rsi.toFixed(1) : sel.rsi}`,
+                          sel.beta != null && `β ${sel.beta}`,
+                        ].filter(Boolean).join(' · ') || t('价格动能'),
+                        sub: t('价格动能与位置'),
+                      },
+                      {
+                        key: 'growth',
+                        label: t('成长性'),
+                        color: '#1ed395',
+                        value: sel.subScores.growth,
+                        weight: weights.growth,
+                        highlight: [
+                          sel.revenueGrowth != null && `${t('营收')} ${sel.revenueGrowth.toFixed(1)}%`,
+                          sel.profitMargin != null && `${t('利润率')} ${sel.profitMargin.toFixed(1)}%`,
+                        ].filter(Boolean).join(' · ') || t('未来增长曲线'),
+                        sub: t('未来增长曲线'),
+                      },
+                    ].map(p => {
+                      const v = Number.isFinite(p.value) ? p.value : 0;
+                      return (
+                        <div
+                          key={p.key}
+                          className="pillar-card"
+                          style={{ '--pillar-color': p.color }}
+                          title={`${p.label} ${v.toFixed(1)} / 100 · ${t('权重')} ${p.weight}%`}
+                        >
+                          <div className="flex items-baseline justify-between mb-2">
+                            <span className="text-[11px] font-semibold text-white">{p.label}</span>
+                            <span className="text-[9px] font-mono" style={{ color: p.color }}>{t('权重')} {p.weight}%</span>
+                          </div>
+                          <div className="flex items-baseline gap-1 mb-2">
+                            <span className="pillar-card__num">{v.toFixed(0)}</span>
+                            <span className="text-[9px] text-[#778] font-mono">/100</span>
+                          </div>
+                          <div className="pillar-card__bar mb-2">
+                            <div className="pillar-card__bar-fill" style={{ width: `${Math.max(2, Math.min(100, v))}%` }} />
+                          </div>
+                          <div className="text-[11px] text-white/90 font-medium leading-tight">{p.highlight}</div>
+                          <div className="text-[10px] text-[#778] mt-0.5">{p.sub}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
               {/* 图表标题 */}
@@ -1557,7 +1644,7 @@ const ScoringDashboard = () => {
                         <stop offset="100%" stopColor="#6366f1" stopOpacity="0" />
                       </linearGradient>
                     </defs>
-                    <XAxis dataKey="m" tick={{ fontSize: 9, fill: "#667" }} axisLine={false} tickLine={false} minTickGap={28} />
+                    <XAxis dataKey="m" tick={{ fontSize: 9, fill: "#667" }} axisLine={false} tickLine={false} minTickGap={28} interval="preserveStartEnd" />
                     <YAxis yAxisId="price" tick={{ fontSize: 10, fill: "#667" }} axisLine={false} tickLine={false} domain={["auto", "auto"]} width={(sel.currency === "KRW" || sel.currency === "JPY") ? 64 : 45}
                       tickFormatter={(v) => {
                         // KRW/JPY 用千分位整数；其他保持原样
@@ -2374,7 +2461,7 @@ const ScoringDashboard = () => {
                     <stop offset="100%" stopColor="#4169E1" />
                   </linearGradient>
                 </defs>
-                <XAxis dataKey="m" tick={{ fontSize: 11, fill: "#a0aec0" }} axisLine={false} tickLine={false} minTickGap={40} />
+                <XAxis dataKey="m" tick={{ fontSize: 11, fill: "#a0aec0" }} axisLine={false} tickLine={false} minTickGap={40} interval="preserveStartEnd" />
                 <YAxis yAxisId="price" tick={{ fontSize: 11, fill: "#a0aec0" }} axisLine={false} tickLine={false} domain={["auto", "auto"]} width={(sel.currency === "KRW" || sel.currency === "JPY") ? 80 : 60}
                   tickFormatter={(v) => {
                     if (sel.currency === "KRW" || sel.currency === "JPY") return Math.round(v).toLocaleString();

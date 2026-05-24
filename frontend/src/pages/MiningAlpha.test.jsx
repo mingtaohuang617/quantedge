@@ -14,9 +14,108 @@ vi.mock('../quant-platform.jsx', () => ({
 }));
 import { apiFetch } from '../quant-platform.jsx';
 
-import { AlertsBanner, TopHoldingsTable, RunPipelinePanel } from './MiningAlpha.jsx';
+import { AlertsBanner, TopHoldingsTable, RunPipelinePanel, mergeRegimeSegments, BackendUnreachableNotice } from './MiningAlpha.jsx';
 
 afterEach(() => cleanup());
+
+// ─────────────────────────────────────────────────────────────
+// BackendUnreachableNotice — Vercel 这类纯前端部署的友好兜底
+// ─────────────────────────────────────────────────────────────
+describe('BackendUnreachableNotice', () => {
+  it('渲染标题 + 启动命令 + 重试按钮', () => {
+    render(<BackendUnreachableNotice onRetry={() => {}} loading={false} />);
+    expect(screen.getByText(/Mining Alpha 需要 self-hosted backend/)).toBeInTheDocument();
+    expect(screen.getByText(/cd backend && python server\.py/)).toBeInTheDocument();
+    expect(screen.getByText(/重试连接/)).toBeInTheDocument();
+  });
+
+  it('提示其他不依赖 backend 的页面在 Vercel 上仍可用', () => {
+    render(<BackendUnreachableNotice onRetry={() => {}} loading={false} />);
+    expect(screen.getByText(/量化评分.*投资日志.*宏观/)).toBeInTheDocument();
+  });
+
+  it('点重试按钮 → 调 onRetry', () => {
+    const onRetry = vi.fn();
+    render(<BackendUnreachableNotice onRetry={onRetry} loading={false} />);
+    fireEvent.click(screen.getByText(/重试连接/));
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
+  it('loading=true → 按钮 disabled 且不响应点击', () => {
+    const onRetry = vi.fn();
+    render(<BackendUnreachableNotice onRetry={onRetry} loading={true} />);
+    const btn = screen.getByText(/重试连接/).closest('button');
+    expect(btn).toBeDisabled();
+    fireEvent.click(btn);
+    expect(onRetry).not.toHaveBeenCalled();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
+// mergeRegimeSegments — 把连续同 label 合并成区段（用于 ReferenceArea）
+// ─────────────────────────────────────────────────────────────
+describe('mergeRegimeSegments', () => {
+  it('空数组 → []', () => {
+    expect(mergeRegimeSegments([])).toEqual([]);
+  });
+
+  it('undefined → []（前端 fetchAll catch 失败时会传 undefined）', () => {
+    expect(mergeRegimeSegments(undefined)).toEqual([]);
+    expect(mergeRegimeSegments(null)).toEqual([]);
+  });
+
+  it('单点 → 一个 start==end 的 seg', () => {
+    expect(mergeRegimeSegments([{ date: '2024-01-02', label: 'bull' }])).toEqual([
+      { label: 'bull', start: '2024-01-02', end: '2024-01-02' },
+    ]);
+  });
+
+  it('连续同 label → 合并成一个区段，end 延到最后一点', () => {
+    const segs = mergeRegimeSegments([
+      { date: '2024-01-02', label: 'bull' },
+      { date: '2024-01-03', label: 'bull' },
+      { date: '2024-01-04', label: 'bull' },
+    ]);
+    expect(segs).toEqual([{ label: 'bull', start: '2024-01-02', end: '2024-01-04' }]);
+  });
+
+  it('label 切换 → 切成两段，边界点归属新段的 start', () => {
+    const segs = mergeRegimeSegments([
+      { date: '2024-01-02', label: 'bull' },
+      { date: '2024-01-03', label: 'bull' },
+      { date: '2024-01-04', label: 'bear' },
+      { date: '2024-01-05', label: 'bear' },
+    ]);
+    expect(segs).toEqual([
+      { label: 'bull', start: '2024-01-02', end: '2024-01-03' },
+      { label: 'bear', start: '2024-01-04', end: '2024-01-05' },
+    ]);
+  });
+
+  it('bull → neutral → bear → bull：4 段都被记下，顺序保留', () => {
+    const segs = mergeRegimeSegments([
+      { date: '01', label: 'bull' },
+      { date: '02', label: 'neutral' },
+      { date: '03', label: 'bear' },
+      { date: '04', label: 'bear' },
+      { date: '05', label: 'bull' },
+    ]);
+    expect(segs.map(s => s.label)).toEqual(['bull', 'neutral', 'bear', 'bull']);
+    expect(segs[2]).toEqual({ label: 'bear', start: '03', end: '04' });
+  });
+
+  it('单点切换（每点 label 都不同）→ 每点一个 seg', () => {
+    const segs = mergeRegimeSegments([
+      { date: '01', label: 'a' },
+      { date: '02', label: 'b' },
+      { date: '03', label: 'c' },
+    ]);
+    expect(segs).toHaveLength(3);
+    for (const s of segs) {
+      expect(s.start).toBe(s.end);
+    }
+  });
+});
 
 // ─────────────────────────────────────────────────────────────
 // AlertsBanner

@@ -83,14 +83,15 @@ export default function BacktestNarrationCard({ btResult, portfolio, benchMetric
     }
   };
 
+  // v5 编辑式：AI 回测总结升级为 Lead Paragraph — 紫色 3px 左边线 + 12.5px serif body
   return (
-    <div className="glass-card p-3 border border-violet-500/20">
-      <div className="flex items-center justify-between mb-2">
+    <div className="lead-paragraph">
+      <div className="flex items-center justify-between mb-2.5">
         <div className="flex items-center gap-1.5">
           <Sparkles size={12} className="text-violet-400" />
-          <span className="text-[11px] font-medium text-violet-300">AI 回测总结</span>
+          <span className="text-[10.5px] font-semibold tracking-wider uppercase text-violet-300/90">AI 回测一句话总结</span>
           {state.cached && (
-            <span title="命中缓存" className="inline-flex items-center gap-0.5 text-[9px] text-amber-300/80">
+            <span title="命中缓存" className="inline-flex items-center gap-0.5 text-[9px] text-amber-300/80 ml-1">
               <Zap size={9} /> 缓存
             </span>
           )}
@@ -98,7 +99,7 @@ export default function BacktestNarrationCard({ btResult, portfolio, benchMetric
         {!state.text && !state.loading && (
           <button
             onClick={handleGenerate}
-            className="px-2 py-0.5 text-[10px] rounded-md bg-violet-500/20 hover:bg-violet-500/30 text-violet-200 border border-violet-500/40 transition"
+            className="px-2.5 py-0.5 text-[10px] rounded-md bg-violet-500/20 hover:bg-violet-500/30 text-violet-200 border border-violet-500/40 transition"
           >
             生成总结
           </button>
@@ -114,7 +115,7 @@ export default function BacktestNarrationCard({ btResult, portfolio, benchMetric
       </div>
 
       {state.loading && (
-        <div className="flex items-center gap-2 text-[10px] text-[#a0aec0] py-2">
+        <div className="flex items-center gap-2 text-[11px] text-[#a0aec0] py-1">
           <Loader size={11} className="animate-spin text-violet-400" />
           <span>正在分析回测结果...</span>
         </div>
@@ -128,11 +129,14 @@ export default function BacktestNarrationCard({ btResult, portfolio, benchMetric
       )}
 
       {state.text && !state.loading && (
-        <div className="text-[10px] text-[#d0d7e2] leading-relaxed whitespace-pre-line">{state.text}</div>
+        <>
+          <p className="lead-paragraph__body whitespace-pre-line">{state.text}</p>
+          <div className="lead-paragraph__based-on">based on · NAV · Sharpe · 板块权重 · 回撤序列 · 单月最差</div>
+        </>
       )}
 
       {!state.expanded && !state.loading && !state.error && (
-        <div className="text-[10px] text-[#778]">
+        <div className="text-[11px] text-[#a0aec0]">
           点"生成总结"让 DeepSeek 用 4-5 句话评价回测表现和风险
         </div>
       )}

@@ -78,7 +78,7 @@ FRONTEND_DATA_PATH = BASE_DIR.parent / "frontend" / "src" / "data.js"
 
 # ─── Import pipeline components ────────────────────────
 from config import TICKERS as BUILTIN_TICKERS, SECTOR_ETF_MAP
-from factors import calc_rsi, calc_momentum, calc_stock_score, calc_etf_score, parse_leverage
+from factors import calc_rsi, calc_momentum, calc_stock_score, calc_etf_score
 
 # 宏观因子库（Phase 1）— 副作用：导入子模块时装饰器把因子注册进 _REGISTRY
 import db as _macro_db
@@ -98,6 +98,9 @@ except Exception as _e:
     # TypeError 之类的非 ImportError 失败
     print(f"[WARN] data_sources unavailable, falling back to yfinance-direct: {_e}")
     HAS_DATA_SOURCES = False
+    # Python 3: `_e` 在 except 块结束时会被删除（PEP 3110），如果在 health_check
+    # 里直接引用 _e 会 NameError。先 freeze 成字符串闭进 fallback 函数。
+    _data_sources_err = str(_e)
     def fetch_history(cfg, days=120):
         """Fallback: use yfinance directly."""
         symbol = cfg.get("yf_symbol", "")
@@ -105,7 +108,7 @@ except Exception as _e:
         hist = tk.history(period=f"{days}d")
         return hist, "yfinance-direct"
     def health_check():
-        return {"data_sources": (False, str(_e))}
+        return {"data_sources": (False, _data_sources_err)}
 
 # 本地数据库 — SQLite 事实库（C17）
 try:
@@ -176,11 +179,10 @@ def fetch_single_stock(ticker_key: str, cfg: dict) -> dict | None:
     try:
         # Try data source router first, fallback to yfinance
         try:
-            hist, src = fetch_history(cfg, days=120)
+            hist, _src = fetch_history(cfg, days=120)
         except Exception:
             tk_obj = yf.Ticker(symbol)
             hist = tk_obj.history(period="6mo")
-            src = "yfinance-fallback"
 
         if hist is None or hist.empty or len(hist) < 2:
             return None
@@ -247,7 +249,6 @@ def fetch_single_stock(ticker_key: str, cfg: dict) -> dict | None:
                 expense_ratio = cfg.get("static_overrides", {}).get("expenseRatio", 0.5)
 
             leverage_str = cfg.get("leverage")
-            lev_factor = parse_leverage(leverage_str)
 
             aum_raw = safe_get(info, "totalAssets")
             score, sub_scores = calc_etf_score(
@@ -1112,6 +1113,264 @@ def db_bars_endpoint(ticker: str, start: str | None = None, end: str | None = No
     return sanitize({"ticker": ticker, "count": len(rows), "bars": rows})
 
 
+# ── Intraday（分钟级行情按需拉取，不落库）────────────────
+@app.get("/api/intraday")
+def intraday_endpoint(
+    ticker: str = Query(..., description="yfinance symbol，例如 SPY / 0005.HK"),
+    interval: str = Query("1m", description="1m / 5m / 15m / 1h / 1d"),
+    lookback_days: int = Query(5, ge=1, le=730),
+    market: str = Query("US"),
+    start: str | None = Query(None, description="ISO8601 起始（含），UTC"),
+    end:   str | None = Query(None, description="ISO8601 结束（含），UTC"),
+):
+    """按需拉 intraday K 线，不落库；start/end 在返回前对 yfinance 滚动窗口做裁剪。
+
+    yfinance interval 滚动窗口（实测）：
+      1m → 7 个交易日 | 5m/15m → 60 天 | 1h → 730 天 | 1d → 6mo
+    """
+    if not HAS_DATA_SOURCES:
+        raise HTTPException(503, "data_sources 模块未加载")
+    from data_sources import Interval as _Interval
+
+    try:
+        iv = _Interval.from_str(interval)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+    cfg = {"yf_symbol": ticker, "market": market.upper(), "name": ticker}
+    try:
+        df, src = fetch_history(cfg, days=lookback_days, interval=iv)
+    except Exception as e:
+        raise HTTPException(502, f"fetch_history 失败 ({ticker} {interval}): {e}")
+
+    # start/end 过滤（仅当用户指定）
+    if start or end:
+        idx = df.index
+        if getattr(idx, "tz", None) is None and iv.is_intraday:
+            # 安全网：理论上 intraday 已 UTC，但兜底以防
+            idx = idx.tz_localize("UTC")
+            df = df.copy()
+            df.index = idx
+        if start:
+            try:
+                ts = pd.Timestamp(start)
+                if ts.tz is None and iv.is_intraday:
+                    ts = ts.tz_localize("UTC")
+                df = df[df.index >= ts]
+            except (ValueError, TypeError) as e:
+                raise HTTPException(400, f"start 解析失败: {e}")
+        if end:
+            try:
+                ts = pd.Timestamp(end)
+                if ts.tz is None and iv.is_intraday:
+                    ts = ts.tz_localize("UTC")
+                df = df[df.index <= ts]
+            except (ValueError, TypeError) as e:
+                raise HTTPException(400, f"end 解析失败: {e}")
+
+    bars = []
+    for ts, row in df.iterrows():
+        if hasattr(ts, "tz") and ts.tz is not None:
+            iso = ts.tz_convert("UTC").isoformat()
+        else:
+            iso = ts.isoformat() if hasattr(ts, "isoformat") else str(ts)
+        bars.append({
+            "timestamp": iso,
+            "open":  float(row["Open"])  if pd.notna(row.get("Open"))  else None,
+            "high":  float(row["High"])  if pd.notna(row.get("High"))  else None,
+            "low":   float(row["Low"])   if pd.notna(row.get("Low"))   else None,
+            "close": float(row["Close"]) if pd.notna(row.get("Close")) else None,
+            "volume": int(row["Volume"]) if pd.notna(row.get("Volume")) else None,
+        })
+
+    return sanitize({
+        "ticker": ticker,
+        "interval": iv.value,
+        "source": src,
+        "count": len(bars),
+        "bars": bars,
+    })
+
+
+# ── Smart Beta 端点 ──────────────────────────────────────
+# 模块级缓存：避免每次刷新都重拉 20+ 只 ETF
+_smart_beta_cache: dict = {}
+_SMART_BETA_TTL_SEC = 1800  # 30 分钟
+
+
+def _fetch_etf_prices(
+    ticker: str, days: int = 280, min_bars: int = 120,
+) -> tuple[pd.Series | None, pd.Series | None]:
+    """从 router 拉一只 ETF 的 close + volume；失败返回 (None, None)。
+
+    L0 SQLite cache 可能只有少量 bars（首次部署后逐步增长），不够 Smart Beta
+    评分用（min_bars 默认 130 ≈ 6 个月）。命中但 bars 不足时强制 prefer_db=False
+    走远程拉 280 天历史，保证算法能正常打分。
+    """
+    if not HAS_DATA_SOURCES:
+        return None, None
+    cfg = {"yf_symbol": ticker, "market": "US", "name": ticker, "type": "etf"}
+
+    def _extract(df):
+        if df is None or df.empty or "Close" not in df.columns:
+            return None, None
+        return df["Close"].dropna(), (df["Volume"].dropna() if "Volume" in df.columns else None)
+
+    try:
+        df, _src = fetch_history(cfg, days=days)
+    except Exception as e:
+        print(f"[smart-beta] fetch_history({ticker}) failed: {e}")
+        return None, None
+
+    close, volume = _extract(df)
+    if close is not None and len(close) >= min_bars:
+        return close, volume
+
+    # Cache 命中但 bars 不够 → 绕过 cache 走远程拉满
+    print(
+        f"[smart-beta] {ticker} cache 只有 "
+        f"{len(close) if close is not None else 0} bars，重新远程拉 {days} 天"
+    )
+    try:
+        df2, _src2 = fetch_history(cfg, days=days, prefer_db=False)
+    except Exception as e:
+        print(f"[smart-beta] {ticker} 远程 fetch_history 失败: {e}")
+        return close, volume  # 退化：返回 cache 数据，让上层决定是否扔
+    return _extract(df2)
+
+
+def _fetch_fred_latest(series_id: str, days_back: int = 90) -> tuple[float | None, float | None]:
+    """返回 (最新值, 30 天前值)；FRED 不可用或 key 缺失返回 (None, None)。"""
+    try:
+        from data_sources.fred_source import fetch_observations
+    except Exception:
+        return None, None
+    try:
+        from datetime import datetime, timedelta
+        start = (datetime.now() - timedelta(days=days_back)).strftime("%Y-%m-%d")
+        rows = fetch_observations(series_id, start=start)
+    except Exception as e:
+        print(f"[smart-beta] FRED({series_id}) failed: {e}")
+        return None, None
+    if not rows:
+        return None, None
+    latest = rows[-1]["value"]
+    older = rows[0]["value"] if len(rows) >= 2 else None
+    return latest, older
+
+
+@app.get("/api/smart-beta/snapshot")
+def smart_beta_snapshot(
+    core_preset: str = Query("balanced", description="balanced / simple / factor"),
+    k: int = Query(3, ge=1, le=10),
+    weight_mode: str = Query("equal", description="equal / momentum"),
+    current_holdings: str | None = Query(None, description="逗号分隔的当前持仓行业 ETF"),
+):
+    """Smart Beta 三层策略快照。
+
+    数据源：
+      - SPY / VIX / 行业 ETF: yfinance (经 data_sources router)
+      - HY 信用利差: FRED BAMLH0A0HYM2 (可选，缺失则给中性 0.5)
+      - 实际利率: FRED DFII10 (同上)
+    """
+    import smart_beta as sb
+
+    holdings_list = None
+    if current_holdings and current_holdings.strip():
+        holdings_list = [s.strip().upper() for s in current_holdings.split(",") if s.strip()]
+
+    # 缓存键：策略参数变了重算；market 数据 30min 内复用
+    cache_key = (core_preset, k, weight_mode, tuple(holdings_list or ()))
+    now_ts = time.time()
+    cached = _smart_beta_cache.get(cache_key)
+    if cached and (now_ts - cached["_cached_at"]) < _SMART_BETA_TTL_SEC:
+        return sanitize({**cached["data"], "_cached": True})
+
+    universe = sb.load_universe()
+
+    # SPY (~280 天，覆盖 200D MA + 缓冲)
+    spy_close, _ = _fetch_etf_prices("SPY", days=280)
+    if spy_close is None or len(spy_close) < 100:
+        raise HTTPException(503, "SPY 数据不可用 — 请检查 yfinance 网络")
+
+    # VIX 最新
+    vix_close, _ = _fetch_etf_prices("^VIX", days=10)
+    vix_val = float(vix_close.iloc[-1]) if vix_close is not None and len(vix_close) else None
+
+    # FRED 信用利差 + 实际利率（可选）
+    hy_latest, hy_older = _fetch_fred_latest("BAMLH0A0HYM2", days_back=45)
+    rr_latest, rr_older = _fetch_fred_latest("DFII10", days_back=45)
+    real_rate_chg = None
+    if rr_latest is not None and rr_older is not None:
+        real_rate_chg = rr_latest - rr_older
+
+    # 拉所有行业 ETF — 并行 8 worker，避免 16 只串行 30s+
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    sector_entries = universe.get("sector", [])
+    sector_data: dict = {}
+    fetch_errors: list[dict] = []
+    MIN_BARS = 120  # 与 score_sector_etf 阈值保持一致
+
+    def _fetch_one(entry):
+        """返回 (entry, close, volume, error_dict_or_None)。"""
+        ticker = entry["ticker"]
+        try:
+            close, volume = _fetch_etf_prices(ticker, days=280)
+        except Exception as e:  # noqa: BLE001 — 上层需要原因
+            return entry, None, None, {
+                "ticker": ticker, "reason": "fetch_exception", "detail": str(e),
+            }
+        if close is None:
+            return entry, None, None, {"ticker": ticker, "reason": "no_data", "bars": 0}
+        if len(close) < MIN_BARS:
+            return entry, close, volume, {
+                "ticker": ticker, "reason": "insufficient_bars",
+                "bars": len(close), "min": MIN_BARS,
+            }
+        return entry, close, volume, None
+
+    max_workers = min(8, len(sector_entries)) or 1
+    with ThreadPoolExecutor(max_workers=max_workers) as pool:
+        futures = [pool.submit(_fetch_one, e) for e in sector_entries]
+        for fut in as_completed(futures):
+            entry, close, volume, err = fut.result()
+            if err is not None:
+                fetch_errors.append(err)
+                continue
+            sector_data[entry["ticker"]] = {
+                "prices":  close,
+                "volumes": volume,
+                "name":    entry.get("name", entry["ticker"]),
+            }
+    # 按 universe 原顺序排序 fetch_errors，方便对照
+    _order = {e["ticker"]: i for i, e in enumerate(sector_entries)}
+    fetch_errors.sort(key=lambda x: _order.get(x.get("ticker"), 999))
+
+    snap = sb.build_snapshot(
+        spy_prices=spy_close,
+        sector_data=sector_data,
+        vix=vix_val,
+        hy_spread=hy_latest,
+        real_rate_chg=real_rate_chg,
+        core_preset=core_preset,
+        k=k,
+        weight_mode=weight_mode,
+        current_holdings=holdings_list,
+        universe=universe,
+    )
+    snap["fetch_errors"] = fetch_errors
+    snap["data_sources"] = {
+        "vix":           vix_val,
+        "hy_spread":     hy_latest,
+        "real_rate_now": rr_latest,
+        "real_rate_chg": real_rate_chg,
+    }
+
+    _smart_beta_cache[cache_key] = {"data": snap, "_cached_at": now_ts}
+    return sanitize(snap)
+
+
 # ── LLM (DeepSeek) 端点 (B1 / B5) ────────────────────────
 class LLMSummaryReq(BaseModel):
     """B1: 个股 AI 摘要请求体。所有字段可选，能给多少给多少。"""
@@ -1899,14 +2158,12 @@ def mining_alpha_top_holdings(top_n: int = 20, run_id: str | None = None):
     latest_row = preds.loc[latest_date].dropna().sort_values(ascending=False).head(top_n)
     latest_set = set(latest_row.index)
 
-    # 上一周（5 个交易日前）的 Top-N
-    prev_holdings = []
-    prev_set = set()
+    # 上一周（5 个交易日前）的 Top-N（只取 ticker 集合，用于打 new/held/dropped 标记）
+    prev_set: set = set()
     if len(preds) > 5:
         prev_date = preds.index[preds.index.get_indexer([latest_date])[0] - 5]
         prev_row = preds.loc[prev_date].dropna().sort_values(ascending=False).head(top_n)
         prev_set = set(prev_row.index)
-        prev_holdings = [{"ticker": str(t), "score": float(s)} for t, s in prev_row.items()]
 
     holdings = []
     for t, s in latest_row.items():

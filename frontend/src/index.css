@@ -1031,3 +1031,152 @@ select:focus-visible {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   QuantEdge · v5 编辑式设计语言（2026.05 落地）· 完全增量，不改既有
+   ─────────────────────────────────────────────────────────────────────────
+   v5 review 评审稿带来的视觉范式：
+   - Fraunces serif 大数字（hero KPI）— 引入"编辑式"氛围
+   - AI Lead Paragraph — 紫色左边线 + 渐变背景，让 AI 从"附属解读"升级为"主导论点"
+   - Pillar Cards — 三柱评分，顶部色条 + 大数字 + 进度条
+   - Eyebrow caption — indigo mono uppercase 小标，编辑式 metadata
+   注：评审稿 hero 用 60-96px，生产环境密度更高，本实现降到 32-44px
+   ───────────────────────────────────────────────────────────────────────── */
+
+/* Fraunces serif — OPT-IN，只在显式 .font-serif 类生效，不动 body 默认 */
+.font-serif {
+  font-family: 'Fraunces', 'Noto Serif SC', Georgia, serif;
+  font-feature-settings: 'ss01' 1, 'ss02' 1;
+  letter-spacing: -0.015em;
+}
+
+/* t-eyebrow · 编辑式小标（评审稿叫 t-eye），用于 hero 头顶的 "SECTION 01" 类 metadata */
+.t-eyebrow {
+  font-family: 'JetBrains Mono', 'DM Mono', monospace;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent-indigo);
+  line-height: 1.4;
+}
+
+/* t-hero · 编辑式 hero 数字 — 第 6 层字号（高于 Display 22-24，专给页面主角数字） */
+.t-hero {
+  font-size: 36px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.04;
+  color: var(--text-heading);
+  font-variant-numeric: tabular-nums;
+}
+.t-hero-lg { font-size: 44px; }
+.t-hero-sm { font-size: 28px; }
+
+/* hero 数字渐变文字（白→浅灰），让大字号有"金属感"立体感而不是扁平贴底 */
+.t-hero-gradient {
+  background: linear-gradient(180deg, #ffffff 0%, #c9ccd9 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.light .t-hero-gradient {
+  background: linear-gradient(180deg, #0f172a 0%, #475569 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* lead-paragraph · AI 主导论点框
+   v5 视觉范式：紫色 3px 左边线 + 紫→透明渐变背景 + 大字号 serif body
+   AI 从"附属解读卡片"升级为"主导论点 lead paragraph" */
+.lead-paragraph {
+  position: relative;
+  padding: 16px 20px 14px 22px;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(99, 102, 241, 0.02));
+  border-left: 3px solid var(--accent-violet);
+  border-radius: 0 12px 12px 0;
+  color: var(--text-primary);
+}
+.lead-paragraph--indigo {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(99, 102, 241, 0.02));
+  border-left-color: var(--accent-indigo);
+}
+.light .lead-paragraph {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.06), rgba(99, 102, 241, 0.02));
+}
+.lead-paragraph__body {
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: var(--text-primary);
+  margin: 0;
+}
+.lead-paragraph__based-on {
+  margin-top: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+/* pillar-card · 三柱评分卡（基本面 / 技术面 / 成长性）
+   顶部 2-3px 渐变色条 + 大数字 + 进度条 + 高亮信息 — 让"为什么是 X 分"秒读 */
+.pillar-card {
+  position: relative;
+  padding: 16px 14px;
+  background: rgba(255, 255, 255, 0.022);
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.pillar-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2.5px;
+  background: var(--pillar-color, var(--accent-indigo));
+  border-radius: 12px 12px 0 0;
+  box-shadow: 0 0 12px var(--pillar-color, var(--accent-indigo));
+  opacity: 0.85;
+}
+.pillar-card__num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--pillar-color, var(--text-heading));
+  font-variant-numeric: tabular-nums;
+}
+.pillar-card__bar {
+  height: 5px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.pillar-card__bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--pillar-color) 40%, transparent), var(--pillar-color));
+  border-radius: 3px;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--pillar-color) 35%, transparent);
+}
+
+/* 移动端 — hero 字号下调，避免一行装不下 */
+@media (max-width: 767px) {
+  .t-hero    { font-size: 28px; }
+  .t-hero-lg { font-size: 32px; }
+  .t-hero-sm { font-size: 24px; }
+  .lead-paragraph { padding: 14px 16px 12px 18px; }
+  .lead-paragraph__body { font-size: 12.5px; line-height: 1.65; }
+  .pillar-card__num { font-size: 26px; }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   v5 Backtest 3-Tab — 用 data-tab 属性选择器分组显示 14 个分析面板
+   每个面板加 data-tab="perf|risk|resilience"，根据父容器当前 .tab-X 显示对应
+   ───────────────────────────────────────────────────────────────────────── */
+.backtest-tabs.tab-perf [data-tab]:not([data-tab="perf"]),
+.backtest-tabs.tab-risk [data-tab]:not([data-tab="risk"]),
+.backtest-tabs.tab-resilience [data-tab]:not([data-tab="resilience"]) {
+  display: none !important;
+}

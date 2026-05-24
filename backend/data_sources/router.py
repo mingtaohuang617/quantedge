@@ -27,6 +27,8 @@ from datetime import date, datetime, timedelta
 
 import pandas as pd
 
+from ._intervals import Interval
+
 # ── 每个数据源独立 try/except —— 缺任一不影响其他 ──
 # 缺失的源在路由链中自动跳过；标志位用于 health_check 与决策
 import sys as _sys
@@ -131,16 +133,45 @@ def _persist_to_db(cfg: dict, df: pd.DataFrame, source: str) -> None:
 
 # ── 行情数据 (K线) ────────────────────────────────────────
 
-def fetch_history(cfg: dict, days: int = 120, *, prefer_db: bool = True) -> tuple[pd.DataFrame, str]:
+def fetch_history(
+    cfg: dict,
+    days: int = 120,
+    *,
+    prefer_db: bool = True,
+    interval: Interval | str = Interval.DAY_1,
+) -> tuple[pd.DataFrame, str]:
     """
-    拉取日 K 线，按优先级尝试多个数据源。
+    拉取 K 线，按优先级尝试多个数据源。
     返回 (DataFrame, source_name)。
 
     prefer_db=True: 先查 SQLite 库；命中且新鲜直接返回（不走网络）。
                    增量同步任务自身应传 prefer_db=False，避免循环命中。
+
+    interval=DAY_1（默认）: 走原 5 层路由（含 SQLite 缓存 + 多源）。
+    interval ≠ DAY_1: 跳过 L0/L1/L2/L3 直接走 yfinance —— tushare/iTick/Futu
+                     和 SQLite 都是日 K schema，不支持分钟级。
     """
+    iv = Interval.from_str(interval)
     market = (cfg.get("market") or "").upper()
     errors: list[str] = []
+
+    # ── Intraday：tushare/iTick/Futu 不支持分钟级 → 直接 yfinance ──
+    if iv.is_intraday:
+        if not HAS_YFINANCE:
+            raise RuntimeError(
+                f"intraday 仅支持 yfinance，但 yfinance 未加载: {_YFINANCE_ERR}"
+            )
+        try:
+            df = yfinance_source.fetch_history(cfg, days=days, interval=iv)
+            if df is not None and len(df) >= 5:
+                return df, "yfinance"
+            errors.append(f"yfinance: rows<5 (interval={iv.value})")
+        except Exception as e:
+            errors.append(f"yfinance: {e}")
+        raise RuntimeError(
+            f"intraday 拉取失败 ({cfg.get('yf_symbol')}, interval={iv.value}): "
+            + " | ".join(errors)
+        )
 
     # ── L0: SQLite 零级缓存 ──
     if prefer_db and HAS_DB and _db is not None:

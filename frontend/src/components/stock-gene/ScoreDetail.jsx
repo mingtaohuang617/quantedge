@@ -104,16 +104,18 @@ export function ScoreDetail({
           </button>
         </div>
         {narrative && (
-          <div className="mt-2 px-2 py-2 bg-violet-500/8 border border-violet-500/30 rounded text-[10px] text-[#d0d7e2] leading-relaxed">
-            <div className="flex items-center gap-1 mb-1 text-[9px] text-violet-300">
-              <Sparkles size={9} />
-              <span>AI 解读（DeepSeek · {engineLabel}）</span>
-              {narrative.cached && <span className="ml-auto text-[9px] text-violet-300/60">cached</span>}
+          // v5: 套 .lead-paragraph — 紫色 3px 左边线 + 渐变 bg + 12.5px serif body
+          // 引擎 label + cached 状态保留在顶部 eyebrow row
+          <div className="mt-2 lead-paragraph">
+            <div className="flex items-center gap-1 mb-2 text-[10px] uppercase tracking-wider text-violet-300/90 font-semibold">
+              <Sparkles size={10} />
+              <span>AI 解读 · {engineLabel}</span>
+              {narrative.cached && <span className="ml-auto text-[9px] text-violet-300/60 normal-case tracking-normal">cached</span>}
             </div>
             {narrative.error ? (
-              <span className="text-amber-300/90">{narrative.error}</span>
+              <span className="text-[11px] text-amber-300/90">{narrative.error}</span>
             ) : (
-              <span>{narrative.text}</span>
+              <p className="lead-paragraph__body" style={{ fontSize: 12.5 }}>{narrative.text}</p>
             )}
           </div>
         )}

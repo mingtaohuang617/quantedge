@@ -1,6 +1,17 @@
 # QuantEdge
 
-自研综合量化投资平台 — **量化评分 + 组合回测 + 实时监控 + 投资日志**。
+自研综合量化投资平台 — 8 个独立子页协同打仗：
+
+| Tab | 功能 | 后端 / 数据源 |
+|-----|------|-------------|
+| **量化评分** | 多因子打分 + 组合权重推荐 | factors.py + iTick/Futu/AKShare/yfinance |
+| **组合回测** | 历史回测 + KPI vs 基准 + Underwater | factors + yfinance + 蒙特卡洛 |
+| **实时监控** | 价格预警 + macro L5 + sector × regime | server.py 实时 + macro snapshot |
+| **投资日志** | 持仓笔记 + macro context + AI 复盘 | KV + DeepSeek |
+| **10x 猎手** | 三段筛选（赛道 → 候选 → 观察）+ AI 校验/排序 + 价值型 DCF | universe JSON + KV + DeepSeek |
+| **因子挖掘** | Alpha191 因子库 + 信号回测 | mining_alpha 模块 |
+| **股性检测** | 4 引擎（牛势 / 价值健康 / 短线动量 / 风险）+ 横向对比 | stock_gene 模块 + DeepSeek |
+| **宏观看板** | 17 个宏观因子 + HMM regime + 生存分析 + 因子叙事 | FRED + multpl + akshare + macro_snapshot |
 
 ## 快速开始
 
@@ -51,31 +62,37 @@ npm run lint:py       # ruff check backend
 
 ```
 QuantEdge/
-├── backend/                    # Python 数据管道 + FastAPI
-│   ├── pipeline.py             # 主管道（拉数 → 因子 → 输出）
-│   ├── server.py               # FastAPI 服务
-│   ├── factors.py              # 评分因子（纯函数）
-│   ├── config.py               # 标的元数据
-│   ├── data_sources/           # 多源数据路由（iTick/Futu/AKShare/yfinance）
-│   └── tests/                  # pytest
-├── frontend/                   # React + Recharts + Tailwind
+├── backend/                          # Python 数据管道 + FastAPI（self-hosted）
+│   ├── pipeline.py                   # 主管道（拉数 → 因子 → 输出）
+│   ├── server.py                     # FastAPI 服务
+│   ├── factors.py                    # 评分因子（纯函数）
+│   ├── sector_mapping.py             # 行业 → supertrend 归一化
+│   ├── watchlist_10x.py              # 10x 猎手 watchlist CRUD
+│   ├── stock_gene.py                 # 股性 4 引擎
+│   ├── llm.py                        # DeepSeek 集成 + 24h cache
+│   ├── universe/                     # 候选股池同步（US/HK/CN）
+│   ├── mining_alpha/                 # Alpha191 因子挖掘
+│   ├── data_sources/                 # 多源数据（iTick/Futu/AKShare/yfinance/FRED/Finnhub）
+│   └── tests/                        # 933 pytest 用例
+├── frontend/                         # React + Vite + Recharts + Tailwind
 │   ├── src/
-│   │   ├── quant-platform.jsx  # 主组件（待拆分）
-│   │   ├── standalone.js       # Yahoo 直连兜底
-│   │   ├── i18n.jsx
-│   │   └── math/stats.ts
-│   ├── public/                 # PWA / sw.js / manifest
-│   └── api/yahoo.js            # Vercel serverless proxy
-├── docs/
-│   ├── PROJECT_CONTEXT.md      # 业务背景
-│   ├── ARCHITECTURE.md         # 架构与数据流
-│   └── TODO.md                 # 任务清单
-└── pyproject.toml              # Python 工具链配置 (ruff + pytest)
+│   │   ├── pages/                    # 8 个子页（lazy loaded）
+│   │   ├── components/
+│   │   │   ├── stock-gene/           # 股性检测组件
+│   │   │   ├── macro/                # 宏观看板组件
+│   │   │   └── *.jsx                 # 通用组件 + WatchlistCard / DCF / 详情面板
+│   │   ├── lib/                      # 纯函数 helper（DCF / 排序 / CSV / 价格缓存）
+│   │   └── quant-platform.jsx        # 主组件 shell + 路由
+│   ├── public/data/universe/         # universe_us/hk/cn.json（git tracked）
+│   └── api/                          # Vercel serverless（yahoo / llm / watchlist / stock-gene）
+├── docs/                             # 业务背景 / 架构 / TODO
+└── pyproject.toml                    # Python 工具链配置（ruff + pytest）
 ```
 
 ## 追踪标的
 
-美股个股（RKLB / NVDA / SNDK / MU / LITE）+ 港股个股（00005.HK 汇丰、09988.HK 阿里、03986.HK 兆易）+ ETF（DRAM 等）+ 港股杠杆 ETF（07709.HK 2x）。
+- **评分 / 回测 / 监控 / 日志**：手选标的（默认 RKLB / NVDA / SNDK / MU / LITE / 00005.HK / 09988.HK / 03986.HK 等）；在 frontend 主页 / 标的管理里增删
+- **10x 猎手**：覆盖 S&P 500 / Nasdaq 100 / 恒生指数 / 恒生科技指数 / 沪深 300 全部成分（~1500 票）+ ETF + A 股 / 港股核心池
 
 ## Vercel production 部署
 
@@ -115,8 +132,9 @@ git push
 ### 4. 验证
 
 production 上打开 10x 猎手页面：
-- 左栏看到 4 个内置赛道 + "+ 自定义赛道" 按钮（KV OK）
-- 勾选 "半导体" 看到候选股列表（universe data OK）
+- 左栏看到 7 个内置赛道（4 个成长：AI 算力 / 半导体 / 光通信 / 算力中心；3 个价值：高股息蓝筹 / 周期价值 / 消费稳健）+ "+ 自定义赛道" 按钮（KV OK）
+- 勾选任一赛道看到候选股列表（universe data OK）
+- 点 ticker → 公司详情面板（含 30 天迷你 K 线 + 5 维财务）
 - 编辑器里点 "AI 生成草稿" 拿到 5 段文字（DEEPSEEK_API_KEY OK）
 
 任一步骤失败 → 检查 vercel function logs：Dashboard → Deployments → 选 deployment → Functions。
