@@ -1,24 +1,13 @@
 # ─────────────────────────────────────────────────────────────
-# 禁用 stock-gene serverless API 路由（团队决策：保持 demo 模式）
+# v0.8: stock-gene 排除已解除 — refactor 把 24 函数合到 7-8 个，
+# 12 上限不再是问题。详见 PR #173 / #176 / #178。
 # ─────────────────────────────────────────────────────────────
-# 背景:
-#   - Vercel Hobby plan 硬上限 12 个 serverless function
-#   - 项目当前总函数 22 个（llm 4 + stock-gene 10 + universe 1 +
-#     watchlist 6 + yahoo 1），其中 stock-gene 全 10 个被本文件排除
-#   - 排除后部署的函数 = 22 - 10 = 12，刚好贴顶 Hobby 上限
+# 历史背景（保留备忘）:
+#   - PR #100 之前 Vercel Hobby plan 硬上限 12 个 serverless function；
+#     项目原 22 个，团队当时选择把 stock-gene 全 10 个排除，让该 tab
+#     在生产降级为 demo 模式（isDemoMode=true）。
+#   - v0.8 重构后：llm 4→1 / watchlist/10x 6→2 / stock-gene 11→1 / 其它 3。
+#     总数 8，远低于 12 上限。stock-gene 已经可以正常部署。
 #
-# 影响:
-#   - 生产 quantedge-chi.vercel.app 上 stock-gene tab = demo 模式
-#     （前端 isDemoMode = true，显示"后端不可用，需 self-hosted backend"）
-#   - 本地 dev / self-hosted 后端 不受影响（API 路径不变）
-#
-# 恢复完整 stock-gene API 三种方案（PR #100 讨论结果）:
-#   1. Vercel Pro plan ($20/mo) → 函数上限 1000，删本文件即可
-#   2. catch-all 路由合并 → /api/stock-gene/[...path].js 把 10 个
-#      函数合成 1 个，配合 watchlist 合并到 ≤12 总数（1-2 小时重构）
-#   3. 保持现状（当前选择）
-#
-# 不要轻易删本文件 — 删除后 Vercel deploy 会 100% 失败
+# 现在本文件不排除任何 api/* 路径（保留文件本身做文档与未来需要）。
 # ─────────────────────────────────────────────────────────────
-api/stock-gene/
-api/stock-gene.js
