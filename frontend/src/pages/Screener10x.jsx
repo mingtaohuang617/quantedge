@@ -36,6 +36,7 @@ import { sortCandidates, nextSortState } from "../lib/candidateSort.js";
 import StockDetailPanel from "../components/StockDetailPanel.jsx";
 import { serializeWatchlistCsv } from "../lib/csvExport.js";
 import { fmtMcap, fmtNum, fmtPct } from "../lib/formatters.js";
+import { fetchCurrentPrice } from "../lib/yahoo.js";
 
 const STRATEGY_LABEL = { growth: "成长型", value: "价值型" };
 
@@ -66,35 +67,8 @@ const DEFAULT_VALUE_FILTERS = {
 
 // fmtMcap / fmtNum / fmtPct 已抽到 src/lib/formatters.js（PR #163），import 自顶部
 
-/** ticker → Yahoo Finance symbol。复用 quant-platform.jsx:fetchYahooPrices 的规则
- *  + 补 A 股 .SH → .SS。 */
-function _tickerToYahoo(ticker) {
-  if (!ticker) return null;
-  if (ticker.endsWith(".HK")) {
-    const num = ticker.replace(".HK", "").replace(/^0+/, "").padStart(4, "0");
-    return num + ".HK";
-  }
-  if (ticker.endsWith(".SH")) return ticker.replace(".SH", ".SS");
-  // .SZ / .BJ / 美股纯 ticker 保留原样
-  return ticker;
-}
-
-/** 单只 ticker 拉当前价（regularMarketPrice）。失败返回 null。 */
-async function fetchCurrentPrice(ticker) {
-  const yfSym = _tickerToYahoo(ticker);
-  if (!yfSym) return null;
-  const path = `/v8/finance/chart/${encodeURIComponent(yfSym)}?interval=1d&range=1d`;
-  const url = `/api/yahoo?host=query1&path=${encodeURIComponent(path)}`;
-  try {
-    const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
-    if (!r.ok) return null;
-    const j = await r.json();
-    const px = j?.chart?.result?.[0]?.meta?.regularMarketPrice;
-    return typeof px === "number" ? px : null;
-  } catch {
-    return null;
-  }
-}
+// _tickerToYahoo + fetchCurrentPrice 已抽到 src/lib/yahoo.js（PR #161）
+// 该 lib 也被 StockDetailPanel.jsx 复用
 
 const FIELD_LABEL = { sector: "板块", industry: "行业", name: "名称" };
 
