@@ -5,7 +5,45 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Infrastructure — Vercel 部署解锁（PR #173 / #176 / #178）
+
+终于把 `quantedge-chi.vercel.app` 从 PR #136（5-23）冷冻状态解放，过去 5 个 PR（smart-beta / mining-alpha / v5 等）全部上线。
+
+- **`api/*` serverless functions 24 → 8** (PR #173)：
+  - 之前部署一直失败：`Error: No more than 12 Serverless Functions can be added to a Deployment on the Hobby plan`（从 PR #154 起 5 个 PR 部署 0 成功）
+  - 用 `_*` 前缀 + 单个 dispatcher 模式（Vercel 自动忽略下划线开头文件）
+  - `llm/` 4→1：`[endpoint].js` 既路由本地 4 handler 也兜底反代 Render（含 PR #176 的合并）
+  - `watchlist/10x/` 6→2：保留 `10x.js` 作为根；`10x/[slug].js` 接子路由
+  - `stock-gene/` 11→1：`index.js` 单点 dispatcher + `vercel.json` `/api/stock-gene/(.+) → /api/stock-gene?path=$1`
+  - 其它（smart-beta / universe / yahoo）= 3，合计 8
+  - API URL 0 改动 — 前端无须更新
+- **Vercel API 路由兼容修复** (PR #176)：
+  - `[[...slug]].js`（Next.js 特性）在纯 Vercel functions 不识别 → 改用 `[...slug].js`
+  - 合并 `[action].js` 与已存在的 `[endpoint].js` 反代 catch-all，避免同目录双 dynamic route 冲突
+- **`.vercelignore` 解除 stock-gene 排除** (PR #178)：
+  - PR #100 时为贴 12 函数上限，团队选择把 stock-gene 全 10 个 lambda 排除 → 该 tab 在生产降级为 demo 模式
+  - 现在合并后只剩 8 个函数远低于上限，解除排除规则
+  - 生产烟测：`/api/stock-gene/lists` `/api/stock-gene/AAPL` `/api/watchlist/10x/supertrends` 全部 200/403（403 = referer check 正常工作）
+
 ### Added — v5 编辑式设计语言（2026-05）
+
+- **v5 编辑式 4 个页面落地** (PR #170)：把已写好但只在 BacktestEngine 1 处用过的 v5 CSS 真正应用到 4 个主页面
+  - **ScoringDashboard 三柱评分卡**：fundamental/technical/growth 三张 `.pillar-card`，顶部色条 + 36px 大数字 + 进度条 + 高亮 PE/RSI/营收，仅非 ETF 显示
+  - **Journal 72px serif P&L hero**：持仓汇总 `+$X` 抬到 `.t-hero-lg + .font-serif`（桌面 44px / 移动 32px），gainPct 抬到带边框 chip
+  - **MacroDashboard L1-L5 阶梯**：温度数字改 `.t-hero-lg + .font-serif`；单条线性进度 → 5 段阶梯（冰冻/偏冷/温和/偏热/过热）+ 当前段 glow + 边界 3 分内"可能进入 LX"跃迁预警
+  - **Monitor Featured Alert Spotlight**：第一条 high severity 抽出大卡 + 3 常驻 CTA（处置 / 已处理 / 静音 24h），其余告警走原 quiet list
+- **v5 编辑式 Phase 5-10**（PR #172）：把剩余 6 项落地
+  - **Backtest 3-Tab 重组**：14 个分析面板按 表现 / 风险 / 韧性 分组（用 `data-tab` 属性 + CSS 单点 mod 实现）
+  - **Backtest RP Apply CTA**：风险平价卡新增"应用风险平价并重跑"按钮直接覆写当前组合
+  - **Macro NarrativePanel 套 lead-paragraph**：从 `PANEL.ai` 改用 `.lead-paragraph` + Fraunces serif body
+  - **Macro 因子分两组**：contrarian × 极端区（pct < 10 / > 90）+ 任意 < 5 / > 95 → "需关注"组（amber 边框）；其余走"常规因子"
+  - **Screener 4-段漏斗 header**：全宇宙 → 匹配赛道 → AI 已审 → 你的观察（serif 数字 + 箭头连接）
+  - **Screener AI Pipeline banner + Top 3 高亮**：Pipeline 完成后顶部紫色 banner；候选表 Top 3 紫色背景 + 标号
+  - **WatchlistCard 位置轨迹条**：止损 🛡 → ●当前 → 🎯目标 gradient bar + hover tooltip 显示距离 %
+  - **Monitor F&G ribbon**：100px 圆环 → 36×36 双徽章（F&G + 宏观温度并列）+ AI 分歧解读
+  - **Monitor 板块 vs SPY**：板块表现加超额 pp 双值列 + 零点对称 mini bar
+  - **Monitor 静音倒计时面板**：独立 MobileAccordion 显示 muted ticker + 剩余时间 + < 2h 时 amber 高亮
+  - **Scoring 42px ticker + 评分环抬升**：股票代码从 16/18px 抬到 28/36px + `.font-serif`；评分环从 28px 抬到 40px 含中心数字
 - **v5 设计基础层 + AI Lead Paragraph** (PR #140)：
   - `frontend/index.html` 加载 Fraunces serif 字体（OPT-IN via `.font-serif`，不替换 DM Sans 默认）
   - `index.css` 追加 4 个 v5 工具类：`.t-eyebrow`（indigo mono uppercase 编辑式小标）/ `.t-hero` 三档（28/36/44px）/ `.t-hero-gradient`（白→浅灰渐变）/ `.lead-paragraph`（紫 3px 左边线 + 渐变 bg + 13.5px serif body + `--indigo` 变体 + `__based-on` 出处 footer）/ `.pillar-card`（顶部色条 + 大数字 + 进度条）
