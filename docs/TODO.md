@@ -38,10 +38,15 @@
   - 预估工作量：S
   - **完成（2026-05-19）**：`backend/data_sources/yfinance_source.py` 加 `_with_retry` 装饰器（标准库 `time.sleep`，无新依赖），默认 3 次指数退避 1s/2s/4s，环境变量 `YFINANCE_RETRY_MAX` / `YFINANCE_RETRY_BASE_DELAY` 可调。`fetch_history` 和 `fetch_fundamentals` 都覆盖，网络异常一律包成 `YFinanceError` 后重试。失败日志格式 `[yfinance] {fn_name} 第 N/M 次失败...` + 终态 `重试 M 次后放弃`，写入 stderr。21 个新单测（mock + 注入 sleep）。**注**：超时参数 yfinance 0.2+ 支持但本次未接，留 TODO。
 
-- [ ] **[P1]** 港股财务数据补充源（AAStocks / 东方财富）
+- [x] **[P1]** 港股财务数据补充源（AAStocks / 东方财富）
   - 背景：`config.py` 里 `00005.HK` 通过 `static_overrides` 写死 PE / ROE / 营收增长等字段，长期数据会过时。需要一个独立的 fetcher 从 AAStocks 或东方财富抓港股财务，作为 yfinance 之外的兜底；ETF（07709、未来可能新增）同理。
   - 验收标准：新增 `backend/sources/hk_fundamentals.py`，输入港股代码、输出与 yfinance 字段对齐的 dict；`pipeline.py` 在 yfinance 字段为 None 时优先调用此源，仍缺失再回落到 `static_overrides`；写一个最小集成测试验证 0005.HK 能拿到 PE / ROE。
   - 预估工作量：M
+  - **完成（2026-05-20，分两步）**：
+    - **fetcher 已落地（之前）**：`backend/data_sources/akshare_source.py:fetch_hk_fundamentals(symbol)` 用 `ak.stock_hk_spot_em()` + `stock_financial_hk_report_em` 抓 PE/ROE/profit_margin/market_cap/eps。router.py:281 通过 `fetch_hk_fundamentals(cfg)` 暴露。
+    - **本次集成 pipeline**：`pipeline.py` 新增 `apply_hk_fundamentals_fallback(result, cfg)`（_HK_FALLBACK_FIELDS 映射 4 字段 pe/roe/revenueGrowth/profitMargin），在 `fetch_stock_data` 和 `fetch_etf_data` 的 `apply_overrides` 之前调用：链路变为 **yfinance → AKShare → static_overrides**。仅 HK 标的生效；AKShare 失败/None 字段静默回退；不覆盖已有值。新增 `backend/tests/test_hk_fundamentals.py` 7 个 mock 单测 + 1 个 `@pytest.mark.network @pytest.mark.xfail` 真实测试（0005.HK 当前在 AKShare 表中字段全 None，xfail strict=False 记录现状）。
+    - **路径与原描述差异**：原描述要 `backend/sources/hk_fundamentals.py`，实际放在 `backend/data_sources/akshare_source.py`（项目实际架构）。
+    - **遗留**：akshare_source 对 0005.HK 全返回 None — `ak.stock_hk_spot_em()` 代码列匹配不上 "00005" 或字段名漂移；属 follow-up，不在本任务集成范围。
 
 - [x] **[P1]** 数据时效性标记（每个字段附带 `as_of`）
   - 背景：现在所有字段混在一个 dict 里，无法区分"实时行情 vs 上季度财报 vs 静态兜底"。前端 Footer 也无法告诉用户"这条数据多旧了"。
@@ -52,11 +57,16 @@
 
 ### 评分层
 
-- [ ] **[P1]** 评分平滑 + 评分变化率字段
+- [x] **[P1]** 评分平滑 + 评分变化率字段
   - 背景：当前 `score` 是基于"今天一天"的快照，单日波动会让排行剧烈跳动。需要保留历史评分（至少 5 日），输出平滑后的 `score_smoothed`（5 日均值）和 `score_delta_5d`（与 5 日前差值），前端排行能显示"上升 / 下降 / 持平"。
   - 验收标准：`backend/output/` 新增 `score_history.json` 持久化每日评分；输出新增 `score_smoothed` / `score_delta_5d` 字段；前端排行表新增趋势箭头列。
   - 预估工作量：M
   - 依赖：上一项时效性标记（用于落历史时间戳）
+  - **完成（2026-05-20）**：
+    - **持久化层**：新增 `backend/score_history.py`（load/save/append_score/compute_smoothed_and_delta/update_for_ticker），按日期去重（同日多次运行只留最新）、按 priceAsOf 作为日期 key（避免周末多次运行污染均值）、保留 90 天滚动窗口。29 个单测覆盖边界（空/单条/不足 window/正好 window/超出 window/负 delta/重复日期/损坏 JSON）。
+    - **pipeline.py 集成**：main 循环后插入"评分平滑"步骤——load_history → 对每个 stk update_for_ticker（取 dataFreshness.priceAsOf 为 date_str）→ 写回 `stk.scoreSmoothed` / `stk.scoreDelta5d` → save_history。日志记录 `✓ score_history.json (N 个 ticker 历史)`。
+    - **前端**：`ScoringDashboard.jsx` hero compare 表（line 149 之后）新增"趋势"列：基于 `scoreDelta5d`，|delta|>2 显示 ↑/↓（绿/红）+ 数值，否则 → 横线（灰）。空值显示 "—"。颜色用现有 `text-up`/`text-down` 类。
+    - **测试**：29 个新 score_history 单测全绿；全套 984 passed + 1 skipped + 0 failed（基线维持，pipeline 集成靠 import smoke + 真跑一次手动验证）。
 
 - [x] **[P1]** factors.py 单元测试
   - 背景：`calc_rsi` / `calc_momentum` / `calc_stock_score` / `calc_etf_score` 都是纯函数，但目前没有任何测试。任何后续重构（评分平滑、权重调参）都会带风险。

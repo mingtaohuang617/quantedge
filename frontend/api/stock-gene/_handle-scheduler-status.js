@@ -1,5 +1,5 @@
 // /api/stock-gene/scheduler/status — Vercel 没有长驻进程，调度器始终禁用
-import { requireReferer } from '../../_lib/auth.js';
+import { requireReferer } from '../_lib/auth.js';
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');

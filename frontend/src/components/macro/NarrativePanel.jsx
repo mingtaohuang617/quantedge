@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Loader, RefreshCw, Copy, Check } from "lucide-react";
 import { useLang } from "../../i18n.jsx";
-import { PANEL } from "./shared.js";
+// PANEL.ai 已被 .lead-paragraph 替代（v5 编辑式：AI 解读用统一的紫色 lead-paragraph 容器）
 
 // 把 LLM 输出尝试拆成 3 段：主要矛盾 / 关键观察 / 风险机会
 // 优先匹配【】或 ## 标题，其次按双换行分段，再不行整段一坨展示。
@@ -66,12 +66,13 @@ export default function NarrativePanel({ narrative, loading, onForceRefresh }) {
 
   if (!narrative && !loading) return null;
   return (
-    <div className={PANEL.ai}>
+    // v5 编辑式：套 .lead-paragraph（紫色 3px 左边线 + 渐变 bg）— AI 从"附属解读"升级为"报纸社论"
+    <div className="lead-paragraph mb-4">
       <div className="flex items-center gap-2 mb-2">
-        <span className="text-[10px] px-1.5 py-0.5 rounded font-medium border bg-indigo-500/20 text-indigo-100 border-indigo-400/40">
-          {t("AI 解读")}
+        <span className="text-[10px] px-1.5 py-0.5 rounded font-medium border bg-violet-500/20 text-violet-100 border-violet-400/40 uppercase tracking-wider">
+          {t("AI 市场画像")}
         </span>
-        <span className="text-xs text-white/55">{t("DeepSeek 当日宏观画像")}</span>
+        <span className="text-xs text-white/55">{t("综合 17 因子方向化加权 · DeepSeek")}</span>
         <div className="ml-auto flex items-center gap-1">
           {narrative && !loading && (
             <button
@@ -112,12 +113,12 @@ export default function NarrativePanel({ narrative, loading, onForceRefresh }) {
                   {t(s.label)}
                 </div>
               )}
-              <div className="text-[12.5px] text-white/85 leading-relaxed">{s.body}</div>
+              <div className="lead-paragraph__body font-serif" style={{ fontSize: 13 }}>{s.body}</div>
             </div>
           ))}
         </div>
       ) : (
-        <div className="text-[13px] text-white/85 leading-relaxed whitespace-pre-wrap">
+        <div className="lead-paragraph__body font-serif whitespace-pre-wrap" style={{ fontSize: 14 }}>
           {narrative}
         </div>
       )}

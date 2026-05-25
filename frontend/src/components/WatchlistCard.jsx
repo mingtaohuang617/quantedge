@@ -220,6 +220,48 @@ export default function WatchlistCard({
         </div>
       )}
 
+      {/* v5: 位置轨迹条 — 止损 🛡 ── ●当前 ── 🎯目标，让"安全边距"和"距目标"一眼可读 */}
+      {item.target_price != null && item.stop_loss != null && priceAlerts && item.target_price > item.stop_loss && (
+        <div className="mb-1.5 mt-1">
+          {(() => {
+            const range = item.target_price - item.stop_loss;
+            const rawPct = ((priceAlerts.current - item.stop_loss) / range) * 100;
+            const progressPct = Math.max(0, Math.min(100, rawPct));
+            const distToTargetPct = ((item.target_price - priceAlerts.current) / priceAlerts.current) * 100;
+            const distToStopPct = ((priceAlerts.current - item.stop_loss) / priceAlerts.current) * 100;
+            return (
+              <>
+                <div className="relative h-1.5 rounded-full bg-white/[0.05] overflow-visible">
+                  <div
+                    className="absolute inset-y-0 left-0 rounded-full"
+                    style={{
+                      width: `${progressPct}%`,
+                      background: "linear-gradient(90deg, rgba(248,113,113,0.35), rgba(0,229,160,0.60))",
+                    }}
+                  />
+                  <div
+                    className="absolute w-2.5 h-2.5 rounded-full bg-emerald-400 border border-white/40 shadow-[0_0_8px_rgba(0,229,160,0.7)]"
+                    style={{
+                      left: `${progressPct}%`,
+                      top: "50%",
+                      transform: "translate(-50%, -50%)",
+                    }}
+                    title={`当前 ${priceAlerts.current.toFixed(2)} · 区间内 ${progressPct.toFixed(0)}%`}
+                  />
+                </div>
+                <div className="flex justify-between mt-0.5 text-[8.5px] font-mono">
+                  <span className="text-red-300/85" title={`距止损 ${distToStopPct.toFixed(1)}%`}>
+                    🛡 ${item.stop_loss}
+                  </span>
+                  <span className="text-emerald-300/85" title={`距目标 ${distToTargetPct.toFixed(1)}%`}>
+                    🎯 ${item.target_price}
+                  </span>
+                </div>
+              </>
+            );
+          })()}
+        </div>
+      )}
       {(item.target_price || item.stop_loss) && (
         <div className="flex items-center gap-2 text-[9px] font-mono flex-wrap">
           {/* 目标价 + 距当前价 % */}
