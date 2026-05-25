@@ -14,23 +14,10 @@
 // ─────────────────────────────────────────────────────────────
 import React, { useEffect, useState } from "react";
 import { X, Plus, Activity, TrendingUp, TrendingDown, ExternalLink } from "lucide-react";
+import { fmtMcap, fmtNum, fmtPct } from "../lib/formatters.js";
 import { tickerToYahoo, fetchPriceHistory } from "../lib/yahoo.js";
 
-function fmtMcap(mc) {
-  if (mc == null) return "—";
-  if (mc >= 1e12) return `${(mc / 1e12).toFixed(2)}T`;
-  if (mc >= 1e9) return `${(mc / 1e9).toFixed(2)}B`;
-  if (mc >= 1e6) return `${(mc / 1e6).toFixed(0)}M`;
-  return `${mc.toFixed(0)}`;
-}
-
-function fmtNum(v, prec = 2) {
-  return typeof v === "number" && isFinite(v) ? v.toFixed(prec) : "—";
-}
-
-function fmtPct(v) {
-  return typeof v === "number" && isFinite(v) ? `${(v * 100).toFixed(1)}%` : "—";
-}
+// fmtMcap / fmtNum / fmtPct 已抽到 src/lib/formatters.js（PR #163）
 
 /** 取赛道名（与 Screener10x.trendName 同逻辑，但本地拷贝） */
 function defaultTrendName(supertrends) {
