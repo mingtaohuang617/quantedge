@@ -19,15 +19,40 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - **Screener10x 顶栏 4 阶段漏斗叙事**：内联追加 `候选 N → AI N → 观察 N` chip 串，无 layout 重构（仅 universe stats 之后追加）
   - 关键克制（吸取 #141/#142 layout 重构被回退的教训）：纯 CSS 类替换 + eyebrow 微调，不动 grid / layout / 字号梯度 / 数据流
 
-### Added — 测试覆盖（2026-05）
+### Added — 10x 猎手 UX 升级（PR #121-#130）
+
+- **候选股详情面板 + 30 天 sparkline** (PR #121)：点 ticker 弹出公司概览 modal（基本信息 / 市值 / 板块 / 5 维财务 / 30 天 mini 价格图 / 命中赛道 chips + match_reasons 诊断 / 加入观察 CTA），lazy fetch Yahoo `/v8/finance/chart` `range=1mo`，14 个新单测覆盖
+- **候选列表列排序** (PR #124)：可点击 SortHeader（marketCap / pe / pb / dividend_yield / roe），点击循环 asc → desc → 清空回到默认（市值升序 + AI 排序覆盖）；右上角显示当前排序状态 chip + 一键清除按钮；`candidateSort.js` lib 含独立单测
+- **观察列表 CSV 导出** (PR #125)：右栏新增"导出 CSV"按钮，序列化 ticker / name / 卡位 / 护城河 / 目标价 / 止损 / thesis / 加入时间 / 更新时间，含 RFC 4180 转义；浏览器下载 `quantedge-watchlist-{date}.csv`，独立 `csvExport.js` lib + 11 个单测
+- **价值型 quick filter chips** (PR #126)：ValueFilters 上方新增 4 个一键预设 chip（巴菲特 / 巴菲特严苛 / 高股息 / 低 PB 周期），点击即填入对应 PE/PB/ROE/股息阈值；独立组件 ValueFiltersChips.jsx + 7 个单测
+- **UI 偏好 localStorage 持久化** (PR #127)：策略 tab / markets / includeETF / precise / maxMcap / valueFilters / showArchived 7 项偏好刷新后保持，命名空间 `quantedge_screener10x_prefs`；`screener10xPrefs.js` lib 含 sanitizePrefs 防御性反序列化（无效值回退默认） + 14 个单测
+- **空状态引导按钮** (PR #128)：候选列表为空 + 无赛道选择时显示"全选成长 / 全选价值"快捷按钮；不再让用户面对空白页猜下一步
+- **市场分布 chip** (PR #130)：候选 count chip 旁加 `US 56 · HK 23 · CN 8` 分布显示 + hover tooltip 含"其他"市场计数；让用户一眼看出筛选结果地理分布
+- **默认 max market cap 50 → 1000B** (PR #122)：之前 50B 太严，把 MU/NVDA/AVGO/腾讯 等主流标的全过滤掉，新用户首次看到候选列表只剩小盘股；同步更新 DEFAULT_PREFS
+
+### Changed
+
+- **valueFilters 300ms debounce** (PR #129)：之前每次输入 PE/PB/ROE 阈值立即触发 runScreen → 拖慢候选列表刷新；改为输入即时绑定 `valueFilters` + 300ms 后同步到 `valueFiltersDebounced` 喂 runScreen
+- **universe JSON 瘦身 4.0 → 2.9MB** (PR #120)：`export_universe_to_frontend.py` 由 `shutil.copy2` 改为 read → strip → write，剥离前端不用的 `futu_code` / `is_derivative` / 空字符串 sector/industry/exchange/market / null marketCap；US 28%↓ / CN 0.5%↓ / HK 12%↓，部署 bundle 体积下降
+- **README 功能描述更新** (PR #133)：反映 8 个子页（评分 / 回测 / 监控 / 日志 / 10x 猎手 / 基因 / Mining Alpha / Smart Beta） + 1500 票 universe 现状
+
+### Fixed
+
+- **Windows GBK 终端 UnicodeEncodeError** (PR #118)：`pipeline.py` 顶部 `sys.platform == "win32"` 检测 → stdout/stderr 通过 `TextIOWrapper.reconfigure(encoding='utf-8', errors='replace')` 强制改为 UTF-8；非 Windows 平台跳过
+
+### Tests / Infra
+
 - **breadth_engine 13 单测** (PR #145)：`backend/breadth_engine.py` 179 行 0 测试覆盖 → 补 13 个用例
   - `compute_snapshots` 主流程（9 个）：空成分股 / 空 matrix 短路 · 合成 500×400 schema · advancing+declining ≤ universe · pct ∈ [0,100] · 上涨趋势 pct_above_200ma > 50 · universe < 300 守门 · start 过滤 · new_highs/lows int dtype
   - `upsert_snapshots` DB 写入（3 个）：空 → 0 行 · executemany 12-tuple INSERT + ON CONFLICT · NaN pct → SQLite NULL
   - `update_snapshots` orchestrator（1 个）：无成分股 → 0
   - Mock：`patch.object(_load_constituents / _load_close_matrix)` + 合成 close matrix `rng(42)` 固定种子
   - 跑完 1.40s，零外部依赖
+- **priceCache 22 个单测** (PR #131)：覆盖 TTL / 新鲜度 / withCache 三段式（首次 miss → 写缓存 → 二次 hit）+ 过期 evict
+- **pytest 'slow' marker 注册** (PR #132)：pyproject.toml 注册 marker 消除 PytestUnknownMarkWarning 噪音；CI 默认 `-m "not slow"` 跳过网络测试
 
-### Added
+### Added — 5 大指数 supertrend 全覆盖
+
 - **10x 猎手 5 大指数全覆盖** (PR #117)：让标普500 / 纳斯达克100 / 恒生 / 恒生科技 / 沪深300 里的每只股票都至少命中 1 个 supertrend
   - **新增 4 个 growth supertrend**（4 → 8 个 growth，11 个 total）：
     - `consumer_internet` 消费互联网（AMZN/META/NFLX/UBER/BABA/美团/快手 等）
