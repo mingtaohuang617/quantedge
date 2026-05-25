@@ -208,8 +208,9 @@ A 股 Alpha191 因子挖掘 + ML 合成 + 回测 — 已交付：
 - [ ] **[P2]** ETF Universe Manager 前端筛选器 (M)
   - AUM / 费率 / 折溢价 / 杠杆 / 分类 多维 slider+chip
   - 复用现有 `calc_etf_score` 排序，门槛过滤后给 Smart Beta L3 用
-- [ ] **[P2]** FastAPI smart-beta 路由集成测试 (S)
+- [x] **[P2]** FastAPI smart-beta 路由集成测试 (S)
   - FastAPI TestClient + mocked `fetch_history`，避免端到端回归
+  - **完成（2026-05-24，PR #186）**：`backend/tests/test_smart_beta_route.py` 20 个测试 — monkeypatch 替换 `_fetch_etf_prices` / `_fetch_fred_latest` / `sb.build_snapshot`，零外部网络。分组：默认请求 3 / query 参数透传 8 / SPY 503 守门 2 / cache 行为 4 / fetch_errors 三态 3。跑完 3.28s。
 - [ ] **[P3]** 用 `regime/` HMM 替换 L1 规则版风险检测 (M)
 - [ ] **[P3]** 智能 ETF 匹配（关键词 → top-K 推荐，按 top_holdings 重叠度）(M)
 
