@@ -24,7 +24,7 @@ import {
   Archive,
   Download, Upload,
   Activity,
-  ArrowUp, ArrowDown, ArrowUpDown,
+  ArrowUp, ArrowDown, ArrowUpDown, ArrowRight,
 } from "lucide-react";
 import { apiFetch } from "../quant-platform.jsx";
 import TenxItemEditor from "../components/TenxItemEditor.jsx";
@@ -778,32 +778,6 @@ export default function Screener10x() {
           )}
         </div>
         <div className="flex items-center gap-3 text-[10px] text-[#a0aec0]">
-          {universeStats && (
-            <span className="flex items-center gap-1" title="可筛全宇宙（US/HK/CN）">
-              <Database size={11} /> US {universeStats.US?.count || 0} · HK {universeStats.HK?.count || 0} · CN {universeStats.CN?.count || 0}
-            </span>
-          )}
-          {/* v5 漏斗叙事：候选 → AI 审过 → 观察（仅在有候选或观察时显示） */}
-          {(candidates.length > 0 || items.length > 0) && (
-            <span className="flex items-center gap-1.5" title="筛选漏斗：赛道命中 → AI 校验 → 加入观察">
-              <span className="text-[#556]">→</span>
-              <span className="font-mono">
-                <span className="text-[#778]">候选</span> <b className="text-white">{candidates.length}</b>
-              </span>
-              {aiPipelineState.matched > 0 && (
-                <>
-                  <span className="text-[#556]">→</span>
-                  <span className="font-mono">
-                    <span className="text-[#778]">AI</span> <b className="text-violet-300">{aiPipelineState.matched}</b>
-                  </span>
-                </>
-              )}
-              <span className="text-[#556]">→</span>
-              <span className="font-mono">
-                <span className="text-[#778]">观察</span> <b className="text-amber-300">{items.length}</b>
-              </span>
-            </span>
-          )}
           <button
             onClick={() => { reloadWatchlist(); reloadUniverseStats(); runScreen(); }}
             className="flex items-center gap-1 px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white transition border border-white/10"
@@ -813,6 +787,72 @@ export default function Screener10x() {
           </button>
         </div>
       </div>
+
+      {/* v5 漏斗叙事：4 段 hero header — 全宇宙 → 匹配赛道 → AI 已审 → 你的观察
+          serif 数字 + 箭头连接，把"狩猎"过程做成可视化叙事 */}
+      {(() => {
+        const totalUniverse = universeStats
+          ? (universeStats.US?.count || 0) + (universeStats.HK?.count || 0) + (universeStats.CN?.count || 0)
+          : 0;
+        const steps = [
+          {
+            label: "全宇宙",
+            n: totalUniverse > 0 ? totalUniverse.toLocaleString() : "—",
+            desc: universeStats
+              ? `US ${universeStats.US?.count || 0} · HK ${universeStats.HK?.count || 0} · CN ${universeStats.CN?.count || 0}`
+              : "US + HK + CN",
+            color: "text-[#7a8497]",
+            border: "border-white/10",
+          },
+          {
+            label: "匹配赛道",
+            n: candidates.length || 0,
+            desc: selectedTrends.length > 0
+              ? `${selectedTrends.length} 个赛道命中`
+              : "未选赛道",
+            color: "text-indigo-200",
+            border: "border-indigo-400/25",
+          },
+          {
+            label: "AI 已审过",
+            n: aiPipelineState.matched || 0,
+            desc: aiPipelineState.matched > 0
+              ? `moat ≥ ${aiPipelineState.threshold || 54}`
+              : "AI Pipeline 未运行",
+            color: "text-violet-200",
+            border: "border-violet-400/25",
+          },
+          {
+            label: "你的观察",
+            n: items.length || 0,
+            desc: items.length > 0 ? `${items.length} 个跟踪中` : "未加观察",
+            color: "text-amber-200",
+            border: "border-amber-400/25",
+          },
+        ];
+        return (
+          <div className="flex items-stretch gap-1.5">
+            {steps.map((s, i) => (
+              <React.Fragment key={s.label}>
+                <div className={`flex-1 px-3 py-2 rounded-lg border bg-white/[0.022] ${s.border}`}>
+                  <div className="text-[9px] uppercase tracking-wider text-[#778] mb-0.5">{s.label}</div>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className={`font-serif text-2xl font-semibold tabular-nums leading-none ${s.color}`} style={{ letterSpacing: "-0.02em" }}>
+                      {typeof s.n === "number" ? s.n.toLocaleString() : s.n}
+                    </span>
+                    <span className="text-[10px] text-[#7a8497] truncate">{s.desc}</span>
+                  </div>
+                </div>
+                {i < steps.length - 1 && (
+                  <div className="flex items-center justify-center text-[#556]" style={{ width: 14 }}>
+                    <ArrowRight size={14} />
+                  </div>
+                )}
+              </React.Fragment>
+            ))}
+          </div>
+        );
+      })()}
 
       {/* 三栏 grid */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-[220px_1fr_320px] gap-3 overflow-hidden min-h-0">
@@ -1014,6 +1054,28 @@ export default function Screener10x() {
             </div>
           </div>
 
+          {/* v5: AI Pipeline 结果 banner — pipeline 完成后展示总览，给用户「下一步看 top 3」的引导 */}
+          {!aiPipelineState.loading && aiPipelineState.matched > 0 && (
+            <div className="mx-3 mt-2 mb-1 px-3 py-2 rounded-lg border border-violet-400/35 bg-gradient-to-r from-violet-500/12 via-violet-500/5 to-transparent flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-md bg-violet-500/20 border border-violet-400/35 flex items-center justify-center shrink-0">
+                <Sparkles size={13} className="text-violet-300" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[11.5px] font-semibold text-white">AI Pipeline 已完成</div>
+                <div className="text-[10px] text-[#a0aec0] mt-0.5">
+                  校验 top <span className="font-mono text-white/85">{aiPipelineState.total}</span> · 命中 <span className="font-mono text-violet-200">{aiPipelineState.matched}</span> · 前 3 名已紫色高亮
+                </div>
+              </div>
+              <button
+                onClick={handleAiPipeline}
+                disabled={aiPipelineState.loading || aiRankingState.loading || isDemoMode || selectedTrends.length === 0 || candidates.length === 0}
+                className="text-[10px] px-2 py-1 rounded bg-violet-500/20 border border-violet-400/35 text-violet-200 hover:bg-violet-500/30 transition disabled:opacity-40"
+                title="重新运行 AI Pipeline"
+              >
+                重新运行 →
+              </button>
+            </div>
+          )}
           <div className="flex-1 overflow-auto">
             {selectedTrends.length === 0 && (
               <div className="h-full flex items-center justify-center text-[11px] text-[#7a8497] p-4 text-center">
@@ -1210,18 +1272,32 @@ export default function Screener10x() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredCandidates.map((c) => {
+                  {filteredCandidates.map((c, idx) => {
                     const ai = aiRanking[c.ticker];
+                    // v5: Top 3（已 AI 排序时）紫色高亮，引导用户优先关注
+                    const isTop3 = idx < 3 && Object.keys(aiRanking).length > 0 && ai != null;
                     return (
-                      <tr key={c.ticker} className="border-t border-white/5 hover:bg-white/[0.04] transition">
+                      <tr key={c.ticker} className={`border-t border-white/5 transition ${
+                        isTop3 ? "bg-violet-500/[0.06] hover:bg-violet-500/[0.10]" : "hover:bg-white/[0.04]"
+                      }`}>
                         <td className="px-2 py-1.5 font-mono text-[10px] text-white">
-                          <button
-                            onClick={() => setDetailItem(c)}
-                            className="hover:text-cyan-300 hover:underline focus:outline-none focus:text-cyan-300"
-                            title="点击查看详情"
-                          >
-                            {c.ticker}
-                          </button>
+                          <div className="flex items-center gap-1">
+                            {isTop3 && (
+                              <span
+                                className="text-[9px] font-mono font-bold text-violet-300 w-3.5 text-center shrink-0"
+                                title={`AI 已审过 top 3 之 #${idx + 1}`}
+                              >
+                                {idx + 1}
+                              </span>
+                            )}
+                            <button
+                              onClick={() => setDetailItem(c)}
+                              className="hover:text-cyan-300 hover:underline focus:outline-none focus:text-cyan-300"
+                              title="点击查看详情"
+                            >
+                              {c.ticker}
+                            </button>
+                          </div>
                         </td>
                         <td className="px-2 py-1.5 text-[10px] text-[#d0d7e2] truncate max-w-[140px]" title={c.name}>{c.name}</td>
                         <td className="px-2 py-1.5 text-[9px] text-[#a0aec0]">{c.market}{c.exchange && `·${c.exchange}`}</td>

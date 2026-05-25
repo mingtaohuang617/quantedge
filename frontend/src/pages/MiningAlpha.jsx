@@ -23,7 +23,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Zap, TrendingUp, Activity, Database, AlertCircle, Loader, RefreshCw, Target,
-  Plus, Minus, ArrowRight, GitBranch, X, Play, Terminal, Grid3x3, Info,
+  Plus, Minus, ArrowRight, GitBranch, X, Play, Terminal, Grid3x3, Info, Sparkles,
 } from "lucide-react";
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar,
@@ -533,6 +533,130 @@ const MetricsCard = ({ metrics }) => {
   );
 };
 
+// ─── 回测指标 AI 解读面板 ────────────────────────────────────
+//   调 /api/llm/backtest-narrate (DeepSeek)，把 metrics 翻译成 4-5 句中文叙事
+//   首次点击拉取，后续点击 toggle 展开/收起；右上小按钮强制重生
+// DeepSeek deepseek-chat 定价（2026Q2）：$0.14/M input, $0.28/M output
+//   一次 backtest-narrate 通常 ~250 in + ~200 out ≈ $0.0001（1/100 美分）
+const estimateLLMCost = (p, c) => (p * 0.14 + c * 0.28) / 1e6;
+
+const BacktestNarrationPanel = ({ metrics }) => {
+  const [narration, setNarration] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState(null);
+  const [cached, setCached] = useState(false);
+  const [usage, setUsage] = useState(null);  // {prompt_tokens, completion_tokens}
+  const [open, setOpen] = useState(false);
+
+  const fetchNarration = async (force = false) => {
+    if (!metrics) return;
+    setLoading(true);
+    setErr(null);
+    // 字段映射：mining_alpha 是 snake_case + 比率 [0,1]；endpoint 要 camelCase + 百分数
+    const body = {
+      tickers: [`Mining Alpha Top-${metrics.top_n ?? 50} rotation`],
+      weights: {},
+      annualReturn: metrics.annual_return != null ? metrics.annual_return * 100 : null,
+      sharpe: metrics.sharpe ?? null,
+      maxDD: metrics.max_drawdown != null ? metrics.max_drawdown * 100 : null,
+      vol: metrics.annual_vol != null ? metrics.annual_vol * 100 : null,
+      benchAnnualReturn: metrics.benchmark_annual_return != null
+        ? metrics.benchmark_annual_return * 100 : null,
+    };
+    try {
+      const path = force ? "/llm/backtest-narrate?force=true" : "/llm/backtest-narrate";
+      const r = await apiFetch(path, {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+      if (!r) {
+        setErr("API 无响应；后端是否启动？DEEPSEEK_API_KEY 是否配置？");
+      } else if (r.ok) {
+        setNarration(r.narration || "");
+        setCached(!!r.cached);
+        setUsage({
+          prompt_tokens: r.prompt_tokens || 0,
+          completion_tokens: r.completion_tokens || 0,
+        });
+      } else {
+        setErr(r.error || "LLM 调用失败");
+      }
+    } catch (e) {
+      setErr(String(e));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleToggle = () => {
+    if (!open && !narration && !loading && !err) {
+      setOpen(true);
+      fetchNarration();
+    } else if (err && !loading) {
+      // 错误状态下点 = 重试
+      fetchNarration();
+    } else {
+      setOpen(!open);
+    }
+  };
+
+  return (
+    <div className="mt-1">
+      <div className="flex items-center gap-2">
+        <button
+          onClick={handleToggle}
+          disabled={loading}
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium bg-violet-500/10 hover:bg-violet-500/20 text-violet-300 border border-violet-500/30 disabled:opacity-50 transition-colors"
+        >
+          {loading ? <Loader size={11} className="animate-spin" /> : <Sparkles size={11} />}
+          {loading
+            ? "DeepSeek 生成中…"
+            : err
+            ? "重试 AI 解读"
+            : narration
+            ? open ? "收起 AI 解读" : "展开 AI 解读"
+            : "AI 解读（DeepSeek）"}
+        </button>
+        {narration && !loading && (
+          <button
+            onClick={() => fetchNarration(true)}
+            className="text-[10px] text-[#a0aec0] hover:text-white px-1.5 py-0.5 rounded hover:bg-white/5"
+            title="强制重新生成（force=true 跳过 30 分钟后端缓存，重新调 DeepSeek）"
+          >
+            <RefreshCw size={10} />
+          </button>
+        )}
+        {usage && narration && open && (
+          <span
+            className={`text-[9px] tabular-nums font-mono ${cached ? "text-emerald-400/80" : "text-[#a0aec0]"}`}
+            title={cached
+              ? "命中后端 30 分钟缓存，本次零成本（显示的是历史首次调用的 token 数）"
+              : "本次实际消耗的 DeepSeek token（input + output）"}
+          >
+            {cached
+              ? `⚡ 缓存命中 · 省 ≈$${estimateLLMCost(usage.prompt_tokens, usage.completion_tokens).toFixed(6)}`
+              : `💎 ${usage.prompt_tokens}+${usage.completion_tokens} tok · ≈$${estimateLLMCost(usage.prompt_tokens, usage.completion_tokens).toFixed(6)}`}
+          </span>
+        )}
+      </div>
+      {open && (narration || err) && (
+        <div className="mt-2 bg-violet-500/[0.04] border border-violet-500/20 rounded-md p-2.5">
+          {err ? (
+            <div className="text-rose-300 text-[11px] flex items-start gap-1.5">
+              <AlertCircle size={12} className="mt-0.5 shrink-0" />
+              <span>{err}</span>
+            </div>
+          ) : (
+            <div className="text-[12px] text-white/90 leading-relaxed whitespace-pre-wrap">
+              {narration}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── 多 Top-N 对比表 ───────────────────────────────────────
 const MultiTopNTable = ({ rows }) => {
   if (!rows || rows.length === 0) return null;
@@ -770,6 +894,7 @@ export default function MiningAlpha() {
             </span>
           </div>
           <MetricsCard metrics={backtest.metrics} />
+          <BacktestNarrationPanel metrics={backtest.metrics} />
         </div>
       )}
 
