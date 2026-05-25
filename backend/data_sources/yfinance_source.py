@@ -3,8 +3,13 @@ yfinance 数据源
 ================
 用于美股等富途无权限的市场。延迟约 15 分钟，但免费且覆盖全。
 
-可靠性：fetch_history 和 fetch_fundamentals 都用指数退避重试（1s/2s/4s，
-默认 3 次）。环境变量 YFINANCE_RETRY_MAX / YFINANCE_RETRY_BASE_DELAY 可调。
+可靠性：
+  - fetch_history / fetch_fundamentals 用指数退避重试（1s/2s/4s，默认 3 次）
+  - fetch_history 每次调用显式传 timeout（默认 30s）防止网络 hang
+  - 环境变量可调：
+      YFINANCE_RETRY_MAX        默认 3
+      YFINANCE_RETRY_BASE_DELAY 默认 1.0 秒
+      YFINANCE_HISTORY_TIMEOUT  默认 30 秒（yfinance 内置默认 10s 偏短）
 """
 import math
 import os
@@ -39,6 +44,9 @@ def _env_float(key: str, default: float) -> float:
 
 YFINANCE_RETRY_MAX = _env_int("YFINANCE_RETRY_MAX", 3)
 YFINANCE_RETRY_BASE_DELAY = _env_float("YFINANCE_RETRY_BASE_DELAY", 1.0)
+# yfinance 内置 timeout 默认 10s（PriceHistory.history 签名），偶发短链路 hang
+# 30s 给慢网/yfinance 后端高峰留余量；retries 会接力，单次超时会被快速重试
+YFINANCE_HISTORY_TIMEOUT = _env_float("YFINANCE_HISTORY_TIMEOUT", 30.0)
 
 
 _T = TypeVar("_T")
@@ -100,12 +108,14 @@ def _do_fetch_history(
     symbol = cfg["yf_symbol"]
     period = yfinance_period_for(iv, days)
     tk = yf.Ticker(symbol)
+    # timeout 在每次调用时读取，方便测试用 monkeypatch.setattr 改 module 常量
+    timeout = YFINANCE_HISTORY_TIMEOUT
     try:
-        df = tk.history(period=period, interval=iv.value)
+        df = tk.history(period=period, interval=iv.value, timeout=timeout)
         if df is None or df.empty:
             # 仅日 K 做"再试 1mo"兜底；分钟级直接抛错（period 已是上限）
             if not iv.is_intraday:
-                df = tk.history(period="1mo")
+                df = tk.history(period="1mo", timeout=timeout)
             if df is None or df.empty:
                 raise YFinanceError(
                     f"yfinance 无法获取 {symbol} 行情数据 (interval={iv.value})"
