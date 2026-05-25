@@ -27,10 +27,14 @@
 │  React 18    │               │   ├─ /api/*       proxy → :8001 后端    │
 │  + Recharts  │               │   └─ /yahoo-api/* proxy → query1.yahoo  │
 └──────────────┘               └────────────────────────────────────────┘
-       │  Vercel 部署（生产，Hobby plan 12 函数硬上限）
-       ├─► frontend/api/yahoo.js  serverless proxy（带 referer 白名单）
+       │  Vercel 部署（生产；v0.8 重构后 8 serverless functions，详见 §5）
+       ├─► frontend/api/yahoo.js              serverless proxy（带 referer 白名单）
+       ├─► frontend/api/stock-gene/index.js   单点 dispatcher（rewrite 接所有子路径）
+       ├─► frontend/api/watchlist/10x.js + 10x/[slug].js
+       ├─► frontend/api/llm/[endpoint].js     本地 4 handler + 反代 Render 兜底
+       ├─► frontend/api/{smart-beta/snapshot, universe/stats}
        └─► frontend/public/data/universe/universe_{us,hk,cn}.json
-           Vercel SPA fallback：演示模式直接读静态 JSON（无后端时仍可见赛道）
+           Vercel SPA fallback：无后端时静态 JSON 直接喂赛道列表
 ```
 
 ## 2. 数据加载的四条路径
