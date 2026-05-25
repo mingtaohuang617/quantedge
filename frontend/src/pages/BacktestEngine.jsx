@@ -2973,7 +2973,7 @@ const TemplateLibraryModal = ({ onClose, builtins, userTemplates, currentConfig,
             <h2 className="text-sm font-semibold" style={{ color: "var(--text-heading)" }}>{t('策略模板库')}</h2>
             <span className="text-[10px] text-[#a0aec0]">{builtins.length + userTemplates.length}</span>
           </div>
-          <button onClick={onClose} className="text-[#a0aec0] hover:text-white transition-colors p-1 rounded hover:bg-white/10">
+          <button onClick={onClose} aria-label={t('关闭策略模板库')} className="text-[#a0aec0] hover:text-white transition-colors p-1 rounded hover:bg-white/10">
             <X size={16} />
           </button>
         </div>

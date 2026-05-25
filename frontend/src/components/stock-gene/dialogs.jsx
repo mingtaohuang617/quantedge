@@ -268,7 +268,7 @@ export function AlertsPanel({ alerts, onSelect, onClose, onRequestNotify }) {
                 <BellOff size={10} /> 已拒绝
               </span>
             )}
-            <button onClick={onClose} className="text-[#a0aec0] hover:text-white"><X size={12} /></button>
+            <button onClick={onClose} aria-label="关闭预警面板" className="text-[#a0aec0] hover:text-white"><X size={12} /></button>
           </div>
         </div>
         <div className="flex-1 overflow-auto p-2">
@@ -343,7 +343,7 @@ export function SchedulerPanel({ status, onToggle, onSetSchedule, onRunNow, onCl
             <Clock size={13} className="text-cyan-300" />
             <span className="text-[12px] font-semibold text-white">评分定时刷新</span>
           </div>
-          <button onClick={onClose} className="text-[#a0aec0] hover:text-white"><X size={12} /></button>
+          <button onClick={onClose} aria-label="关闭定时刷新设置" className="text-[#a0aec0] hover:text-white"><X size={12} /></button>
         </div>
 
         {/* 开关 */}
