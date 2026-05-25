@@ -41,6 +41,9 @@ MARKETS = ["us", "cn", "hk"]
 #       is_etf / pe / pb / dividend_yield / roe / debt_to_equity
 DROP_FIELDS = ("futu_code", "is_derivative")
 
+# 空字符串 = 没数据，去掉省字节；frontend 用 `it.sector || ''` 兼容缺字段
+EMPTY_STRING_FIELDS = ("sector", "industry", "exchange", "market")
+
 
 def fmt_size(n: int) -> str:
     if n >= 1024 * 1024:
@@ -48,6 +51,53 @@ def fmt_size(n: int) -> str:
     if n >= 1024:
         return f"{n / 1024:.1f} KB"
     return f"{n} B"
+
+
+def slim_item(item: dict) -> int:
+    """就地剥离 universe item 的无用字段。
+
+    剥离规则：
+      1. DROP_FIELDS 中的字段（futu_code / is_derivative）
+      2. EMPTY_STRING_FIELDS 中字段值为空字符串的（sector/industry/exchange/market）
+      3. marketCap 为 None / 0 的
+
+    输入：item dict（mutated）
+    返回：剥离的字段总数
+    """
+    n_stripped = 0
+    for k in DROP_FIELDS:
+        if k in item:
+            del item[k]
+            n_stripped += 1
+    for k in EMPTY_STRING_FIELDS:
+        if item.get(k) == "":
+            del item[k]
+            n_stripped += 1
+    if item.get("marketCap") in (None, 0) and "marketCap" in item:
+        del item["marketCap"]
+        n_stripped += 1
+    return n_stripped
+
+
+def process_file(src: Path, dst: Path) -> tuple[int, int, int]:
+    """读 src JSON → 对每个 item 调 slim_item → 写 dst。
+
+    返回 (剥离字段总数, 输入大小 bytes, 输出大小 bytes)。
+    src 不存在时 raise FileNotFoundError（让调用方决定要 skip 还是 fail）。
+    """
+    if not src.exists():
+        raise FileNotFoundError(src)
+    with open(src, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    src_size = src.stat().st_size
+
+    n_stripped = 0
+    for it in data.get("items", []):
+        n_stripped += slim_item(it)
+
+    with open(dst, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2, allow_nan=False)
+    return n_stripped, src_size, dst.stat().st_size
 
 
 def main() -> int:
@@ -71,33 +121,7 @@ def main() -> int:
             print(f"  [skip] {fname} not found at {src}")
             continue
 
-        # 读 → 剥离 → 写（不再 shutil.copy2 整文件复制）
-        with open(src, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        src_size = src.stat().st_size
-
-        n_stripped = 0
-        # Strip frontend-unused fields + 空字符串 / null（缺字段 = 老数据，frontend
-        # 已用 `it.sector || ''` / `mc == null` 等防御性读法处理 undefined）
-        for it in data.get("items", []):
-            for k in DROP_FIELDS:
-                if k in it:
-                    del it[k]
-                    n_stripped += 1
-            # 空字符串 sector / industry / exchange / market — 丢
-            for k in ("sector", "industry", "exchange", "market"):
-                if it.get(k) == "":
-                    del it[k]
-                    n_stripped += 1
-            # marketCap = None / 0 也丢（frontend 用 `mc == null` 判断）
-            if it.get("marketCap") in (None, 0):
-                if "marketCap" in it:
-                    del it["marketCap"]
-                    n_stripped += 1
-
-        with open(dst, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2, allow_nan=False)
-        size = dst.stat().st_size
+        n_stripped, src_size, size = process_file(src, dst)
         total_bytes += size
         copied.append((fname, size))
         saving = src_size - size
