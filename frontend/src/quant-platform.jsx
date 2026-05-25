@@ -34,7 +34,17 @@ let STOCKS = [...STATIC_STOCKS];
 let ALERTS = [...STATIC_ALERTS];
 
 // ─── API helpers ──────────────────────────────────────
-const API_BASE = "/api";
+// API_BASE 解析顺序：
+//   1. VITE_API_BASE 已设 → 远端 backend（如 Vercel 接 Render/Railway/Fly）
+//      例 VITE_API_BASE=https://quantedge-backend-p3e1.onrender.com
+//      → 拼接为 https://quantedge-backend-p3e1.onrender.com/api
+//   2. 未设 → 走相对 /api（本地 dev 经 vite proxy → 8001；Vercel 经 rewrite → serverless）
+// 兼容用户填带 trailing slash 的 URL（去尾 / 防双斜杠）
+const API_BASE = (() => {
+  const remote = import.meta.env.VITE_API_BASE;
+  if (!remote || typeof remote !== "string") return "/api";
+  return `${remote.replace(/\/$/, "")}/api`;
+})();
 export const apiFetch = async (path, opts = {}) => {
   try {
     const res = await fetch(`${API_BASE}${path}`, {
