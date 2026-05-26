@@ -3,7 +3,6 @@
 零外部依赖（不连远程），用临时 sqlite 文件。
 """
 import sys
-import time
 from pathlib import Path
 
 import pytest

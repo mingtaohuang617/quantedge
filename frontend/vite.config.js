@@ -61,7 +61,7 @@ export default defineConfig(({ command }) => ({
     outDir: 'dist',
     assetsDir: 'assets',
     target: 'esnext',
-    sourcemap: 'hidden',
+    sourcemap: false,
     chunkSizeWarningLimit: 1500,
     // C2: 关掉 lazy chunk 的 modulepreload — 让 recharts/各 page chunk 真正按需加载
     // 否则 <link rel="modulepreload"> 会让浏览器在首屏就把它们拉下来，违背懒加载初衷

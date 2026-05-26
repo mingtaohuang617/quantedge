@@ -726,8 +726,8 @@ def macro_narrative(composite: dict, ttl_seconds: int = 43200, force: bool = Fal
         f"- 4 类子分(0=熊 100=牛 方向化):\n" + "\n".join(sub_lines) + "\n"
         f"- L4 HMM 三态: 牛 {bull_p:.0f}% / 震荡 {neutral_p:.0f}% / 熊 {bear_p:.0f}%\n"
         + (f"- 持续期: {surv_str}\n" if surv_str else "")
-        + (f"- 极端因子:\n  · " + "\n  · ".join(extremes) + "\n" if extremes else "")
-        + f"- 双重确认告警:\n" + ("\n".join(alert_lines) if alert_lines else "  无")
+        + ("- 极端因子:\n  · " + "\n  · ".join(extremes) + "\n" if extremes else "")
+        + "- 双重确认告警:\n" + ("\n".join(alert_lines) if alert_lines else "  无")
         + "\n\n输出格式（严格按下方模板，每段 60-80 字，段间空行）：\n\n"
         "【主要矛盾】<L3 温度 vs HMM 价格行为视角是否分歧；估值 vs 流动性 vs 宽度 是否同向；用一句话说清楚冲突点>\n\n"
         "【关键观察】<最值得用户关注的 2-3 个极端因子或子分异常，列具体数值>\n\n"

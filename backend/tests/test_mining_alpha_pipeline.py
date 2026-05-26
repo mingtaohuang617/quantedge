@@ -16,7 +16,6 @@ from mining_alpha.alpha191_factors import compute_alpha  # noqa: E402
 from mining_alpha.ic_report import (  # noqa: E402
     compute_forward_return,
     daily_ic,
-    factor_turnover,
     filter_alphas_by_ic,
     ic_stats,
     run_ic_report,

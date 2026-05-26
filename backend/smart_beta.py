@@ -19,7 +19,7 @@ ETF_UNIVERSE = Path(__file__).parent / "universe" / "etf_us.json"
 
 def load_universe() -> dict:
     """读取 etf_us.json。"""
-    with open(ETF_UNIVERSE, "r", encoding="utf-8") as f:
+    with open(ETF_UNIVERSE, encoding="utf-8") as f:
         return json.load(f)
 
 

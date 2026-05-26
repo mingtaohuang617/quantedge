@@ -13,7 +13,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 
 try:
@@ -134,7 +133,7 @@ def optuna_optimize(
     print(f"[optuna] 优化 fold #{fold_idx + 1}: train {fold.train_start.date()}..{fold.train_end.date()}, "
           f"test {fold.test_start.date()}..{fold.test_end.date()} (n_trials={n_trials})")
 
-    def objective(trial: "optuna.trial.Trial") -> float:
+    def objective(trial: optuna.trial.Trial) -> float:
         params = {
             "objective": "lambdarank",
             "metric": "ndcg",

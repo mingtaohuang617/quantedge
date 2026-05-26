@@ -24,7 +24,7 @@ def fetch_hk_fundamentals(symbol: str) -> dict:
       缺失字段为 None。
     """
     # 去除 .HK 后缀，保留前导零
-    code = symbol.split(".")[0]
+    code = symbol.split(".", maxsplit=1)[0]
     if len(code) < 5:
         code = code.zfill(5)
 

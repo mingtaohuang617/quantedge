@@ -12,7 +12,6 @@ API 文档: https://docs.itick.org
 """
 import os
 import time
-from datetime import datetime
 
 import pandas as pd
 import requests
