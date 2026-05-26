@@ -1,3 +1,5 @@
+// @vitest-environment jsdom
+// （readStarred/writeStarred 需要 localStorage；其他纯函数仍可用 node env，但 jsdom 也 OK）
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
   daysSince,
@@ -12,6 +14,12 @@ import {
   factorStarKey,
   encodeMacroState,
   decodeMacroState,
+  PCT_BAR_BG,
+  PCT_TEXT,
+  TEMP_BAR,
+  TEMP_TEXT,
+  readStarred,
+  writeStarred,
 } from "./shared.js";
 
 // ─── daysSince ──────────────────────────────────────────────
@@ -337,5 +345,138 @@ describe("TEMP_LABEL", () => {
     expect(TEMP_LABEL(35)).toBe("中性偏熊");
     expect(TEMP_LABEL(50)).toBe("中性偏牛");
     expect(TEMP_LABEL(65)).toBe("偏牛");
+  });
+});
+
+// ─── PCT_BAR_BG（因子卡分位色条）─────────────────────────
+describe("PCT_BAR_BG", () => {
+  it("returns neutral slate for null", () => {
+    expect(PCT_BAR_BG(null)).toBe("bg-slate-500/30");
+    expect(PCT_BAR_BG(undefined)).toBe("bg-slate-500/30");
+  });
+  it("returns blue for low percentile (<20)", () => {
+    expect(PCT_BAR_BG(0)).toBe("bg-blue-400/70");
+    expect(PCT_BAR_BG(19.9)).toBe("bg-blue-400/70");
+  });
+  it("returns cyan for 20-40", () => {
+    expect(PCT_BAR_BG(20)).toBe("bg-cyan-400/70");
+    expect(PCT_BAR_BG(39.9)).toBe("bg-cyan-400/70");
+  });
+  it("returns slate for 40-60 (mid)", () => {
+    expect(PCT_BAR_BG(40)).toBe("bg-slate-400/70");
+    expect(PCT_BAR_BG(59.9)).toBe("bg-slate-400/70");
+  });
+  it("returns orange for 60-80", () => {
+    expect(PCT_BAR_BG(60)).toBe("bg-orange-400/70");
+    expect(PCT_BAR_BG(79.9)).toBe("bg-orange-400/70");
+  });
+  it("returns red for 80+ (high)", () => {
+    expect(PCT_BAR_BG(80)).toBe("bg-red-400/80");
+    expect(PCT_BAR_BG(100)).toBe("bg-red-400/80");
+  });
+});
+
+// ─── PCT_TEXT（因子卡分位文字色）────────────────────────
+describe("PCT_TEXT", () => {
+  it("returns neutral slate for null", () => {
+    expect(PCT_TEXT(null)).toBe("text-slate-400");
+  });
+  it("returns 5 tier colors across range", () => {
+    expect(PCT_TEXT(10)).toBe("text-blue-300");
+    expect(PCT_TEXT(30)).toBe("text-cyan-300");
+    expect(PCT_TEXT(50)).toBe("text-slate-200");
+    expect(PCT_TEXT(70)).toBe("text-orange-300");
+    expect(PCT_TEXT(90)).toBe("text-red-300");
+  });
+});
+
+// ─── TEMP_BAR（牛熊温度色条 · 与 PCT_BAR_BG 方向相反）────
+describe("TEMP_BAR", () => {
+  it("returns neutral slate for null", () => {
+    expect(TEMP_BAR(null)).toBe("bg-slate-500/30");
+  });
+  it("returns red for very low (<20, 极熊)", () => {
+    expect(TEMP_BAR(0)).toBe("bg-red-400/80");
+    expect(TEMP_BAR(19.9)).toBe("bg-red-400/80");
+  });
+  it("returns orange for 20-40 (偏熊)", () => {
+    expect(TEMP_BAR(20)).toBe("bg-orange-400/70");
+  });
+  it("returns slate for 40-60 (中性)", () => {
+    expect(TEMP_BAR(50)).toBe("bg-slate-400/70");
+  });
+  it("returns lime for 60-80 (偏牛)", () => {
+    expect(TEMP_BAR(60)).toBe("bg-lime-400/70");
+  });
+  it("returns emerald for 80+ (极牛)", () => {
+    expect(TEMP_BAR(80)).toBe("bg-emerald-400/80");
+    expect(TEMP_BAR(100)).toBe("bg-emerald-400/80");
+  });
+  it("inverted from PCT_BAR_BG semantics", () => {
+    // 同一个值 50：温度 = 中性 slate；分位 = 中性 slate（两者中段相同）
+    // 同一个值 10：温度 = 极熊 red；分位 = 低区 blue（两者两端相反）
+    expect(TEMP_BAR(10)).toBe("bg-red-400/80");
+    expect(PCT_BAR_BG(10)).toBe("bg-blue-400/70");
+  });
+});
+
+// ─── TEMP_TEXT（牛熊温度文字色）─────────────────────────
+describe("TEMP_TEXT", () => {
+  it("returns neutral slate for null", () => {
+    expect(TEMP_TEXT(null)).toBe("text-slate-400");
+  });
+  it("returns 5 tier colors mapped to bull-bear regime", () => {
+    expect(TEMP_TEXT(10)).toBe("text-red-300");    // 极熊
+    expect(TEMP_TEXT(30)).toBe("text-orange-300");  // 偏熊
+    expect(TEMP_TEXT(50)).toBe("text-slate-200");   // 中性
+    expect(TEMP_TEXT(70)).toBe("text-lime-300");    // 偏牛
+    expect(TEMP_TEXT(90)).toBe("text-emerald-300"); // 极牛
+  });
+});
+
+// ─── readStarred / writeStarred（localStorage 收藏因子持久化）─
+describe("readStarred + writeStarred", () => {
+  beforeEach(() => {
+    // 干净 localStorage
+    try { localStorage.clear(); } catch {}
+  });
+
+  it("readStarred returns empty Set when localStorage is empty", () => {
+    const s = readStarred();
+    expect(s).toBeInstanceOf(Set);
+    expect(s.size).toBe(0);
+  });
+
+  it("writeStarred persists then readStarred round-trips", () => {
+    const original = new Set(["VIX@US", "Shiller_PE@US", "HSI_PE@HK"]);
+    writeStarred(original);
+    const back = readStarred();
+    expect(back).toBeInstanceOf(Set);
+    expect(back.size).toBe(3);
+    expect(back.has("VIX@US")).toBe(true);
+    expect(back.has("Shiller_PE@US")).toBe(true);
+    expect(back.has("HSI_PE@HK")).toBe(true);
+  });
+
+  it("readStarred returns empty Set when localStorage has invalid JSON", () => {
+    try { localStorage.setItem("quantedge_macro_starred", "{not-json"); } catch {}
+    const s = readStarred();
+    expect(s).toBeInstanceOf(Set);
+    expect(s.size).toBe(0);
+  });
+
+  it("writeStarred 空 Set 也能持久化", () => {
+    writeStarred(new Set());
+    const back = readStarred();
+    expect(back.size).toBe(0);
+  });
+
+  it("覆盖写：新 writeStarred 替换旧值，不累加", () => {
+    writeStarred(new Set(["A@US", "B@HK"]));
+    writeStarred(new Set(["C@CN"]));
+    const back = readStarred();
+    expect(back.size).toBe(1);
+    expect(back.has("C@CN")).toBe(true);
+    expect(back.has("A@US")).toBe(false);
   });
 });
