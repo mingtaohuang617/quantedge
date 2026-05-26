@@ -36,6 +36,7 @@ import { PeersTable } from "../components/stock-gene/cards.jsx";
 import { ListsTabBar } from "../components/stock-gene/ListsTabBar.jsx";
 import { ScoreDetail } from "../components/stock-gene/ScoreDetail.jsx";
 import { TickerSearchBox } from "../components/stock-gene/TickerSearchBox.jsx";
+import EmptyState from "../components/EmptyState.jsx";
 
 
 export default function StockGene() {
@@ -1226,14 +1227,16 @@ export default function StockGene() {
               </div>
             )}
             {!error && items.length === 0 && !loading && (
-              <div className="h-full flex items-center justify-center text-[11px] text-[#7a8497] p-4 text-center">
-                还没有观察项 — 下方"添加"按钮加入第一只
-              </div>
+              <EmptyState
+                className="h-full flex items-center justify-center text-[11px] text-[#7a8497] p-4 text-center"
+                message='还没有观察项 — 下方"添加"按钮加入第一只'
+              />
             )}
             {!error && items.length > 0 && sortedItems.length === 0 && (
-              <div className="h-full flex items-center justify-center text-[11px] text-[#7a8497] p-4 text-center">
-                没有匹配的观察项 — 调整搜索或清空过滤
-              </div>
+              <EmptyState
+                className="h-full flex items-center justify-center text-[11px] text-[#7a8497] p-4 text-center"
+                message="没有匹配的观察项 — 调整搜索或清空过滤"
+              />
             )}
             {sortedItems.map((it) => {
               // 各引擎评分一并取出，下面按 ENGINE_IDS 渲染徽章

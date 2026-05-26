@@ -14,7 +14,6 @@ multpl 没有官方 API，用 HTML 表格抓。
 from __future__ import annotations
 
 from io import StringIO
-from typing import Any
 
 import pandas as pd
 import requests

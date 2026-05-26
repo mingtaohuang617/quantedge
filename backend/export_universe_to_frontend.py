@@ -87,7 +87,7 @@ def process_file(src: Path, dst: Path) -> tuple[int, int, int]:
     """
     if not src.exists():
         raise FileNotFoundError(src)
-    with open(src, "r", encoding="utf-8") as f:
+    with open(src, encoding="utf-8") as f:
         data = json.load(f)
     src_size = src.stat().st_size
 
@@ -131,7 +131,7 @@ def main() -> int:
     print(f"copied {len(copied)} file(s), total {fmt_size(total_bytes)}")
     if missing:
         print(f"missing {len(missing)} file(s): {', '.join(missing)}")
-        print(f"  -> run sync first, e.g. python -m backend.universe.sync_us --enrich")
+        print("  -> run sync first, e.g. python -m backend.universe.sync_us --enrich")
 
     print()
     print("next steps:")

@@ -16,6 +16,7 @@ import React, { useEffect, useState } from "react";
 import { X, Plus, Activity, TrendingUp, TrendingDown, ExternalLink } from "lucide-react";
 import { fmtMcap, fmtNum, fmtPct } from "../lib/formatters.js";
 import { tickerToYahoo, fetchPriceHistory } from "../lib/yahoo.js";
+import { Z_ELEVATED } from "../lib/zIndex.js";
 
 // fmtMcap / fmtNum / fmtPct 已抽到 src/lib/formatters.js（PR #163）
 
@@ -95,7 +96,8 @@ export default function StockDetailPanel({
 
   return (
     <div
-      className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+      className="fixed inset-0 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+      style={{ zIndex: Z_ELEVATED }}
       onClick={onClose}
     >
       <div

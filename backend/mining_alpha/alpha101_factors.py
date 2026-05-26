@@ -17,7 +17,7 @@ CLI / 主流程暂未集成；用户可在 Python 中按需调用。
 """
 from __future__ import annotations
 
-from typing import Callable
+from collections.abc import Callable
 
 import numpy as np
 import pandas as pd
@@ -26,15 +26,11 @@ from .operators import (
     ABS,
     CORR,
     COVIANCE,
-    DECAYLINEAR,
     DELAY,
     DELTA,
     IF,
     LOG,
-    MAX,
     MEAN,
-    MIN,
-    PROD,
     RANK,
     SIGN,
     STD,

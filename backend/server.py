@@ -135,7 +135,7 @@ def load_custom_tickers() -> dict:
     """Load user-added tickers from JSON file."""
     if CUSTOM_TICKERS_PATH.exists():
         try:
-            with open(CUSTOM_TICKERS_PATH, "r", encoding="utf-8") as f:
+            with open(CUSTOM_TICKERS_PATH, encoding="utf-8") as f:
                 return json.load(f)
         except Exception:
             return {}
@@ -458,10 +458,10 @@ class DataCache:
             data_path = OUTPUT_DIR / "stocks_data.json"
             alerts_path = OUTPUT_DIR / "alerts.json"
             if data_path.exists():
-                with open(data_path, "r", encoding="utf-8") as f:
+                with open(data_path, encoding="utf-8") as f:
                     self.stocks = json.load(f)
             if alerts_path.exists():
-                with open(alerts_path, "r", encoding="utf-8") as f:
+                with open(alerts_path, encoding="utf-8") as f:
                     self.alerts = json.load(f)
             self.last_refresh = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         except Exception as e:

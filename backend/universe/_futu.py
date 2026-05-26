@@ -15,7 +15,6 @@ owner_plate 不支持非 STOCK 类型（ETF/CBBC/Warrant），失败的标的字
 from __future__ import annotations
 
 import time
-from typing import Iterable
 
 try:
     from futu import RET_OK

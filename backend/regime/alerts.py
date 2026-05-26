@@ -8,7 +8,6 @@
 """
 from __future__ import annotations
 
-from typing import Any
 
 
 # ── 工具：从 composite 结构里抓信息 ────────────────────────
