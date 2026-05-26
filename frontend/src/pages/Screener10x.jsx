@@ -190,11 +190,16 @@ export default function Screener10x() {
       setItems(json.items || []);
       setIsDemoMode(false);
     } else {
-      // backend 不可用（如 production vercel SPA）：退回内置赛道，让 UI 可见；
-      // 筛选 / 添加观察会失败，由各路径的 errorCands 反馈
+      // backend 不可用（如 production vercel SPA）：退回内置赛道 + 灌 demo items，
+      // 让漏斗"你的观察"段不再是 0。screen 候选也走 demo（见下方 effect）。
       setSupertrends(BUILTIN_SUPERTRENDS_FALLBACK);
-      setItems([]);
       setIsDemoMode(true);
+      try {
+        const mod = await import("../data/screener10xDemo.js");
+        setItems(mod.demoWatchlistItems);
+      } catch {
+        setItems([]);
+      }
     }
   }, [showArchived]);
 
@@ -304,9 +309,14 @@ export default function Screener10x() {
       return;
     }
     if (isDemoMode) {
-      // 后端不可用 — 跳过 screen 调用，给一段友好提示替代"后端无响应"
-      setCandidates([]);
-      setErrorCands("演示模式：候选筛选需要后端 API。请 self-host 后端（参见 README）后再试。");
+      // 后端不可用：灌 demo candidates 让漏斗"匹配赛道"段不再是 0。
+      // dynamic import 拆独立 chunk，只在 fallback 时下载。
+      setErrorCands(null);
+      import("../data/screener10xDemo.js").then(mod => {
+        setCandidates(mod.demoCandidates || []);
+      }).catch(() => {
+        setCandidates([]);
+      });
       return;
     }
     runScreen();
