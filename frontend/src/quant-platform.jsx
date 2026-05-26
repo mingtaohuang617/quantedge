@@ -19,7 +19,15 @@ const Screener10x = lazy(() => import("./pages/Screener10x.jsx"));
 const MiningAlpha = lazy(() => import("./pages/MiningAlpha.jsx"));
 const StockGene = lazy(() => import("./pages/StockGene.jsx"));
 const SmartBeta = lazy(() => import("./pages/SmartBeta.jsx"));
+const CompoundPower = lazy(() => import("./pages/CompoundPower.jsx"));
 
+// TODO(perf): data.js 当前 1.09 MB / gzip 264 KB，含 277 个标的的完整 STOCKS
+// + ALERTS。通过 top-level await 在 entry parse 阶段加载，跟主 bundle 并行下载，
+// 因为 ScoringDashboard 首屏需要 STATIC_STOCKS 才能渲染评分列表。
+// 真正优化路径：按 market（US/HK/CN）分片 + lazy load 非首屏市场。需要：
+//   1) backend/export_stocks_to_frontend.py 改成生成 data-us.js / data-hk.js / data-cn.js
+//   2) DataProvider mount 时按 user preference 优先 load 当前市场，其他 idle 时 prefetch
+//   3) 多个 readers（L260/L275/L348）改成 React state（接受首屏空状态 → fetched 后重渲染）
 let STATIC_STOCKS = [];
 let STATIC_ALERTS = [];
 try {
@@ -33,15 +41,49 @@ let STOCKS = [...STATIC_STOCKS];
 let ALERTS = [...STATIC_ALERTS];
 
 // ─── API helpers ──────────────────────────────────────
-const API_BASE = "/api";
+// API_BASE 解析顺序：
+//   1. VITE_API_BASE 已设 → 远端 backend（如 Vercel 接 Render/Railway/Fly）
+//      例 VITE_API_BASE=https://quantedge-backend-p3e1.onrender.com
+//      → 拼接为 https://quantedge-backend-p3e1.onrender.com/api
+//   2. 未设 → 走相对 /api（本地 dev 经 vite proxy → 8001；Vercel 经 rewrite → serverless）
+// 兼容用户填带 trailing slash 的 URL（去尾 / 防双斜杠）
+const API_BASE = (() => {
+  const remote = import.meta.env.VITE_API_BASE;
+  if (!remote || typeof remote !== "string") return "/api";
+  return `${remote.replace(/\/$/, "")}/api`;
+})();
+// Silent retry：Render free tier 有 30s cold start + 偶发 502，第一次失败后静默重试
+// 1 次（800ms 后），不打 console.warn；只有真正不可达才 warn 并返回 null。
+// 对 GET 自动重试；POST 等可能有副作用的，调用方传 opts.noRetry=true 跳过。
+const RETRY_DELAY_MS = 800;
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
 export const apiFetch = async (path, opts = {}) => {
-  try {
+  const { noRetry, ...fetchOpts } = opts;
+  const isGet = !fetchOpts.method || fetchOpts.method.toUpperCase() === "GET";
+  const shouldRetry = isGet && !noRetry;
+
+  const doFetch = async () => {
     const res = await fetch(`${API_BASE}${path}`, {
       headers: { "Content-Type": "application/json" },
-      ...opts,
+      ...fetchOpts,
     });
     return await res.json();
+  };
+
+  try {
+    return await doFetch();
   } catch (e) {
+    if (shouldRetry) {
+      // 静默重试一次 — 多数 cold-start / 偶发 502 会在第二次成功
+      await sleep(RETRY_DELAY_MS);
+      try {
+        return await doFetch();
+      } catch (e2) {
+        console.warn("API unavailable:", e2.message);
+        return null;
+      }
+    }
     console.warn("API unavailable:", e.message);
     return null;
   }
@@ -958,7 +1000,7 @@ const UserProfilePanel = ({ open, onClose, theme, toggleTheme }) => {
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
           <h2 className="text-sm font-semibold text-white">{t('账户信息')}</h2>
-          <button onClick={onClose} className="p-1 rounded-md text-[#a0aec0] hover:text-white hover:bg-white/10 transition-all">
+          <button onClick={onClose} aria-label={t('关闭账户信息')} className="p-1 rounded-md text-[#a0aec0] hover:text-white hover:bg-white/10 transition-all">
             <X size={16} />
           </button>
         </div>
@@ -1235,6 +1277,7 @@ const TAB_CFG = [
   { id: "macro",       label: "宏观看板",     short: ["宏观", "看板"],     icon: Globe },
   { id: "screener10x", label: "10x 猎手",     short: ["10x", "猎手"],      icon: Target },
   { id: "stockgene",   label: "股性检测",     short: ["股性", "检测"],     icon: Zap },
+  { id: "compound",    label: "复利的力量",   short: ["复利", "之力"],     icon: TrendingUp },
 ];
 
 // ─── Scoring ──────────────────────────────────────────────
@@ -2287,34 +2330,9 @@ function QuantPlatformInner() {
 
         {/* 右侧 cluster：侧边栏模式下 flex-1 占满剩余空间让 ticker tape 撑长 */}
         <div className={`hidden md:flex items-center gap-2 ${useSidebar ? 'flex-1 ml-3 min-w-0 justify-end' : ''}`}>
-          {/* Header ticker tape — 60s 循环 marquee, hover 暂停（prefers-reduced-motion 自动停）
-              · 侧边栏模式：flex-1 自适应（min 200 max 900）
-              · 非侧边栏：自适应到响应式宽度，避免硬编码 300px */}
-          {stocks.length > 0 && (
-            <div
-              className={`relative flex items-center h-7 overflow-hidden rounded-md bg-white/[0.02] border border-white/5 ${useSidebar ? 'flex-1 min-w-[200px] max-w-[900px]' : 'w-[260px] lg:w-[300px] xl:w-[360px] 2xl:w-[420px]'}`}
-              style={{
-                maskImage: 'linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent)',
-                WebkitMaskImage: 'linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent)',
-              }}
-              aria-label={t('实时行情滚动')}
-            >
-              <div className="flex items-center gap-5 animate-marquee whitespace-nowrap pr-5 hover:[animation-play-state:paused]">
-                {[...stocks, ...stocks].slice(0, 36).map((s, i) => (
-                  <div key={`${s.ticker}-${i}`} className="flex items-center gap-1.5 text-[10px] font-mono tabular-nums shrink-0">
-                    <span className="text-[#c8cdd3] font-semibold">{s.ticker}</span>
-                    <span className={safeChange(s.change) >= 0 ? "text-up" : "text-down"}>
-                      {s.currency === "HKD" ? "HK$" : "$"}{s.price}
-                    </span>
-                    <span className={`text-[9px] ${safeChange(s.change) >= 0 ? "text-up" : "text-down"}`}>
-                      {safeChange(s.change) >= 0 ? "+" : ""}{fmtChange(s.change)}%
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          <div className="w-px h-5 bg-white/8" />
+          {/* 顶栏 ticker tape 与其后分隔符按用户要求已移除（2026-05-24）。
+              「复利之力」tab 与「默认工作区」切换器之间不再插入实时行情滚动条。
+              依赖 safeChange / fmtChange 仍被其他地方使用；如需恢复见 git log。 */}
           {/* C16: 工作区切换器 */}
           <WorkspaceSwitcher />
           <div className="w-px h-5 bg-white/8" />
@@ -2376,6 +2394,7 @@ function QuantPlatformInner() {
           {tab === "miningAlpha" && <MiningAlpha />}
           {tab === "stockgene" && <StockGene />}
           {tab === "smartBeta" && <SmartBeta />}
+          {tab === "compound" && <CompoundPower />}
         </Suspense>
       </main>
 

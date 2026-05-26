@@ -115,7 +115,7 @@ export default function DataStatusBanner({ composite, factors }) {
             </div>
           ))}
           <div className="text-[10px] opacity-50 pt-1 border-t border-white/[0.05]">
-            非致命错误，主面板仍可用。修复方法：本地跑 <code className="font-mono opacity-90">python backend/refresh_macro.py</code> 然后 <code className="font-mono opacity-90">python backend/export_macro_snapshot.py</code>。
+            部分数据源刷新失败，主面板仍可用。下次刷新会自动重试。
           </div>
         </div>
       )}

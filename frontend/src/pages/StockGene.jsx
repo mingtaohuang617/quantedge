@@ -155,9 +155,23 @@ export default function StockGene() {
         setSelectedTicker(json.items[0].ticker);
       }
     } else {
-      setItems([]);
-      setIsDemoMode(true);
-      setError("后端不可用 — 股性检测需要 self-hosted backend（参见 README）");
+      // 后端不可达 → 灌 demo 数据让 Vercel 等纯前端部署也能展示完整功能。
+      // Dynamic import 拆独立 chunk，只在 fallback 时下载，不污染本地 dev bundle。
+      try {
+        const demo = await import("../data/stockGeneDemo.js");
+        setItems(demo.demoStockGene.items);
+        setLists(demo.demoStockGene.lists);
+        if (demo.demoStockGene.items.length > 0 && !selectedTicker) {
+          setSelectedTicker(demo.demoStockGene.items[0].ticker);
+        }
+        setIsDemoMode(true);
+        setError(null);
+      } catch {
+        // demo 模块加载也失败（罕见）→ 回到原来的空列表 + 提示
+        setItems([]);
+        setIsDemoMode(true);
+        setError("后端不可用 — 股性检测需要 self-hosted backend（参见 README）");
+      }
     }
   // selectedTicker 只用作首次默认，不进依赖避免回环
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -851,10 +865,10 @@ export default function StockGene() {
           </span>
           {isDemoMode && (
             <span
-              className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30"
-              title="后端不可用 — 评分需 self-hosted backend"
+              className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 cursor-help"
+              title="当前是示例数据（Vercel 等无后端部署）。要看真实评分: cd backend && python server.py 后访问 localhost:5173"
             >
-              演示模式
+              DEMO 模式
             </span>
           )}
         </div>
@@ -872,6 +886,7 @@ export default function StockGene() {
           <button
             onClick={handleExport}
             disabled={isDemoMode || items.length === 0}
+            aria-label="导出股性检测 JSON 备份"
             className="flex items-center justify-center w-7 h-7 rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white transition border border-white/10 disabled:opacity-40 disabled:cursor-not-allowed"
             title="导出 JSON 备份（含所有观察项 + 双引擎评分 + 历史）"
           >

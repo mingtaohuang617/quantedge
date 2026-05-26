@@ -261,3 +261,62 @@ class TestEnvConfig:
     def test_env_float_bad_value_falls_back(self, monkeypatch):
         monkeypatch.setenv("FAKE_KEY", "x")
         assert yfinance_source._env_float("FAKE_KEY", 1.0) == 1.0
+
+
+# ── YFINANCE_HISTORY_TIMEOUT 行为 ────────────────────────
+
+class TestHistoryTimeout:
+    def test_default_timeout_passed_to_yfinance(self):
+        """默认 timeout 从模块常量取，并显式传入 tk.history。"""
+        df = pd.DataFrame(
+            {"Open": [1.0], "High": [1.0], "Low": [1.0], "Close": [1.0], "Volume": [1]},
+            index=pd.DatetimeIndex(["2026-05-01"]),
+        )
+        from unittest.mock import MagicMock
+        tk = MagicMock()
+        tk.history = MagicMock(return_value=df)
+        with patch.object(yfinance_source.yf, "Ticker", return_value=tk):
+            yfinance_source.fetch_history(SPY_CFG, days=30)
+        kwargs = tk.history.call_args.kwargs
+        assert "timeout" in kwargs
+        assert kwargs["timeout"] == yfinance_source.YFINANCE_HISTORY_TIMEOUT
+
+    def test_module_constant_override_takes_effect(self):
+        """改 YFINANCE_HISTORY_TIMEOUT 模块常量后下次调用立即生效。"""
+        df = pd.DataFrame(
+            {"Open": [1.0], "High": [1.0], "Low": [1.0], "Close": [1.0], "Volume": [1]},
+            index=pd.DatetimeIndex(["2026-05-01"]),
+        )
+        from unittest.mock import MagicMock
+        tk = MagicMock()
+        tk.history = MagicMock(return_value=df)
+        with patch.object(yfinance_source.yf, "Ticker", return_value=tk), \
+             patch.object(yfinance_source, "YFINANCE_HISTORY_TIMEOUT", 5.0):
+            yfinance_source.fetch_history(SPY_CFG, days=30)
+        assert tk.history.call_args.kwargs["timeout"] == 5.0
+
+    def test_default_value_is_30_seconds(self):
+        """文档/语义保证：模块默认是 30 秒（yfinance 内置 10s 偏短）。"""
+        # 任何 import 时未设 env var → 默认 30.0
+        # 这测试只在没有 env var 时有意义；如果 CI 设了就跳过
+        import os
+        if "YFINANCE_HISTORY_TIMEOUT" in os.environ:
+            pytest.skip("YFINANCE_HISTORY_TIMEOUT env var 已设，跳过默认值检查")
+        assert yfinance_source.YFINANCE_HISTORY_TIMEOUT == 30.0
+
+    def test_fallback_1mo_also_carries_timeout(self):
+        """日 K 第一次 empty 回退 1mo 时，第二次调用也应带 timeout。"""
+        from unittest.mock import MagicMock
+        empty = pd.DataFrame()
+        non_empty = pd.DataFrame(
+            {"Open": [1.0], "High": [1.0], "Low": [1.0], "Close": [1.0], "Volume": [1]},
+            index=pd.DatetimeIndex(["2026-05-01"]),
+        )
+        tk = MagicMock()
+        tk.history = MagicMock(side_effect=[empty, non_empty])
+        with patch.object(yfinance_source.yf, "Ticker", return_value=tk):
+            yfinance_source.fetch_history(SPY_CFG, days=30)
+        assert tk.history.call_count == 2
+        # 两次调用都带 timeout
+        assert "timeout" in tk.history.call_args_list[0].kwargs
+        assert "timeout" in tk.history.call_args_list[1].kwargs

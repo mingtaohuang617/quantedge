@@ -46,7 +46,10 @@ ignore = [
 [tool.pytest.ini_options]
 testpaths = ["backend/tests"]
 python_files = ["test_*.py"]
-addopts = "-q"
+# -m "not network": 默认跳过 @pytest.mark.network 测试（撞网络、不稳定）
+#   要跑：pytest -m network
+#   要跑全部（含 network）：pytest -m ""
+addopts = "-q -m 'not network'"
 markers = [
   "network: requires network access (deselected by default)",
   "slow: slow test (e.g. e2e / large data); 用 -m 'not slow' 跳过",

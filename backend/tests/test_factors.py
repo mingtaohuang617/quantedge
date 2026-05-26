@@ -46,13 +46,13 @@ class TestCalcRsi:
         prices = pd.Series(np.arange(130, 100, -1, dtype=float))
         assert calc_rsi(prices) == 0.0
 
-    def test_all_rising_returns_neutral_quirk(self):
-        """⚠ Quirk：全涨理论应 RSI=100，实现因 avg_loss=0 → NaN → fallback 50。
+    def test_all_rising_returns_100(self):
+        """全涨 → avg_loss=0 → 极度超买 → 100。
 
-        若日后修复，此测试会失败，提醒同步更新此处期望。
+        历史上这里有 quirk（avg_loss=0 → NaN → fallback 50），已修复显式返回 100。
         """
         prices = pd.Series(np.arange(100, 130, dtype=float))
-        assert calc_rsi(prices) == 50.0
+        assert calc_rsi(prices) == 100.0
 
     def test_flat_prices_return_neutral(self):
         """横盘价（无变动）→ avg_gain/avg_loss 都 0 → NaN → 50.0。"""
@@ -67,8 +67,8 @@ class TestCalcRsi:
 
     def test_custom_period(self):
         prices = pd.Series(np.arange(100, 130, dtype=float))
-        # period=5 时仍走"全涨 → NaN → 50" 路径
-        assert calc_rsi(prices, period=5) == 50.0
+        # period=5 仍是全涨 → 100
+        assert calc_rsi(prices, period=5) == 100.0
         # period=5 时 6 个点是边界刚够
         short = pd.Series(np.arange(110, 105, -1, dtype=float))  # 5 点
         assert calc_rsi(short, period=5) == 50.0  # 不足 period+1=6
@@ -295,12 +295,12 @@ class TestParseLeverage:
         """1x 视作非杠杆 ETF，返回 None。"""
         assert parse_leverage("1x") is None
 
-    def test_negative_1x_quirk(self):
-        """⚠ Quirk：-1x（反向）也被当非杠杆，因 abs(-1) <= 1.0001。
+    def test_negative_1x_treated_as_inverse_leverage(self):
+        """-1x 是反向杠杆 ETF（如 SQQQ），(L²-L)/2=1 仍有磨损 → 保留 -1.0。
 
-        如果未来修复，此测试会失败，提醒同步更新。
+        历史上这里有 quirk（abs(-1) <= 1.0001 被当非杠杆），已修复仅 +1.0 视作非杠杆。
         """
-        assert parse_leverage("-1x") is None
+        assert parse_leverage("-1x") == -1.0
 
     def test_invalid_string(self):
         assert parse_leverage("abc") is None
