@@ -8,6 +8,7 @@ import { idbGet, idbSet } from "./lib/idb.js";
 import macroSnapshot from "./macroSnapshot.json";
 import { TEMP_TEXT, TEMP_LABEL } from "./components/macro/shared.js";
 import ShortcutsModal from "./components/ShortcutsModal.jsx";
+import { Z_ELEVATED, Z_TOUR } from "./lib/zIndex.js";
 
 // C1/C2: 拆分主文件 + 代码分割 — 各 Tab 按需加载（首屏不打包这些 chunk）
 const Journal = lazy(() => import("./pages/Journal.jsx"));
@@ -18,7 +19,16 @@ const MacroDashboard = lazy(() => import("./pages/MacroDashboard.jsx"));
 const Screener10x = lazy(() => import("./pages/Screener10x.jsx"));
 const MiningAlpha = lazy(() => import("./pages/MiningAlpha.jsx"));
 const StockGene = lazy(() => import("./pages/StockGene.jsx"));
+const SmartBeta = lazy(() => import("./pages/SmartBeta.jsx"));
+const CompoundPower = lazy(() => import("./pages/CompoundPower.jsx"));
 
+// TODO(perf): data.js 当前 1.09 MB / gzip 264 KB，含 277 个标的的完整 STOCKS
+// + ALERTS。通过 top-level await 在 entry parse 阶段加载，跟主 bundle 并行下载，
+// 因为 ScoringDashboard 首屏需要 STATIC_STOCKS 才能渲染评分列表。
+// 真正优化路径：按 market（US/HK/CN）分片 + lazy load 非首屏市场。需要：
+//   1) backend/export_stocks_to_frontend.py 改成生成 data-us.js / data-hk.js / data-cn.js
+//   2) DataProvider mount 时按 user preference 优先 load 当前市场，其他 idle 时 prefetch
+//   3) 多个 readers（L260/L275/L348）改成 React state（接受首屏空状态 → fetched 后重渲染）
 let STATIC_STOCKS = [];
 let STATIC_ALERTS = [];
 try {
@@ -32,15 +42,49 @@ let STOCKS = [...STATIC_STOCKS];
 let ALERTS = [...STATIC_ALERTS];
 
 // ─── API helpers ──────────────────────────────────────
-const API_BASE = "/api";
+// API_BASE 解析顺序：
+//   1. VITE_API_BASE 已设 → 远端 backend（如 Vercel 接 Render/Railway/Fly）
+//      例 VITE_API_BASE=https://quantedge-backend-p3e1.onrender.com
+//      → 拼接为 https://quantedge-backend-p3e1.onrender.com/api
+//   2. 未设 → 走相对 /api（本地 dev 经 vite proxy → 8001；Vercel 经 rewrite → serverless）
+// 兼容用户填带 trailing slash 的 URL（去尾 / 防双斜杠）
+const API_BASE = (() => {
+  const remote = import.meta.env.VITE_API_BASE;
+  if (!remote || typeof remote !== "string") return "/api";
+  return `${remote.replace(/\/$/, "")}/api`;
+})();
+// Silent retry：Render free tier 有 30s cold start + 偶发 502，第一次失败后静默重试
+// 1 次（800ms 后），不打 console.warn；只有真正不可达才 warn 并返回 null。
+// 对 GET 自动重试；POST 等可能有副作用的，调用方传 opts.noRetry=true 跳过。
+const RETRY_DELAY_MS = 800;
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
 export const apiFetch = async (path, opts = {}) => {
-  try {
+  const { noRetry, ...fetchOpts } = opts;
+  const isGet = !fetchOpts.method || fetchOpts.method.toUpperCase() === "GET";
+  const shouldRetry = isGet && !noRetry;
+
+  const doFetch = async () => {
     const res = await fetch(`${API_BASE}${path}`, {
       headers: { "Content-Type": "application/json" },
-      ...opts,
+      ...fetchOpts,
     });
     return await res.json();
+  };
+
+  try {
+    return await doFetch();
   } catch (e) {
+    if (shouldRetry) {
+      // 静默重试一次 — 多数 cold-start / 偶发 502 会在第二次成功
+      await sleep(RETRY_DELAY_MS);
+      try {
+        return await doFetch();
+      } catch (e2) {
+        console.warn("API unavailable:", e2.message);
+        return null;
+      }
+    }
     console.warn("API unavailable:", e.message);
     return null;
   }
@@ -957,7 +1001,7 @@ const UserProfilePanel = ({ open, onClose, theme, toggleTheme }) => {
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
           <h2 className="text-sm font-semibold text-white">{t('账户信息')}</h2>
-          <button onClick={onClose} className="p-1 rounded-md text-[#a0aec0] hover:text-white hover:bg-white/10 transition-all">
+          <button onClick={onClose} aria-label={t('关闭账户信息')} className="p-1 rounded-md text-[#a0aec0] hover:text-white hover:bg-white/10 transition-all">
             <X size={16} />
           </button>
         </div>
@@ -966,7 +1010,7 @@ const UserProfilePanel = ({ open, onClose, theme, toggleTheme }) => {
         <div className="flex-1 overflow-y-auto p-4 space-y-4" style={{ scrollbarWidth: "thin", scrollbarColor: "#333 transparent" }}>
           {/* Avatar + Name */}
           <div className="flex flex-col items-center text-center pt-3 pb-1">
-            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-white text-lg font-bold shadow-lg shadow-indigo-500/20 mb-2.5">
+            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-white text-lg font-bold shadow-lg shadow-indigo-500/20 mb-2.5">
               {(user.name || "U").charAt(0).toUpperCase()}
             </div>
             {editing ? (
@@ -1103,7 +1147,7 @@ const UserProfilePanel = ({ open, onClose, theme, toggleTheme }) => {
           <div className="rounded-lg bg-white/[0.03] border border-white/5 p-3 space-y-1.5 text-[10px]">
             <div className="flex items-center justify-between">
               <span className="text-[#667]">{t('版本')}</span>
-              <span className="text-[#a0aec0] font-mono">v0.6.0</span>
+              <span className="text-[#a0aec0] font-mono">v0.8.0</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-[#667]">{t('许可')}</span>
@@ -1223,15 +1267,18 @@ export const ScoreBar = ({ score, max = 100 }) => {
   );
 };
 
+// short: 2 行显示用（仅顶部 nav；压缩横向空间。aria-label / 命令面板仍用 label 单行）
 const TAB_CFG = [
-  { id: "scoring", label: "量化评分", icon: BarChart3 },
-  { id: "backtest", label: "组合回测", icon: Activity },
-  { id: "miningAlpha", label: "Mining Alpha", icon: Zap },
-  { id: "monitor", label: "实时监控", icon: Bell },
-  { id: "journal", label: "投资日志", icon: BookOpen },
-  { id: "macro", label: "宏观看板", icon: Globe },
-  { id: "screener10x", label: "10x 猎手", icon: Target },
-  { id: "stockgene", label: "股性检测", icon: Zap },
+  { id: "scoring",     label: "量化评分",     short: ["量化", "评分"],     icon: BarChart3 },
+  { id: "backtest",    label: "组合回测",     short: ["组合", "回测"],     icon: Activity },
+  { id: "smartBeta",   label: "Smart Beta",   short: ["Smart", "Beta"],    icon: Layers },
+  { id: "miningAlpha", label: "Mining Alpha", short: ["Mining", "Alpha"],  icon: Zap },
+  { id: "monitor",     label: "实时监控",     short: ["实时", "监控"],     icon: Bell },
+  { id: "journal",     label: "投资日志",     short: ["投资", "日志"],     icon: BookOpen },
+  { id: "macro",       label: "宏观看板",     short: ["宏观", "看板"],     icon: Globe },
+  { id: "screener10x", label: "10x 猎手",     short: ["10x", "猎手"],      icon: Target },
+  { id: "stockgene",   label: "股性检测",     short: ["股性", "检测"],     icon: Zap },
+  { id: "compound",    label: "复利的力量",   short: ["复利", "之力"],     icon: TrendingUp },
 ];
 
 // ─── Scoring ──────────────────────────────────────────────
@@ -1687,6 +1734,8 @@ const MobileBottomNav = React.memo(({ tab, setTab }) => {
       {TAB_CFG.map((c) => {
         const I = c.icon;
         const active = tab === c.id;
+        // 移动端 8 个 tab，375px 屏每个 ~46px。短标签 2 行避免「Mining Alpha」/「10x 猎手」横向溢出
+        const useShort = Array.isArray(c.short) && c.short.length === 2;
         return (
           <button
             key={c.id}
@@ -1699,7 +1748,14 @@ const MobileBottomNav = React.memo(({ tab, setTab }) => {
             }`}
           >
             <I size={16} className={active ? 'drop-shadow-[0_0_4px_rgba(99,102,241,0.5)]' : ''} />
-            <span className="tracking-tight">{t(c.label)}</span>
+            {useShort ? (
+              <span className="flex flex-col items-center leading-[1.05] tracking-tight">
+                <span>{c.short[0]}</span>
+                <span>{c.short[1]}</span>
+              </span>
+            ) : (
+              <span className="tracking-tight">{t(c.label)}</span>
+            )}
             {active && (
               <span
                 aria-hidden="true"
@@ -1846,7 +1902,7 @@ const CommandPalette = ({ open, onClose, stocks, onPickStock, onSwitchTab, curre
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-start justify-center pt-[10vh] px-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 flex items-start justify-center pt-[10vh] px-4 bg-black/50 backdrop-blur-sm" style={{ zIndex: Z_TOUR }} onClick={onClose}>
       <div className="w-full max-w-xl glass-card border border-white/15 shadow-2xl shadow-black/60 overflow-hidden animate-slide-up" onClick={e => e.stopPropagation()}>
         <div className="flex items-center gap-2 px-3 py-2.5 border-b border-white/8">
           <Search size={14} className="text-[#a0aec0]" />
@@ -1963,7 +2019,7 @@ const OnboardingTour = ({ open, onClose }) => {
     onClose();
   };
   return (
-    <div className="fixed inset-0 z-[95] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md" onClick={finish}>
+    <div className="fixed inset-0 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md" style={{ zIndex: Z_ELEVATED }} onClick={finish}>
       <div className="w-full max-w-md glass-card border border-white/15 shadow-2xl shadow-black/60 overflow-hidden animate-slide-up" onClick={e => e.stopPropagation()}>
         {/* 进度条 */}
         <div className="h-1 bg-white/5">
@@ -2168,7 +2224,7 @@ function QuantPlatformInner() {
       {useSidebar && (
         <aside className="hidden md:flex fixed left-0 top-0 bottom-0 z-40 w-12 flex-col items-stretch border-r border-white/8 bg-white/[0.02] backdrop-blur-md py-2 group/sidebar hover:w-44 transition-[width] duration-200">
           <div className="px-2 py-1 mb-2 flex items-center gap-2 overflow-hidden">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-white font-bold text-[10px] shrink-0">QE</div>
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-white font-bold text-[10px] shrink-0">QE</div>
             <span className="text-[11px] font-semibold text-white opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200 whitespace-nowrap">QuantEdge</span>
           </div>
           <nav role="tablist" aria-label={t('主导航')} className="flex flex-col gap-0.5 px-1.5">
@@ -2235,11 +2291,14 @@ function QuantPlatformInner() {
           </div>
         </div>
 
-        {/* 主导航（桌面 / 顶部）：紧凑化以容下 7 个 tab。移动端用底部 MobileBottomNav 代替 */}
+        {/* 主导航（桌面 / 顶部）：8 个 tab 横向已挤，使用 2 行短标签压缩横向空间。
+            移动端用底部 MobileBottomNav 代替。 */}
         <nav role="tablist" aria-label={t('主导航')} className={`${useSidebar ? 'hidden' : 'hidden md:flex'} items-center gap-0.5 lg:gap-1 w-full md:w-auto overflow-x-auto shrink-0`}>
           {TAB_CFG.map(c => {
             const I = c.icon;
             const active = tab === c.id;
+            // 中文 label 在 zh 模式下用 2 行 short 标签（量化/评分），英文 fallback 单行 t(label)
+            const useShort = lang === 'zh' && Array.isArray(c.short) && c.short.length === 2;
             return (
               <button
                 key={c.id}
@@ -2247,8 +2306,17 @@ function QuantPlatformInner() {
                 role="tab"
                 aria-selected={active}
                 aria-label={t(c.label)}
-                className={`relative flex items-center gap-1 lg:gap-1.5 px-1.5 md:px-2 lg:px-2.5 py-2 text-[11px] font-medium whitespace-nowrap flex-1 md:flex-none justify-center transition-colors active:scale-[0.97] ${active ? "text-white" : "text-[#a0aec0] hover:text-white"}`}>
-                <I size={12} />{t(c.label)}
+                title={t(c.label)}
+                className={`relative flex items-center gap-1 lg:gap-1.5 px-1.5 md:px-2 lg:px-2.5 py-1 md:py-1.5 text-[10px] font-medium whitespace-nowrap flex-1 md:flex-none justify-center transition-colors active:scale-[0.97] ${active ? "text-white" : "text-[#a0aec0] hover:text-white"}`}>
+                <I size={12} className="shrink-0" />
+                {useShort ? (
+                  <span className="flex flex-col items-center leading-[1.1] tracking-tight">
+                    <span>{c.short[0]}</span>
+                    <span>{c.short[1]}</span>
+                  </span>
+                ) : (
+                  <span>{t(c.label)}</span>
+                )}
                 {active && (
                   <span
                     aria-hidden="true"
@@ -2263,34 +2331,9 @@ function QuantPlatformInner() {
 
         {/* 右侧 cluster：侧边栏模式下 flex-1 占满剩余空间让 ticker tape 撑长 */}
         <div className={`hidden md:flex items-center gap-2 ${useSidebar ? 'flex-1 ml-3 min-w-0 justify-end' : ''}`}>
-          {/* Header ticker tape — 60s 循环 marquee, hover 暂停（prefers-reduced-motion 自动停）
-              · 侧边栏模式：flex-1 自适应（min 200 max 900）
-              · 非侧边栏：自适应到响应式宽度，避免硬编码 300px */}
-          {stocks.length > 0 && (
-            <div
-              className={`relative flex items-center h-7 overflow-hidden rounded-md bg-white/[0.02] border border-white/5 ${useSidebar ? 'flex-1 min-w-[200px] max-w-[900px]' : 'w-[260px] lg:w-[300px] xl:w-[360px] 2xl:w-[420px]'}`}
-              style={{
-                maskImage: 'linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent)',
-                WebkitMaskImage: 'linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent)',
-              }}
-              aria-label={t('实时行情滚动')}
-            >
-              <div className="flex items-center gap-5 animate-marquee whitespace-nowrap pr-5 hover:[animation-play-state:paused]">
-                {[...stocks, ...stocks].slice(0, 36).map((s, i) => (
-                  <div key={`${s.ticker}-${i}`} className="flex items-center gap-1.5 text-[10px] font-mono tabular-nums shrink-0">
-                    <span className="text-[#c8cdd3] font-semibold">{s.ticker}</span>
-                    <span className={safeChange(s.change) >= 0 ? "text-up" : "text-down"}>
-                      {s.currency === "HKD" ? "HK$" : "$"}{s.price}
-                    </span>
-                    <span className={`text-[9px] ${safeChange(s.change) >= 0 ? "text-up" : "text-down"}`}>
-                      {safeChange(s.change) >= 0 ? "+" : ""}{fmtChange(s.change)}%
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          <div className="w-px h-5 bg-white/8" />
+          {/* 顶栏 ticker tape 与其后分隔符按用户要求已移除（2026-05-24）。
+              「复利之力」tab 与「默认工作区」切换器之间不再插入实时行情滚动条。
+              依赖 safeChange / fmtChange 仍被其他地方使用；如需恢复见 git log。 */}
           {/* C16: 工作区切换器 */}
           <WorkspaceSwitcher />
           <div className="w-px h-5 bg-white/8" />
@@ -2351,6 +2394,8 @@ function QuantPlatformInner() {
           {tab === "screener10x" && <Screener10x />}
           {tab === "miningAlpha" && <MiningAlpha />}
           {tab === "stockgene" && <StockGene />}
+          {tab === "smartBeta" && <SmartBeta />}
+          {tab === "compound" && <CompoundPower />}
         </Suspense>
       </main>
 
@@ -2404,6 +2449,19 @@ function QuantPlatformInner() {
                       <div className="flex items-center justify-between">
                         <span className="text-[#778]">{t('缓存')}</span>
                         <span className="font-mono text-[#a0aec0]">{ageMs != null ? `${(ageMs/1000).toFixed(0)}s ago` : '—'}</span>
+                      </div>
+                      {/* 行情时效（来自后端 dataFreshness.priceAsOf — 最后一根 K 线收盘日）
+                          与"最后刷新"区分：那个是客户端拉数据时间，这个是数据本身代表的时间。 */}
+                      <div className="flex items-center justify-between">
+                        <span className="text-[#778]">{t('行情时效')}</span>
+                        <span className="font-mono text-[#a0aec0]">
+                          {(() => {
+                            const asOfList = stocks.map(s => s.dataFreshness?.priceAsOf).filter(Boolean);
+                            if (!asOfList.length) return '—';
+                            const oldest = asOfList.sort()[0];
+                            return new Date(oldest).toLocaleDateString(lang === 'en' ? 'en-US' : 'zh-CN', { month: '2-digit', day: '2-digit' });
+                          })()}
+                        </span>
                       </div>
                       <div className="border-t border-white/5 my-1" />
                       <div className="flex items-center justify-between">
@@ -2504,7 +2562,7 @@ function QuantPlatformInner() {
             <kbd className="px-1 py-[1px] rounded bg-white/5 border border-white/10 font-mono text-[9px] ml-1">Tab</kbd>
             <span>{t('切换')}</span>
           </span>
-          <span className="text-[9px] md:text-[10px] text-[#778] font-mono">v0.7.0 · <span className="text-indigo-400/80">PWA</span></span>
+          <span className="text-[9px] md:text-[10px] text-[#778] font-mono">v0.8.0 · <span className="text-indigo-400/80">PWA</span></span>
         </div>
       </footer>
 

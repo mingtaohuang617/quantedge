@@ -23,13 +23,14 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Zap, TrendingUp, Activity, Database, AlertCircle, Loader, RefreshCw, Target,
-  Plus, Minus, ArrowRight, GitBranch, X, Play, Terminal, Grid3x3, Info,
+  Plus, Minus, ArrowRight, GitBranch, X, Play, Terminal, Grid3x3, Info, Sparkles,
 } from "lucide-react";
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar,
   CartesianGrid, ReferenceArea, Legend,
 } from "recharts";
 import { apiFetch } from "../quant-platform.jsx";
+import { useMiningAlphaData } from "../hooks/useMiningAlphaData.js";
 
 const fmtPct = (v, digits = 2) => (v === null || v === undefined || isNaN(v))
   ? "—" : `${(v * 100).toFixed(digits)}%`;
@@ -186,19 +187,20 @@ const ICHeatmap = ({ data, onPickAlpha }) => {
 };
 
 // ─── 因子详情 modal (点击 alpha 弹) ─────────────────────────
-const FactorDetailModal = ({ alphaNum, onClose }) => {
+const FactorDetailModal = ({ alphaNum, runId, onClose }) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     if (alphaNum == null) return;
     let cancelled = false;
     setLoading(true);
-    apiFetch(`/mining-alpha/factor-detail/${alphaNum}`)
+    const qs = runId ? `?run_id=${encodeURIComponent(runId)}` : "";
+    apiFetch(`/mining-alpha/factor-detail/${alphaNum}${qs}`)
       .then(d => { if (!cancelled) setData(d); })
       .catch(() => { if (!cancelled) setData(null); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [alphaNum]);
+  }, [alphaNum, runId]);
   if (alphaNum == null) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
@@ -209,7 +211,7 @@ const FactorDetailModal = ({ alphaNum, onClose }) => {
             <h3 className="text-sm font-bold text-white">α{alphaNum} 详情</h3>
             {data?.category && <span className="text-[10px] text-[#a0aec0] px-2 py-0.5 rounded bg-white/5">{data.category}</span>}
           </div>
-          <button onClick={onClose} className="p-1 hover:bg-white/10 rounded text-[#a0aec0]"><X size={14} /></button>
+          <button onClick={onClose} aria-label={`关闭 α${alphaNum} 详情`} className="p-1 hover:bg-white/10 rounded text-[#a0aec0]"><X size={14} /></button>
         </div>
         {loading && <div className="text-[#a0aec0] text-xs flex items-center gap-2"><Loader size={12} className="animate-spin" />加载中...</div>}
         {!loading && !data && <div className="text-rose-300 text-xs">未找到详情</div>}
@@ -371,6 +373,40 @@ const RunPipelinePanel = ({ runId, onJobDone }) => {
   );
 };
 
+// ─── Backend 不可达兜底（Vercel 等纯前端部署）─────────────────
+// 显示场景：apiFetch /status 已经回来但返回 null（fetch 抛错被吞掉了）。
+// 区分于「后端在跑但缺产物」的场景 — 那种情况 status 非 null，文案该
+// 提示具体 CLI 命令；这里是后端整体不可达，给个清晰指引就够，避免在
+// 每个面板里都喷 `mining_alpha.run xxx`，对 demo 访客来说是噪音。
+const BackendUnreachableNotice = ({ onRetry, loading }) => (
+  <div className="bg-white/[0.02] border border-white/10 rounded-lg p-5 md:p-6 text-center">
+    <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-violet-500/10 border border-violet-500/30 mb-3">
+      <Database size={18} className="text-violet-400" />
+    </div>
+    <h3 className="text-sm md:text-base font-bold text-white mb-1.5">Mining Alpha 需要 self-hosted backend</h3>
+    <p className="text-[11px] md:text-xs text-[#a0aec0] max-w-[520px] mx-auto leading-relaxed mb-4">
+      本页面读取 <code className="text-cyan-300">/api/mining-alpha/*</code> 数据（IC 报告、回测、Top 持仓、流水线 subprocess 控制）。
+      当前部署看不到这些路由 — Vercel 这类静态托管只提供前端 SPA，没在跑 FastAPI 后端。
+    </p>
+    <div className="bg-black/30 border border-white/5 rounded-md p-3 text-left max-w-[520px] mx-auto mb-4 font-mono text-[10px] md:text-[11px] leading-relaxed">
+      <div className="text-[#a0aec0] mb-1"># 启动后端 + 前端 dev，访问 localhost:5173</div>
+      <div className="text-emerald-300">cd backend && python server.py</div>
+      <div className="text-emerald-300">cd frontend && npm run dev</div>
+    </div>
+    <p className="text-[10px] text-[#a0aec0]/80 mb-4">
+      其他不依赖后端的页面（量化评分 / 投资日志 / 宏观）在 Vercel 上仍然可用。
+    </p>
+    <button
+      onClick={onRetry}
+      disabled={loading}
+      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium bg-violet-500/15 hover:bg-violet-500/25 text-violet-200 border border-violet-500/40 disabled:opacity-50"
+    >
+      {loading ? <Loader size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+      重试连接
+    </button>
+  </div>
+);
+
 // ─── Alerts banner ───────────────────────────────────────────
 const AlertsBanner = ({ alerts }) => {
   if (!alerts?.length) return null;
@@ -493,6 +529,130 @@ const MetricsCard = ({ metrics }) => {
           }`}>{it.v}</div>
         </div>
       ))}
+    </div>
+  );
+};
+
+// ─── 回测指标 AI 解读面板 ────────────────────────────────────
+//   调 /api/llm/backtest-narrate (DeepSeek)，把 metrics 翻译成 4-5 句中文叙事
+//   首次点击拉取，后续点击 toggle 展开/收起；右上小按钮强制重生
+// DeepSeek deepseek-chat 定价（2026Q2）：$0.14/M input, $0.28/M output
+//   一次 backtest-narrate 通常 ~250 in + ~200 out ≈ $0.0001（1/100 美分）
+const estimateLLMCost = (p, c) => (p * 0.14 + c * 0.28) / 1e6;
+
+const BacktestNarrationPanel = ({ metrics }) => {
+  const [narration, setNarration] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState(null);
+  const [cached, setCached] = useState(false);
+  const [usage, setUsage] = useState(null);  // {prompt_tokens, completion_tokens}
+  const [open, setOpen] = useState(false);
+
+  const fetchNarration = async (force = false) => {
+    if (!metrics) return;
+    setLoading(true);
+    setErr(null);
+    // 字段映射：mining_alpha 是 snake_case + 比率 [0,1]；endpoint 要 camelCase + 百分数
+    const body = {
+      tickers: [`Mining Alpha Top-${metrics.top_n ?? 50} rotation`],
+      weights: {},
+      annualReturn: metrics.annual_return != null ? metrics.annual_return * 100 : null,
+      sharpe: metrics.sharpe ?? null,
+      maxDD: metrics.max_drawdown != null ? metrics.max_drawdown * 100 : null,
+      vol: metrics.annual_vol != null ? metrics.annual_vol * 100 : null,
+      benchAnnualReturn: metrics.benchmark_annual_return != null
+        ? metrics.benchmark_annual_return * 100 : null,
+    };
+    try {
+      const path = force ? "/llm/backtest-narrate?force=true" : "/llm/backtest-narrate";
+      const r = await apiFetch(path, {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+      if (!r) {
+        setErr("API 无响应；后端是否启动？DEEPSEEK_API_KEY 是否配置？");
+      } else if (r.ok) {
+        setNarration(r.narration || "");
+        setCached(!!r.cached);
+        setUsage({
+          prompt_tokens: r.prompt_tokens || 0,
+          completion_tokens: r.completion_tokens || 0,
+        });
+      } else {
+        setErr(r.error || "LLM 调用失败");
+      }
+    } catch (e) {
+      setErr(String(e));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleToggle = () => {
+    if (!open && !narration && !loading && !err) {
+      setOpen(true);
+      fetchNarration();
+    } else if (err && !loading) {
+      // 错误状态下点 = 重试
+      fetchNarration();
+    } else {
+      setOpen(!open);
+    }
+  };
+
+  return (
+    <div className="mt-1">
+      <div className="flex items-center gap-2">
+        <button
+          onClick={handleToggle}
+          disabled={loading}
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium bg-violet-500/10 hover:bg-violet-500/20 text-violet-300 border border-violet-500/30 disabled:opacity-50 transition-colors"
+        >
+          {loading ? <Loader size={11} className="animate-spin" /> : <Sparkles size={11} />}
+          {loading
+            ? "DeepSeek 生成中…"
+            : err
+            ? "重试 AI 解读"
+            : narration
+            ? open ? "收起 AI 解读" : "展开 AI 解读"
+            : "AI 解读（DeepSeek）"}
+        </button>
+        {narration && !loading && (
+          <button
+            onClick={() => fetchNarration(true)}
+            className="text-[10px] text-[#a0aec0] hover:text-white px-1.5 py-0.5 rounded hover:bg-white/5"
+            title="强制重新生成（force=true 跳过 30 分钟后端缓存，重新调 DeepSeek）"
+          >
+            <RefreshCw size={10} />
+          </button>
+        )}
+        {usage && narration && open && (
+          <span
+            className={`text-[9px] tabular-nums font-mono ${cached ? "text-emerald-400/80" : "text-[#a0aec0]"}`}
+            title={cached
+              ? "命中后端 30 分钟缓存，本次零成本（显示的是历史首次调用的 token 数）"
+              : "本次实际消耗的 DeepSeek token（input + output）"}
+          >
+            {cached
+              ? `⚡ 缓存命中 · 省 ≈$${estimateLLMCost(usage.prompt_tokens, usage.completion_tokens).toFixed(6)}`
+              : `💎 ${usage.prompt_tokens}+${usage.completion_tokens} tok · ≈$${estimateLLMCost(usage.prompt_tokens, usage.completion_tokens).toFixed(6)}`}
+          </span>
+        )}
+      </div>
+      {open && (narration || err) && (
+        <div className="mt-2 bg-violet-500/[0.04] border border-violet-500/20 rounded-md p-2.5">
+          {err ? (
+            <div className="text-rose-300 text-[11px] flex items-start gap-1.5">
+              <AlertCircle size={12} className="mt-0.5 shrink-0" />
+              <span>{err}</span>
+            </div>
+          ) : (
+            <div className="text-[12px] text-white/90 leading-relaxed whitespace-pre-wrap">
+              {narration}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
@@ -621,61 +781,20 @@ const FoldICTable = ({ rows }) => {
 
 // ─── 主组件 ────────────────────────────────────────────────
 export default function MiningAlpha() {
-  const [status, setStatus] = useState(null);
-  const [ic, setIC] = useState([]);
-  const [importance, setImportance] = useState([]);
-  const [backtest, setBacktest] = useState(null);
-  const [topHoldings, setTopHoldings] = useState({ as_of: "", holdings: [] });
-  const [regime, setRegime] = useState([]);
-  const [foldIC, setFoldIC] = useState([]);
-  const [heatmap, setHeatmap] = useState(null);
-  const [alerts, setAlerts] = useState([]);
+  const {
+    status, ic, importance, backtest, topHoldings, regime, foldIC, heatmap, alerts,
+    loading, error, refetch: fetchAll, switchRun: onSwitchRun,
+  } = useMiningAlphaData();
   const [pickedAlpha, setPickedAlpha] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-
-  const fetchAll = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const s = await apiFetch("/mining-alpha/status").catch(() => null);
-      setStatus(s);
-      const tasks = [];
-      if (s?.files?.ic_report) {
-        tasks.push(apiFetch("/mining-alpha/ic-report?top_n=20").catch(() => []).then(setIC));
-        tasks.push(apiFetch("/mining-alpha/ic-heatmap?top_n=20&recent_months=24").catch(() => null).then(setHeatmap));
-      }
-      if (s?.files?.feature_importance) tasks.push(apiFetch("/mining-alpha/feature-importance?top_n=20").catch(() => []).then(setImportance));
-      if (s?.files?.backtest_report) tasks.push(apiFetch("/mining-alpha/backtest").catch(() => null).then(setBacktest));
-      if (s?.files?.predictions) tasks.push(apiFetch("/mining-alpha/top-holdings?top_n=20").catch(() => ({})).then(setTopHoldings));
-      if (s?.files?.regime) tasks.push(apiFetch("/mining-alpha/regime").catch(() => []).then(setRegime));
-      if (s?.files?.fold_ic) tasks.push(apiFetch("/mining-alpha/fold-ic").catch(() => []).then(setFoldIC));
-      // alerts: status.files.alerts 暂未声明，直接尝试拉取
-      tasks.push(apiFetch("/mining-alpha/alerts").catch(() => ({ alerts: [] })).then(r => setAlerts(r?.alerts || [])));
-      await Promise.all(tasks);
-    } catch (e) {
-      setError(String(e));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const onSwitchRun = async (runId) => {
-    try {
-      await apiFetch(`/mining-alpha/switch-run/${runId}`, { method: "POST" });
-      await fetchAll();
-    } catch (e) {
-      setError(String(e));
-    }
-  };
-
-  useEffect(() => { fetchAll(); }, []);
 
   const regimeSegments = useMemo(() => mergeRegimeSegments(regime), [regime]);
   const allDone = status && status.files && Object.values(status.files).every(Boolean);
   const summary = topHoldings ? {
     n_new: topHoldings.n_new, n_held: topHoldings.n_held, n_dropped: topHoldings.n_dropped,
   } : {};
+  // 后端整体不可达：首次 fetchAll 完成、status 仍为 null、也没有 error。
+  // 这里短路出去渲染单一友好提示，而不是在 8 个面板里都喷 CLI 命令。
+  const backendUnreachable = !loading && status === null && !error;
 
   return (
     <div className="p-3 md:p-4 space-y-3 max-w-[1400px] mx-auto">
@@ -688,10 +807,12 @@ export default function MiningAlpha() {
         </div>
         <div className="flex items-center gap-2">
           {status && <RunSwitcher status={status} onSwitch={onSwitchRun} />}
-          <button onClick={fetchAll} disabled={loading} className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium bg-white/5 hover:bg-white/10 text-white border border-white/10 disabled:opacity-50">
-            {loading ? <Loader size={12} className="animate-spin" /> : <RefreshCw size={12} />}
-            刷新
-          </button>
+          {!backendUnreachable && (
+            <button onClick={fetchAll} disabled={loading} className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium bg-white/5 hover:bg-white/10 text-white border border-white/10 disabled:opacity-50">
+              {loading ? <Loader size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+              刷新
+            </button>
+          )}
         </div>
       </div>
 
@@ -701,8 +822,14 @@ export default function MiningAlpha() {
         </div>
       )}
 
+      {/* 后端不可达：短路出去，不渲染下面任何依赖 backend 的面板 */}
+      {backendUnreachable && <BackendUnreachableNotice onRetry={fetchAll} loading={loading} />}
+
       {/* 告警 banner */}
-      <AlertsBanner alerts={alerts} />
+      {!backendUnreachable && <AlertsBanner alerts={alerts} />}
+
+      {/* 后端不可达时下面所有依赖 backend 的面板都不渲染 */}
+      {!backendUnreachable && (<>
 
       {/* Run Pipeline 面板 */}
       <RunPipelinePanel runId={status?.current_run_id} onJobDone={fetchAll} />
@@ -767,6 +894,7 @@ export default function MiningAlpha() {
             </span>
           </div>
           <MetricsCard metrics={backtest.metrics} />
+          <BacktestNarrationPanel metrics={backtest.metrics} />
         </div>
       )}
 
@@ -825,8 +953,14 @@ export default function MiningAlpha() {
         </div>
       )}
 
-      {/* 因子详情 modal */}
-      <FactorDetailModal alphaNum={pickedAlpha} onClose={() => setPickedAlpha(null)} />
+      </>)}
+
+      {/* 因子详情 modal — 由 pickedAlpha 控制，不依赖 backend 全局可用 */}
+      <FactorDetailModal alphaNum={pickedAlpha} runId={status?.current_run_id} onClose={() => setPickedAlpha(null)} />
     </div>
   );
 }
+
+// 用于单测：把 3 个子组件 + 1 个工具函数 named export 出来。生产代码不消费
+// 这些 import，只有 MiningAlpha.test.jsx 用。
+export { AlertsBanner, TopHoldingsTable, RunPipelinePanel, mergeRegimeSegments, BackendUnreachableNotice };

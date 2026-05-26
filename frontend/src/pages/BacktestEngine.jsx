@@ -6,6 +6,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef, useContext } 
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, ComposedChart, ReferenceLine, ReferenceArea } from "recharts";
 import { Activity, AlertCircle, AlertTriangle, BarChart3, BookOpen, Briefcase, Check, ChevronDown, Database, Layers, Loader, Plus, RefreshCw, Search, Share2, Sparkles, Target, Trash2, TrendingDown, X, Zap } from "lucide-react";
 import { searchTickers as standaloneSearch, fetchStockData, fetchBenchmarkPrices, fetchRangePrices, fetchRangePricesEx, STOCK_CN_NAMES } from "../standalone.js";
+import { Z_ELEVATED } from "../lib/zIndex.js";
 import BacktestNarrationCard from "../components/BacktestNarrationCard.jsx";
 import { useLang } from "../i18n.jsx";
 import { monteCarlo as mcSimulate, navToReturns as mcNavToReturns, hhi as hhiCalc, effectiveN as effN } from "../math/stats.ts";
@@ -220,6 +221,8 @@ const BacktestEngine = () => {
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState(() => new Date().toISOString().slice(0, 10));
   const [rebalance, setRebalance] = useState("none"); // none|quarterly|yearly
+  // v5 编辑式：3 Tab 结构（perf=表现 / risk=风险 / resilience=韧性）— 把 14 个分析面板分层
+  const [resultTab, setResultTab] = useState("perf");
   // C11: exportPNG 必须放在 portfolio + btRange 都已声明之后 — 否则 prod minify 后 dep 数组触发 TDZ
   const exportPNG = useCallback(async () => {
     if (!reportRef.current) return;
@@ -1751,7 +1754,7 @@ const BacktestEngine = () => {
             )}
           </div>
         ) : btResult && (
-          <div ref={reportRef} className="flex flex-col gap-2">
+          <div ref={reportRef} className={`flex flex-col gap-2 backtest-tabs tab-${resultTab}`}>
             {/* 回测结果 header — 可折叠 + C11 PNG 导出按钮 */}
             <div className="rounded-xl px-3 py-2.5 border border-indigo-500/15 bg-indigo-500/[0.04]">
               <div className="flex items-center justify-between select-none">
@@ -1788,6 +1791,45 @@ const BacktestEngine = () => {
               </div>
             </div>
             {resultsOpen && (<>
+            {/* v5 编辑式 Hero · 把年化收益作为视觉锚点（36-44px Fraunces serif）
+                现有 6 卡 KPI grid 保留 — 提供数据精度，本块负责"主结论一眼可读"
+                vs 基准差值用 pp（percentage points）chip 强调超额跑赢 */}
+            <div className="glass-card p-3 sm:p-4">
+              <div className="t-eyebrow mb-1.5">{t('组合年化收益')} · {({
+                "1M":t("近1月"),"6M":t("近6月"),"YTD":t("年初至今"),"1Y":t("近1年"),"5Y":t("近5年"),"ALL":t("全部历史"),
+                "CUSTOM": customStart && customEnd ? `${customStart} ~ ${customEnd}` : t("自定义")
+              })[btRange] || btRange}</div>
+              <div className="flex items-end flex-wrap gap-x-4 gap-y-2">
+                <div className="flex items-baseline gap-2.5">
+                  <span className={`t-hero font-serif tabular-nums ${m.annReturn >= 0 ? 'text-up' : 'text-down'}`}>
+                    {m.annReturn >= 0 ? '+' : ''}{m.annReturn}%
+                  </span>
+                  {m.annBenchReturn != null && (
+                    <span className={`text-[11px] font-mono px-2 py-0.5 rounded-md border ${
+                      (m.annReturn - m.annBenchReturn) >= 0
+                        ? 'bg-up/10 text-up border-up/20'
+                        : 'bg-down/10 text-down border-down/20'
+                    }`}>
+                      vs {benchTicker} {(m.annReturn - m.annBenchReturn) >= 0 ? '+' : ''}{(m.annReturn - m.annBenchReturn).toFixed(1)}pp
+                    </span>
+                  )}
+                </div>
+                <div className="flex-1" />
+                {/* 副 KPI 一行（桌面端）— 与下方 6-卡 grid 视觉分层：hero 主结论 → 三 KPI 关键参照 → 6 卡完整数据 */}
+                <div className="hidden md:flex items-end gap-3 pb-0.5">
+                  {[
+                    [m.sharpe.toFixed(2), t('夏普'), m.sharpe > 1 ? 'text-up' : 'text-white'],
+                    [`${m.maxDD.toFixed(1)}%`, t('最大回撤'), 'text-down'],
+                    [`${m.winRate.toFixed(0)}%`, t('胜率'), 'text-white'],
+                  ].map(([v, l, c]) => (
+                    <div key={l} className="pl-3 border-l border-white/5">
+                      <div className="text-[9.5px] uppercase tracking-wider text-[#778] mb-0.5">{l}</div>
+                      <div className={`text-base md:text-lg font-mono font-semibold tabular-nums leading-none ${c}`}>{v}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
             {/* KPI 卡片 — 核心指标（PDF1：每张卡加 vs.基准 副行，让数字有参照） */}
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-1.5">
               {[
@@ -1821,6 +1863,33 @@ const BacktestEngine = () => {
             {/* B4: 回测 AI 总结卡（DeepSeek） */}
             <BacktestNarrationCard btResult={btResult} portfolio={portfolio} benchMetrics={null} />
 
+            {/* v5 编辑式：3-Tab 导航（表现 / 风险 / 韧性）— 把 14 个分析面板按读者意图分层 */}
+            <div className="flex items-center gap-1 self-start p-1 bg-white/[0.03] rounded-lg border border-white/8" role="tablist">
+              {[
+                { id: "perf", label: t("表现"), hint: t("NAV · KPI · 板块 · 收益分布") },
+                { id: "risk", label: t("风险"), hint: t("回撤 · 归因 · 压力 · 相关性") },
+                { id: "resilience", label: t("韧性"), hint: t("Monte Carlo · 仓位建议") },
+              ].map(tab => {
+                const active = resultTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    role="tab"
+                    aria-selected={active}
+                    onClick={() => setResultTab(tab.id)}
+                    title={tab.hint}
+                    className={`px-3 py-1 rounded-md text-[11px] font-medium transition-all ${
+                      active
+                        ? "bg-gradient-to-b from-indigo-500/25 to-indigo-500/10 text-indigo-200 border border-indigo-400/40 shadow-sm"
+                        : "text-[#a0aec0] hover:bg-white/[0.04] border border-transparent"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+
             {/* 净值曲线 */}
             {(() => {
               const baseNav = zoomRange
@@ -1837,7 +1906,7 @@ const BacktestEngine = () => {
               });
               const xInterval = Math.max(1, Math.floor(navData.length / 8));
               return (
-              <div className="glass-card p-3" style={{ minHeight: 240 }}>
+              <div className="glass-card p-3" data-tab="perf" style={{ minHeight: 240 }}>
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-medium text-[#a0aec0]">{t('组合净值曲线')} ({({
@@ -2054,20 +2123,21 @@ const BacktestEngine = () => {
                 winners[r.key] = valid.find(x => x.v === target).i;
               });
               return (
-                <div className="glass-card p-3 mt-2 overflow-x-auto">
+                <div className="glass-card p-3 mt-2 overflow-x-auto" data-tab="perf">
                   <div className="section-header mb-2" style={{ marginBottom: 8 }}>
                     <Layers size={11} className="text-indigo-400" />
                     <span className="section-title">{t('策略横评 ({n} 组)', { n: all.length })}</span>
                     <span className="text-[9px] text-[#778] font-mono ml-1">{t('深色 = 该指标胜者')}</span>
                   </div>
-                  {/* 紧凑表 + 行 hover 高亮（行级 +1.5px bg / 指标列加白）+ 顶部 header sticky */}
+                  {/* 紧凑表 + 行 hover 高亮 + 顶部 header sticky + 第一列（指标名）横向 sticky 防滚动迷失 */}
                   <table className="w-full text-[10px] tabular-nums border-collapse">
                     <thead>
-                      {/* sticky 必须放 <th> 才生效（tr/thead 上的 sticky 大部分浏览器不渲染）*/}
+                      {/* sticky 必须放 <th> 才生效（tr/thead 上的 sticky 大部分浏览器不渲染）
+                          指标列同时 sticky top + left（z-20 比 top-only 高一级，跨头/列时不被覆盖） */}
                       <tr className="border-b border-white/8">
-                        <th className="text-left font-medium text-[#778] py-1.5 pr-2 sticky top-0 bg-[#0b0b14]/95 backdrop-blur-sm">{t('指标')}</th>
+                        <th className="text-left font-medium text-[#778] py-1.5 pr-2 sticky top-0 left-0 z-20 bg-[#0b0b14]/95 backdrop-blur-sm">{t('指标')}</th>
                         {all.map(run => (
-                          <th key={run.id} className="text-right font-mono font-medium py-1.5 px-1.5 whitespace-nowrap sticky top-0 bg-[#0b0b14]/95 backdrop-blur-sm" style={{ color: run.color }}>
+                          <th key={run.id} className="text-right font-mono font-medium py-1.5 px-1.5 whitespace-nowrap sticky top-0 z-10 bg-[#0b0b14]/95 backdrop-blur-sm" style={{ color: run.color }}>
                             <div className="flex items-center gap-1 justify-end">
                               <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: run.color }} />
                               <span className="truncate max-w-[100px]" title={run.label}>{run.label}</span>
@@ -2079,7 +2149,7 @@ const BacktestEngine = () => {
                     <tbody>
                       {rows.map(r => (
                         <tr key={r.key} className="group border-b border-white/[0.04] transition-colors hover:bg-white/[0.04]">
-                          <td className="py-1 pr-2 text-[#a0aec0] group-hover:text-white transition-colors">{r.label}</td>
+                          <td className="py-1 pr-2 text-[#a0aec0] group-hover:text-white transition-colors sticky left-0 z-10 bg-[var(--bg-card)] group-hover:bg-[var(--bg-card-hover)]">{r.label}</td>
                           {all.map((run, idx) => {
                             const raw = run.metrics[r.key];
                             if (raw == null) {
@@ -2118,7 +2188,7 @@ const BacktestEngine = () => {
                 }, 100);
               };
               return (
-                <div className="glass-card p-3" style={{ minHeight: 180 }}>
+                <div className="glass-card p-3" data-tab="resilience" style={{ minHeight: 180 }}>
                   <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
                     <div className="section-header mb-0" style={{ marginBottom: 0 }}>
                       <Zap size={11} className="text-indigo-400" />
@@ -2231,7 +2301,7 @@ const BacktestEngine = () => {
               const effectiveN = effN(weightArr);
 
               return (
-                <div className="glass-card p-3">
+                <div className="glass-card p-3" data-tab="perf">
                   <div className="section-header mb-3">
                     <Layers size={11} className="text-indigo-400" />
                     <span className="section-title">{t('因子暴露分析')}</span>
@@ -2323,7 +2393,7 @@ const BacktestEngine = () => {
             })()}
 
             {/* 第二行: 个股贡献 + 年度收益 + 区间收益 */}
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-3" data-tab="perf">
               {/* 持仓收益 */}
               <div className="md:col-span-4 glass-card p-3">
                 <div className="section-header">
@@ -2416,7 +2486,7 @@ const BacktestEngine = () => {
             </div>
 
             {/* 第三行: Underwater 曲线（含基准对比）+ 风险指标 */}
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-3" data-tab="risk">
               {/* Underwater 曲线 */}
               <div className="md:col-span-8 glass-card p-3">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2 gap-1">
@@ -2487,7 +2557,7 @@ const BacktestEngine = () => {
             </div>
 
             {/* 相关性矩阵 */}
-            <div className="glass-card p-3">
+            <div className="glass-card p-3" data-tab="risk">
               <div className="flex items-center justify-between mb-2">
                 <div className="section-header mb-0" style={{ marginBottom: 0 }}>
                   <Layers size={12} className="text-indigo-400" />
@@ -2560,7 +2630,7 @@ const BacktestEngine = () => {
               const stabLabel = wf.stability >= 70 ? t('稳定') : wf.stability >= 40 ? t('一般') : t('不稳');
               const concentrationWarn = wf.maxWinContribPct >= 50;
               return (
-                <div className="glass-card p-3">
+                <div className="glass-card p-3" data-tab="risk">
                   <div className="section-header flex items-center gap-2 flex-wrap">
                     <Layers size={12} className="text-cyan-400" />
                     <span className="section-title">{t('滚动回测 · Walk-Forward')}</span>
@@ -2630,7 +2700,7 @@ const BacktestEngine = () => {
             {btResult.riskAttribution && (() => {
               const ra = btResult.riskAttribution;
               return (
-                <div className="glass-card p-3">
+                <div className="glass-card p-3" data-tab="risk">
                   <div className="section-header flex items-center gap-2 flex-wrap">
                     <Target size={12} className="text-violet-400" />
                     <span className="section-title">{t('风险归因 · 波动来源拆解')}</span>
@@ -2700,7 +2770,7 @@ const BacktestEngine = () => {
             })()}
 
             {/* ─── 压力测试 ─── */}
-            <div className="glass-card p-3">
+            <div className="glass-card p-3" data-tab="risk">
               <div className="section-header">
                 <AlertTriangle size={12} className="text-amber-400" />
                 <span className="section-title">{t('压力测试 · 极端场景模拟')}</span>
@@ -2743,7 +2813,7 @@ const BacktestEngine = () => {
             </div>
 
             {/* ─── 仓位管理建议 ─── */}
-            <div className="glass-card p-3">
+            <div className="glass-card p-3" data-tab="resilience">
               <div className="section-header">
                 <Target size={12} className="text-indigo-400" />
                 <span className="section-title">{t('仓位管理建议')}</span>
@@ -2776,13 +2846,13 @@ const BacktestEngine = () => {
                 <div className="p-2.5 rounded-lg border border-white/10 bg-white/[0.02]">
                   <div className="text-[11px] font-medium text-white mb-2">{t('风险平价权重 vs 当前')}</div>
                   <div className="space-y-1.5">
-                    {btResult.corrTickers.map((t, i) => {
+                    {btResult.corrTickers.map((tk, i) => {
                       const rp = btResult.riskParityWeights[i] || 0;
-                      const cur = btResult.holdingResults.find(h => h.ticker === t)?.weight || 0;
+                      const cur = btResult.holdingResults.find(h => h.ticker === tk)?.weight || 0;
                       const diff = rp - cur;
                       return (
-                        <div key={t} className="flex items-center gap-2 text-[10px]">
-                          <span className="font-mono text-white w-16 shrink-0">{t}</span>
+                        <div key={tk} className="flex items-center gap-2 text-[10px]">
+                          <span className="font-mono text-white w-16 shrink-0">{tk}</span>
                           <div className="flex-1 flex items-center gap-1">
                             <div className="flex-1 h-3 rounded-full bg-white/5 overflow-hidden relative">
                               <div className="absolute inset-y-0 left-0 rounded-full bg-indigo-500/40" style={{ width: `${rp}%` }} />
@@ -2798,12 +2868,32 @@ const BacktestEngine = () => {
                     })}
                   </div>
                   <div className="mt-2 text-[9px] text-[#778]">{t('按波动率倒数分配，使每个标的对组合风险贡献相等')}</div>
+                  {/* v5: Apply CTA — 把推荐权重直接覆写当前组合并重跑 */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newPortfolio = {};
+                      btResult.corrTickers.forEach((tk, i) => {
+                        const w = btResult.riskParityWeights[i];
+                        if (w > 0) newPortfolio[tk] = Math.round(w * 10) / 10;
+                      });
+                      // 防御：避免零权重时清空组合
+                      if (Object.keys(newPortfolio).length === 0) return;
+                      setPortfolio(newPortfolio);
+                      setTimeout(() => runBacktest(), 120);
+                    }}
+                    disabled={running}
+                    className="w-full mt-2 py-1.5 rounded-md text-[10px] font-semibold bg-gradient-to-r from-cyan-500/20 to-cyan-500/10 text-cyan-200 border border-cyan-400/35 hover:from-cyan-500/30 hover:to-cyan-500/15 transition disabled:opacity-40 flex items-center justify-center gap-1.5"
+                    title={t('用 RP 权重覆写当前组合并立即重跑回测')}
+                  >
+                    <Zap size={11} /> {t('应用风险平价并重跑')}
+                  </button>
                 </div>
               </div>
             </div>
 
             {/* ─── 回测偏差声明 ─── */}
-            <div className="rounded-lg border border-amber-500/15 bg-amber-500/[0.02] p-3">
+            <div className="rounded-lg border border-amber-500/15 bg-amber-500/[0.02] p-3" data-tab="resilience">
               <div className="flex items-start gap-2.5">
                 <div className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0 mt-0.5">
                   <AlertTriangle size={13} className="text-amber-400" />
@@ -2876,7 +2966,7 @@ const TemplateLibraryModal = ({ onClose, builtins, userTemplates, currentConfig,
     setName("");
   };
   return (
-    <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" style={{ zIndex: Z_ELEVATED }} onClick={onClose}>
       <div className="w-full max-w-3xl max-h-[90vh] glass-card border border-white/15 shadow-2xl shadow-black/60 overflow-hidden flex flex-col animate-slide-up" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/8">
           <div className="flex items-center gap-2">
@@ -2884,7 +2974,7 @@ const TemplateLibraryModal = ({ onClose, builtins, userTemplates, currentConfig,
             <h2 className="text-sm font-semibold" style={{ color: "var(--text-heading)" }}>{t('策略模板库')}</h2>
             <span className="text-[10px] text-[#a0aec0]">{builtins.length + userTemplates.length}</span>
           </div>
-          <button onClick={onClose} className="text-[#a0aec0] hover:text-white transition-colors p-1 rounded hover:bg-white/10">
+          <button onClick={onClose} aria-label={t('关闭策略模板库')} className="text-[#a0aec0] hover:text-white transition-colors p-1 rounded hover:bg-white/10">
             <X size={16} />
           </button>
         </div>

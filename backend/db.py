@@ -616,7 +616,7 @@ import json as _json
 
 def llm_cache_key(endpoint: str, model: str, prompt: str) -> str:
     """生成 cache key：sha256(endpoint|model|prompt) 截断到 32 字符。"""
-    h = hashlib.sha256(f"{endpoint}|{model}|{prompt}".encode("utf-8")).hexdigest()
+    h = hashlib.sha256(f"{endpoint}|{model}|{prompt}".encode()).hexdigest()
     return h[:32]
 
 

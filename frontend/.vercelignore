@@ -1,6 +1,13 @@
-# 临时禁用 stock-gene serverless API 路由
-# 这些函数（commit f51bc5f 引入）让 Vercel 部署一直失败
-# 前端 isDemoMode 兜底，stock-gene 页面会自动降级到 demo 模式
-# 未来若 Vercel 限制确认 + 修复后，删此文件恢复
-api/stock-gene/
-api/stock-gene.js
+# ─────────────────────────────────────────────────────────────
+# v0.8: stock-gene 排除已解除 — refactor 把 24 函数合到 7-8 个，
+# 12 上限不再是问题。详见 PR #173 / #176 / #178。
+# ─────────────────────────────────────────────────────────────
+# 历史背景（保留备忘）:
+#   - PR #100 之前 Vercel Hobby plan 硬上限 12 个 serverless function；
+#     项目原 22 个，团队当时选择把 stock-gene 全 10 个排除，让该 tab
+#     在生产降级为 demo 模式（isDemoMode=true）。
+#   - v0.8 重构后：llm 4→1 / watchlist/10x 6→2 / stock-gene 11→1 / 其它 3。
+#     总数 8，远低于 12 上限。stock-gene 已经可以正常部署。
+#
+# 现在本文件不排除任何 api/* 路径（保留文件本身做文档与未来需要）。
+# ─────────────────────────────────────────────────────────────

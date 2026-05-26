@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Iterable
+from collections.abc import Iterable
 
 OUTPUT_DIR = Path(__file__).resolve().parent.parent / "output"
 
@@ -25,7 +25,7 @@ def _load_one(path: Path) -> dict:
     if not path.exists():
         return {"meta": {"market": path.stem.split("_")[-1].upper(), "synced_at": None, "count": 0}, "items": []}
     try:
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             return json.load(f)
     except Exception:
         return {"meta": {"market": path.stem.split("_")[-1].upper(), "synced_at": None, "count": 0, "error": "parse failed"}, "items": []}

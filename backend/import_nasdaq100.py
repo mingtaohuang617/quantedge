@@ -5,7 +5,6 @@
 """
 import json
 import sys
-import os
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -15,7 +14,6 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf8"):
     sys.stdout.reconfigure(encoding="utf-8")
 
 import yfinance as yf
-import requests
 
 # ── 路径 ──────────────────────────────────────────────────
 BASE_DIR = Path(__file__).parent
@@ -25,7 +23,7 @@ from config import TICKERS as BUILTIN
 
 # ── 加载已有 custom tickers ──────────────────────────────
 if CUSTOM_PATH.exists():
-    with open(CUSTOM_PATH, "r", encoding="utf-8") as f:
+    with open(CUSTOM_PATH, encoding="utf-8") as f:
         custom = json.load(f)
 else:
     custom = {}

@@ -21,6 +21,9 @@ import sys
 # pure-python 实现可绕开。（性能稍差，根治请 `pip install "protobuf<3.20.4"`）
 os.environ.setdefault("PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION", "python")
 
+# ── interval 枚举（独立于 router，无依赖）──
+from ._intervals import Interval
+
 # ── 容错 import router（router 内部已对各源做 try/except）──
 try:
     from .router import (
@@ -53,6 +56,7 @@ except Exception as _e:
 
 
 __all__ = [
+    "Interval",
     "fetch_history",
     "fetch_quote",
     "fetch_info",

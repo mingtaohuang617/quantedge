@@ -23,10 +23,8 @@ from __future__ import annotations
 
 import json
 import threading
-import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Optional
 
 STATE_PATH = Path(__file__).resolve().parent / "stock_gene_scheduler.json"
 
@@ -40,7 +38,7 @@ DEFAULT_STATE = {
 }
 
 _lock = threading.Lock()
-_thread: Optional[threading.Thread] = None
+_thread: threading.Thread | None = None
 _wake_event = threading.Event()   # 用于即时唤醒（外部改 schedule 时）
 _stop_event = threading.Event()
 
@@ -50,7 +48,7 @@ def load_state() -> dict:
     if not STATE_PATH.exists():
         return DEFAULT_STATE.copy()
     try:
-        with open(STATE_PATH, "r", encoding="utf-8") as f:
+        with open(STATE_PATH, encoding="utf-8") as f:
             data = json.load(f)
         # 补默认字段
         for k, v in DEFAULT_STATE.items():

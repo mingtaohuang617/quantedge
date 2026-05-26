@@ -34,6 +34,7 @@ except ImportError:
     pass  # python-dotenv 未装时静默跳过；用户可改用 PowerShell setx
 
 import numpy as np
+import pandas as pd  # mining_alpha 路由的 pd.notna/pd.isna 直接用
 import yfinance as yf
 
 import logging_config  # noqa: F401  — 副作用：配置轮转日志
@@ -77,7 +78,7 @@ FRONTEND_DATA_PATH = BASE_DIR.parent / "frontend" / "src" / "data.js"
 
 # ─── Import pipeline components ────────────────────────
 from config import TICKERS as BUILTIN_TICKERS, SECTOR_ETF_MAP
-from factors import calc_rsi, calc_momentum, calc_stock_score, calc_etf_score, parse_leverage
+from factors import calc_rsi, calc_momentum, calc_stock_score, calc_etf_score
 
 # 宏观因子库（Phase 1）— 副作用：导入子模块时装饰器把因子注册进 _REGISTRY
 import db as _macro_db
@@ -97,6 +98,9 @@ except Exception as _e:
     # TypeError 之类的非 ImportError 失败
     print(f"[WARN] data_sources unavailable, falling back to yfinance-direct: {_e}")
     HAS_DATA_SOURCES = False
+    # Python 3: `_e` 在 except 块结束时会被删除（PEP 3110），如果在 health_check
+    # 里直接引用 _e 会 NameError。先 freeze 成字符串闭进 fallback 函数。
+    _data_sources_err = str(_e)
     def fetch_history(cfg, days=120):
         """Fallback: use yfinance directly."""
         symbol = cfg.get("yf_symbol", "")
@@ -104,7 +108,7 @@ except Exception as _e:
         hist = tk.history(period=f"{days}d")
         return hist, "yfinance-direct"
     def health_check():
-        return {"data_sources": (False, str(_e))}
+        return {"data_sources": (False, _data_sources_err)}
 
 # 本地数据库 — SQLite 事实库（C17）
 try:
@@ -131,7 +135,7 @@ def load_custom_tickers() -> dict:
     """Load user-added tickers from JSON file."""
     if CUSTOM_TICKERS_PATH.exists():
         try:
-            with open(CUSTOM_TICKERS_PATH, "r", encoding="utf-8") as f:
+            with open(CUSTOM_TICKERS_PATH, encoding="utf-8") as f:
                 return json.load(f)
         except Exception:
             return {}
@@ -156,16 +160,8 @@ def safe_get(info: dict, key: str, default=None):
         return default
     return val
 
-def fmt_big(val):
-    if val is None:
-        return None
-    if abs(val) >= 1e12:
-        return f"{val/1e12:.2f}T"
-    if abs(val) >= 1e9:
-        return f"{val/1e9:.1f}B"
-    if abs(val) >= 1e6:
-        return f"{val/1e6:.0f}M"
-    return f"{val:.0f}"
+from _format import fmt_big  # 大数字 → T/B/M 格式化
+
 
 def fetch_single_stock(ticker_key: str, cfg: dict) -> dict | None:
     """Fetch data for a single stock/ETF. Reuses pipeline logic."""
@@ -175,11 +171,10 @@ def fetch_single_stock(ticker_key: str, cfg: dict) -> dict | None:
     try:
         # Try data source router first, fallback to yfinance
         try:
-            hist, src = fetch_history(cfg, days=120)
+            hist, _src = fetch_history(cfg, days=120)
         except Exception:
             tk_obj = yf.Ticker(symbol)
             hist = tk_obj.history(period="6mo")
-            src = "yfinance-fallback"
 
         if hist is None or hist.empty or len(hist) < 2:
             return None
@@ -246,7 +241,6 @@ def fetch_single_stock(ticker_key: str, cfg: dict) -> dict | None:
                 expense_ratio = cfg.get("static_overrides", {}).get("expenseRatio", 0.5)
 
             leverage_str = cfg.get("leverage")
-            lev_factor = parse_leverage(leverage_str)
 
             aum_raw = safe_get(info, "totalAssets")
             score, sub_scores = calc_etf_score(
@@ -464,10 +458,10 @@ class DataCache:
             data_path = OUTPUT_DIR / "stocks_data.json"
             alerts_path = OUTPUT_DIR / "alerts.json"
             if data_path.exists():
-                with open(data_path, "r", encoding="utf-8") as f:
+                with open(data_path, encoding="utf-8") as f:
                     self.stocks = json.load(f)
             if alerts_path.exists():
-                with open(alerts_path, "r", encoding="utf-8") as f:
+                with open(alerts_path, encoding="utf-8") as f:
                     self.alerts = json.load(f)
             self.last_refresh = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         except Exception as e:
@@ -1111,6 +1105,264 @@ def db_bars_endpoint(ticker: str, start: str | None = None, end: str | None = No
     return sanitize({"ticker": ticker, "count": len(rows), "bars": rows})
 
 
+# ── Intraday（分钟级行情按需拉取，不落库）────────────────
+@app.get("/api/intraday")
+def intraday_endpoint(
+    ticker: str = Query(..., description="yfinance symbol，例如 SPY / 0005.HK"),
+    interval: str = Query("1m", description="1m / 5m / 15m / 1h / 1d"),
+    lookback_days: int = Query(5, ge=1, le=730),
+    market: str = Query("US"),
+    start: str | None = Query(None, description="ISO8601 起始（含），UTC"),
+    end:   str | None = Query(None, description="ISO8601 结束（含），UTC"),
+):
+    """按需拉 intraday K 线，不落库；start/end 在返回前对 yfinance 滚动窗口做裁剪。
+
+    yfinance interval 滚动窗口（实测）：
+      1m → 7 个交易日 | 5m/15m → 60 天 | 1h → 730 天 | 1d → 6mo
+    """
+    if not HAS_DATA_SOURCES:
+        raise HTTPException(503, "data_sources 模块未加载")
+    from data_sources import Interval as _Interval
+
+    try:
+        iv = _Interval.from_str(interval)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+    cfg = {"yf_symbol": ticker, "market": market.upper(), "name": ticker}
+    try:
+        df, src = fetch_history(cfg, days=lookback_days, interval=iv)
+    except Exception as e:
+        raise HTTPException(502, f"fetch_history 失败 ({ticker} {interval}): {e}")
+
+    # start/end 过滤（仅当用户指定）
+    if start or end:
+        idx = df.index
+        if getattr(idx, "tz", None) is None and iv.is_intraday:
+            # 安全网：理论上 intraday 已 UTC，但兜底以防
+            idx = idx.tz_localize("UTC")
+            df = df.copy()
+            df.index = idx
+        if start:
+            try:
+                ts = pd.Timestamp(start)
+                if ts.tz is None and iv.is_intraday:
+                    ts = ts.tz_localize("UTC")
+                df = df[df.index >= ts]
+            except (ValueError, TypeError) as e:
+                raise HTTPException(400, f"start 解析失败: {e}")
+        if end:
+            try:
+                ts = pd.Timestamp(end)
+                if ts.tz is None and iv.is_intraday:
+                    ts = ts.tz_localize("UTC")
+                df = df[df.index <= ts]
+            except (ValueError, TypeError) as e:
+                raise HTTPException(400, f"end 解析失败: {e}")
+
+    bars = []
+    for ts, row in df.iterrows():
+        if hasattr(ts, "tz") and ts.tz is not None:
+            iso = ts.tz_convert("UTC").isoformat()
+        else:
+            iso = ts.isoformat() if hasattr(ts, "isoformat") else str(ts)
+        bars.append({
+            "timestamp": iso,
+            "open":  float(row["Open"])  if pd.notna(row.get("Open"))  else None,
+            "high":  float(row["High"])  if pd.notna(row.get("High"))  else None,
+            "low":   float(row["Low"])   if pd.notna(row.get("Low"))   else None,
+            "close": float(row["Close"]) if pd.notna(row.get("Close")) else None,
+            "volume": int(row["Volume"]) if pd.notna(row.get("Volume")) else None,
+        })
+
+    return sanitize({
+        "ticker": ticker,
+        "interval": iv.value,
+        "source": src,
+        "count": len(bars),
+        "bars": bars,
+    })
+
+
+# ── Smart Beta 端点 ──────────────────────────────────────
+# 模块级缓存：避免每次刷新都重拉 20+ 只 ETF
+_smart_beta_cache: dict = {}
+_SMART_BETA_TTL_SEC = 1800  # 30 分钟
+
+
+def _fetch_etf_prices(
+    ticker: str, days: int = 280, min_bars: int = 120,
+) -> tuple[pd.Series | None, pd.Series | None]:
+    """从 router 拉一只 ETF 的 close + volume；失败返回 (None, None)。
+
+    L0 SQLite cache 可能只有少量 bars（首次部署后逐步增长），不够 Smart Beta
+    评分用（min_bars 默认 130 ≈ 6 个月）。命中但 bars 不足时强制 prefer_db=False
+    走远程拉 280 天历史，保证算法能正常打分。
+    """
+    if not HAS_DATA_SOURCES:
+        return None, None
+    cfg = {"yf_symbol": ticker, "market": "US", "name": ticker, "type": "etf"}
+
+    def _extract(df):
+        if df is None or df.empty or "Close" not in df.columns:
+            return None, None
+        return df["Close"].dropna(), (df["Volume"].dropna() if "Volume" in df.columns else None)
+
+    try:
+        df, _src = fetch_history(cfg, days=days)
+    except Exception as e:
+        print(f"[smart-beta] fetch_history({ticker}) failed: {e}")
+        return None, None
+
+    close, volume = _extract(df)
+    if close is not None and len(close) >= min_bars:
+        return close, volume
+
+    # Cache 命中但 bars 不够 → 绕过 cache 走远程拉满
+    print(
+        f"[smart-beta] {ticker} cache 只有 "
+        f"{len(close) if close is not None else 0} bars，重新远程拉 {days} 天"
+    )
+    try:
+        df2, _src2 = fetch_history(cfg, days=days, prefer_db=False)
+    except Exception as e:
+        print(f"[smart-beta] {ticker} 远程 fetch_history 失败: {e}")
+        return close, volume  # 退化：返回 cache 数据，让上层决定是否扔
+    return _extract(df2)
+
+
+def _fetch_fred_latest(series_id: str, days_back: int = 90) -> tuple[float | None, float | None]:
+    """返回 (最新值, 30 天前值)；FRED 不可用或 key 缺失返回 (None, None)。"""
+    try:
+        from data_sources.fred_source import fetch_observations
+    except Exception:
+        return None, None
+    try:
+        from datetime import datetime, timedelta
+        start = (datetime.now() - timedelta(days=days_back)).strftime("%Y-%m-%d")
+        rows = fetch_observations(series_id, start=start)
+    except Exception as e:
+        print(f"[smart-beta] FRED({series_id}) failed: {e}")
+        return None, None
+    if not rows:
+        return None, None
+    latest = rows[-1]["value"]
+    older = rows[0]["value"] if len(rows) >= 2 else None
+    return latest, older
+
+
+@app.get("/api/smart-beta/snapshot")
+def smart_beta_snapshot(
+    core_preset: str = Query("balanced", description="balanced / simple / factor"),
+    k: int = Query(3, ge=1, le=10),
+    weight_mode: str = Query("equal", description="equal / momentum"),
+    current_holdings: str | None = Query(None, description="逗号分隔的当前持仓行业 ETF"),
+):
+    """Smart Beta 三层策略快照。
+
+    数据源：
+      - SPY / VIX / 行业 ETF: yfinance (经 data_sources router)
+      - HY 信用利差: FRED BAMLH0A0HYM2 (可选，缺失则给中性 0.5)
+      - 实际利率: FRED DFII10 (同上)
+    """
+    import smart_beta as sb
+
+    holdings_list = None
+    if current_holdings and current_holdings.strip():
+        holdings_list = [s.strip().upper() for s in current_holdings.split(",") if s.strip()]
+
+    # 缓存键：策略参数变了重算；market 数据 30min 内复用
+    cache_key = (core_preset, k, weight_mode, tuple(holdings_list or ()))
+    now_ts = time.time()
+    cached = _smart_beta_cache.get(cache_key)
+    if cached and (now_ts - cached["_cached_at"]) < _SMART_BETA_TTL_SEC:
+        return sanitize({**cached["data"], "_cached": True})
+
+    universe = sb.load_universe()
+
+    # SPY (~280 天，覆盖 200D MA + 缓冲)
+    spy_close, _ = _fetch_etf_prices("SPY", days=280)
+    if spy_close is None or len(spy_close) < 100:
+        raise HTTPException(503, "SPY 数据不可用 — 请检查 yfinance 网络")
+
+    # VIX 最新
+    vix_close, _ = _fetch_etf_prices("^VIX", days=10)
+    vix_val = float(vix_close.iloc[-1]) if vix_close is not None and len(vix_close) else None
+
+    # FRED 信用利差 + 实际利率（可选）
+    hy_latest, hy_older = _fetch_fred_latest("BAMLH0A0HYM2", days_back=45)
+    rr_latest, rr_older = _fetch_fred_latest("DFII10", days_back=45)
+    real_rate_chg = None
+    if rr_latest is not None and rr_older is not None:
+        real_rate_chg = rr_latest - rr_older
+
+    # 拉所有行业 ETF — 并行 8 worker，避免 16 只串行 30s+
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    sector_entries = universe.get("sector", [])
+    sector_data: dict = {}
+    fetch_errors: list[dict] = []
+    MIN_BARS = 120  # 与 score_sector_etf 阈值保持一致
+
+    def _fetch_one(entry):
+        """返回 (entry, close, volume, error_dict_or_None)。"""
+        ticker = entry["ticker"]
+        try:
+            close, volume = _fetch_etf_prices(ticker, days=280)
+        except Exception as e:  # noqa: BLE001 — 上层需要原因
+            return entry, None, None, {
+                "ticker": ticker, "reason": "fetch_exception", "detail": str(e),
+            }
+        if close is None:
+            return entry, None, None, {"ticker": ticker, "reason": "no_data", "bars": 0}
+        if len(close) < MIN_BARS:
+            return entry, close, volume, {
+                "ticker": ticker, "reason": "insufficient_bars",
+                "bars": len(close), "min": MIN_BARS,
+            }
+        return entry, close, volume, None
+
+    max_workers = min(8, len(sector_entries)) or 1
+    with ThreadPoolExecutor(max_workers=max_workers) as pool:
+        futures = [pool.submit(_fetch_one, e) for e in sector_entries]
+        for fut in as_completed(futures):
+            entry, close, volume, err = fut.result()
+            if err is not None:
+                fetch_errors.append(err)
+                continue
+            sector_data[entry["ticker"]] = {
+                "prices":  close,
+                "volumes": volume,
+                "name":    entry.get("name", entry["ticker"]),
+            }
+    # 按 universe 原顺序排序 fetch_errors，方便对照
+    _order = {e["ticker"]: i for i, e in enumerate(sector_entries)}
+    fetch_errors.sort(key=lambda x: _order.get(x.get("ticker"), 999))
+
+    snap = sb.build_snapshot(
+        spy_prices=spy_close,
+        sector_data=sector_data,
+        vix=vix_val,
+        hy_spread=hy_latest,
+        real_rate_chg=real_rate_chg,
+        core_preset=core_preset,
+        k=k,
+        weight_mode=weight_mode,
+        current_holdings=holdings_list,
+        universe=universe,
+    )
+    snap["fetch_errors"] = fetch_errors
+    snap["data_sources"] = {
+        "vix":           vix_val,
+        "hy_spread":     hy_latest,
+        "real_rate_now": rr_latest,
+        "real_rate_chg": real_rate_chg,
+    }
+
+    _smart_beta_cache[cache_key] = {"data": snap, "_cached_at": now_ts}
+    return sanitize(snap)
+
+
 # ── LLM (DeepSeek) 端点 (B1 / B5) ────────────────────────
 class LLMSummaryReq(BaseModel):
     """B1: 个股 AI 摘要请求体。所有字段可选，能给多少给多少。"""
@@ -1135,19 +1387,19 @@ class LLMJournalReq(BaseModel):
 
 
 @app.post("/api/llm/summary")
-def llm_summary(req: LLMSummaryReq):
-    """B1: 个股 AI 摘要（看点 / 风险 / 估值）。命中缓存时 <50ms。"""
+def llm_summary(req: LLMSummaryReq, force: bool = False):
+    """B1: 个股 AI 摘要（看点 / 风险 / 估值）。命中缓存时 <50ms。?force=true 跳过缓存重生。"""
     if not HAS_LLM or _llm_mod is None:
         raise HTTPException(503, "llm 模块未加载（DEEPSEEK_API_KEY 未设？）")
-    return sanitize(_llm_mod.summary(req.dict()))
+    return sanitize(_llm_mod.summary(req.dict(), force=force))
 
 
 @app.post("/api/llm/journal-structure")
-def llm_journal_structure(req: LLMJournalReq):
-    """B5: 一句话投资日志 → 结构化字段。"""
+def llm_journal_structure(req: LLMJournalReq, force: bool = False):
+    """B5: 一句话投资日志 → 结构化字段。?force=true 跳过缓存重生。"""
     if not HAS_LLM or _llm_mod is None:
         raise HTTPException(503, "llm 模块未加载（DEEPSEEK_API_KEY 未设？）")
-    return sanitize(_llm_mod.journal_structure(req.text, req.watchlist))
+    return sanitize(_llm_mod.journal_structure(req.text, req.watchlist, force=force))
 
 
 class LLMExplainScoreReq(BaseModel):
@@ -1160,8 +1412,8 @@ class LLMExplainScoreReq(BaseModel):
 
 
 @app.post("/api/llm/explain-score")
-def llm_explain_score(req: LLMExplainScoreReq):
-    """B2: 解读综合评分（为什么 78.8 分）。"""
+def llm_explain_score(req: LLMExplainScoreReq, force: bool = False):
+    """B2: 解读综合评分（为什么 78.8 分）。?force=true 跳过缓存重生。"""
     if not HAS_LLM or _llm_mod is None:
         raise HTTPException(503, "llm 模块未加载（DEEPSEEK_API_KEY 未设？）")
     stock = {
@@ -1170,7 +1422,7 @@ def llm_explain_score(req: LLMExplainScoreReq):
         "isETF": req.isETF,
         "subScores": req.subScores,
     }
-    return sanitize(_llm_mod.explain_score(stock, req.weights))
+    return sanitize(_llm_mod.explain_score(stock, req.weights, force=force))
 
 
 class LLMBacktestNarrateReq(BaseModel):
@@ -1187,11 +1439,11 @@ class LLMBacktestNarrateReq(BaseModel):
 
 
 @app.post("/api/llm/backtest-narrate")
-def llm_backtest_narrate(req: LLMBacktestNarrateReq):
-    """B4: 回测结果自然语言总结。"""
+def llm_backtest_narrate(req: LLMBacktestNarrateReq, force: bool = False):
+    """B4: 回测结果自然语言总结。?force=true 跳过缓存重生。"""
     if not HAS_LLM or _llm_mod is None:
         raise HTTPException(503, "llm 模块未加载（DEEPSEEK_API_KEY 未设？）")
-    return sanitize(_llm_mod.backtest_narrate(req.dict()))
+    return sanitize(_llm_mod.backtest_narrate(req.dict(), force=force))
 
 
 # ── 交易 / 持仓端点 (A6 - Sprint 3) ──────────────────────
@@ -1256,17 +1508,38 @@ class LLMParseStrategyReq(BaseModel):
 
 
 @app.post("/api/llm/parse-strategy")
-def llm_parse_strategy(req: LLMParseStrategyReq):
-    """B3: 一句话策略 → portfolio dict。"""
+def llm_parse_strategy(req: LLMParseStrategyReq, force: bool = False):
+    """B3: 一句话策略 → portfolio dict。?force=true 跳过缓存重生。"""
     if not HAS_LLM or _llm_mod is None:
         raise HTTPException(503, "llm 模块未加载")
-    return sanitize(_llm_mod.parse_strategy(req.text, req.candidates))
+    return sanitize(_llm_mod.parse_strategy(req.text, req.candidates, force=force))
+
+
+# ── D P1: generate-keywords 后端实现（与 frontend/api/llm/ lambda 等价）─
+# 注意：Vercel 上 lambda 静态路由优先于 catch-all proxy，所以 production
+# 仍走 lambda。本端点用于：
+#   1) 本地 dev 联调（不需要起 vercel dev）
+#   2) 未来想去掉 lambda 时无痛切换到 catch-all proxy
+class LLMGenerateKeywordsReq(BaseModel):
+    name: str
+    note: str = ""
+    strategy: str = "growth"  # "growth" | "value"
+
+
+@app.post("/api/llm/generate-keywords")
+def llm_generate_keywords(req: LLMGenerateKeywordsReq, force: bool = False):
+    """根据赛道名 + 注释，LLM 起草 sector_mapping 关键词列表（中英双语）。?force=true 跳过缓存重生。"""
+    if not HAS_LLM or _llm_mod is None:
+        raise HTTPException(503, "llm 模块未加载（DEEPSEEK_API_KEY 未设？）")
+    return sanitize(_llm_mod.generate_keywords(
+        req.name, req.note, req.strategy, force=force,
+    ))
 
 
 # ── B7: 月度复盘端点 ─────────────────────────────────────
 @app.post("/api/llm/monthly-review")
-def llm_monthly_review(month: str | None = None):
-    """B7: 自动从 db 拉数据生成月度复盘。month='YYYY-MM' 缺省取上月。"""
+def llm_monthly_review(month: str | None = None, force: bool = False):
+    """B7: 自动从 db 拉数据生成月度复盘。month='YYYY-MM' 缺省取上月。?force=true 跳过缓存重生。"""
     if not HAS_LLM or _llm_mod is None or not HAS_DB:
         raise HTTPException(503, "llm 或 db 模块未加载")
     from datetime import date as _date, timedelta
@@ -1282,7 +1555,7 @@ def llm_monthly_review(month: str | None = None):
         (f"{month}%",),
     )]
     positions = _db_mod.compute_positions()
-    return sanitize(_llm_mod.monthly_review(month, txs, positions))
+    return sanitize(_llm_mod.monthly_review(month, txs, positions, force=force))
 
 
 @app.get("/api/llm/stats")
@@ -1571,7 +1844,7 @@ class ScreenReq(BaseModel):
     min_market_cap_b: float | None = None
     include_etf: bool = False
     exclude_in_watchlist: bool = True
-    limit: int = 200
+    limit: int = 2000
     precise: bool = False        # True = strict mode（仅核心关键词，精度高）
     include_no_mcap: bool = True # marketCap 缺失的标的是否纳入（默认 True，避免静默丢 A 股）
     # 价值型 5 维（v2.0 新增；任一非 None 即启用）：
@@ -1658,8 +1931,8 @@ class TenxThesisReq(BaseModel):
 
 
 @app.post("/api/llm/10x-thesis")
-def llm_tenx_thesis(req: TenxThesisReq):
-    """LLM 生成卡位分析草稿（5 段：超级趋势 / 瓶颈层 / 卡位逻辑 / 风险 / 推演结论）。"""
+def llm_tenx_thesis(req: TenxThesisReq, force: bool = False):
+    """LLM 生成卡位分析草稿（5 段：超级趋势 / 瓶颈层 / 卡位逻辑 / 风险 / 推演结论）。?force=true 跳过缓存重生。"""
     if not HAS_LLM or _llm_mod is None:
         raise HTTPException(503, "llm 模块未加载（DEEPSEEK_API_KEY 未设？）")
     # 找到对应 supertrend 的元数据
@@ -1670,7 +1943,7 @@ def llm_tenx_thesis(req: TenxThesisReq):
     if not supertrend:
         raise HTTPException(400, f"unknown supertrend_id: {req.supertrend_id}")
     stock = req.dict(exclude={"supertrend_id"})
-    return sanitize(_llm_mod.tenx_thesis(stock, supertrend))
+    return sanitize(_llm_mod.tenx_thesis(stock, supertrend, force=force))
 
 
 class ValueThesisReq(BaseModel):
@@ -1691,8 +1964,8 @@ class ValueThesisReq(BaseModel):
 
 
 @app.post("/api/llm/value-thesis")
-def llm_value_thesis(req: ValueThesisReq):
-    """LLM 生成价值型分析草稿（Graham 安全边际，含估值点位 + 内在价值 + 护城河 + 风险 + 结论）。"""
+def llm_value_thesis(req: ValueThesisReq, force: bool = False):
+    """LLM 生成价值型分析草稿（Graham 安全边际，含估值点位 + 内在价值 + 护城河 + 风险 + 结论）。?force=true 跳过缓存重生。"""
     if not HAS_LLM or _llm_mod is None:
         raise HTTPException(503, "llm 模块未加载（DEEPSEEK_API_KEY 未设？）")
     supertrend = next(
@@ -1702,7 +1975,7 @@ def llm_value_thesis(req: ValueThesisReq):
     if not supertrend:
         raise HTTPException(400, f"unknown supertrend_id: {req.supertrend_id}")
     stock = req.dict(exclude={"supertrend_id"})
-    return sanitize(_llm_mod.value_thesis(stock, supertrend))
+    return sanitize(_llm_mod.value_thesis(stock, supertrend, force=force))
 
 
 # ─────────────────────────────────────────────────────────────
@@ -1726,6 +1999,21 @@ def _ma_active_dir() -> _Path_ma:
         if candidate.exists():
             return candidate
     return _MA_OUTPUT_ROOT
+
+
+def _ma_dir_for(run_id: str | None) -> _Path_ma:
+    """
+    给定显式 run_id 时返回 runs/{run_id}/，否则回落到 _ma_active_dir()。
+    用于路由的 `?run_id=` 查询参数：前端一次 fetchAll 锁定同一个 run，
+    避免在并发 GET 期间 latest.txt 被 switch-run 改写导致跨 run 数据混读。
+    显式给的 run_id 必须存在，否则 404。
+    """
+    if run_id:
+        candidate = _MA_OUTPUT_ROOT / "runs" / run_id
+        if not candidate.exists():
+            raise HTTPException(404, f"run_id={run_id} 不存在")
+        return candidate
+    return _ma_active_dir()
 
 
 _MA_OUTPUT_DIR = _MA_OUTPUT_ROOT  # 兼容旧 import；实际读用 _ma_active_dir()
@@ -1812,9 +2100,9 @@ def mining_alpha_status():
 
 
 @app.get("/api/mining-alpha/ic-report")
-def mining_alpha_ic_report(top_n: int = 20):
+def mining_alpha_ic_report(top_n: int = 20, run_id: str | None = None):
     """返回单因子 IC 报告（按 |ICIR| 降序），默认 top 20。"""
-    df = _ma_safe_read_csv(_ma_active_dir() / "ic_report.csv")
+    df = _ma_safe_read_csv(_ma_dir_for(run_id) / "ic_report.csv")
     if df is None:
         raise HTTPException(404, "ic_report.csv 不存在；先跑 `mining_alpha.run ic-report`")
     df = df.sort_values("ic_ir", key=lambda s: s.abs(), ascending=False).head(top_n)
@@ -1822,9 +2110,9 @@ def mining_alpha_ic_report(top_n: int = 20):
 
 
 @app.get("/api/mining-alpha/feature-importance")
-def mining_alpha_feature_importance(top_n: int = 20):
+def mining_alpha_feature_importance(top_n: int = 20, run_id: str | None = None):
     """返回 ML 特征重要性（多 fold 平均），按降序排列。"""
-    df = _ma_safe_read_csv(_ma_active_dir() / "feature_importance.csv", index_col=0)
+    df = _ma_safe_read_csv(_ma_dir_for(run_id) / "feature_importance.csv", index_col=0)
     if df is None:
         raise HTTPException(404, "feature_importance.csv 不存在；先跑 `train`")
     # 多 fold 平均
@@ -1836,9 +2124,9 @@ def mining_alpha_feature_importance(top_n: int = 20):
 
 
 @app.get("/api/mining-alpha/backtest")
-def mining_alpha_backtest():
+def mining_alpha_backtest(run_id: str | None = None):
     """返回回测指标 + 策略/基准净值曲线 (采样后)。"""
-    active = _ma_active_dir()
+    active = _ma_dir_for(run_id)
     metrics_path = active / "backtest_report.json"
     if not metrics_path.exists():
         raise HTTPException(404, "backtest_report.json 不存在；先跑 `backtest`")
@@ -1872,9 +2160,9 @@ def mining_alpha_backtest():
 
 
 @app.get("/api/mining-alpha/top-holdings")
-def mining_alpha_top_holdings(top_n: int = 20):
+def mining_alpha_top_holdings(top_n: int = 20, run_id: str | None = None):
     """返回最新一日预测分数 Top-N 个股（含与上一调仓期的 diff 标记）。"""
-    active = _ma_active_dir()
+    active = _ma_dir_for(run_id)
     preds_path = active / "predictions.parquet"
     preds = _ma_safe_read_parquet(preds_path)
     if preds is None or preds.empty:
@@ -1883,14 +2171,12 @@ def mining_alpha_top_holdings(top_n: int = 20):
     latest_row = preds.loc[latest_date].dropna().sort_values(ascending=False).head(top_n)
     latest_set = set(latest_row.index)
 
-    # 上一周（5 个交易日前）的 Top-N
-    prev_holdings = []
-    prev_set = set()
+    # 上一周（5 个交易日前）的 Top-N（只取 ticker 集合，用于打 new/held/dropped 标记）
+    prev_set: set = set()
     if len(preds) > 5:
         prev_date = preds.index[preds.index.get_indexer([latest_date])[0] - 5]
         prev_row = preds.loc[prev_date].dropna().sort_values(ascending=False).head(top_n)
         prev_set = set(prev_row.index)
-        prev_holdings = [{"ticker": str(t), "score": float(s)} for t, s in prev_row.items()]
 
     holdings = []
     for t, s in latest_row.items():
@@ -1915,9 +2201,9 @@ def mining_alpha_top_holdings(top_n: int = 20):
 
 
 @app.get("/api/mining-alpha/regime")
-def mining_alpha_regime():
+def mining_alpha_regime(run_id: str | None = None):
     """返回 HMM regime 时间序列（用于净值图 overlay）。仅在 train --regime-aware 跑过后可用。"""
-    active = _ma_active_dir()
+    active = _ma_dir_for(run_id)
     df = _ma_safe_read_csv(active / "regime.csv")
     if df is None or df.empty:
         raise HTTPException(404, "regime.csv 不存在；用 train --regime-aware 跑过后生成")
@@ -1936,9 +2222,9 @@ def mining_alpha_regime():
 
 
 @app.get("/api/mining-alpha/fold-ic")
-def mining_alpha_fold_ic():
+def mining_alpha_fold_ic(run_id: str | None = None):
     """返回 walk-forward 各 fold 的测试集 IC 摘要表。"""
-    active = _ma_active_dir()
+    active = _ma_dir_for(run_id)
     df = _ma_safe_read_csv(active / "fold_ic.csv")
     if df is None or df.empty:
         raise HTTPException(404, "fold_ic.csv 不存在；先跑 `train`")
@@ -2080,7 +2366,7 @@ def mining_alpha_health():
 
 
 @app.get("/api/mining-alpha/ic-heatmap")
-def mining_alpha_ic_heatmap(top_n: int = 30, recent_months: int = 24):
+def mining_alpha_ic_heatmap(top_n: int = 30, recent_months: int = 24, run_id: str | None = None):
     """
     返回 factor × month IC 热力图数据。
 
@@ -2088,7 +2374,7 @@ def mining_alpha_ic_heatmap(top_n: int = 30, recent_months: int = 24):
       top_n: 按 |ICIR| 取前 N 个因子（与 ic-report 一致顺序）
       recent_months: 只取最近 N 个月（默认 24，即 2 年）
     """
-    active = _ma_active_dir()
+    active = _ma_dir_for(run_id)
     heatmap = _ma_safe_read_csv(active / "ic_monthly_heatmap.csv", index_col=0)
     if heatmap is None:
         raise HTTPException(404, "ic_monthly_heatmap.csv 不存在；先跑 `ic-report`")
@@ -2220,7 +2506,7 @@ def mining_alpha_run_status():
 
 
 @app.get("/api/mining-alpha/factor-detail/{alpha_num}")
-def mining_alpha_factor_detail(alpha_num: int):
+def mining_alpha_factor_detail(alpha_num: int, run_id: str | None = None):
     """
     返回某个因子的详细信息：公式、描述、近 1 年日 IC 时序、Top decile 超额。
     """
@@ -2236,7 +2522,7 @@ def mining_alpha_factor_detail(alpha_num: int):
         raise HTTPException(404, f"Alpha{alpha_num} 未注册")
 
     # 从 heatmap CSV 取该因子的月度 IC 序列
-    active = _ma_active_dir()
+    active = _ma_dir_for(run_id)
     heatmap = _ma_safe_read_csv(active / "ic_monthly_heatmap.csv", index_col=0)
     monthly_ic = []
     if heatmap is not None and alpha_num in heatmap.index:
@@ -2745,11 +3031,11 @@ class StockGeneExplainReq(BaseModel):
 
 
 @app.post("/api/stock-gene/explain")
-def stock_gene_explain(req: StockGeneExplainReq):
-    """让 LLM 用一段话解读这只票的 8/6 维评分画像。命中缓存时 < 50ms。"""
+def stock_gene_explain(req: StockGeneExplainReq, force: bool = False):
+    """让 LLM 用一段话解读这只票的 8/6 维评分画像。命中缓存时 < 50ms。?force=true 跳过缓存重生。"""
     if not HAS_LLM or _llm_mod is None:
         raise HTTPException(503, "llm 模块未加载（DEEPSEEK_API_KEY 未设？）")
-    return sanitize(_llm_mod.explain_gene_score(req.dict()))
+    return sanitize(_llm_mod.explain_gene_score(req.dict(), force=force))
 
 
 if __name__ == "__main__":

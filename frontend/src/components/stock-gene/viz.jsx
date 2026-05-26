@@ -25,7 +25,7 @@ export function EngineRadar({ item }) {
   if (!anyScored) {
     return (
       <div className="flex items-center justify-center" style={{ width: size, height: size }}>
-        <span className="text-[8px] text-[#5a6477]">雷达</span>
+        <span className="text-[9px] text-[#5a6477]">雷达</span>
       </div>
     );
   }

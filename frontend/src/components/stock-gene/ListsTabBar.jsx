@@ -24,7 +24,7 @@ export function ListsTabBar({ lists, activeId, onSelect, onCreate, onRename, onD
               title={`切换到 ${l.name}（${count} 只）`}
             >
               <span>{l.name}</span>
-              <span className="text-[8px] opacity-70 font-mono">{count}</span>
+              <span className="text-[9px] opacity-70 font-mono">{count}</span>
             </button>
             {!isDefault && (
               <div className="opacity-0 group-hover/listtab:opacity-100 transition flex items-center -ml-0.5">
@@ -49,6 +49,7 @@ export function ListsTabBar({ lists, activeId, onSelect, onCreate, onRename, onD
       })}
       <button
         onClick={onCreate}
+        aria-label="新建分组"
         className="flex items-center justify-center w-6 h-6 rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white border border-white/10 transition"
         title="新建分组"
       >

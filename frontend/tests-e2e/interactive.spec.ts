@@ -23,13 +23,13 @@ test.describe('全交互冒烟', () => {
     await expect(page.locator('text=/回测|构建组合|权重|初始资金|基准/').first()).toBeVisible({ timeout: 20000 });
     await page.waitForTimeout(800);
 
-    // ── 2) 切换到实时监控 (Mining Alpha 在 idx=2，monitor 现在是 idx=3) ──
-    await page.locator('[role="tab"]').nth(3).click();
+    // ── 2) 切换到实时监控 (Smart Beta=idx2, Mining Alpha=idx3, monitor=idx4) ──
+    await page.locator('[role="tab"]').nth(4).click();
     await expect(page.locator('text=/市场情绪|预警|板块/').first()).toBeVisible({ timeout: 15000 });
     await page.waitForTimeout(500);
 
-    // ── 3) 切换到投资日志 (idx=4) ──
-    await page.locator('[role="tab"]').nth(4).click();
+    // ── 3) 切换到投资日志 (idx=5) ──
+    await page.locator('[role="tab"]').nth(5).click();
     await expect(page.locator('text=/新增看好|暂无投资记录|论点|添加第一个/').first()).toBeVisible({ timeout: 15000 });
     await page.waitForTimeout(500);
 
@@ -109,8 +109,8 @@ test.describe('全交互冒烟', () => {
 
     await page.goto('/');
     await expect(page.locator('[role="tab"]').first()).toBeVisible({ timeout: 15000 });
-    // Journal 现在是 idx=4 (Mining Alpha 插在 backtest 后)
-    await page.locator('[role="tab"]').nth(4).click();
+    // Journal 现在是 idx=5 (Smart Beta=idx2, Mining Alpha=idx3, monitor=idx4, journal=idx5)
+    await page.locator('[role="tab"]').nth(5).click();
 
     await expect(page.locator('text=/新增看好|暂无投资记录|论点/').first()).toBeVisible({ timeout: 15000 });
 

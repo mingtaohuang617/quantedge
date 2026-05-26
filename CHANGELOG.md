@@ -5,7 +5,176 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Infrastructure — Vercel 部署解锁（PR #173 / #176 / #178）
+
+终于把 `quantedge-chi.vercel.app` 从 PR #136（5-23）冷冻状态解放，过去 5 个 PR（smart-beta / mining-alpha / v5 等）全部上线。
+
+- **`api/*` serverless functions 24 → 8** (PR #173)：
+  - 之前部署一直失败：`Error: No more than 12 Serverless Functions can be added to a Deployment on the Hobby plan`（从 PR #154 起 5 个 PR 部署 0 成功）
+  - 用 `_*` 前缀 + 单个 dispatcher 模式（Vercel 自动忽略下划线开头文件）
+  - `llm/` 4→1：`[endpoint].js` 既路由本地 4 handler 也兜底反代 Render（含 PR #176 的合并）
+  - `watchlist/10x/` 6→2：保留 `10x.js` 作为根；`10x/[slug].js` 接子路由
+  - `stock-gene/` 11→1：`index.js` 单点 dispatcher + `vercel.json` `/api/stock-gene/(.+) → /api/stock-gene?path=$1`
+  - 其它（smart-beta / universe / yahoo）= 3，合计 8
+  - API URL 0 改动 — 前端无须更新
+- **Vercel API 路由兼容修复** (PR #176)：
+  - `[[...slug]].js`（Next.js 特性）在纯 Vercel functions 不识别 → 改用 `[...slug].js`
+  - 合并 `[action].js` 与已存在的 `[endpoint].js` 反代 catch-all，避免同目录双 dynamic route 冲突
+- **`.vercelignore` 解除 stock-gene 排除** (PR #178)：
+  - PR #100 时为贴 12 函数上限，团队选择把 stock-gene 全 10 个 lambda 排除 → 该 tab 在生产降级为 demo 模式
+  - 现在合并后只剩 8 个函数远低于上限，解除排除规则
+  - 生产烟测：`/api/stock-gene/lists` `/api/stock-gene/AAPL` `/api/watchlist/10x/supertrends` 全部 200/403（403 = referer check 正常工作）
+
+### Added — v5 编辑式设计语言（2026-05）
+
+- **v5 编辑式 4 个页面落地** (PR #170)：把已写好但只在 BacktestEngine 1 处用过的 v5 CSS 真正应用到 4 个主页面
+  - **ScoringDashboard 三柱评分卡**：fundamental/technical/growth 三张 `.pillar-card`，顶部色条 + 36px 大数字 + 进度条 + 高亮 PE/RSI/营收，仅非 ETF 显示
+  - **Journal 72px serif P&L hero**：持仓汇总 `+$X` 抬到 `.t-hero-lg + .font-serif`（桌面 44px / 移动 32px），gainPct 抬到带边框 chip
+  - **MacroDashboard L1-L5 阶梯**：温度数字改 `.t-hero-lg + .font-serif`；单条线性进度 → 5 段阶梯（冰冻/偏冷/温和/偏热/过热）+ 当前段 glow + 边界 3 分内"可能进入 LX"跃迁预警
+  - **Monitor Featured Alert Spotlight**：第一条 high severity 抽出大卡 + 3 常驻 CTA（处置 / 已处理 / 静音 24h），其余告警走原 quiet list
+- **v5 编辑式 Phase 5-10**（PR #172）：把剩余 6 项落地
+  - **Backtest 3-Tab 重组**：14 个分析面板按 表现 / 风险 / 韧性 分组（用 `data-tab` 属性 + CSS 单点 mod 实现）
+  - **Backtest RP Apply CTA**：风险平价卡新增"应用风险平价并重跑"按钮直接覆写当前组合
+  - **Macro NarrativePanel 套 lead-paragraph**：从 `PANEL.ai` 改用 `.lead-paragraph` + Fraunces serif body
+  - **Macro 因子分两组**：contrarian × 极端区（pct < 10 / > 90）+ 任意 < 5 / > 95 → "需关注"组（amber 边框）；其余走"常规因子"
+  - **Screener 4-段漏斗 header**：全宇宙 → 匹配赛道 → AI 已审 → 你的观察（serif 数字 + 箭头连接）
+  - **Screener AI Pipeline banner + Top 3 高亮**：Pipeline 完成后顶部紫色 banner；候选表 Top 3 紫色背景 + 标号
+  - **WatchlistCard 位置轨迹条**：止损 🛡 → ●当前 → 🎯目标 gradient bar + hover tooltip 显示距离 %
+  - **Monitor F&G ribbon**：100px 圆环 → 36×36 双徽章（F&G + 宏观温度并列）+ AI 分歧解读
+  - **Monitor 板块 vs SPY**：板块表现加超额 pp 双值列 + 零点对称 mini bar
+  - **Monitor 静音倒计时面板**：独立 MobileAccordion 显示 muted ticker + 剩余时间 + < 2h 时 amber 高亮
+  - **Scoring 42px ticker + 评分环抬升**：股票代码从 16/18px 抬到 28/36px + `.font-serif`；评分环从 28px 抬到 40px 含中心数字
+- **v5 设计基础层 + AI Lead Paragraph** (PR #140)：
+  - `frontend/index.html` 加载 Fraunces serif 字体（OPT-IN via `.font-serif`，不替换 DM Sans 默认）
+  - `index.css` 追加 4 个 v5 工具类：`.t-eyebrow`（indigo mono uppercase 编辑式小标）/ `.t-hero` 三档（28/36/44px）/ `.t-hero-gradient`（白→浅灰渐变）/ `.lead-paragraph`（紫 3px 左边线 + 渐变 bg + 13.5px serif body + `--indigo` 变体 + `__based-on` 出处 footer）/ `.pillar-card`（顶部色条 + 大数字 + 进度条）
+  - `AIStockSummaryCard` / `BacktestNarrationCard` / `ScoreExplainCard` 3 个 AI 卡全部升级为 Lead Paragraph
+  - BacktestEngine 加 v5 Hero 块：年化收益 36px Fraunces serif + vs 基准 pp chip + 3 副 KPI 纵向分隔（夏普 / 最大回撤 / 胜率）
+  - 严守"现有 5-tier 字号 + 5 语义色 token + glass-card 体系 100% 保留"原则
+- **v5 增量 polish · 3 个剩余 AI narrative 块** (PR #143)：
+  - `MonthlyReviewModal` 月度复盘 1000 字：裸 `<pre>` 11px → `.lead-paragraph` 13.5px + based-on 出处
+  - `StockGene ScoreDetail` AI 解读：`bg-violet-500/8` 小卡 → `.lead-paragraph` + uppercase eyebrow
+  - `Screener10x` AI 赛道校验 toast：`p-2 bg-violet-500/10` → `.lead-paragraph` + 重组 eyebrow（ticker/close 上提）
+  - **Screener10x 顶栏 4 阶段漏斗叙事**：内联追加 `候选 N → AI N → 观察 N` chip 串，无 layout 重构（仅 universe stats 之后追加）
+  - 关键克制（吸取 #141/#142 layout 重构被回退的教训）：纯 CSS 类替换 + eyebrow 微调，不动 grid / layout / 字号梯度 / 数据流
+
+### Added — 10x 猎手 UX 升级（PR #121-#130）
+
+- **候选股详情面板 + 30 天 sparkline** (PR #121)：点 ticker 弹出公司概览 modal（基本信息 / 市值 / 板块 / 5 维财务 / 30 天 mini 价格图 / 命中赛道 chips + match_reasons 诊断 / 加入观察 CTA），lazy fetch Yahoo `/v8/finance/chart` `range=1mo`，14 个新单测覆盖
+- **候选列表列排序** (PR #124)：可点击 SortHeader（marketCap / pe / pb / dividend_yield / roe），点击循环 asc → desc → 清空回到默认（市值升序 + AI 排序覆盖）；右上角显示当前排序状态 chip + 一键清除按钮；`candidateSort.js` lib 含独立单测
+- **观察列表 CSV 导出** (PR #125)：右栏新增"导出 CSV"按钮，序列化 ticker / name / 卡位 / 护城河 / 目标价 / 止损 / thesis / 加入时间 / 更新时间，含 RFC 4180 转义；浏览器下载 `quantedge-watchlist-{date}.csv`，独立 `csvExport.js` lib + 11 个单测
+- **价值型 quick filter chips** (PR #126)：ValueFilters 上方新增 4 个一键预设 chip（巴菲特 / 巴菲特严苛 / 高股息 / 低 PB 周期），点击即填入对应 PE/PB/ROE/股息阈值；独立组件 ValueFiltersChips.jsx + 7 个单测
+- **UI 偏好 localStorage 持久化** (PR #127)：策略 tab / markets / includeETF / precise / maxMcap / valueFilters / showArchived 7 项偏好刷新后保持，命名空间 `quantedge_screener10x_prefs`；`screener10xPrefs.js` lib 含 sanitizePrefs 防御性反序列化（无效值回退默认） + 14 个单测
+- **空状态引导按钮** (PR #128)：候选列表为空 + 无赛道选择时显示"全选成长 / 全选价值"快捷按钮；不再让用户面对空白页猜下一步
+- **市场分布 chip** (PR #130)：候选 count chip 旁加 `US 56 · HK 23 · CN 8` 分布显示 + hover tooltip 含"其他"市场计数；让用户一眼看出筛选结果地理分布
+- **默认 max market cap 50 → 1000B** (PR #122)：之前 50B 太严，把 MU/NVDA/AVGO/腾讯 等主流标的全过滤掉，新用户首次看到候选列表只剩小盘股；同步更新 DEFAULT_PREFS
+
+### Changed
+
+- **valueFilters 300ms debounce** (PR #129)：之前每次输入 PE/PB/ROE 阈值立即触发 runScreen → 拖慢候选列表刷新；改为输入即时绑定 `valueFilters` + 300ms 后同步到 `valueFiltersDebounced` 喂 runScreen
+- **universe JSON 瘦身 4.0 → 2.9MB** (PR #120)：`export_universe_to_frontend.py` 由 `shutil.copy2` 改为 read → strip → write，剥离前端不用的 `futu_code` / `is_derivative` / 空字符串 sector/industry/exchange/market / null marketCap；US 28%↓ / CN 0.5%↓ / HK 12%↓，部署 bundle 体积下降
+- **README 功能描述更新** (PR #133)：反映 8 个子页（评分 / 回测 / 监控 / 日志 / 10x 猎手 / 基因 / Mining Alpha / Smart Beta） + 1500 票 universe 现状
+
+### Fixed
+
+- **Windows GBK 终端 UnicodeEncodeError** (PR #118)：`pipeline.py` 顶部 `sys.platform == "win32"` 检测 → stdout/stderr 通过 `TextIOWrapper.reconfigure(encoding='utf-8', errors='replace')` 强制改为 UTF-8；非 Windows 平台跳过
+
+### Tests / Infra
+
+- **breadth_engine 13 单测** (PR #145)：`backend/breadth_engine.py` 179 行 0 测试覆盖 → 补 13 个用例
+  - `compute_snapshots` 主流程（9 个）：空成分股 / 空 matrix 短路 · 合成 500×400 schema · advancing+declining ≤ universe · pct ∈ [0,100] · 上涨趋势 pct_above_200ma > 50 · universe < 300 守门 · start 过滤 · new_highs/lows int dtype
+  - `upsert_snapshots` DB 写入（3 个）：空 → 0 行 · executemany 12-tuple INSERT + ON CONFLICT · NaN pct → SQLite NULL
+  - `update_snapshots` orchestrator（1 个）：无成分股 → 0
+  - Mock：`patch.object(_load_constituents / _load_close_matrix)` + 合成 close matrix `rng(42)` 固定种子
+  - 跑完 1.40s，零外部依赖
+- **priceCache 22 个单测** (PR #131)：覆盖 TTL / 新鲜度 / withCache 三段式（首次 miss → 写缓存 → 二次 hit）+ 过期 evict
+- **pytest 'slow' marker 注册** (PR #132)：pyproject.toml 注册 marker 消除 PytestUnknownMarkWarning 噪音；CI 默认 `-m "not slow"` 跳过网络测试
+
+### Added — 5 大指数 supertrend 全覆盖
+
+- **10x 猎手 5 大指数全覆盖** (PR #117)：让标普500 / 纳斯达克100 / 恒生 / 恒生科技 / 沪深300 里的每只股票都至少命中 1 个 supertrend
+  - **新增 4 个 growth supertrend**（4 → 8 个 growth，11 个 total）：
+    - `consumer_internet` 消费互联网（AMZN/META/NFLX/UBER/BABA/美团/快手 等）
+    - `ev_auto` 电动车与新能源汽车（TSLA/RIVN/比亚迪/蔚来/小鹏/宁德 等）
+    - `biotech` 生物科技与创新药（LLY/NVO/REGN/VRTX/MRNA/恒瑞/迈瑞 等）
+    - `defense_aerospace` 国防航天（BA/RTX/LMT/NOC/GD/GE 等）
+  - **关键词 100+ 扩充**（覆盖 Yahoo Chinese / 英文行业翻译变体）：
+    - 油气勘探与开发 / Independent Power / Insurance—Diversified / Capital Markets / Asset Management / Railroads / Footwear & Accessories / Discount Stores / Home Improvement Retail / 一般药品制造商 / Drug Manufacturers - General / 生物制药 / 化学制药 / 医疗设备 / 消费电子 / 数据中心 REIT / 综合企业 / 公共运输 / 航运及港口 / 地产发展商 / 物业服务及管理 / 工程机械 等
+  - **`patch_index_members.py`** — 5 大指数代表股 sector 数据手填（~300 票 US + ~30 HK + ~75 CN），使用 `_expand()` helper 批量定义同 sector 的 ticker 组
+  - **`BUILTIN_SUPERTRENDS_FALLBACK`** Screener10x.jsx 扩到 11 个（standalone fallback 与 sector_mapping 对齐）
+  - **screen limit 200 → 2000** (PR #105)：之前 limit=200 + marketCap 升序排序导致 MU/NVDA/AVGO 等 mega-cap 永远进不了候选；改 5 处 limit
+  - **name fallback 兼顾 broad 模式** (PR #108)：之前 sector 空的 TSM/EQIX 在默认 broad 模式下永远 0 命中；移除 `precise and` 守卫
+  - 测试：vitest 374 passed / backend pytest test_sector_mapping + test_watchlist_10x 全过
+  - Audit 命中率（5 大指数）：SPX 500 88% / NDX ~95% / HSI 97% / HSTECH 100% / CSI 300 99%
+
+## [0.8.0] - 2026-05-19 — UI/UX optimization sprint
+
+> 本版本聚焦 UI/UX 体验深度抛光，基于两份独立 design critique PDF
+> （克制派 + 高级感派）+ design-critique skill 推动，覆盖 Phase 0-5
+> 主体 + 多轮微调。功能特性照常累积（详见后续 Added 区）。
+
+### UI/UX — 主体优化（PR #91）
+
+- **色彩语义化收敛**：7 色 accent 折叠到 5 角色（`--sem-brand` indigo→cyan 渐变 / `--sem-up` / `--sem-down` / `--sem-warn` / `--sem-neutral`）
+  - Badge 组件 `info/violet/cyan` 三种 variant 折叠到 neutral / brand，移除 sky / fuchsia / emerald 装饰用法
+  - sector chip 多色编码（TAG_COLORS）保留 — 是合法的数据编码
+  - 视觉残留 sky/violet/rose/emerald = 0（量化评分页验证）
+- **字号纪律 5 档制**：删除 64 处 `text-[8px]`（< WCAG 12px 阈值），收敛到 9 / 10 / 11 / 12 / 16 五档
+- **回测引擎 QQQ bug 修复**：基准数据缺失时 5 处 null-safety 取代假基准线（之前 `100 + i*线性递增` 伪造导致 Underwater 显示假 0% 平直线）
+- **KPI 卡 vs 基准副标**：回测 6 张 KPI 卡（总收益 / 年化 / α / 终值 / 夏普 / 最大回撤）全部加 vs 基准副标
+  - 新增 `annBenchReturn` + `benchSharpe` 计算
+  - baseline 行（横评表）补全
+- **全局键盘流**：⌘K 命令面板（已存在，新接通 ShortcutsModal） / 1-7 切 tab / J K 上下标的 / R 刷新 / / 聚焦搜索 / ? 速查表 / ⌘. 切深浅
+- **DataFreshnessPill 持久状态条**：header 右侧四态显示（实时 / 缓存 / 离线 / 过期）+ 一键刷新，30s 自动重算"多久前"
+- **顶部 Tab 紧凑化**：gap-0.5 + px-1.5 + size-12 让 8 个 tab 横向无溢出
+- **ticker tape 自适应**：侧边栏模式 flex-1 拉长（200-900px）；常规模式响应式（260/300/360/420px）
+- **市场指数条分层**：核心 always / HSI VIX lg+ / 板块热力 xl+，去掉 overflow-x-auto 不再横向滚动
+- **移动端底部 Tab Bar**：`fixed bottom-0` 替代顶部 squeeze，iOS 风 icon + 微标签 + safe-area-inset-bottom
+- **空状态 CTA**：回测无标的时显示「添加 3 只以上标的开始回测」+ 两个引导按钮
+- **抛光层**：sidebar tab 下划线（与顶部呼应）/ ambient drift 42s / btn-tactile 2 通道（颜色 + 位移）/ 主价格 28px 金属渐变（白→slate-300）/ K 线 1.1s stroke 描边 / number spinner 隐藏 / 模态命中区 ≥24px / scroll-spy 详情 5 锚点 / CompareModal 4 标的对比 winner 高亮
+
+### UI/UX — 顶部 Tab 2 行短标签（PR #92）
+
+- 8 tab + 4 字中文 label 在 ~1900 宽屏溢出问题修复
+- `TAB_CFG` 每条加 `short: ["量化","评分"]` 字段
+- 顶部 nav 渲染：`lang === 'zh'` + `c.short` 存在时 flex-col 堆叠 2 行；英文 fallback 单行
+- `aria-label` / `title` 保留完整 label（无障碍 + hover tooltip）
+- 字号 11→10，py 收紧避免 2 行后超高
+- 8 个 4 字 tab 横向节省 ~50% 宽度
+
+### UI/UX — i18n 清理 + 移动端底栏短标签（PR #97）
+
+- `i18n.jsx` 5 处 `Duplicate key` 警告全部消除（运行时行为不变，删 shadow 定义）
+  - `'天'` / `'未知'` / `'胜率'` / `'宏观调整'` / `'权重'` 各有 2 处
+  - vite build 日志从 5 warnings → 0 warnings
+- `MobileBottomNav` 复用 TAB_CFG.short，修复「Mining Alpha」/「10x 猎手」375px 移动屏溢出
+  - flex-col + leading-[1.05] + tracking-tight 让 2 行紧贴
+  - 单 tab 高度 ~49px，main pb-14 (56px) 覆盖足够
+
+### UI/UX — 表格抛光 + 8px 清理（PR #98）
+
+- **横评表/CompareModal 第一列横向 sticky**：
+  - `BacktestEngine 策略横评表` 指标列横向滚动时锁定在左
+  - `CompareModal KPI 表` 同样处理
+  - `sticky left-0 z-20 bg-[var(--bg-card)]`（z 高于顶部 sticky thead 的 z-10）+ group-hover 联动 bg 跨列高亮
+- **13 处 text-[8px] → text-[9px]**（main 合并后 stock-gene 子组件 + ValueDCFCalculator / WatchlistCard 残留）
+
+### Vercel 部署调研 + 文档化（PR #104）
+
+- 确认 Vercel **Hobby plan 硬上限 12 个 serverless function**
+- 项目当前 22 函数（llm 4 + stock-gene 10 + universe 1 + watchlist 6 + yahoo 1），刚好踩线
+- `.vercelignore` 排除 stock-gene 10 个 → 部署的函数 = 12 贴顶
+- 影响：生产 `quantedge-chi.vercel.app` 上 stock-gene tab = demo 模式
+- 团队决策：保持现状。`.vercelignore` 注释写入完整根因 + 3 个恢复方案（升级 Pro / catch-all 合并 / 现状）
+
+---
+
 ### Added
+- **Finnhub free tier US fundamentals enrich** (PR #96)：替代被 Yahoo 限频严重的 yfinance .info，用 Finnhub 免费 API 给全市场 12k 美股拉 PE/PB/股息/ROE/D/E
+  - `backend/data_sources/finnhub_source.py`：`fetch_fundamentals_finnhub(symbol)` 单只拉 + `enrich_us_fundamentals_finnhub(items)` 批量；字段映射 `peNormalizedAnnual / pbAnnual / dividendYieldIndicatedAnnual / roeRfy / totalDebt/totalEquityAnnual`；429 限频自动 sleep 20s + retry；401/403 鉴权失败立即终止；网络错误返回 None 不阻断
+  - `backend/universe/enrich_us_finnhub.py`：standalone 脚本（不掺入 sync_us 复杂流程），支持 `--limit` 测试 + `--force` 覆盖已有 + `--sleep` 调速；checkpoint 每 100 个保存 + Ctrl+C 优雅退出保留进度
+  - `backend/.env.example`：加 `FINNHUB_API_KEY` 模板（注册 https://finnhub.io free）
+  - 测试：backend pytest +15 例（mock httpx，零网络）— 字段映射 / 429 retry / 鉴权失败 / network error / only_missing 跳过 / force 覆盖 / limit
+  - 性能：60 calls/min × 60 = 3600/h；12k 票 ≈ 3.3 小时跑完；vs yfinance .info 实测 fill rate 0.1% 不可用
 - **10x 猎手 价值型 DCF 估值计算器** (PR #86 + #87)：TenxItemEditor 价值型 strategy 时内嵌两阶段 DCF + 敏感性矩阵
   - `frontend/src/lib/dcf.js`：`calcDCF` 两阶段模型（短期 N 年 FCF 折现 + Gordon Growth 终值）+ `marginOfSafety` 计算 + `calcSensitivityMatrix` 3×3 (r ± 1% × g1 ± 2%)
   - `frontend/src/components/ValueDCFCalculator.jsx`：collapsible UI；5 个输入（FCF/g1/N/g2/r）；useMemo 实时算；安全边际三档配色（≥33% emerald / 0-33% cyan / 高估 red）；「应用到目标价」一键回填 form.target_price；敏感性矩阵 toggle 展开 3×3 grid，配色按 vs base 偏差（emerald/cyan/gray/amber）+ 中心格 ring 标识

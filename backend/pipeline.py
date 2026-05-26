@@ -17,20 +17,30 @@ QuantEdge 数据管道
 
 import json
 import sys
+
+# Windows GBK 控制台兼容：日志含 ✓/✗/⚠/中文等非 GBK 字符，
+# 默认 cp936 终端 print() 会抛 UnicodeEncodeError 卡死整个管道。
+# Python 3.7+ TextIOWrapper.reconfigure 是标准 API；非 Windows 跳过。
+if sys.platform == "win32":
+    for _stream in (sys.stdout, sys.stderr):
+        if hasattr(_stream, "reconfigure"):
+            _stream.reconfigure(encoding="utf-8", errors="replace")
+
 import traceback
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 
 import numpy as np
-import pandas as pd
 import yfinance as yf
 
-from config import TICKERS, SECTOR_ETF_MAP
+from config import TICKERS
 from factors import (
     calc_rsi, calc_momentum, calc_stock_score, calc_etf_score,
     calc_leverage_decay, parse_leverage,
 )
-from data_sources import fetch_history, health_check
+from data_sources import fetch_history, fetch_hk_fundamentals, health_check
+import score_history
+from _format import fmt_big
 
 
 BASE_DIR = Path(__file__).resolve().parent  # backend/
@@ -41,6 +51,44 @@ OUTPUT_DIR.mkdir(exist_ok=True)
 FRONTEND_DATA_PATH = BASE_DIR.parent / "frontend" / "src" / "data.js"
 
 LOG_LINES: list[str] = []
+
+
+# akshare → result 字段名映射（snake_case → result 的 camelCase）
+# 仅 4 个数值字段；marketCap/eps 留给 yfinance/static_overrides 避免 fmt_big 复杂度
+_HK_FALLBACK_FIELDS = {
+    "pe": "pe",
+    "roe": "roe",
+    "revenue_growth": "revenueGrowth",
+    "profit_margin": "profitMargin",
+}
+
+
+def apply_hk_fundamentals_fallback(result: dict, cfg: dict) -> dict:
+    """
+    对港股标的，在 yfinance 字段缺失时用 AKShare（东方财富）补齐。
+    顺序：yfinance → AKShare → static_overrides（外层 apply_overrides 兜底）。
+
+    仅在 market=HK 且 result[key] is None 时填入 AKShare 值。
+    AKShare 调用失败一律静默（不影响其他标的）。
+    """
+    market = (cfg.get("market") or "").upper()
+    if market != "HK":
+        return result
+    try:
+        ak_data, src = fetch_hk_fundamentals(cfg)
+    except Exception as e:
+        log(f"    [AKShare 港股财务] 失败 {cfg.get('yf_symbol')}: {e}")
+        return result
+    if not ak_data:
+        return result
+    filled = []
+    for ak_key, result_key in _HK_FALLBACK_FIELDS.items():
+        if result.get(result_key) is None and ak_data.get(ak_key) is not None:
+            result[result_key] = ak_data[ak_key]
+            filled.append(result_key)
+    if filled:
+        log(f"    [AKShare 港股财务] 补齐 {len(filled)} 字段: {', '.join(filled)} (src={src})")
+    return result
 
 
 def apply_overrides(result: dict, cfg: dict, latest_price: float = None) -> dict:
@@ -136,25 +184,17 @@ def fetch_stock_data(ticker_key: str, cfg: dict) -> dict | None:
         score, sub_scores = calc_stock_score(pe, roe, revenue_growth, profit_margin, momentum, rsi, detailed=True)
 
         # 构建价格历史 (用于前端图表)
-        price_history = []
-        # 取最近10个交易日的样本点
-        sample_indices = np.linspace(0, len(hist) - 1, min(12, len(hist)), dtype=int)
-        for idx in sample_indices:
-            row = hist.iloc[idx]
-            date_str = row.name.strftime("%b %d")
-            price_history.append({"m": date_str, "p": round(float(row["Close"]), 2)})
-
-        # 格式化大数字
-        def fmt_big(val):
-            if val is None:
-                return None
-            if abs(val) >= 1e12:
-                return f"{val/1e12:.2f}T"
-            if abs(val) >= 1e9:
-                return f"{val/1e9:.1f}B"
-            if abs(val) >= 1e6:
-                return f"{val/1e6:.0f}M"
-            return f"{val:.0f}"
+        # 输出全部交易日，前端 Recharts 用 interval="preserveStartEnd" 自动稀疏化标签
+        # - date: ISO 8601 完整日期（新字段，前端排序/筛选用）
+        # - m:    短日期别名（legacy，下版本移除）
+        price_history = [
+            {
+                "date": row.name.strftime("%Y-%m-%d"),
+                "m": row.name.strftime("%b %d"),
+                "p": round(float(row["Close"]), 2),
+            }
+            for _, row in hist.iterrows()
+        ]
 
         market_cap_raw = safe_get(info, "marketCap")
         revenue_raw = safe_get(info, "totalRevenue")
@@ -189,6 +229,15 @@ def fetch_stock_data(ticker_key: str, cfg: dict) -> dict | None:
             "priceHistory": price_history,
             "description": cfg["description"],
             "subScores": sub_scores,
+            # 数据时效性（ISO 8601）：
+            #   priceAsOf       = 最后一根日 K 线的收盘日（来自 yfinance hist）
+            #   fundamentalsAsOf = pipeline 运行时刻（yfinance 不暴露财报精确日期，先用运行时间占位）
+            #   source           = "yfinance"（未来多源时改为枚举：yfinance / aastocks / static）
+            "dataFreshness": {
+                "priceAsOf": hist.index[-1].isoformat(),
+                "fundamentalsAsOf": datetime.now().isoformat(),
+                "source": "yfinance",
+            },
         }
 
         # 尝试获取下次财报日期
@@ -203,6 +252,7 @@ def fetch_stock_data(ticker_key: str, cfg: dict) -> dict | None:
             pass
 
         log(f"  ✓ {ticker_key}: ${latest_price} ({change_pct:+.2f}%) 评分={score}")
+        result = apply_hk_fundamentals_fallback(result, cfg)
         result = apply_overrides(result, cfg, latest_price)
         # 兜底后重新计算评分（如果财务字段被补充了）
         if cfg.get("static_overrides"):
@@ -317,13 +367,15 @@ def fetch_etf_data(ticker_key: str, cfg: dict) -> dict | None:
             detailed=True,
         )
 
-        # 价格历史
-        price_history = []
-        sample_indices = np.linspace(0, len(hist) - 1, min(12, len(hist)), dtype=int)
-        for idx in sample_indices:
-            row = hist.iloc[idx]
-            date_str = row.name.strftime("%b %d")
-            price_history.append({"m": date_str, "p": round(float(row["Close"]), 2)})
+        # 价格历史 — 输出全部交易日（ETF 同上 schema）
+        price_history = [
+            {
+                "date": row.name.strftime("%Y-%m-%d"),
+                "m": row.name.strftime("%b %d"),
+                "p": round(float(row["Close"]), 2),
+            }
+            for _, row in hist.iterrows()
+        ]
 
         result = {
             "ticker": ticker_key,
@@ -370,6 +422,12 @@ def fetch_etf_data(ticker_key: str, cfg: dict) -> dict | None:
             "priceHistory": price_history,
             "description": cfg["description"],
             "subScores": sub_scores,
+            # 数据时效性（schema 与个股一致）
+            "dataFreshness": {
+                "priceAsOf": hist.index[-1].isoformat(),
+                "fundamentalsAsOf": datetime.now().isoformat(),
+                "source": "yfinance",
+            },
         }
 
         # 日均成交额
@@ -385,6 +443,7 @@ def fetch_etf_data(ticker_key: str, cfg: dict) -> dict | None:
                 result["adv"] = f"{adv:.0f}"
 
         log(f"  ✓ {ticker_key}: {cfg['currency']} {latest_price} ({change_pct:+.2f}%) 评分={score}")
+        result = apply_hk_fundamentals_fallback(result, cfg)
         result = apply_overrides(result, cfg, latest_price)
         # 兜底后重算 ETF 评分
         if cfg.get("static_overrides"):
@@ -530,6 +589,23 @@ def run_pipeline():
     all_stocks.sort(key=lambda x: x["score"], reverse=True)
     for i, stk in enumerate(all_stocks):
         stk["rank"] = i + 1
+
+    # 评分平滑（P1）：写入历史 + 计算 scoreSmoothed / scoreDelta5d
+    # 用 priceAsOf 作为 history 的日期 key，避免周末多次运行污染均值。
+    log("\n─── 评分平滑（5 日均值 + 5 日变化）───")
+    score_hist = score_history.load_history()
+    today_fallback = datetime.now().strftime("%Y-%m-%d")
+    for stk in all_stocks:
+        ticker = stk["ticker"]
+        price_as_of = (stk.get("dataFreshness") or {}).get("priceAsOf")
+        date_str = score_history.date_from_price_as_of(price_as_of) or today_fallback
+        smoothed, delta = score_history.update_for_ticker(
+            score_hist, ticker, stk["score"], date_str=date_str,
+        )
+        stk["scoreSmoothed"] = smoothed
+        stk["scoreDelta5d"] = delta
+    score_history.save_history(score_hist)
+    log(f"✓ {score_history.HISTORY_PATH} ({len(score_hist)} 个 ticker 历史)")
 
     # 生成预警
     alerts = generate_alerts(all_stocks)

@@ -12,7 +12,6 @@ CLI:
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 import time
 from pathlib import Path
@@ -100,7 +99,7 @@ def run_benchmark(sizes: list[tuple[int, int]], repeats: int = 1) -> pd.DataFram
         top_slow = sorted(ok_results, key=lambda r: -r["ms"])[:5]
         print(f"  总耗时: {total_sec:.2f}s, 单因子均 {total_ms / max(len(ok_results), 1):.1f}ms")
         print(f"  失败: {len(failures)} 个")
-        print(f"  Top 5 最慢:")
+        print("  Top 5 最慢:")
         for r in top_slow:
             print(f"    α{r['alpha']}: {r['ms']:.1f}ms")
         rows.append({

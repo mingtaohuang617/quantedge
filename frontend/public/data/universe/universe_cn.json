@@ -8,7 +8,8 @@
     "mc_source": "futu",
     "mc_filled": 5201,
     "fundamentals_smoke_count": 35,
-    "fundamentals_note": "smoke patch v3 (~110 representative tickers across 3 markets); 跑 sync_*.py --enrich-fundamentals 获取全市场（Yahoo 限频严重）"
+    "fundamentals_note": "smoke patch v3 (~110 representative tickers across 3 markets); 跑 sync_*.py --enrich-fundamentals 获取全市场（Yahoo 限频严重）",
+    "index_members_patch_count": 0
   },
   "items": [
     {
@@ -53187,7 +53188,6 @@
       "is_etf": false,
       "sector": "建筑工程",
       "industry": "建筑工程",
-      "marketCap": null,
       "list_date": "20200727"
     },
     {
@@ -53198,7 +53198,6 @@
       "is_etf": false,
       "sector": "汽车配件",
       "industry": "汽车配件",
-      "marketCap": null,
       "list_date": "20200727"
     },
     {
@@ -53209,7 +53208,6 @@
       "is_etf": false,
       "sector": "IT设备",
       "industry": "IT设备",
-      "marketCap": null,
       "list_date": "20200727"
     },
     {
@@ -53220,7 +53218,6 @@
       "is_etf": false,
       "sector": "建筑工程",
       "industry": "建筑工程",
-      "marketCap": null,
       "list_date": "20200727"
     },
     {
@@ -53231,7 +53228,6 @@
       "is_etf": false,
       "sector": "软件服务",
       "industry": "软件服务",
-      "marketCap": null,
       "list_date": "20200727"
     },
     {
@@ -53242,7 +53238,6 @@
       "is_etf": false,
       "sector": "化工原料",
       "industry": "化工原料",
-      "marketCap": null,
       "list_date": "20200727"
     },
     {
@@ -53253,7 +53248,6 @@
       "is_etf": false,
       "sector": "塑料",
       "industry": "塑料",
-      "marketCap": null,
       "list_date": "20200727"
     },
     {
@@ -53264,7 +53258,6 @@
       "is_etf": false,
       "sector": "农业综合",
       "industry": "农业综合",
-      "marketCap": null,
       "list_date": "20200727"
     },
     {
@@ -53275,7 +53268,6 @@
       "is_etf": false,
       "sector": "通信设备",
       "industry": "通信设备",
-      "marketCap": null,
       "list_date": "20200727"
     },
     {
@@ -53286,7 +53278,6 @@
       "is_etf": false,
       "sector": "汽车配件",
       "industry": "汽车配件",
-      "marketCap": null,
       "list_date": "20200727"
     },
     {
@@ -53297,7 +53288,6 @@
       "is_etf": false,
       "sector": "小金属",
       "industry": "小金属",
-      "marketCap": null,
       "list_date": "20200727"
     },
     {
@@ -53308,7 +53298,6 @@
       "is_etf": false,
       "sector": "中成药",
       "industry": "中成药",
-      "marketCap": null,
       "list_date": "20200727"
     },
     {
@@ -53319,7 +53308,6 @@
       "is_etf": false,
       "sector": "电器仪表",
       "industry": "电器仪表",
-      "marketCap": null,
       "list_date": "20200727"
     },
     {
@@ -53330,7 +53318,6 @@
       "is_etf": false,
       "sector": "医疗保健",
       "industry": "医疗保健",
-      "marketCap": null,
       "list_date": "20200727"
     },
     {
@@ -53341,7 +53328,6 @@
       "is_etf": false,
       "sector": "影视音像",
       "industry": "影视音像",
-      "marketCap": null,
       "list_date": "20200727"
     },
     {
@@ -53352,7 +53338,6 @@
       "is_etf": false,
       "sector": "软件服务",
       "industry": "软件服务",
-      "marketCap": null,
       "list_date": "20200727"
     },
     {
@@ -53363,7 +53348,6 @@
       "is_etf": false,
       "sector": "专用机械",
       "industry": "专用机械",
-      "marketCap": null,
       "list_date": "20200727"
     },
     {
@@ -53374,7 +53358,6 @@
       "is_etf": false,
       "sector": "软件服务",
       "industry": "软件服务",
-      "marketCap": null,
       "list_date": "20200727"
     },
     {
@@ -53385,7 +53368,6 @@
       "is_etf": false,
       "sector": "化工原料",
       "industry": "化工原料",
-      "marketCap": null,
       "list_date": "20200727"
     },
     {
@@ -53396,7 +53378,6 @@
       "is_etf": false,
       "sector": "化学制药",
       "industry": "化学制药",
-      "marketCap": null,
       "list_date": "20200727"
     },
     {
@@ -53407,7 +53388,6 @@
       "is_etf": false,
       "sector": "环境保护",
       "industry": "环境保护",
-      "marketCap": null,
       "list_date": "20200727"
     },
     {
@@ -53418,7 +53398,6 @@
       "is_etf": false,
       "sector": "农药化肥",
       "industry": "农药化肥",
-      "marketCap": null,
       "list_date": "20200727"
     },
     {
@@ -53429,7 +53408,6 @@
       "is_etf": false,
       "sector": "化纤",
       "industry": "化纤",
-      "marketCap": null,
       "list_date": "20210831"
     },
     {
@@ -53440,7 +53418,6 @@
       "is_etf": false,
       "sector": "电气设备",
       "industry": "电气设备",
-      "marketCap": null,
       "list_date": "20200727"
     },
     {
@@ -53451,7 +53428,6 @@
       "is_etf": false,
       "sector": "软件服务",
       "industry": "软件服务",
-      "marketCap": null,
       "list_date": "20210826"
     },
     {
@@ -53462,7 +53438,6 @@
       "is_etf": false,
       "sector": "工程机械",
       "industry": "工程机械",
-      "marketCap": null,
       "list_date": "20210820"
     },
     {
@@ -53473,7 +53448,6 @@
       "is_etf": false,
       "sector": "供气供热",
       "industry": "供气供热",
-      "marketCap": null,
       "list_date": "20200727"
     },
     {
@@ -53484,7 +53458,6 @@
       "is_etf": false,
       "sector": "家居用品",
       "industry": "家居用品",
-      "marketCap": null,
       "list_date": "20200727"
     },
     {
@@ -53495,7 +53468,6 @@
       "is_etf": false,
       "sector": "建筑工程",
       "industry": "建筑工程",
-      "marketCap": null,
       "list_date": "20210818"
     },
     {
@@ -53506,7 +53478,6 @@
       "is_etf": false,
       "sector": "专用机械",
       "industry": "专用机械",
-      "marketCap": null,
       "list_date": "20200727"
     },
     {
@@ -53517,7 +53488,6 @@
       "is_etf": false,
       "sector": "航空",
       "industry": "航空",
-      "marketCap": null,
       "list_date": "20210816"
     },
     {
@@ -53528,7 +53498,6 @@
       "is_etf": false,
       "sector": "电气设备",
       "industry": "电气设备",
-      "marketCap": null,
       "list_date": "20200727"
     },
     {
@@ -53539,7 +53508,6 @@
       "is_etf": false,
       "sector": "环境保护",
       "industry": "环境保护",
-      "marketCap": null,
       "list_date": "20200727"
     },
     {
@@ -53550,7 +53518,6 @@
       "is_etf": false,
       "sector": "化学制药",
       "industry": "化学制药",
-      "marketCap": null,
       "list_date": "20210813"
     },
     {
@@ -53561,7 +53528,6 @@
       "is_etf": false,
       "sector": "中成药",
       "industry": "中成药",
-      "marketCap": null,
       "list_date": "20200727"
     },
     {
@@ -53572,7 +53538,6 @@
       "is_etf": false,
       "sector": "IT设备",
       "industry": "IT设备",
-      "marketCap": null,
       "list_date": "20210809"
     },
     {
@@ -53583,7 +53548,6 @@
       "is_etf": false,
       "sector": "工程机械",
       "industry": "工程机械",
-      "marketCap": null,
       "list_date": "20201109"
     },
     {
@@ -53594,7 +53558,6 @@
       "is_etf": false,
       "sector": "专用机械",
       "industry": "专用机械",
-      "marketCap": null,
       "list_date": "20210806"
     },
     {
@@ -53605,7 +53568,6 @@
       "is_etf": false,
       "sector": "汽车配件",
       "industry": "汽车配件",
-      "marketCap": null,
       "list_date": "20210720"
     },
     {
@@ -53616,7 +53578,6 @@
       "is_etf": false,
       "sector": "电器仪表",
       "industry": "电器仪表",
-      "marketCap": null,
       "list_date": "20210708"
     },
     {
@@ -53627,7 +53588,6 @@
       "is_etf": false,
       "sector": "家居用品",
       "industry": "家居用品",
-      "marketCap": null,
       "list_date": "20210705"
     },
     {
@@ -53638,7 +53598,6 @@
       "is_etf": false,
       "sector": "家用电器",
       "industry": "家用电器",
-      "marketCap": null,
       "list_date": "20210628"
     },
     {
@@ -53649,7 +53608,6 @@
       "is_etf": false,
       "sector": "元器件",
       "industry": "元器件",
-      "marketCap": null,
       "list_date": "20210608"
     },
     {
@@ -53660,7 +53618,6 @@
       "is_etf": false,
       "sector": "食品",
       "industry": "食品",
-      "marketCap": null,
       "list_date": "20210527"
     },
     {
@@ -53671,7 +53628,6 @@
       "is_etf": false,
       "sector": "电气设备",
       "industry": "电气设备",
-      "marketCap": null,
       "list_date": "20210603"
     },
     {
@@ -53682,7 +53638,6 @@
       "is_etf": false,
       "sector": "橡胶",
       "industry": "橡胶",
-      "marketCap": null,
       "list_date": "20210225"
     },
     {
@@ -53693,7 +53648,6 @@
       "is_etf": false,
       "sector": "化工原料",
       "industry": "化工原料",
-      "marketCap": null,
       "list_date": "20210223"
     },
     {
@@ -53704,7 +53658,6 @@
       "is_etf": false,
       "sector": "工程机械",
       "industry": "工程机械",
-      "marketCap": null,
       "list_date": "20210222"
     },
     {
@@ -53715,7 +53668,6 @@
       "is_etf": false,
       "sector": "化学制药",
       "industry": "化学制药",
-      "marketCap": null,
       "list_date": "20210219"
     },
     {
@@ -53726,7 +53678,6 @@
       "is_etf": false,
       "sector": "电气设备",
       "industry": "电气设备",
-      "marketCap": null,
       "list_date": "20210209"
     },
     {
@@ -53737,7 +53688,6 @@
       "is_etf": false,
       "sector": "建筑工程",
       "industry": "建筑工程",
-      "marketCap": null,
       "list_date": "20210205"
     },
     {
@@ -53748,7 +53698,6 @@
       "is_etf": false,
       "sector": "农业综合",
       "industry": "农业综合",
-      "marketCap": null,
       "list_date": "20210125"
     },
     {
@@ -53759,7 +53708,6 @@
       "is_etf": false,
       "sector": "食品",
       "industry": "食品",
-      "marketCap": null,
       "list_date": "20210112"
     },
     {
@@ -53770,7 +53718,6 @@
       "is_etf": false,
       "sector": "电器仪表",
       "industry": "电器仪表",
-      "marketCap": null,
       "list_date": "20210111"
     },
     {
@@ -53781,7 +53728,6 @@
       "is_etf": false,
       "sector": "生物制药",
       "industry": "生物制药",
-      "marketCap": null,
       "list_date": "20210108"
     },
     {
@@ -53792,7 +53738,6 @@
       "is_etf": false,
       "sector": "机械基件",
       "industry": "机械基件",
-      "marketCap": null,
       "list_date": "20201228"
     },
     {
@@ -53803,7 +53748,6 @@
       "is_etf": false,
       "sector": "矿物制品",
       "industry": "矿物制品",
-      "marketCap": null,
       "list_date": "20201228"
     },
     {
@@ -53814,7 +53758,6 @@
       "is_etf": false,
       "sector": "专用机械",
       "industry": "专用机械",
-      "marketCap": null,
       "list_date": "20201225"
     },
     {
@@ -53825,7 +53768,6 @@
       "is_etf": false,
       "sector": "汽车配件",
       "industry": "汽车配件",
-      "marketCap": null,
       "list_date": "20201223"
     },
     {
@@ -53836,7 +53778,6 @@
       "is_etf": false,
       "sector": "软件服务",
       "industry": "软件服务",
-      "marketCap": null,
       "list_date": "20201208"
     },
     {
@@ -53847,7 +53788,6 @@
       "is_etf": false,
       "sector": "汽车服务",
       "industry": "汽车服务",
-      "marketCap": null,
       "list_date": "20201127"
     },
     {
@@ -53858,7 +53798,6 @@
       "is_etf": false,
       "sector": "生物制药",
       "industry": "生物制药",
-      "marketCap": null,
       "list_date": "20201124"
     },
     {
@@ -53869,7 +53808,6 @@
       "is_etf": false,
       "sector": "电器仪表",
       "industry": "电器仪表",
-      "marketCap": null,
       "list_date": "20201118"
     },
     {
@@ -54089,7 +54027,6 @@
       "is_etf": false,
       "sector": "塑料",
       "industry": "塑料",
-      "marketCap": null,
       "list_date": "20211109"
     },
     {
@@ -54100,7 +54037,6 @@
       "is_etf": false,
       "sector": "软件服务",
       "industry": "软件服务",
-      "marketCap": null,
       "list_date": "20211115"
     },
     {
@@ -54111,7 +54047,6 @@
       "is_etf": false,
       "sector": "通信设备",
       "industry": "通信设备",
-      "marketCap": null,
       "list_date": "20211103"
     },
     {
@@ -54122,7 +54057,6 @@
       "is_etf": false,
       "sector": "电器仪表",
       "industry": "电器仪表",
-      "marketCap": null,
       "list_date": "20211105"
     },
     {
@@ -54133,7 +54067,6 @@
       "is_etf": false,
       "sector": "环境保护",
       "industry": "环境保护",
-      "marketCap": null,
       "list_date": "20211115"
     },
     {
@@ -54144,7 +54077,6 @@
       "is_etf": false,
       "sector": "建筑工程",
       "industry": "建筑工程",
-      "marketCap": null,
       "list_date": "20211028"
     },
     {
@@ -54155,7 +54087,6 @@
       "is_etf": false,
       "sector": "医疗保健",
       "industry": "医疗保健",
-      "marketCap": null,
       "list_date": "20211025"
     },
     {
@@ -54331,7 +54262,6 @@
       "is_etf": false,
       "sector": "软件服务",
       "industry": "软件服务",
-      "marketCap": null,
       "list_date": "20211115"
     },
     {
@@ -54342,7 +54272,6 @@
       "is_etf": false,
       "sector": "软件服务",
       "industry": "软件服务",
-      "marketCap": null,
       "list_date": "20211115"
     },
     {
@@ -54353,7 +54282,6 @@
       "is_etf": false,
       "sector": "汽车配件",
       "industry": "汽车配件",
-      "marketCap": null,
       "list_date": "20211115"
     },
     {
@@ -54364,7 +54292,6 @@
       "is_etf": false,
       "sector": "建筑工程",
       "industry": "建筑工程",
-      "marketCap": null,
       "list_date": "20211115"
     },
     {
@@ -54375,7 +54302,6 @@
       "is_etf": false,
       "sector": "专用机械",
       "industry": "专用机械",
-      "marketCap": null,
       "list_date": "20211115"
     },
     {
@@ -54386,7 +54312,6 @@
       "is_etf": false,
       "sector": "机械基件",
       "industry": "机械基件",
-      "marketCap": null,
       "list_date": "20211124"
     },
     {
@@ -54397,7 +54322,6 @@
       "is_etf": false,
       "sector": "汽车配件",
       "industry": "汽车配件",
-      "marketCap": null,
       "list_date": "20211115"
     },
     {
@@ -54408,7 +54332,6 @@
       "is_etf": false,
       "sector": "元器件",
       "industry": "元器件",
-      "marketCap": null,
       "list_date": "20211115"
     },
     {
@@ -54589,7 +54512,6 @@
       "is_etf": false,
       "sector": "汽车配件",
       "industry": "汽车配件",
-      "marketCap": null,
       "list_date": "20220524"
     },
     {
@@ -54600,7 +54522,6 @@
       "is_etf": false,
       "sector": "专用机械",
       "industry": "专用机械",
-      "marketCap": null,
       "list_date": "20220321"
     },
     {
@@ -54611,7 +54532,6 @@
       "is_etf": false,
       "sector": "饲料",
       "industry": "饲料",
-      "marketCap": null,
       "list_date": "20220311"
     },
     {
@@ -54622,7 +54542,6 @@
       "is_etf": false,
       "sector": "小金属",
       "industry": "小金属",
-      "marketCap": null,
       "list_date": "20220901"
     },
     {
@@ -54633,7 +54552,6 @@
       "is_etf": false,
       "sector": "电气设备",
       "industry": "电气设备",
-      "marketCap": null,
       "list_date": "20220610"
     },
     {
@@ -54644,7 +54562,6 @@
       "is_etf": false,
       "sector": "机械基件",
       "industry": "机械基件",
-      "marketCap": null,
       "list_date": "20220106"
     },
     {
@@ -54655,7 +54572,6 @@
       "is_etf": false,
       "sector": "软件服务",
       "industry": "软件服务",
-      "marketCap": null,
       "list_date": "20220617"
     },
     {
@@ -54666,7 +54582,6 @@
       "is_etf": false,
       "sector": "元器件",
       "industry": "元器件",
-      "marketCap": null,
       "list_date": "20220228"
     },
     {
@@ -54677,7 +54592,6 @@
       "is_etf": false,
       "sector": "元器件",
       "industry": "元器件",
-      "marketCap": null,
       "list_date": "20220706"
     },
     {
@@ -54688,7 +54602,6 @@
       "is_etf": false,
       "sector": "其他建材",
       "industry": "其他建材",
-      "marketCap": null,
       "list_date": "20220513"
     },
     {
@@ -54699,7 +54612,6 @@
       "is_etf": false,
       "sector": "元器件",
       "industry": "元器件",
-      "marketCap": null,
       "list_date": "20220223"
     },
     {
@@ -54710,7 +54622,6 @@
       "is_etf": false,
       "sector": "塑料",
       "industry": "塑料",
-      "marketCap": null,
       "list_date": "20220118"
     },
     {
@@ -54721,7 +54632,6 @@
       "is_etf": false,
       "sector": "塑料",
       "industry": "塑料",
-      "marketCap": null,
       "list_date": "20220822"
     },
     {
@@ -54732,7 +54642,6 @@
       "is_etf": false,
       "sector": "饲料",
       "industry": "饲料",
-      "marketCap": null,
       "list_date": "20220518"
     },
     {
@@ -54765,7 +54674,6 @@
       "is_etf": false,
       "sector": "电气设备",
       "industry": "电气设备",
-      "marketCap": null,
       "list_date": "20221013"
     },
     {
@@ -54776,7 +54684,6 @@
       "is_etf": false,
       "sector": "机械基件",
       "industry": "机械基件",
-      "marketCap": null,
       "list_date": "20220415"
     },
     {
@@ -54787,7 +54694,6 @@
       "is_etf": false,
       "sector": "机械基件",
       "industry": "机械基件",
-      "marketCap": null,
       "list_date": "20220624"
     },
     {
@@ -54798,7 +54704,6 @@
       "is_etf": false,
       "sector": "机械基件",
       "industry": "机械基件",
-      "marketCap": null,
       "list_date": "20220609"
     },
     {
@@ -54809,7 +54714,6 @@
       "is_etf": false,
       "sector": "电气设备",
       "industry": "电气设备",
-      "marketCap": null,
       "list_date": "20220713"
     },
     {
@@ -54820,7 +54724,6 @@
       "is_etf": false,
       "sector": "矿物制品",
       "industry": "矿物制品",
-      "marketCap": null,
       "list_date": "20220304"
     },
     {
@@ -55084,7 +54987,6 @@
       "is_etf": false,
       "sector": "电器仪表",
       "industry": "电器仪表",
-      "marketCap": null,
       "list_date": "20221220"
     },
     {
@@ -55139,7 +55041,6 @@
       "is_etf": false,
       "sector": "汽车配件",
       "industry": "汽车配件",
-      "marketCap": null,
       "list_date": "20220620"
     },
     {
@@ -55271,7 +55172,6 @@
       "is_etf": false,
       "sector": "机床制造",
       "industry": "机床制造",
-      "marketCap": null,
       "list_date": "20220705"
     },
     {
@@ -55436,7 +55336,6 @@
       "is_etf": false,
       "sector": "化工原料",
       "industry": "化工原料",
-      "marketCap": null,
       "list_date": "20220928"
     },
     {
@@ -55480,7 +55379,6 @@
       "is_etf": false,
       "sector": "元器件",
       "industry": "元器件",
-      "marketCap": null,
       "list_date": "20220614"
     },
     {
@@ -55491,7 +55389,6 @@
       "is_etf": false,
       "sector": "电气设备",
       "industry": "电气设备",
-      "marketCap": null,
       "list_date": "20220712"
     },
     {
@@ -55557,7 +55454,6 @@
       "is_etf": false,
       "sector": "塑料",
       "industry": "塑料",
-      "marketCap": null,
       "list_date": "20220722"
     },
     {
@@ -55568,7 +55464,6 @@
       "is_etf": false,
       "sector": "软件服务",
       "industry": "软件服务",
-      "marketCap": null,
       "list_date": "20231102"
     },
     {
@@ -55579,7 +55474,6 @@
       "is_etf": false,
       "sector": "汽车配件",
       "industry": "汽车配件",
-      "marketCap": null,
       "list_date": "20220602"
     },
     {
@@ -55590,7 +55484,6 @@
       "is_etf": false,
       "sector": "软件服务",
       "industry": "软件服务",
-      "marketCap": null,
       "list_date": "20220902"
     },
     {
@@ -55601,7 +55494,6 @@
       "is_etf": false,
       "sector": "IT设备",
       "industry": "IT设备",
-      "marketCap": null,
       "list_date": "20220901"
     },
     {
@@ -55711,7 +55603,6 @@
       "is_etf": false,
       "sector": "元器件",
       "industry": "元器件",
-      "marketCap": null,
       "list_date": "20220527"
     },
     {
@@ -55832,7 +55723,6 @@
       "is_etf": false,
       "sector": "电气设备",
       "industry": "电气设备",
-      "marketCap": null,
       "list_date": "20220808"
     },
     {
@@ -55854,7 +55744,6 @@
       "is_etf": false,
       "sector": "矿物制品",
       "industry": "矿物制品",
-      "marketCap": null,
       "list_date": "20220718"
     },
     {
@@ -55898,7 +55787,6 @@
       "is_etf": false,
       "sector": "生物制药",
       "industry": "生物制药",
-      "marketCap": null,
       "list_date": "20230315"
     },
     {
@@ -55931,7 +55819,6 @@
       "is_etf": false,
       "sector": "汽车配件",
       "industry": "汽车配件",
-      "marketCap": null,
       "list_date": "20220902"
     },
     {
@@ -55942,7 +55829,6 @@
       "is_etf": false,
       "sector": "综合类",
       "industry": "综合类",
-      "marketCap": null,
       "list_date": "20220927"
     },
     {
@@ -56041,7 +55927,6 @@
       "is_etf": false,
       "sector": "生物制药",
       "industry": "生物制药",
-      "marketCap": null,
       "list_date": "20221209"
     },
     {
@@ -56074,7 +55959,6 @@
       "is_etf": false,
       "sector": "农药化肥",
       "industry": "农药化肥",
-      "marketCap": null,
       "list_date": "20221209"
     },
     {
@@ -56085,7 +55969,6 @@
       "is_etf": false,
       "sector": "食品",
       "industry": "食品",
-      "marketCap": null,
       "list_date": "20221215"
     },
     {
@@ -56096,7 +55979,6 @@
       "is_etf": false,
       "sector": "化工原料",
       "industry": "化工原料",
-      "marketCap": null,
       "list_date": "20230403"
     },
     {
@@ -56118,7 +56000,6 @@
       "is_etf": false,
       "sector": "化学制药",
       "industry": "化学制药",
-      "marketCap": null,
       "list_date": "20230209"
     },
     {
@@ -56129,7 +56010,6 @@
       "is_etf": false,
       "sector": "软件服务",
       "industry": "软件服务",
-      "marketCap": null,
       "list_date": "20220923"
     },
     {
@@ -56184,7 +56064,6 @@
       "is_etf": false,
       "sector": "电气设备",
       "industry": "电气设备",
-      "marketCap": null,
       "list_date": "20221206"
     },
     {
@@ -56195,7 +56074,6 @@
       "is_etf": false,
       "sector": "家用电器",
       "industry": "家用电器",
-      "marketCap": null,
       "list_date": "20221222"
     },
     {
@@ -56206,7 +56084,6 @@
       "is_etf": false,
       "sector": "食品",
       "industry": "食品",
-      "marketCap": null,
       "list_date": "20230221"
     },
     {
@@ -56305,7 +56182,6 @@
       "is_etf": false,
       "sector": "纺织",
       "industry": "纺织",
-      "marketCap": null,
       "list_date": "20221031"
     },
     {
@@ -56327,7 +56203,6 @@
       "is_etf": false,
       "sector": "电气设备",
       "industry": "电气设备",
-      "marketCap": null,
       "list_date": "20230907"
     },
     {
@@ -56338,7 +56213,6 @@
       "is_etf": false,
       "sector": "机械基件",
       "industry": "机械基件",
-      "marketCap": null,
       "list_date": "20221216"
     },
     {
@@ -56349,7 +56223,6 @@
       "is_etf": false,
       "sector": "摩托车",
       "industry": "摩托车",
-      "marketCap": null,
       "list_date": "20230810"
     },
     {
@@ -56404,7 +56277,6 @@
       "is_etf": false,
       "sector": "电器仪表",
       "industry": "电器仪表",
-      "marketCap": null,
       "list_date": "20221014"
     },
     {
@@ -56426,7 +56298,6 @@
       "is_etf": false,
       "sector": "水运",
       "industry": "水运",
-      "marketCap": null,
       "list_date": "20221215"
     },
     {
@@ -56525,7 +56396,6 @@
       "is_etf": false,
       "sector": "医疗保健",
       "industry": "医疗保健",
-      "marketCap": null,
       "list_date": "20230720"
     },
     {
@@ -56536,7 +56406,6 @@
       "is_etf": false,
       "sector": "化工原料",
       "industry": "化工原料",
-      "marketCap": null,
       "list_date": "20220927"
     },
     {
@@ -56547,7 +56416,6 @@
       "is_etf": false,
       "sector": "化工原料",
       "industry": "化工原料",
-      "marketCap": null,
       "list_date": "20230308"
     },
     {
@@ -56591,7 +56459,6 @@
       "is_etf": false,
       "sector": "电器仪表",
       "industry": "电器仪表",
-      "marketCap": null,
       "list_date": "20230317"
     },
     {
@@ -56602,7 +56469,6 @@
       "is_etf": false,
       "sector": "机械基件",
       "industry": "机械基件",
-      "marketCap": null,
       "list_date": "20221128"
     },
     {
@@ -56657,7 +56523,6 @@
       "is_etf": false,
       "sector": "橡胶",
       "industry": "橡胶",
-      "marketCap": null,
       "list_date": "20221223"
     },
     {
@@ -56668,7 +56533,6 @@
       "is_etf": false,
       "sector": "元器件",
       "industry": "元器件",
-      "marketCap": null,
       "list_date": "20221109"
     },
     {
@@ -56679,7 +56543,6 @@
       "is_etf": false,
       "sector": "小金属",
       "industry": "小金属",
-      "marketCap": null,
       "list_date": "20221111"
     },
     {
@@ -56690,7 +56553,6 @@
       "is_etf": false,
       "sector": "电器仪表",
       "industry": "电器仪表",
-      "marketCap": null,
       "list_date": "20221010"
     },
     {
@@ -56701,7 +56563,6 @@
       "is_etf": false,
       "sector": "食品",
       "industry": "食品",
-      "marketCap": null,
       "list_date": "20230202"
     },
     {
@@ -56723,7 +56584,6 @@
       "is_etf": false,
       "sector": "农用机械",
       "industry": "农用机械",
-      "marketCap": null,
       "list_date": "20230406"
     },
     {
@@ -56734,7 +56594,6 @@
       "is_etf": false,
       "sector": "化学制药",
       "industry": "化学制药",
-      "marketCap": null,
       "list_date": "20230531"
     },
     {
@@ -56811,7 +56670,6 @@
       "is_etf": false,
       "sector": "电气设备",
       "industry": "电气设备",
-      "marketCap": null,
       "list_date": "20221125"
     },
     {
@@ -56866,7 +56724,6 @@
       "is_etf": false,
       "sector": "通信设备",
       "industry": "通信设备",
-      "marketCap": null,
       "list_date": "20221129"
     },
     {
@@ -56943,7 +56800,6 @@
       "is_etf": false,
       "sector": "食品",
       "industry": "食品",
-      "marketCap": null,
       "list_date": "20230301"
     },
     {
@@ -56954,7 +56810,6 @@
       "is_etf": false,
       "sector": "机床制造",
       "industry": "机床制造",
-      "marketCap": null,
       "list_date": "20221229"
     },
     {
@@ -56965,7 +56820,6 @@
       "is_etf": false,
       "sector": "种植业",
       "industry": "种植业",
-      "marketCap": null,
       "list_date": "20221207"
     },
     {
@@ -56976,7 +56830,6 @@
       "is_etf": false,
       "sector": "IT设备",
       "industry": "IT设备",
-      "marketCap": null,
       "list_date": "20221118"
     },
     {
@@ -56987,7 +56840,6 @@
       "is_etf": false,
       "sector": "半导体",
       "industry": "半导体",
-      "marketCap": null,
       "list_date": "20221028"
     },
     {
@@ -57064,7 +56916,6 @@
       "is_etf": false,
       "sector": "电气设备",
       "industry": "电气设备",
-      "marketCap": null,
       "list_date": "20230119"
     },
     {
@@ -57075,7 +56926,6 @@
       "is_etf": false,
       "sector": "矿物制品",
       "industry": "矿物制品",
-      "marketCap": null,
       "list_date": "20221202"
     },
     {
@@ -57086,7 +56936,6 @@
       "is_etf": false,
       "sector": "机械基件",
       "industry": "机械基件",
-      "marketCap": null,
       "list_date": "20221208"
     },
     {
@@ -57097,7 +56946,6 @@
       "is_etf": false,
       "sector": "环境保护",
       "industry": "环境保护",
-      "marketCap": null,
       "list_date": "20230206"
     },
     {
@@ -57207,7 +57055,6 @@
       "is_etf": false,
       "sector": "化工原料",
       "industry": "化工原料",
-      "marketCap": null,
       "list_date": "20221214"
     },
     {
@@ -57218,7 +57065,6 @@
       "is_etf": false,
       "sector": "化工原料",
       "industry": "化工原料",
-      "marketCap": null,
       "list_date": "20221027"
     },
     {
@@ -57339,7 +57185,6 @@
       "is_etf": false,
       "sector": "汽车配件",
       "industry": "汽车配件",
-      "marketCap": null,
       "list_date": "20230222"
     },
     {
@@ -57350,7 +57195,6 @@
       "is_etf": false,
       "sector": "家用电器",
       "industry": "家用电器",
-      "marketCap": null,
       "list_date": "20221201"
     },
     {
@@ -57361,7 +57205,6 @@
       "is_etf": false,
       "sector": "汽车配件",
       "industry": "汽车配件",
-      "marketCap": null,
       "list_date": "20221230"
     },
     {
@@ -57372,7 +57215,6 @@
       "is_etf": false,
       "sector": "广告包装",
       "industry": "广告包装",
-      "marketCap": null,
       "list_date": "20221230"
     },
     {
@@ -57405,7 +57247,6 @@
       "is_etf": false,
       "sector": "元器件",
       "industry": "元器件",
-      "marketCap": null,
       "list_date": "20230111"
     },
     {
@@ -57416,7 +57257,6 @@
       "is_etf": false,
       "sector": "化学制药",
       "industry": "化学制药",
-      "marketCap": null,
       "list_date": "20230223"
     },
     {
@@ -57427,7 +57267,6 @@
       "is_etf": false,
       "sector": "专用机械",
       "industry": "专用机械",
-      "marketCap": null,
       "list_date": "20221216"
     },
     {
@@ -57438,7 +57277,6 @@
       "is_etf": false,
       "sector": "IT设备",
       "industry": "IT设备",
-      "marketCap": null,
       "list_date": "20221223"
     },
     {
@@ -57449,7 +57287,6 @@
       "is_etf": false,
       "sector": "专用机械",
       "industry": "专用机械",
-      "marketCap": null,
       "list_date": "20221226"
     },
     {
@@ -57460,7 +57297,6 @@
       "is_etf": false,
       "sector": "专用机械",
       "industry": "专用机械",
-      "marketCap": null,
       "list_date": "20221213"
     },
     {
@@ -57471,7 +57307,6 @@
       "is_etf": false,
       "sector": "仓储物流",
       "industry": "仓储物流",
-      "marketCap": null,
       "list_date": "20221229"
     },
     {
@@ -57482,7 +57317,6 @@
       "is_etf": false,
       "sector": "软件服务",
       "industry": "软件服务",
-      "marketCap": null,
       "list_date": "20231101"
     },
     {
@@ -57493,7 +57327,6 @@
       "is_etf": false,
       "sector": "铅锌",
       "industry": "铅锌",
-      "marketCap": null,
       "list_date": "20221124"
     },
     {
@@ -57504,7 +57337,6 @@
       "is_etf": false,
       "sector": "软件服务",
       "industry": "软件服务",
-      "marketCap": null,
       "list_date": "20230816"
     },
     {
@@ -57515,7 +57347,6 @@
       "is_etf": false,
       "sector": "机械基件",
       "industry": "机械基件",
-      "marketCap": null,
       "list_date": "20231130"
     },
     {
@@ -57581,7 +57412,6 @@
       "is_etf": false,
       "sector": "电器仪表",
       "industry": "电器仪表",
-      "marketCap": null,
       "list_date": "20221212"
     },
     {
@@ -57592,7 +57422,6 @@
       "is_etf": false,
       "sector": "医疗保健",
       "industry": "医疗保健",
-      "marketCap": null,
       "list_date": "20221018"
     },
     {
@@ -57603,7 +57432,6 @@
       "is_etf": false,
       "sector": "化工原料",
       "industry": "化工原料",
-      "marketCap": null,
       "list_date": "20221222"
     },
     {
@@ -57614,7 +57442,6 @@
       "is_etf": false,
       "sector": "汽车配件",
       "industry": "汽车配件",
-      "marketCap": null,
       "list_date": "20230315"
     },
     {
@@ -57625,7 +57452,6 @@
       "is_etf": false,
       "sector": "家用电器",
       "industry": "家用电器",
-      "marketCap": null,
       "list_date": "20221117"
     },
     {
@@ -57636,7 +57462,6 @@
       "is_etf": false,
       "sector": "化工原料",
       "industry": "化工原料",
-      "marketCap": null,
       "list_date": "20221221"
     },
     {
@@ -57647,7 +57472,6 @@
       "is_etf": false,
       "sector": "运输设备",
       "industry": "运输设备",
-      "marketCap": null,
       "list_date": "20230310"
     },
     {
@@ -57658,7 +57482,6 @@
       "is_etf": false,
       "sector": "广告包装",
       "industry": "广告包装",
-      "marketCap": null,
       "list_date": "20221214"
     },
     {
@@ -57680,7 +57503,6 @@
       "is_etf": false,
       "sector": "建筑工程",
       "industry": "建筑工程",
-      "marketCap": null,
       "list_date": "20230629"
     },
     {
@@ -57691,7 +57513,6 @@
       "is_etf": false,
       "sector": "电气设备",
       "industry": "电气设备",
-      "marketCap": null,
       "list_date": "20230228"
     },
     {
@@ -57702,7 +57523,6 @@
       "is_etf": false,
       "sector": "钢加工",
       "industry": "钢加工",
-      "marketCap": null,
       "list_date": "20230314"
     },
     {
@@ -57856,7 +57676,6 @@
       "is_etf": false,
       "sector": "软件服务",
       "industry": "软件服务",
-      "marketCap": null,
       "list_date": "20221228"
     },
     {
@@ -57867,7 +57686,6 @@
       "is_etf": false,
       "sector": "食品",
       "industry": "食品",
-      "marketCap": null,
       "list_date": "20230118"
     },
     {
@@ -57878,7 +57696,6 @@
       "is_etf": false,
       "sector": "其他建材",
       "industry": "其他建材",
-      "marketCap": null,
       "list_date": "20230330"
     },
     {
@@ -57889,7 +57706,6 @@
       "is_etf": false,
       "sector": "纺织",
       "industry": "纺织",
-      "marketCap": null,
       "list_date": "20221230"
     },
     {
@@ -57900,7 +57716,6 @@
       "is_etf": false,
       "sector": "医疗保健",
       "industry": "医疗保健",
-      "marketCap": null,
       "list_date": "20221207"
     },
     {
@@ -57911,7 +57726,6 @@
       "is_etf": false,
       "sector": "元器件",
       "industry": "元器件",
-      "marketCap": null,
       "list_date": "20230217"
     },
     {
@@ -57922,7 +57736,6 @@
       "is_etf": false,
       "sector": "专用机械",
       "industry": "专用机械",
-      "marketCap": null,
       "list_date": "20230130"
     },
     {
@@ -57933,7 +57746,6 @@
       "is_etf": false,
       "sector": "机械基件",
       "industry": "机械基件",
-      "marketCap": null,
       "list_date": "20221220"
     },
     {
@@ -57944,7 +57756,6 @@
       "is_etf": false,
       "sector": "元器件",
       "industry": "元器件",
-      "marketCap": null,
       "list_date": "20221118"
     },
     {
@@ -57955,7 +57766,6 @@
       "is_etf": false,
       "sector": "电器仪表",
       "industry": "电器仪表",
-      "marketCap": null,
       "list_date": "20230216"
     },
     {
@@ -57966,7 +57776,6 @@
       "is_etf": false,
       "sector": "乳制品",
       "industry": "乳制品",
-      "marketCap": null,
       "list_date": "20231013"
     },
     {
@@ -57977,7 +57786,6 @@
       "is_etf": false,
       "sector": "软件服务",
       "industry": "软件服务",
-      "marketCap": null,
       "list_date": "20230710"
     },
     {
@@ -58043,7 +57851,6 @@
       "is_etf": false,
       "sector": "机械基件",
       "industry": "机械基件",
-      "marketCap": null,
       "list_date": "20221221"
     },
     {
@@ -58351,7 +58158,6 @@
       "is_etf": false,
       "sector": "元器件",
       "industry": "元器件",
-      "marketCap": null,
       "list_date": "20221227"
     },
     {
@@ -58373,7 +58179,6 @@
       "is_etf": false,
       "sector": "塑料",
       "industry": "塑料",
-      "marketCap": null,
       "list_date": "20230424"
     },
     {
@@ -58384,7 +58189,6 @@
       "is_etf": false,
       "sector": "化工原料",
       "industry": "化工原料",
-      "marketCap": null,
       "list_date": "20230525"
     },
     {
@@ -58395,7 +58199,6 @@
       "is_etf": false,
       "sector": "汽车配件",
       "industry": "汽车配件",
-      "marketCap": null,
       "list_date": "20230608"
     },
     {
@@ -58406,7 +58209,6 @@
       "is_etf": false,
       "sector": "专用机械",
       "industry": "专用机械",
-      "marketCap": null,
       "list_date": "20230621"
     },
     {
@@ -58439,7 +58241,6 @@
       "is_etf": false,
       "sector": "造纸",
       "industry": "造纸",
-      "marketCap": null,
       "list_date": "20230425"
     },
     {
@@ -58450,7 +58251,6 @@
       "is_etf": false,
       "sector": "电器仪表",
       "industry": "电器仪表",
-      "marketCap": null,
       "list_date": "20230601"
     },
     {
@@ -58461,7 +58261,6 @@
       "is_etf": false,
       "sector": "汽车配件",
       "industry": "汽车配件",
-      "marketCap": null,
       "list_date": "20230515"
     },
     {
@@ -58472,7 +58271,6 @@
       "is_etf": false,
       "sector": "汽车配件",
       "industry": "汽车配件",
-      "marketCap": null,
       "list_date": "20230419"
     },
     {
@@ -58483,7 +58281,6 @@
       "is_etf": false,
       "sector": "家用电器",
       "industry": "家用电器",
-      "marketCap": null,
       "list_date": "20230509"
     },
     {
@@ -58505,7 +58302,6 @@
       "is_etf": false,
       "sector": "专用机械",
       "industry": "专用机械",
-      "marketCap": null,
       "list_date": "20230703"
     },
     {
@@ -58516,7 +58312,6 @@
       "is_etf": false,
       "sector": "软件服务",
       "industry": "软件服务",
-      "marketCap": null,
       "list_date": "20230823"
     },
     {
@@ -58527,7 +58322,6 @@
       "is_etf": false,
       "sector": "机械基件",
       "industry": "机械基件",
-      "marketCap": null,
       "list_date": "20230413"
     },
     {
@@ -58538,7 +58332,6 @@
       "is_etf": false,
       "sector": "专用机械",
       "industry": "专用机械",
-      "marketCap": null,
       "list_date": "20230512"
     },
     {
@@ -58626,7 +58419,6 @@
       "is_etf": false,
       "sector": "电气设备",
       "industry": "电气设备",
-      "marketCap": null,
       "list_date": "20230323"
     },
     {
@@ -58637,7 +58429,6 @@
       "is_etf": false,
       "sector": "化工原料",
       "industry": "化工原料",
-      "marketCap": null,
       "list_date": "20230418"
     },
     {
@@ -58648,7 +58439,6 @@
       "is_etf": false,
       "sector": "化工原料",
       "industry": "化工原料",
-      "marketCap": null,
       "list_date": "20230526"
     },
     {
@@ -58659,7 +58449,6 @@
       "is_etf": false,
       "sector": "广告包装",
       "industry": "广告包装",
-      "marketCap": null,
       "list_date": "20230818"
     },
     {
@@ -58681,7 +58470,6 @@
       "is_etf": false,
       "sector": "元器件",
       "industry": "元器件",
-      "marketCap": null,
       "list_date": "20240325"
     },
     {
@@ -58692,7 +58480,6 @@
       "is_etf": false,
       "sector": "电气设备",
       "industry": "电气设备",
-      "marketCap": null,
       "list_date": "20231214"
     },
     {
@@ -58714,7 +58501,6 @@
       "is_etf": false,
       "sector": "航空",
       "industry": "航空",
-      "marketCap": null,
       "list_date": "20230518"
     },
     {
@@ -58736,7 +58522,6 @@
       "is_etf": false,
       "sector": "元器件",
       "industry": "元器件",
-      "marketCap": null,
       "list_date": "20230719"
     },
     {
@@ -58780,7 +58565,6 @@
       "is_etf": false,
       "sector": "化工原料",
       "industry": "化工原料",
-      "marketCap": null,
       "list_date": "20230915"
     },
     {
@@ -58813,7 +58597,6 @@
       "is_etf": false,
       "sector": "化工原料",
       "industry": "化工原料",
-      "marketCap": null,
       "list_date": "20230630"
     },
     {
@@ -58824,7 +58607,6 @@
       "is_etf": false,
       "sector": "塑料",
       "industry": "塑料",
-      "marketCap": null,
       "list_date": "20230918"
     },
     {
@@ -58857,7 +58639,6 @@
       "is_etf": false,
       "sector": "汽车配件",
       "industry": "汽车配件",
-      "marketCap": null,
       "list_date": "20230928"
     },
     {
@@ -58868,7 +58649,6 @@
       "is_etf": false,
       "sector": "小金属",
       "industry": "小金属",
-      "marketCap": null,
       "list_date": "20230717"
     },
     {
@@ -58879,7 +58659,6 @@
       "is_etf": false,
       "sector": "家用电器",
       "industry": "家用电器",
-      "marketCap": null,
       "list_date": "20230808"
     },
     {
@@ -58901,7 +58680,6 @@
       "is_etf": false,
       "sector": "小金属",
       "industry": "小金属",
-      "marketCap": null,
       "list_date": "20230712"
     },
     {
@@ -58912,7 +58690,6 @@
       "is_etf": false,
       "sector": "日用化工",
       "industry": "日用化工",
-      "marketCap": null,
       "list_date": "20240913"
     },
     {
@@ -58923,7 +58700,6 @@
       "is_etf": false,
       "sector": "通信设备",
       "industry": "通信设备",
-      "marketCap": null,
       "list_date": "20230901"
     },
     {
@@ -58934,7 +58710,6 @@
       "is_etf": false,
       "sector": "医疗保健",
       "industry": "医疗保健",
-      "marketCap": null,
       "list_date": "20230817"
     },
     {
@@ -58945,7 +58720,6 @@
       "is_etf": false,
       "sector": "电器仪表",
       "industry": "电器仪表",
-      "marketCap": null,
       "list_date": "20230627"
     },
     {
@@ -58989,7 +58763,6 @@
       "is_etf": false,
       "sector": "专用机械",
       "industry": "专用机械",
-      "marketCap": null,
       "list_date": "20231219"
     },
     {
@@ -59011,7 +58784,6 @@
       "is_etf": false,
       "sector": "电气设备",
       "industry": "电气设备",
-      "marketCap": null,
       "list_date": "20240126"
     },
     {
@@ -59132,7 +58904,6 @@
       "is_etf": false,
       "sector": "化学制药",
       "industry": "化学制药",
-      "marketCap": null,
       "list_date": "20231212"
     },
     {
@@ -59143,7 +58914,6 @@
       "is_etf": false,
       "sector": "橡胶",
       "industry": "橡胶",
-      "marketCap": null,
       "list_date": "20230926"
     },
     {
@@ -59154,7 +58924,6 @@
       "is_etf": false,
       "sector": "石油加工",
       "industry": "石油加工",
-      "marketCap": null,
       "list_date": "20240925"
     },
     {
@@ -59187,7 +58956,6 @@
       "is_etf": false,
       "sector": "化学制药",
       "industry": "化学制药",
-      "marketCap": null,
       "list_date": "20240202"
     },
     {
@@ -59198,7 +58966,6 @@
       "is_etf": false,
       "sector": "种植业",
       "industry": "种植业",
-      "marketCap": null,
       "list_date": "20240118"
     },
     {
@@ -59209,7 +58976,6 @@
       "is_etf": false,
       "sector": "家居用品",
       "industry": "家居用品",
-      "marketCap": null,
       "list_date": "20231116"
     },
     {
@@ -59231,7 +58997,6 @@
       "is_etf": false,
       "sector": "专用机械",
       "industry": "专用机械",
-      "marketCap": null,
       "list_date": "20231116"
     },
     {
@@ -59253,7 +59018,6 @@
       "is_etf": false,
       "sector": "专用机械",
       "industry": "专用机械",
-      "marketCap": null,
       "list_date": "20231221"
     },
     {
@@ -59297,7 +59061,6 @@
       "is_etf": false,
       "sector": "专用机械",
       "industry": "专用机械",
-      "marketCap": null,
       "list_date": "20231205"
     },
     {
@@ -59308,7 +59071,6 @@
       "is_etf": false,
       "sector": "机械基件",
       "industry": "机械基件",
-      "marketCap": null,
       "list_date": "20231110"
     },
     {
@@ -59330,7 +59092,6 @@
       "is_etf": false,
       "sector": "机械基件",
       "industry": "机械基件",
-      "marketCap": null,
       "list_date": "20231123"
     },
     {
@@ -59396,7 +59157,6 @@
       "is_etf": false,
       "sector": "元器件",
       "industry": "元器件",
-      "marketCap": null,
       "list_date": "20241119"
     },
     {
@@ -59495,7 +59255,6 @@
       "is_etf": false,
       "sector": "汽车配件",
       "industry": "汽车配件",
-      "marketCap": null,
       "list_date": "20240105"
     },
     {
@@ -59506,7 +59265,6 @@
       "is_etf": false,
       "sector": "机械基件",
       "industry": "机械基件",
-      "marketCap": null,
       "list_date": "20231027"
     },
     {
@@ -59517,7 +59275,6 @@
       "is_etf": false,
       "sector": "电器仪表",
       "industry": "电器仪表",
-      "marketCap": null,
       "list_date": "20231228"
     },
     {
@@ -59550,7 +59307,6 @@
       "is_etf": false,
       "sector": "机械基件",
       "industry": "机械基件",
-      "marketCap": null,
       "list_date": "20231019"
     },
     {
@@ -59583,7 +59339,6 @@
       "is_etf": false,
       "sector": "建筑工程",
       "industry": "建筑工程",
-      "marketCap": null,
       "list_date": "20241011"
     },
     {
@@ -59627,7 +59382,6 @@
       "is_etf": false,
       "sector": "工程机械",
       "industry": "工程机械",
-      "marketCap": null,
       "list_date": "20240308"
     },
     {
@@ -59638,7 +59392,6 @@
       "is_etf": false,
       "sector": "化工机械",
       "industry": "化工机械",
-      "marketCap": null,
       "list_date": "20240408"
     },
     {
@@ -59649,7 +59402,6 @@
       "is_etf": false,
       "sector": "汽车配件",
       "industry": "汽车配件",
-      "marketCap": null,
       "list_date": "20231108"
     },
     {
@@ -59660,7 +59412,6 @@
       "is_etf": false,
       "sector": "日用化工",
       "industry": "日用化工",
-      "marketCap": null,
       "list_date": "20240329"
     },
     {
@@ -59704,7 +59455,6 @@
       "is_etf": false,
       "sector": "软件服务",
       "industry": "软件服务",
-      "marketCap": null,
       "list_date": "20240111"
     },
     {
@@ -59715,7 +59465,6 @@
       "is_etf": false,
       "sector": "通信设备",
       "industry": "通信设备",
-      "marketCap": null,
       "list_date": "20240829"
     },
     {
@@ -59737,7 +59486,6 @@
       "is_etf": false,
       "sector": "石油开采",
       "industry": "石油开采",
-      "marketCap": null,
       "list_date": "20241029"
     },
     {
@@ -59748,7 +59496,6 @@
       "is_etf": false,
       "sector": "橡胶",
       "industry": "橡胶",
-      "marketCap": null,
       "list_date": "20241205"
     },
     {
@@ -59759,7 +59506,6 @@
       "is_etf": false,
       "sector": "工程机械",
       "industry": "工程机械",
-      "marketCap": null,
       "list_date": "20240530"
     },
     {
@@ -59770,7 +59516,6 @@
       "is_etf": false,
       "sector": "专用机械",
       "industry": "专用机械",
-      "marketCap": null,
       "list_date": "20251121"
     },
     {
@@ -59781,7 +59526,6 @@
       "is_etf": false,
       "sector": "塑料",
       "industry": "塑料",
-      "marketCap": null,
       "list_date": "20240822"
     },
     {
@@ -59792,7 +59536,6 @@
       "is_etf": false,
       "sector": "电器仪表",
       "industry": "电器仪表",
-      "marketCap": null,
       "list_date": "20250328"
     },
     {
@@ -59803,7 +59546,6 @@
       "is_etf": false,
       "sector": "软件服务",
       "industry": "软件服务",
-      "marketCap": null,
       "list_date": "20250102"
     },
     {
@@ -59814,7 +59556,6 @@
       "is_etf": false,
       "sector": "电气设备",
       "industry": "电气设备",
-      "marketCap": null,
       "list_date": "20241111"
     },
     {
@@ -59825,7 +59566,6 @@
       "is_etf": false,
       "sector": "机械基件",
       "industry": "机械基件",
-      "marketCap": null,
       "list_date": "20241226"
     },
     {
@@ -59836,7 +59576,6 @@
       "is_etf": false,
       "sector": "元器件",
       "industry": "元器件",
-      "marketCap": null,
       "list_date": "20241129"
     },
     {
@@ -59858,7 +59597,6 @@
       "is_etf": false,
       "sector": "建筑工程",
       "industry": "建筑工程",
-      "marketCap": null,
       "list_date": "20251107"
     },
     {
@@ -59869,7 +59607,6 @@
       "is_etf": false,
       "sector": "家用电器",
       "industry": "家用电器",
-      "marketCap": null,
       "list_date": "20250206"
     },
     {
@@ -59880,7 +59617,6 @@
       "is_etf": false,
       "sector": "小金属",
       "industry": "小金属",
-      "marketCap": null,
       "list_date": "20250513"
     },
     {
@@ -59891,7 +59627,6 @@
       "is_etf": false,
       "sector": "医疗保健",
       "industry": "医疗保健",
-      "marketCap": null,
       "list_date": "20251103"
     },
     {
@@ -59902,7 +59637,6 @@
       "is_etf": false,
       "sector": "塑料",
       "industry": "塑料",
-      "marketCap": null,
       "list_date": "20241031"
     },
     {
@@ -59924,7 +59658,6 @@
       "is_etf": false,
       "sector": "电气设备",
       "industry": "电气设备",
-      "marketCap": null,
       "list_date": "20250908"
     },
     {
@@ -59968,7 +59701,6 @@
       "is_etf": false,
       "sector": "专用机械",
       "industry": "专用机械",
-      "marketCap": null,
       "list_date": "20251010"
     },
     {
@@ -59979,7 +59711,6 @@
       "is_etf": false,
       "sector": "化工原料",
       "industry": "化工原料",
-      "marketCap": null,
       "list_date": "20250925"
     },
     {
@@ -59990,7 +59721,6 @@
       "is_etf": false,
       "sector": "电气设备",
       "industry": "电气设备",
-      "marketCap": null,
       "list_date": "20250808"
     },
     {
@@ -60001,7 +59731,6 @@
       "is_etf": false,
       "sector": "专用机械",
       "industry": "专用机械",
-      "marketCap": null,
       "list_date": "20251202"
     },
     {
@@ -60012,7 +59741,6 @@
       "is_etf": false,
       "sector": "塑料",
       "industry": "塑料",
-      "marketCap": null,
       "list_date": "20250822"
     },
     {
@@ -60023,7 +59751,6 @@
       "is_etf": false,
       "sector": "运输设备",
       "industry": "运输设备",
-      "marketCap": null,
       "list_date": "20250610"
     },
     {
@@ -60034,7 +59761,6 @@
       "is_etf": false,
       "sector": "汽车配件",
       "industry": "汽车配件",
-      "marketCap": null,
       "list_date": "20250919"
     },
     {
@@ -60045,7 +59771,6 @@
       "is_etf": false,
       "sector": "电气设备",
       "industry": "电气设备",
-      "marketCap": null,
       "list_date": "20250820"
     },
     {
@@ -60056,7 +59781,6 @@
       "is_etf": false,
       "sector": "专用机械",
       "industry": "专用机械",
-      "marketCap": null,
       "list_date": "20250814"
     },
     {
@@ -60067,7 +59791,6 @@
       "is_etf": false,
       "sector": "电气设备",
       "industry": "电气设备",
-      "marketCap": null,
       "list_date": "20250626"
     },
     {
@@ -60078,7 +59801,6 @@
       "is_etf": false,
       "sector": "汽车配件",
       "industry": "汽车配件",
-      "marketCap": null,
       "list_date": "20241218"
     },
     {
@@ -60089,7 +59811,6 @@
       "is_etf": false,
       "sector": "元器件",
       "industry": "元器件",
-      "marketCap": null,
       "list_date": "20250731"
     },
     {
@@ -60100,7 +59821,6 @@
       "is_etf": false,
       "sector": "专用机械",
       "industry": "专用机械",
-      "marketCap": null,
       "list_date": "20250828"
     },
     {
@@ -60122,7 +59842,6 @@
       "is_etf": false,
       "sector": "汽车配件",
       "industry": "汽车配件",
-      "marketCap": null,
       "list_date": "20251028"
     },
     {
@@ -60144,7 +59863,6 @@
       "is_etf": false,
       "sector": "电器仪表",
       "industry": "电器仪表",
-      "marketCap": null,
       "list_date": "20251118"
     },
     {
@@ -60155,7 +59873,6 @@
       "is_etf": false,
       "sector": "广告包装",
       "industry": "广告包装",
-      "marketCap": null,
       "list_date": "20251225"
     },
     {
@@ -60166,7 +59883,6 @@
       "is_etf": false,
       "sector": "通信设备",
       "industry": "通信设备",
-      "marketCap": null,
       "list_date": "20251231"
     },
     {
@@ -60177,7 +59893,6 @@
       "is_etf": false,
       "sector": "专用机械",
       "industry": "专用机械",
-      "marketCap": null,
       "list_date": "20251016"
     },
     {
@@ -60188,7 +59903,6 @@
       "is_etf": false,
       "sector": "机械基件",
       "industry": "机械基件",
-      "marketCap": null,
       "list_date": "20251127"
     },
     {
@@ -60298,7 +60012,6 @@
       "is_etf": false,
       "sector": "医疗保健",
       "industry": "医疗保健",
-      "marketCap": null,
       "list_date": "20260121"
     },
     {
@@ -60309,7 +60022,6 @@
       "is_etf": false,
       "sector": "其他建材",
       "industry": "其他建材",
-      "marketCap": null,
       "list_date": "20260122"
     },
     {
@@ -60320,7 +60032,6 @@
       "is_etf": false,
       "sector": "汽车配件",
       "industry": "汽车配件",
-      "marketCap": null,
       "list_date": "20260116"
     },
     {
@@ -60342,7 +60053,6 @@
       "is_etf": false,
       "sector": "农药化肥",
       "industry": "农药化肥",
-      "marketCap": null,
       "list_date": "20260128"
     },
     {
@@ -60364,7 +60074,6 @@
       "is_etf": false,
       "sector": "专用机械",
       "industry": "专用机械",
-      "marketCap": null,
       "list_date": "20260130"
     },
     {
@@ -60408,7 +60117,6 @@
       "is_etf": false,
       "sector": "医疗保健",
       "industry": "医疗保健",
-      "marketCap": null,
       "list_date": "20260210"
     },
     {
@@ -60452,7 +60160,6 @@
       "is_etf": false,
       "sector": "医疗保健",
       "industry": "医疗保健",
-      "marketCap": null,
       "list_date": "20260212"
     },
     {
@@ -60463,7 +60170,6 @@
       "is_etf": false,
       "sector": "汽车配件",
       "industry": "汽车配件",
-      "marketCap": null,
       "list_date": "20260226"
     },
     {
@@ -60474,7 +60180,6 @@
       "is_etf": false,
       "sector": "IT设备",
       "industry": "IT设备",
-      "marketCap": null,
       "list_date": "20260304"
     },
     {
@@ -60485,7 +60190,6 @@
       "is_etf": false,
       "sector": "汽车配件",
       "industry": "汽车配件",
-      "marketCap": null,
       "list_date": "20260305"
     },
     {
@@ -60507,7 +60211,6 @@
       "is_etf": false,
       "sector": "IT设备",
       "industry": "IT设备",
-      "marketCap": null,
       "list_date": "20260309"
     },
     {
@@ -60518,7 +60221,6 @@
       "is_etf": false,
       "sector": "小金属",
       "industry": "小金属",
-      "marketCap": null,
       "list_date": "20260318"
     },
     {
@@ -60529,7 +60231,6 @@
       "is_etf": false,
       "sector": "塑料",
       "industry": "塑料",
-      "marketCap": null,
       "list_date": "20260320"
     },
     {
@@ -60562,7 +60263,6 @@
       "is_etf": false,
       "sector": "医疗保健",
       "industry": "医疗保健",
-      "marketCap": null,
       "list_date": "20260327"
     },
     {
@@ -60573,7 +60273,6 @@
       "is_etf": false,
       "sector": "橡胶",
       "industry": "橡胶",
-      "marketCap": null,
       "list_date": "20260330"
     },
     {
@@ -60584,7 +60283,6 @@
       "is_etf": false,
       "sector": "汽车配件",
       "industry": "汽车配件",
-      "marketCap": null,
       "list_date": "20260331"
     },
     {
@@ -60628,7 +60326,6 @@
       "is_etf": false,
       "sector": "电气设备",
       "industry": "电气设备",
-      "marketCap": null,
       "list_date": "20260408"
     },
     {
@@ -60661,7 +60358,6 @@
       "is_etf": false,
       "sector": "元器件",
       "industry": "元器件",
-      "marketCap": null,
       "list_date": "20260410"
     },
     {
@@ -60683,7 +60379,6 @@
       "is_etf": false,
       "sector": "元器件",
       "industry": "元器件",
-      "marketCap": null,
       "list_date": "20260413"
     },
     {
@@ -60694,7 +60389,6 @@
       "is_etf": false,
       "sector": "专用机械",
       "industry": "专用机械",
-      "marketCap": null,
       "list_date": "20260416"
     },
     {
@@ -60738,7 +60432,6 @@
       "is_etf": false,
       "sector": "其他建材",
       "industry": "其他建材",
-      "marketCap": null,
       "list_date": "20260420"
     },
     {
@@ -60771,7 +60464,6 @@
       "is_etf": false,
       "sector": "专用机械",
       "industry": "专用机械",
-      "marketCap": null,
       "list_date": "20260424"
     },
     {
@@ -60793,7 +60485,6 @@
       "is_etf": false,
       "sector": "专用机械",
       "industry": "专用机械",
-      "marketCap": null,
       "list_date": "20260427"
     },
     {
@@ -60804,7 +60495,6 @@
       "is_etf": false,
       "sector": "机械基件",
       "industry": "机械基件",
-      "marketCap": null,
       "list_date": "20260429"
     },
     {

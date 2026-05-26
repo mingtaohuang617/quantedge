@@ -733,33 +733,35 @@ ${angleQuestion}
           liveStocks={liveStocks}
           temp={macroSnapshot?.composite?.market_temperature}
         />
-        {/* 持仓汇总卡片（旧：基于日志 entries 估算） */}
+        {/* 持仓汇总卡片（v5 编辑式：P&L 用 t-hero-lg Fraunces serif 作为整页视觉锚） */}
         {positionSummary && (
           <div className="glass-card p-3 border border-indigo-500/20 animate-slide-up shrink-0">
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-1.5">
                 <Briefcase size={12} className="text-indigo-300" />
-                <span className="text-[11px] font-medium" style={{ color: "var(--text-heading)" }}>{t('持仓汇总')}</span>
+                <span className="text-[10px] font-medium text-[#a0aec0]">{t('持仓汇总')}</span>
                 <span className="text-[9px] text-[#778] font-mono">· {positionSummary.count} {t('只')}</span>
               </div>
-              <span className={`text-[11px] font-bold font-mono tabular-nums ${positionSummary.gain >= 0 ? "text-up" : "text-down"}`}>
-                {positionSummary.gain >= 0 ? "+" : ""}{positionSummary.gainPct.toFixed(2)}%
+            </div>
+            {/* v5 hero — 72px Fraunces serif P&L 数字 + gainPct chip */}
+            <div className="flex items-baseline gap-2 flex-wrap mb-2">
+              <span className={`t-hero-lg font-serif tabular-nums ${positionSummary.gain >= 0 ? 'text-up' : 'text-down'}`}>
+                {positionSummary.gain >= 0 ? '+' : '−'}${Math.abs(positionSummary.gain).toFixed(0)}
+              </span>
+              <span className={`text-[11px] font-mono font-bold px-1.5 py-0.5 rounded border tabular-nums ${
+                positionSummary.gain >= 0 ? 'text-up bg-up/10 border-up/20' : 'text-down bg-down/10 border-down/20'
+              }`}>
+                {positionSummary.gain >= 0 ? '+' : ''}{positionSummary.gainPct.toFixed(2)}%
               </span>
             </div>
-            <div className="grid grid-cols-3 gap-2 text-center">
+            <div className="grid grid-cols-2 gap-2 text-center pt-2 border-t border-white/5">
               <div>
-                <div className="text-[9px] text-[#778] mb-0.5">{t('成本')}</div>
+                <div className="text-[9px] text-[#778] mb-0.5 uppercase tracking-wider">{t('成本')}</div>
                 <div className="text-[11px] font-mono tabular-nums text-[#a0aec0]">${positionSummary.cost.toFixed(0)}</div>
               </div>
               <div>
-                <div className="text-[9px] text-[#778] mb-0.5">{t('市值')}</div>
+                <div className="text-[9px] text-[#778] mb-0.5 uppercase tracking-wider">{t('市值')}</div>
                 <div className="text-[11px] font-mono tabular-nums" style={{ color: "var(--text-heading)" }}>${positionSummary.value.toFixed(0)}</div>
-              </div>
-              <div>
-                <div className="text-[9px] text-[#778] mb-0.5">{t('盈亏')}</div>
-                <div className={`text-[11px] font-mono tabular-nums font-semibold ${positionSummary.gain >= 0 ? "text-up" : "text-down"}`}>
-                  {positionSummary.gain >= 0 ? "+" : ""}${positionSummary.gain.toFixed(0)}
-                </div>
               </div>
             </div>
             {/* S5: 持仓 → 一键加入回测 */}
