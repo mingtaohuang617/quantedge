@@ -182,9 +182,10 @@ function RiskTierCard({ tierId, active, onClick }) {
 }
 
 /** 策略组合卡 */
-function StrategyCard({ strategy }) {
+function StrategyCard({ strategy, onOneClickBacktest }) {
   const isWarn = strategy.warning;
   const tickers = Object.entries(strategy.weights || {});
+  const canBacktest = tickers.length > 0 && typeof onOneClickBacktest === "function";
   return (
     <div className={`rounded-lg border p-3 ${
       isWarn ? "bg-amber-500/[0.04] border-amber-500/30" : "bg-white/[0.02] border-white/10"
@@ -207,13 +208,17 @@ function StrategyCard({ strategy }) {
         <div className="text-[10px] text-[#a0aec0] mb-2">无可推荐组合</div>
       )}
       <p className="text-[10px] text-[#a0aec0] leading-relaxed">{strategy.rationale}</p>
-      {/* V1: 一键回测按钮 — 暂未接入跳转逻辑 */}
       <button
-        disabled
-        className="mt-2 w-full text-[10px] px-2 py-1 rounded border border-white/10 text-[#6b7280] cursor-not-allowed"
-        title="V2 将接入组合回测"
+        disabled={!canBacktest}
+        onClick={canBacktest ? () => onOneClickBacktest(strategy.weights) : undefined}
+        className={`mt-2 w-full text-[10px] px-2 py-1 rounded border transition ${
+          canBacktest
+            ? "border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/10 hover:border-indigo-500/70 cursor-pointer"
+            : "border-white/10 text-[#6b7280] cursor-not-allowed"
+        }`}
+        title={canBacktest ? "跳转到组合回测并填入此组合" : "此档位无可回测组合"}
       >
-        一键回测（即将上线）
+        {canBacktest ? "一键回测 →" : "无可回测组合"}
       </button>
     </div>
   );
@@ -291,7 +296,7 @@ function GrowthChart({ data, showSpy = true, useLogScale = false }) {
 // ═════════════════════════════════════════════════════════
 //  主组件
 // ═════════════════════════════════════════════════════════
-export default function CompoundPower() {
+export default function CompoundPower({ onOneClickBacktest = null }) {
   const [selectedRate, setSelectedRate] = useState(0.10);
   const [years, setYears] = useState(10);
   const [principalStr, setPrincipalStr] = useState("");
@@ -563,7 +568,9 @@ export default function CompoundPower() {
           <div className={`grid gap-2.5 ${
             strategies.length === 1 ? "grid-cols-1" : "grid-cols-1 md:grid-cols-3"
           }`}>
-            {strategies.map((s, i) => <StrategyCard key={i} strategy={s} />)}
+            {strategies.map((s, i) => (
+              <StrategyCard key={i} strategy={s} onOneClickBacktest={onOneClickBacktest} />
+            ))}
           </div>
           {currentTier === "extreme" && (
             <div className="mt-3 rounded-md bg-rose-500/10 border border-rose-500/30 px-3 py-2 text-[11px] text-rose-300 flex items-start gap-2">

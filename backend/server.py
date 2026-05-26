@@ -1127,13 +1127,13 @@ def intraday_endpoint(
     try:
         iv = _Interval.from_str(interval)
     except ValueError as e:
-        raise HTTPException(400, str(e))
+        raise HTTPException(400, str(e)) from e
 
     cfg = {"yf_symbol": ticker, "market": market.upper(), "name": ticker}
     try:
         df, src = fetch_history(cfg, days=lookback_days, interval=iv)
     except Exception as e:
-        raise HTTPException(502, f"fetch_history 失败 ({ticker} {interval}): {e}")
+        raise HTTPException(502, f"fetch_history 失败 ({ticker} {interval}): {e}") from e
 
     # start/end 过滤（仅当用户指定）
     if start or end:
@@ -1150,7 +1150,7 @@ def intraday_endpoint(
                     ts = ts.tz_localize("UTC")
                 df = df[df.index >= ts]
             except (ValueError, TypeError) as e:
-                raise HTTPException(400, f"start 解析失败: {e}")
+                raise HTTPException(400, f"start 解析失败: {e}") from e
         if end:
             try:
                 ts = pd.Timestamp(end)
@@ -1158,7 +1158,7 @@ def intraday_endpoint(
                     ts = ts.tz_localize("UTC")
                 df = df[df.index <= ts]
             except (ValueError, TypeError) as e:
-                raise HTTPException(400, f"end 解析失败: {e}")
+                raise HTTPException(400, f"end 解析失败: {e}") from e
 
     bars = []
     for ts, row in df.iterrows():
@@ -1471,7 +1471,7 @@ def add_transaction(req: TransactionReq):
         )
         return {"success": True, "id": tx_id}
     except ValueError as e:
-        raise HTTPException(400, str(e))
+        raise HTTPException(400, str(e)) from e
 
 
 @app.get("/api/transactions")
@@ -1783,7 +1783,7 @@ def add_watchlist_10x(req: WatchlistAddReq):
             tags=req.tags,
         )
     except ValueError as e:
-        raise HTTPException(400, str(e))
+        raise HTTPException(400, str(e)) from e
     return sanitize({"ok": True, "item": item})
 
 
@@ -1794,9 +1794,9 @@ def update_watchlist_10x(ticker: str, req: WatchlistUpdateReq):
     try:
         item = _wl.update_item(ticker, **fields)
     except KeyError:
-        raise HTTPException(404, f"{ticker} not in watchlist")
+        raise HTTPException(404, f"{ticker} not in watchlist") from None
     except ValueError as e:
-        raise HTTPException(400, str(e))
+        raise HTTPException(400, str(e)) from e
     return sanitize({"ok": True, "item": item})
 
 
@@ -1833,7 +1833,7 @@ def import_watchlist_10x(req: ImportReq):
             mode=req.mode,
         )
     except ValueError as e:
-        raise HTTPException(400, str(e))
+        raise HTTPException(400, str(e)) from e
     return sanitize({"ok": True, **stats})
 
 
@@ -1915,7 +1915,7 @@ def add_supertrend_10x(req: SupertrendAddReq):
             strategy=req.strategy,
         )
     except ValueError as e:
-        raise HTTPException(400, str(e))
+        raise HTTPException(400, str(e)) from e
     return sanitize({"ok": True, "item": item})
 
 
@@ -2265,7 +2265,7 @@ def mining_alpha_factor_catalog():
         from mining_alpha.catalog import generate_catalog_md
         return {"markdown": generate_catalog_md()}
     except Exception as e:
-        raise HTTPException(500, str(e))
+        raise HTTPException(500, str(e)) from e
 
 
 # ─── Health check ─────────────────────────────────────────────
@@ -2617,7 +2617,7 @@ def stock_gene_add(req: StockGeneAddReq):
         )
         return sanitize({"ok": True, "item": item})
     except ValueError as e:
-        raise HTTPException(400, str(e))
+        raise HTTPException(400, str(e)) from e
 
 
 @app.put("/api/stock-gene/{ticker}")
@@ -2661,7 +2661,7 @@ def stock_gene_score_persist(ticker: str):
     try:
         return sanitize(_gene_mod.score_and_persist(ticker))
     except ValueError as e:
-        raise HTTPException(404, str(e))
+        raise HTTPException(404, str(e)) from e
 
 
 @app.post("/api/stock-gene/score-all")
@@ -2718,7 +2718,7 @@ def stock_gene_value_score_persist(ticker: str):
     try:
         return sanitize(_gene_mod.score_value_and_persist(ticker))
     except ValueError as e:
-        raise HTTPException(404, str(e))
+        raise HTTPException(404, str(e)) from e
 
 
 @app.post("/api/stock-gene/value/score-all")
@@ -2772,7 +2772,7 @@ def stock_gene_signal_score_persist(ticker: str):
     try:
         return sanitize(_gene_mod.score_signal_and_persist(ticker))
     except ValueError as e:
-        raise HTTPException(404, str(e))
+        raise HTTPException(404, str(e)) from e
 
 
 @app.post("/api/stock-gene/signal/score-all")
@@ -2828,7 +2828,7 @@ def stock_gene_risk_score_persist(ticker: str):
     try:
         return sanitize(_gene_mod.score_risk_and_persist(ticker))
     except ValueError as e:
-        raise HTTPException(404, str(e))
+        raise HTTPException(404, str(e)) from e
 
 
 @app.post("/api/stock-gene/risk/score-all")
@@ -2880,7 +2880,7 @@ def stock_gene_import(req: StockGeneImportReq):
             mode=req.mode,
         ))
     except ValueError as e:
-        raise HTTPException(400, str(e))
+        raise HTTPException(400, str(e)) from e
 
 
 # ── List CRUD（多 watchlist 分组）────────────────────────
@@ -2914,7 +2914,7 @@ def stock_gene_lists_add(req: StockGeneListAddReq):
     try:
         return sanitize({"ok": True, "list": _gene_mod.add_list(req.name, color=req.color)})
     except ValueError as e:
-        raise HTTPException(400, str(e))
+        raise HTTPException(400, str(e)) from e
 
 
 @app.put("/api/stock-gene/lists/{list_id}")
@@ -2938,7 +2938,7 @@ def stock_gene_lists_delete(list_id: str):
         moved = _gene_mod.delete_list(list_id)
         return {"ok": True, "items_moved": moved}
     except ValueError as e:
-        raise HTTPException(400, str(e))
+        raise HTTPException(400, str(e)) from e
 
 
 # ── Scheduler 控制 ─────────────────────────────────────
@@ -3010,7 +3010,7 @@ def stock_gene_move(ticker: str, req: StockGeneMoveReq):
     try:
         out = _gene_mod.move_item(ticker, req.list_id)
     except ValueError as e:
-        raise HTTPException(400, str(e))
+        raise HTTPException(400, str(e)) from e
     if out is None:
         raise HTTPException(404, f"{ticker} 不在观察列表中")
     return sanitize({"ok": True, "item": out})

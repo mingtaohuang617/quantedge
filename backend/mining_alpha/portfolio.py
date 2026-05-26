@@ -27,7 +27,7 @@ import numpy as np
 import pandas as pd
 
 try:
-    from scipy.optimize import linprog
+    from scipy.optimize import linprog  # noqa: F401
     HAS_SCIPY = True
 except ImportError:
     HAS_SCIPY = False
@@ -257,7 +257,7 @@ def portfolio_returns_constrained(
     sparse = pd.DataFrame(0.0, index=rebal_dates, columns=all_tickers)
     dispersions = score_lag1.std(axis=1)
 
-    for i, d in enumerate(rebal_dates):
+    for _, d in enumerate(rebal_dates):
         if d not in score_lag1.index:
             continue
         row = score_lag1.loc[d]

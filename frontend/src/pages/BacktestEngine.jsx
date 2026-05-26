@@ -177,7 +177,7 @@ const RotaryKnob = ({ value, onChange, size = 76, color = "#6366f1" }) => {
   );
 };
 
-const BacktestEngine = () => {
+const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) => {
   const { t, lang } = useLang();
   const { stocks: ctxStocks2, setStocks: ctxSetStocks2, standalone, addTicker: addTickerToPlatform } = useContext(DataContext);
   const liveStocks = ctxStocks2 || STOCKS;
@@ -189,6 +189,10 @@ const BacktestEngine = () => {
   const [running, setRunning] = useState(false);
   const [hasResult, setHasResult] = useState(false);
   const [portfolio, setPortfolio] = useState(() => {
+    // 一键回测：复利模块传入的预加载组合优先
+    if (preloadPortfolio && Object.keys(preloadPortfolio).length > 0) {
+      return preloadPortfolio;
+    }
     // 默认组合: NVDA, SNDK, RKLB, LITE 各25%
     const defaults = ["NVDA", "SNDK", "RKLB", "LITE"];
     const init = {};
@@ -201,6 +205,17 @@ const BacktestEngine = () => {
     }
     return init;
   });
+  // mount 时若有 preload：显示来源 hint（4 秒自动隐藏）+ 通知父组件已消费
+  const [preloadHint, setPreloadHint] = useState(
+    preloadPortfolio && Object.keys(preloadPortfolio).length > 0 ? preloadPortfolio : null
+  );
+  useEffect(() => {
+    if (!preloadPortfolio || Object.keys(preloadPortfolio).length === 0) return;
+    if (onPreloadConsumed) onPreloadConsumed();
+    const tid = setTimeout(() => setPreloadHint(null), 4000);
+    return () => clearTimeout(tid);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [initialCap, setInitialCap] = useState(100000);
   const [costBps, setCostBps] = useState(15); // 0.15% = 15 bps
   const [benchTicker, setBenchTicker] = useState("SPY");
@@ -1309,7 +1324,23 @@ const BacktestEngine = () => {
   const m = btResult?.metrics;
 
   return (
-    <div className="flex flex-col md:grid md:grid-cols-12 gap-5 md:gap-4 h-full min-h-0 overflow-auto md:overflow-hidden">
+    <>
+      {/* 一键回测 — 加载来源提示（fixed banner，4 秒后自动隐藏） */}
+      {preloadHint && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed top-20 left-1/2 -translate-x-1/2 px-4 py-2 rounded-lg bg-indigo-500/15 border border-indigo-500/50 backdrop-blur text-[11px] text-indigo-100 shadow-lg flex items-center gap-2"
+          style={{ zIndex: Z_ELEVATED }}
+        >
+          <Sparkles size={12} className="text-indigo-300" />
+          <span className="font-medium">已从复利模块加载组合：</span>
+          <span className="font-mono text-indigo-200">
+            {Object.entries(preloadHint).map(([t, w]) => `${t} ${w}%`).join(" · ")}
+          </span>
+        </div>
+      )}
+      <div className="flex flex-col md:grid md:grid-cols-12 gap-5 md:gap-4 h-full min-h-0 overflow-auto md:overflow-hidden">
       {/* ── 左栏：组合构建器 ── */}
       <div className={`md:col-span-4 flex flex-col gap-2 md:min-h-0 ${builderOpen ? "md:overflow-auto" : ""} pr-0 md:pr-1`}>
         {/* B3: NL 策略输入 → DeepSeek 自动填 portfolio */}
@@ -2940,6 +2971,7 @@ const BacktestEngine = () => {
         />
       )}
     </div>
+    </>
   );
 };
 

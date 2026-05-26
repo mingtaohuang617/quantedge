@@ -30,13 +30,21 @@ extend-exclude = [".venv", "backend/.venv", "backend/output", "backend/logs"]
 # 起步只开启明显错误类（语法/未定义/常见 bug），不强求 style
 select = ["E9", "F", "B", "UP", "PL"]
 ignore = [
-  "E501",   # 行长由 line-length 控制
+  "E501",    # 行长由 line-length 控制
   "PLR2004", # magic value in comparison — 评分阈值大量使用
   "PLR0911", # too many returns
   "PLR0912", # too many branches
   "PLR0913", # too many args
   "PLR0915", # too many statements
-  "B008",   # FastAPI Depends() 默认值
+  "B008",    # FastAPI Depends() 默认值
+  # ── 项目约定 ──────────────────────────────────────────────────────────────
+  "PLC0415", # import-outside-top-level — yfinance/akshare/tushare 等可选依赖
+             # 必须在函数内延迟 import；循环依赖也需要；intentional 模式
+  "PLC2401", # non-ascii-name — 中文变量名（如 收益率、日期 等）是项目约定，
+             # 方便领域专家阅读代码
+  "F841",    # unused-variable — 部分场景保留 _ 变量作为占位或调试留存
+  "PLW0603", # global-statement — 模块级单例（_pro、_client、_thread 等）用
+             # global 做惰性初始化是项目约定，替代方案（单例类/模块属性）更繁琐
 ]
 
 [tool.ruff.lint.per-file-ignores]

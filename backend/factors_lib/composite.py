@@ -187,7 +187,7 @@ def compute_composite(market: str = "US") -> dict:
         })
 
     # 类内平均（去 None）→ 子分
-    for cat, info in by_cat.items():
+    for _, info in by_cat.items():
         scores = [f["directional_score"] for f in info["factors"] if f["directional_score"] is not None]
         info["score"] = round(sum(scores) / len(scores), 1) if scores else None
         info["factor_count"] = len(info["factors"])

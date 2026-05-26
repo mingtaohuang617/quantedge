@@ -129,8 +129,8 @@ def main():
 
     raw = args.sizes.replace(" ", "")
     sizes = []
-    for part in raw.split(")")[:-1]:
-        part = part.lstrip(",").lstrip("(")
+    for part_raw in raw.split(")")[:-1]:
+        part = part_raw.lstrip(",").lstrip("(")
         if not part:
             continue
         t, n = part.split(",")

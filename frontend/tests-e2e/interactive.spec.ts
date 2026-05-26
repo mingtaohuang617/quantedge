@@ -129,4 +129,33 @@ test.describe('全交互冒烟', () => {
     expect(renderError, `ErrorBoundary triggered: ${JSON.stringify(renderError)}`).toBeFalsy();
     expect(errors, `pageerror caught: ${errors.join(' | ')}`).toHaveLength(0);
   });
+
+  test('一键回测：复利模块 → 点策略卡 → 跳转回测 tab 并预加载组合', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', (e) => errors.push(`${e.name}: ${e.message}`));
+
+    await page.goto('/');
+    await expect(page.locator('[role="tab"]').first()).toBeVisible({ timeout: 15000 });
+
+    // 复利的力量 = idx 9 (scoring=0, backtest=1, smartBeta=2, mining=3, monitor=4, journal=5, macro=6, 10x=7, gene=8, compound=9)
+    await page.locator('[role="tab"]').nth(9).click();
+    await expect(page.locator('text=/候选组合/').first()).toBeVisible({ timeout: 10000 });
+
+    // 默认 rate=10% → mid tier，3 个策略卡都启用「一键回测 →」
+    const btn = page.locator('button:not([disabled])', { hasText: '一键回测' }).first();
+    await expect(btn).toBeVisible({ timeout: 5000 });
+    await btn.scrollIntoViewIfNeeded();
+    await btn.click();
+
+    // 应跳转到组合回测 tab（出现「构建组合」/「初始资金」标识）
+    await expect(page.locator('text=/构建组合|初始资金/').first()).toBeVisible({ timeout: 15000 });
+
+    // 来源 hint 应出现（4 秒后会自动消失，先抓得到）
+    await expect(page.locator('text=/已从复利模块加载组合/').first()).toBeVisible({ timeout: 2000 });
+
+    // 检查 React ErrorBoundary 没被触发
+    const renderError = await page.evaluate(() => (window as any).__QUANTEDGE_LAST_ERROR__);
+    expect(renderError, `ErrorBoundary triggered: ${JSON.stringify(renderError)}`).toBeFalsy();
+    expect(errors, `pageerror caught: ${errors.join(' | ')}`).toHaveLength(0);
+  });
 });
