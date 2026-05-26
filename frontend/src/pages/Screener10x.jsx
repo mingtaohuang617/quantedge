@@ -1424,6 +1424,7 @@ export default function Screener10x() {
               <button
                 onClick={handleExport}
                 disabled={isDemoMode}
+                aria-label="导出观察列表 JSON"
                 className="flex items-center justify-center w-5 h-5 text-[#a0aec0] hover:text-white hover:bg-white/10 rounded transition disabled:opacity-30 disabled:cursor-not-allowed"
                 title="导出 JSON 备份（含所有观察项 + 自定义赛道）"
               >

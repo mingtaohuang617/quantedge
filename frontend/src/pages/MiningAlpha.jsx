@@ -211,7 +211,7 @@ const FactorDetailModal = ({ alphaNum, runId, onClose }) => {
             <h3 className="text-sm font-bold text-white">α{alphaNum} 详情</h3>
             {data?.category && <span className="text-[10px] text-[#a0aec0] px-2 py-0.5 rounded bg-white/5">{data.category}</span>}
           </div>
-          <button onClick={onClose} className="p-1 hover:bg-white/10 rounded text-[#a0aec0]"><X size={14} /></button>
+          <button onClick={onClose} aria-label={`关闭 α${alphaNum} 详情`} className="p-1 hover:bg-white/10 rounded text-[#a0aec0]"><X size={14} /></button>
         </div>
         {loading && <div className="text-[#a0aec0] text-xs flex items-center gap-2"><Loader size={12} className="animate-spin" />加载中...</div>}
         {!loading && !data && <div className="text-rose-300 text-xs">未找到详情</div>}

@@ -969,7 +969,7 @@ const UserProfilePanel = ({ open, onClose, theme, toggleTheme }) => {
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
           <h2 className="text-sm font-semibold text-white">{t('账户信息')}</h2>
-          <button onClick={onClose} className="p-1 rounded-md text-[#a0aec0] hover:text-white hover:bg-white/10 transition-all">
+          <button onClick={onClose} aria-label={t('关闭账户信息')} className="p-1 rounded-md text-[#a0aec0] hover:text-white hover:bg-white/10 transition-all">
             <X size={16} />
           </button>
         </div>
