@@ -19,7 +19,7 @@ PR1 仅实现 30 个最简单的因子（仅依赖 OHLCV/Amount/VWAP/RET）；
 """
 from __future__ import annotations
 
-from typing import Callable
+from collections.abc import Callable
 
 import pandas as pd
 
