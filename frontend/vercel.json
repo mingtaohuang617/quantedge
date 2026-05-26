@@ -1,20 +1,6 @@
 {
   "rewrites": [
-    { "source": "/api/stock-gene/:ticker/value-score", "destination": "/api/stock-gene/:ticker/score" },
-    { "source": "/api/stock-gene/:ticker/signal-score", "destination": "/api/stock-gene/:ticker/score" },
-    { "source": "/api/stock-gene/:ticker/risk-score", "destination": "/api/stock-gene/:ticker/score" },
-    { "source": "/api/stock-gene/score-all", "destination": "/api/stock-gene/unavailable" },
-    { "source": "/api/stock-gene/compare-peers", "destination": "/api/stock-gene/unavailable" },
-    { "source": "/api/stock-gene/explain", "destination": "/api/stock-gene/unavailable" },
-    { "source": "/api/stock-gene/value/score-all", "destination": "/api/stock-gene/unavailable" },
-    { "source": "/api/stock-gene/value/compare-peers", "destination": "/api/stock-gene/unavailable" },
-    { "source": "/api/stock-gene/signal/score-all", "destination": "/api/stock-gene/unavailable" },
-    { "source": "/api/stock-gene/signal/compare-peers", "destination": "/api/stock-gene/unavailable" },
-    { "source": "/api/stock-gene/risk/score-all", "destination": "/api/stock-gene/unavailable" },
-    { "source": "/api/stock-gene/risk/compare-peers", "destination": "/api/stock-gene/unavailable" },
-    { "source": "/api/stock-gene/scheduler/enabled", "destination": "/api/stock-gene/unavailable" },
-    { "source": "/api/stock-gene/scheduler/schedule", "destination": "/api/stock-gene/unavailable" },
-    { "source": "/api/stock-gene/scheduler/run-now", "destination": "/api/stock-gene/unavailable" },
+    { "source": "/api/stock-gene/(.+)", "destination": "/api/stock-gene?path=$1" },
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],

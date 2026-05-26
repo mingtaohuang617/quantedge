@@ -190,6 +190,12 @@ const Monitor = () => {
     return true;
   });
   const hiddenCount = mergedAlerts.length - liveAlerts.length;
+  // v5 主从节奏：抽取第一条 high severity 作为 featured spotlight；其余进入"其余告警"
+  // 仅在「全部 / 严重」筛选下显示 spotlight，避免与用户主动筛选冲突
+  const featuredAlert = (filterSev === "all" || filterSev === "high")
+    ? liveAlerts.find(a => a.severity === "high")
+    : null;
+  const restAlerts = featuredAlert ? liveAlerts.filter(a => a.id !== featuredAlert.id) : liveAlerts;
 
   // 每个 severity/type 的当前 count（用于 chip badge）
   const sevCounts = useMemo(() => {
@@ -287,6 +293,12 @@ const Monitor = () => {
     return result.map(s => ({ ...s, displayName: t(s.name) }));
   }, [liveStocks, t]);
 
+  // TODO[data-source]: 当前 fearGreed 是 watchlist-only proxy —— 用 6-30 个标的的平均涨跌幅
+  // (60%) + 市场宽度 (40%) 估算，并非真正的大盘恐惧贪婪指数。未来候选数据源（按性价比降序）：
+  //   1. CNN Fear & Greed Index（无官方 API，需 scrape；moneycnn.com/data/fear-and-greed/）
+  //   2. Alternative.me Crypto F&G API（仅加密，参考实现）
+  //   3. 自建：SPX 5d 动量 + VIX 倒数 + 期权 P/C ratio + breadth 加权（要 IBKR/Polygon 数据）
+  // 在数据源确定前保持当前实现，UI 文案已注明"基于 N 个标的"避免误导。
   const fearGreed = useMemo(() => {
     if (!liveStocks || liveStocks.length === 0) return 50;
     const valid = liveStocks.map(s => safeChange(s.change)).filter(c => isFinite(c));
@@ -299,81 +311,126 @@ const Monitor = () => {
     return Math.round((avgScore * 0.6 + breadthScore * 0.4));
   }, [liveStocks]);
 
+  // v5 编辑式：SPY 作为板块超额收益基准（若 SPY 在 watchlist 内）
+  const spyChange = useMemo(() => {
+    const spy = liveStocks.find(s => s.ticker === "SPY");
+    if (!spy) return null;
+    const c = safeChange(spy.change);
+    return isFinite(c) ? c : null;
+  }, [liveStocks]);
+
   return (
     <div className="flex flex-col md:grid md:grid-cols-12 gap-4 h-full min-h-0 overflow-auto md:overflow-hidden">
       <div className="md:col-span-4 flex flex-col gap-4 md:gap-3 md:min-h-0 md:overflow-auto pr-0 md:pr-1">
-        <div className="glass-card p-3 md:p-4">
-          <div className="section-header mb-3">
+        {/* v5 编辑式：F&G + 宏观温度 双徽章 ribbon — 替代单一 100px 圆环，让两个视角并列 + AI 一句话解读 */}
+        <div className="glass-card p-3 md:p-3.5">
+          <div className="section-header mb-2">
             <Activity size={12} className="text-indigo-400" />
-            <span className="section-title">{t('市场情绪指数')}</span>
+            <span className="section-title">{t('情绪 · 温度 双视角')}</span>
           </div>
-          <div className="flex items-center justify-center gap-5">
-            <div className="relative w-28 h-28">
-              <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
-                <circle cx="50" cy="50" r="42" fill="none" stroke="var(--bg-muted)" strokeWidth="7" />
-                <circle cx="50" cy="50" r="42" fill="none" stroke={`var(--accent-${fearGreed > 60 ? "up" : fearGreed > 40 ? "amber" : "down"})`} strokeWidth="7" strokeDasharray={`${fearGreed * 2.64} 264`} strokeLinecap="round" style={{ filter: `drop-shadow(0 0 8px var(--accent-${fearGreed > 60 ? "up-soft" : fearGreed > 40 ? "amber-soft" : "down-soft"}))` }} />
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-2xl font-bold font-mono tabular-nums text-white leading-none">{fearGreed}</span>
-                <span className={`text-[10px] font-medium mt-0.5 ${fearGreed > 60 ? "text-up" : fearGreed > 40 ? "text-amber-400" : "text-down"}`}>
-                  {fearGreed > 75 ? t("极度贪婪") : fearGreed > 60 ? t("贪婪") : fearGreed > 40 ? t("中性偏贪") : fearGreed > 25 ? t("恐惧") : t("极度恐惧")}
-                </span>
-              </div>
-            </div>
-            <div className="space-y-1">
-              {[
-                [75, 100, t("极度贪婪"), "text-up", "bg-up"],
-                [50, 75, t("贪婪"), "text-up", "bg-up"],
-                [25, 50, t("恐惧"), "text-amber-400", "bg-amber-400"],
-                [0, 25, t("极度恐惧"), "text-down", "bg-down"],
-              ].map(([lo, hi, label, color, bg]) => {
-                const active = fearGreed >= lo && fearGreed < hi;
-                return (
-                  <div key={label} className={`flex items-center gap-2 px-2 py-0.5 rounded ${active ? "bg-white/5" : ""}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${bg} ${active ? "opacity-100" : "opacity-30"}`} />
-                    <span className={`text-[10px] ${active ? color + " font-semibold" : "text-[#778]"}`}>{lo}–{hi} {label}</span>
-                    {active && <span className="text-[9px] text-[#778]">←</span>}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-          <div className="text-[9px] mt-3 pt-2 border-t border-white/5 text-center" style={{ color: "var(--text-dim)" }}>
-            {t('基于 {n} 个标的的平均涨跌幅和市场宽度计算', {n: liveStocks.length})}
-          </div>
-          {/* 宏观温度对比 — F&G 是同日 watchlist 的情绪，macro temp 是 17 因子综合视角 */}
           {(() => {
-            const temp = macroSnapshot?.composite?.market_temperature;
-            if (temp == null) return null;
+            const macroTemp = macroSnapshot?.composite?.market_temperature;
+            const fgTone = fearGreed > 60 ? "up" : fearGreed > 40 ? "amber" : "down";
+            const fgLabel = fearGreed > 75 ? t("极度贪婪") : fearGreed > 60 ? t("贪婪") : fearGreed > 40 ? t("中性偏贪") : fearGreed > 25 ? t("恐惧") : t("极度恐惧");
+            // 双视角分歧 → AI 一句话解读
+            const fgBullish = fearGreed > 60;
+            const macroBullish = macroTemp != null && macroTemp > 60;
+            const divergent = macroTemp != null && (fgBullish !== macroBullish);
+            const insight = macroTemp == null
+              ? t('短期情绪指数 · 综合涨跌幅与市场宽度')
+              : divergent
+                ? (macroBullish && !fgBullish
+                    ? t('短期情绪偏弱，但基本面温度偏热 — 关注回调买入机会')
+                    : t('短期情绪偏强，但基本面温度偏冷 — 警惕高位回吐'))
+                : (fgBullish ? t('两个视角一致看多，趋势确立') : fgLabel === t('恐惧') || fgLabel === t('极度恐惧')
+                    ? t('两个视角一致看空，控仓优先')
+                    : t('两个视角均为中性 — 维持当前仓位'));
             return (
-              <div className="mt-2 pt-2 border-t border-white/5 flex items-center justify-between">
-                <button
-                  onClick={() => window.dispatchEvent(new CustomEvent("quantedge:nav", { detail: "macro" }))}
-                  className="flex items-center gap-1.5 hover:opacity-80 transition-opacity"
-                  title={t('点击查看宏观看板 · 综合 17 因子方向化温度')}
-                >
-                  <Globe size={10} className="text-indigo-400" />
-                  <span className="text-[10px] text-[#a0aec0]">{t('宏观温度')}</span>
-                  <span className={`text-sm font-bold font-mono tabular-nums ${TEMP_TEXT(temp)}`}>{temp.toFixed(0)}</span>
-                  <span className={`text-[10px] ${TEMP_TEXT(temp)}`}>{t(TEMP_LABEL(temp))}</span>
-                </button>
-                <span className="text-[9px] text-[#778] font-mono">L3</span>
-              </div>
+              <>
+                <div className="flex items-stretch gap-2">
+                  {/* F&G badge */}
+                  <div className={`flex-1 flex items-center gap-2.5 px-3 py-2 rounded-lg border bg-${fgTone === "up" ? "up" : fgTone === "amber" ? "amber" : "down"}-500/[0.08] border-${fgTone === "up" ? "up" : fgTone === "amber" ? "amber" : "down"}-400/25`}>
+                    <div className="w-9 h-9 rounded-md flex items-center justify-center bg-white/[0.04] shrink-0">
+                      <span className={`text-base font-bold font-mono tabular-nums ${
+                        fgTone === "up" ? "text-up" : fgTone === "amber" ? "text-amber-300" : "text-down"
+                      }`}>{fearGreed}</span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[9px] text-[#778] uppercase tracking-wider">F&G · {t('短期情绪')}</div>
+                      <div className={`text-[12px] font-semibold mt-0.5 ${
+                        fgTone === "up" ? "text-up" : fgTone === "amber" ? "text-amber-300" : "text-down"
+                      }`}>{fgLabel}</div>
+                    </div>
+                  </div>
+                  {/* Macro temp badge */}
+                  {macroTemp != null && (
+                    <button
+                      onClick={() => window.dispatchEvent(new CustomEvent("quantedge:nav", { detail: "macro" }))}
+                      className={`flex-1 flex items-center gap-2.5 px-3 py-2 rounded-lg border bg-white/[0.022] border-white/10 hover:bg-white/[0.04] transition cursor-pointer text-left`}
+                      title={t('点击进入宏观看板 · 综合 17 因子方向化温度')}
+                    >
+                      <div className="w-9 h-9 rounded-md flex items-center justify-center bg-white/[0.04] shrink-0">
+                        <span className={`text-base font-bold font-mono tabular-nums ${TEMP_TEXT(macroTemp)}`}>{macroTemp.toFixed(0)}</span>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[9px] text-[#778] uppercase tracking-wider flex items-center gap-1">
+                          <Globe size={9} /> {t('宏观温度')} · 17 {t('因子')}
+                        </div>
+                        <div className={`text-[12px] font-semibold mt-0.5 ${TEMP_TEXT(macroTemp)}`}>{t(TEMP_LABEL(macroTemp))}</div>
+                      </div>
+                    </button>
+                  )}
+                </div>
+                {/* AI 一句话解读 */}
+                <div className="mt-2 px-3 py-2 rounded-md bg-violet-500/[0.06] border border-violet-400/15 flex items-start gap-2">
+                  <Activity size={10} className="text-violet-300 mt-0.5 shrink-0" />
+                  <span className="text-[11px] leading-snug text-violet-100/85">{insight}</span>
+                </div>
+                <div className="text-[9px] mt-2 pt-1.5 border-t border-white/5 text-center" style={{ color: "var(--text-dim)" }}>
+                  {t('F&G 基于 {n} 个标的的平均涨跌幅与市场宽度', {n: liveStocks.length})}
+                </div>
+              </>
             );
           })()}
         </div>
 
-        <MobileAccordion title={t("关注板块表现 (今日)")}>
+        <MobileAccordion title={spyChange != null ? t("关注板块 · vs SPY") : t("关注板块表现 (今日)")}>
           {sectors.length === 0 ? (
             <div className="text-[11px] py-4 text-center" style={{ color: "var(--text-dim)" }}>{t('暂无足够数据计算板块')}</div>
           ) : (
             <div className="space-y-2">
-              {sectors.map(s => (
-                <button key={s.name} onClick={() => setSelSector(s.name.split("/")[0])} className={`w-full flex items-center justify-between p-2 rounded-lg transition-all ${selSector === s.name.split("/")[0] ? "bg-indigo-500/10 border border-indigo-500/20" : "hover:bg-white/5 border border-transparent"}`}>
-                  <span className="text-xs text-white">{s.displayName}<span className="ml-1.5 text-[9px]" style={{ color: "var(--text-dim)" }}>({s.count})</span></span>
-                  <span className={`text-xs font-mono ${s.value >= 0 ? "text-up" : "text-down"}`}>{s.value >= 0 ? "+" : ""}{s.value}%</span>
+              {sectors.map(s => {
+                // v5: 双值列 — 绝对 + vs SPY 超额（pp），零点对称 mini bar
+                const vsSpy = spyChange != null ? s.value - spyChange : null;
+                return (
+                <button key={s.name} onClick={() => setSelSector(s.name.split("/")[0])} className={`w-full flex flex-col gap-1 p-2 rounded-lg transition-all ${selSector === s.name.split("/")[0] ? "bg-indigo-500/10 border border-indigo-500/20" : "hover:bg-white/5 border border-transparent"}`}>
+                  <div className="w-full flex items-center justify-between">
+                    <span className="text-xs text-white">{s.displayName}<span className="ml-1.5 text-[9px]" style={{ color: "var(--text-dim)" }}>({s.count})</span></span>
+                    <div className="flex items-baseline gap-2">
+                      <span className={`text-[10px] font-mono ${s.value >= 0 ? "text-[#a0aec0]" : "text-[#7a8497]"}`} title={t('今日绝对涨跌')}>{s.value >= 0 ? "+" : ""}{s.value}%</span>
+                      {vsSpy != null && (
+                        <span className={`text-xs font-mono font-semibold ${vsSpy >= 0 ? "text-up" : "text-down"}`} title={t('相对 SPY 超额')}>
+                          {vsSpy >= 0 ? "+" : ""}{vsSpy.toFixed(2)}pp
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {/* 零点对称 mini bar — vs SPY 是核心 */}
+                  {vsSpy != null && (
+                    <div className="relative w-full h-1 rounded-full bg-white/[0.05] overflow-hidden">
+                      <div className="absolute inset-y-0 left-1/2 w-px bg-white/15" />
+                      <div
+                        className={`absolute inset-y-0 rounded-full ${vsSpy >= 0 ? "bg-up/60" : "bg-down/60"}`}
+                        style={{
+                          left: vsSpy >= 0 ? "50%" : `${50 + Math.max(-50, vsSpy / 3 * 100)}%`,
+                          width: `${Math.min(50, Math.abs(vsSpy) / 3 * 100)}%`,
+                        }}
+                      />
+                    </div>
+                  )}
                 </button>
-              ))}
+                );
+              })}
             </div>
           )}
         </MobileAccordion>
@@ -516,6 +573,61 @@ const Monitor = () => {
               ))}
             </div>
           )}
+          {/* v5 编辑式：Featured Alert Spotlight — 最严重的一条单独成大卡 + 3 个明确 CTA（不藏 hover） */}
+          {featuredAlert && (
+            <div className="mb-2 p-3 rounded-xl border border-rose-500/35 bg-gradient-to-br from-rose-500/12 via-rose-500/4 to-transparent relative overflow-hidden">
+              <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-rose-400 to-transparent" />
+              <div className="flex items-center gap-2 mb-2">
+                <span className="w-2 h-2 rounded-full bg-rose-400 shadow-[0_0_8px_rgba(248,113,113,0.7)] animate-breathe" />
+                <span className="text-[9px] uppercase tracking-wider font-semibold text-rose-300">{t('需要处理 · 当下最重要')}</span>
+                <span className="text-[9px] text-[#778] font-mono ml-auto">{featuredAlert.time}</span>
+              </div>
+              <div className="flex items-baseline gap-2 flex-wrap mb-1.5">
+                {featuredAlert.type === "macro" ? (
+                  <span className="flex items-center gap-1 text-lg font-semibold text-violet-200">
+                    <Globe size={14} /> {t("宏观")}
+                  </span>
+                ) : (
+                  <span className="text-lg font-bold font-mono text-white" title={featuredAlert.ticker}>
+                    {displayTicker(featuredAlert.ticker, liveStocks.find(s => s.ticker === featuredAlert.ticker), lang)}
+                  </span>
+                )}
+                <Badge variant="danger">
+                  {featuredAlert.type === "macro" ? t("L5") :
+                   featuredAlert.type === "score" ? t("评级") :
+                   featuredAlert.type === "technical" ? t("技术") :
+                   featuredAlert.type === "price" ? t("价格") : t("新闻")}
+                </Badge>
+              </div>
+              <p className="text-xs text-[#cdd5e0] leading-relaxed mb-2">{featuredAlert.message}</p>
+              {featuredAlert.action && (
+                <p className="text-[11px] text-violet-200/90 leading-relaxed mb-2 pt-1.5 border-t border-white/[0.04]">
+                  {t('建议')}：{featuredAlert.action}
+                </p>
+              )}
+              <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-rose-400/15">
+                {featuredAlert.type === "macro" && (
+                  <button onClick={() => window.dispatchEvent(new CustomEvent("quantedge:nav", { detail: "macro" }))}
+                    aria-label={t('打开宏观看板')}
+                    className="text-[10px] px-2.5 py-1 rounded-md bg-rose-500/15 border border-rose-400/35 text-rose-100 hover:bg-rose-500/25 transition font-medium">
+                    → {t('打开宏观看板')}
+                  </button>
+                )}
+                <button onClick={() => ackAlert(featuredAlert.id)}
+                  aria-label={t('标记为已处理')}
+                  className="text-[10px] px-2.5 py-1 rounded-md bg-up/15 border border-up/30 text-up hover:bg-up/25 transition font-medium">
+                  ✓ {t('标记已处理')}
+                </button>
+                {featuredAlert.type !== "macro" && (
+                  <button onClick={() => muteTicker(featuredAlert.ticker)}
+                    aria-label={`${t('静音')} ${featuredAlert.ticker} 24h`}
+                    className="text-[10px] px-2.5 py-1 rounded-md bg-white/[0.05] border border-white/15 text-[#a0aec0] hover:bg-amber-400/15 hover:text-amber-200 hover:border-amber-400/35 transition font-medium">
+                    🔕 {t('静音 24h')}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
           <div className="md:flex-1 md:overflow-auto space-y-2">
             {liveAlerts.length === 0 && (
               <div className="flex flex-col items-center justify-center py-10 gap-2">
@@ -528,7 +640,7 @@ const Monitor = () => {
                 </div>
               </div>
             )}
-            {liveAlerts.map((a, idx) => {
+            {restAlerts.map((a, idx) => {
               const isAcked = ackedIds.has(a.id);
               const stkForAlert = liveStocks.find(s => s.ticker === a.ticker);
               const alertLabel = displayTicker(a.ticker, stkForAlert, lang);
@@ -624,6 +736,42 @@ const Monitor = () => {
             )}
           </div>
         </MobileAccordion>
+
+        {/* v5: 静音倒计时独立面板 — 让"打扰预算"对用户透明 */}
+        {(() => {
+          const activeMutes = Object.entries(mutedTickers).filter(([, until]) => until > now);
+          if (activeMutes.length === 0) return null;
+          return (
+            <MobileAccordion title={t("静音中 · 倒计时")} badge={<span className="text-[9px]" style={{ color: "var(--text-dim)" }}>{activeMutes.length}</span>}>
+              <div className="space-y-1.5">
+                {activeMutes
+                  .sort((a, b) => a[1] - b[1])
+                  .map(([tk, until]) => {
+                    const remainMs = until - now;
+                    const remainH = Math.floor(remainMs / 3600000);
+                    const remainM = Math.floor((remainMs % 3600000) / 60000);
+                    const urgent = remainMs < 2 * 3600 * 1000;
+                    return (
+                      <div key={tk} className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-white/[0.022] border border-white/8">
+                        <span className="font-mono text-[11px] text-white font-semibold w-14 shrink-0">{tk}</span>
+                        <span className="text-[9px] text-[#7a8497] flex-1">{t('价格 + 评级')}</span>
+                        <span className={`font-mono text-[10px] ${urgent ? "text-amber-300" : "text-[#a0aec0]"}`}>
+                          ⏱ {remainH}h {remainM}m
+                        </span>
+                        <button
+                          onClick={() => unmuteTicker(tk)}
+                          className="text-[9px] text-[#7a8497] hover:text-white px-1 py-0.5 rounded hover:bg-white/10 transition"
+                          title={t('点击取消静音')}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    );
+                  })}
+              </div>
+            </MobileAccordion>
+          );
+        })()}
 
         <MobileAccordion title={t("预警规则")} className="md:flex-1">
           <AlertRulesPanel liveStocks={liveStocks} t={t} lang={lang} />

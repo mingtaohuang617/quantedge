@@ -7,22 +7,37 @@ import pandas as pd
 
 
 def calc_rsi(prices: pd.Series, period: int = 14) -> float:
-    """计算 RSI (Relative Strength Index)"""
+    """计算 RSI (Relative Strength Index)。
+
+    边界处理（显式而非靠 NaN 戏法）：
+    - 数据不足：50（中性）
+    - 全涨（avg_loss=0, avg_gain>0）：100（极度超买）
+    - 全跌（avg_gain=0, avg_loss>0）：0（极度超卖）
+    - 完全无变动（两者都 0）：50（中性）
+    """
     if len(prices) < period + 1:
-        return 50.0  # 数据不足时返回中性值
+        return 50.0  # 数据不足
 
     delta = prices.diff()
     gain = delta.where(delta > 0, 0.0)
     loss = -delta.where(delta < 0, 0.0)
 
-    avg_gain = gain.rolling(window=period, min_periods=period).mean()
-    avg_loss = loss.rolling(window=period, min_periods=period).mean()
+    avg_gain = gain.rolling(window=period, min_periods=period).mean().dropna()
+    avg_loss = loss.rolling(window=period, min_periods=period).mean().dropna()
+    if avg_gain.empty or avg_loss.empty:
+        return 50.0  # 滚动窗口产不出任一有效值（实际上前一个 if 已挡住，这里防御性兜底）
 
-    rs = avg_gain / avg_loss.replace(0, np.nan)
+    ag = float(avg_gain.iloc[-1])
+    al = float(avg_loss.iloc[-1])
+    if al == 0 and ag == 0:
+        return 50.0  # 完全横盘
+    if al == 0:
+        return 100.0  # 全涨 → 极度超买
+    if ag == 0:
+        return 0.0  # 全跌 → 极度超卖
+    rs = ag / al
     rsi = 100 - (100 / (1 + rs))
-
-    latest = rsi.dropna().iloc[-1] if not rsi.dropna().empty else 50.0
-    return round(float(latest), 1)
+    return round(float(rsi), 1)
 
 
 def calc_momentum(prices: pd.Series, period: int = 20) -> float:
@@ -149,17 +164,26 @@ def calc_stock_score(
 
 
 def parse_leverage(leverage) -> float | None:
-    """解析杠杆字段：'2x' / '-1x' / 2.0 → float；空/无杠杆返回 None"""
+    """解析杠杆字段：'2x' / '-1x' / 2.0 → float；空/0/1x 视作非杠杆返回 None。
+
+    规则：
+    - 只有 +1.0（正向 1x）视作"无杠杆 ETF"
+    - -1x 是反向杠杆 ETF（如 SQQQ），(L²-L)/2=1 仍有磨损 → 保留
+    - 0 / 数值解析失败 / 空 → None
+    """
     if leverage in (None, "", "None"):
         return None
     if isinstance(leverage, (int, float)):
-        return float(leverage)
-    s = str(leverage).lower().replace("x", "").strip()
-    try:
-        val = float(s)
-        return val if abs(val) > 1.0001 else None  # 1x 视作非杠杆
-    except ValueError:
+        val = float(leverage)
+    else:
+        s = str(leverage).lower().replace("x", "").strip()
+        try:
+            val = float(s)
+        except ValueError:
+            return None
+    if val == 0.0 or val == 1.0:
         return None
+    return val
 
 
 def calc_leverage_decay(prices: pd.Series, leverage) -> float | None:

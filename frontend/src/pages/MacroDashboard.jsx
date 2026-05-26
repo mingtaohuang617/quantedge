@@ -230,7 +230,7 @@ export default function MacroDashboard() {
       setFactors(data);
       setComposite(comp || null);
     } else {
-      setError(t("加载失败：检查 backend 是否启动 + FRED_API_KEY 已设置 + 已运行 refresh_macro.py"));
+      setError(t("宏观数据暂时无法加载，请稍后点击刷新重试"));
     }
     setLoading(false);
     // 历史曲线 + AI 画像异步加载（不阻塞首屏）
@@ -332,6 +332,22 @@ export default function MacroDashboard() {
       ];
     }
     return out;
+  }, [factors, filter, dirFilter, marketFilter, search, starred, onlyStarred]);
+
+  // v5 编辑式：因子按警示状态分两组（需关注 / 常规）— 不再 23 因子等权堆叠
+  // 警示规则：1) contrarian 因子在极端区（pct < 10 或 > 90）；2) 任意因子非常极端（< 5 或 > 95）
+  const { alertedFactors, normalFactors } = useMemo(() => {
+    const alerted = [];
+    const normal = [];
+    filtered.forEach(f => {
+      const pct = f.latest?.percentile;
+      if (pct == null) { normal.push(f); return; }
+      const contrarianAlert = f.contrarian_at_extremes && (pct < 10 || pct > 90);
+      const veryExtreme = pct < 5 || pct > 95;
+      if (contrarianAlert || veryExtreme) alerted.push(f);
+      else normal.push(f);
+    });
+    return { alertedFactors: alerted, normalFactors: normal };
   }, [factors, filter, dirFilter, marketFilter, search, starred, onlyStarred]);
 
   return (
@@ -460,7 +476,7 @@ export default function MacroDashboard() {
 
       {factors && factors.length === 0 && !loading && !error && (
         <div className="text-center py-12 text-white/50 text-sm">
-          {t("没有因子。先在 backend 跑")} <code className="font-mono text-indigo-300">python refresh_macro.py</code>
+          {t("暂无可显示的因子，请稍后刷新重试")}
         </div>
       )}
 
@@ -477,8 +493,40 @@ export default function MacroDashboard() {
         </div>
       )}
 
+      {/* v5 编辑式：警示因子（contrarian × 极端区，或任意 < 5/> 95 分位）单独成卡组高亮 */}
+      {alertedFactors.length > 0 && (
+        <>
+          <div className="flex items-baseline gap-2 mb-2 mt-1">
+            <span className="w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(245,181,60,0.7)]" />
+            <h3 className="text-[12px] font-semibold text-amber-300">
+              {t('需关注')} · <span className="font-mono">{alertedFactors.length}</span> {t('个因子触发警示')}
+            </h3>
+            <span className="text-[10px] text-white/40">— {t('极端分位 / contrarian 扭曲')}</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 mb-4 p-2 rounded-xl bg-amber-500/[0.025] border border-amber-400/15">
+            {alertedFactors.map(f => {
+              const k = factorStarKey(f);
+              return (
+                <FactorCard
+                  key={k}
+                  f={f}
+                  onSelect={setSelectedFactor}
+                  isStarred={starred.has(k)}
+                  onToggleStar={toggleStar}
+                />
+              );
+            })}
+          </div>
+          <div className="flex items-baseline gap-2 mb-2 mt-3">
+            <span className="w-2 h-2 rounded-full bg-white/25" />
+            <h3 className="text-[12px] font-medium text-white/55">
+              {t('常规因子')} · <span className="font-mono">{normalFactors.length}</span> {t('个正常波动')}
+            </h3>
+          </div>
+        </>
+      )}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-        {filtered.map(f => {
+        {(alertedFactors.length > 0 ? normalFactors : filtered).map(f => {
           const k = factorStarKey(f);
           return (
             <FactorCard
