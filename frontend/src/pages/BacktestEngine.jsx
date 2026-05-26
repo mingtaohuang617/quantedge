@@ -177,7 +177,7 @@ const RotaryKnob = ({ value, onChange, size = 76, color = "#6366f1" }) => {
   );
 };
 
-const BacktestEngine = () => {
+const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) => {
   const { t, lang } = useLang();
   const { stocks: ctxStocks2, setStocks: ctxSetStocks2, standalone, addTicker: addTickerToPlatform } = useContext(DataContext);
   const liveStocks = ctxStocks2 || STOCKS;
@@ -189,6 +189,10 @@ const BacktestEngine = () => {
   const [running, setRunning] = useState(false);
   const [hasResult, setHasResult] = useState(false);
   const [portfolio, setPortfolio] = useState(() => {
+    // 一键回测：复利模块传入的预加载组合优先
+    if (preloadPortfolio && Object.keys(preloadPortfolio).length > 0) {
+      return preloadPortfolio;
+    }
     // 默认组合: NVDA, SNDK, RKLB, LITE 各25%
     const defaults = ["NVDA", "SNDK", "RKLB", "LITE"];
     const init = {};
@@ -201,6 +205,11 @@ const BacktestEngine = () => {
     }
     return init;
   });
+  // 通知父组件 preload 已消费，避免下次重新 mount 时重复注入
+  useEffect(() => {
+    if (preloadPortfolio && onPreloadConsumed) onPreloadConsumed();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [initialCap, setInitialCap] = useState(100000);
   const [costBps, setCostBps] = useState(15); // 0.15% = 15 bps
   const [benchTicker, setBenchTicker] = useState("SPY");

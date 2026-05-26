@@ -2071,6 +2071,8 @@ function QuantPlatformInner() {
   const { user } = useAuth();
   const { t, lang } = useLang();
   const [tab, setTab] = useState("scoring");
+  // 复利模块 → 一键回测：把选中的组合 weights 预加载进 BacktestEngine
+  const [backtestPreload, setBacktestPreload] = useState(null);
   const [showManager, setShowManager] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [cmdOpen, setCmdOpen] = useState(false);
@@ -2387,7 +2389,12 @@ function QuantPlatformInner() {
           </div>
         }>
           {tab === "scoring" && <ScoringDashboard />}
-          {tab === "backtest" && <BacktestEngine />}
+          {tab === "backtest" && (
+            <BacktestEngine
+              preloadPortfolio={backtestPreload}
+              onPreloadConsumed={() => setBacktestPreload(null)}
+            />
+          )}
           {tab === "monitor" && <Monitor />}
           {tab === "journal" && <Journal />}
           {tab === "macro" && <MacroDashboard />}
@@ -2395,7 +2402,19 @@ function QuantPlatformInner() {
           {tab === "miningAlpha" && <MiningAlpha />}
           {tab === "stockgene" && <StockGene />}
           {tab === "smartBeta" && <SmartBeta />}
-          {tab === "compound" && <CompoundPower />}
+          {tab === "compound" && (
+            <CompoundPower
+              onOneClickBacktest={(weights) => {
+                // weights 是 { SPY: 0.70, QQQ: 0.30 } — 转成整数百分比
+                const portfolio = {};
+                for (const [ticker, w] of Object.entries(weights)) {
+                  portfolio[ticker] = Math.round(w * 100);
+                }
+                setBacktestPreload(portfolio);
+                setTab("backtest");
+              }}
+            />
+          )}
         </Suspense>
       </main>
 
