@@ -223,6 +223,7 @@ export function NotesBlock({ item, editing, draft, onDraftChange, onEdit, onSave
         <span className="whitespace-pre-line">{item.notes}</span>
         <button
           onClick={onEdit}
+          aria-label="编辑备注"
           className="absolute top-1 right-1 opacity-0 group-hover/notes:opacity-100 p-0.5 rounded hover:bg-white/10 text-[#a0aec0] hover:text-white transition"
           title="编辑备注"
         >

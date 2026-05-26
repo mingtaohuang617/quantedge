@@ -230,7 +230,7 @@ export default function MacroDashboard() {
       setFactors(data);
       setComposite(comp || null);
     } else {
-      setError(t("加载失败：检查 backend 是否启动 + FRED_API_KEY 已设置 + 已运行 refresh_macro.py"));
+      setError(t("宏观数据暂时无法加载，请稍后点击刷新重试"));
     }
     setLoading(false);
     // 历史曲线 + AI 画像异步加载（不阻塞首屏）
@@ -476,7 +476,7 @@ export default function MacroDashboard() {
 
       {factors && factors.length === 0 && !loading && !error && (
         <div className="text-center py-12 text-white/50 text-sm">
-          {t("没有因子。先在 backend 跑")} <code className="font-mono text-indigo-300">python refresh_macro.py</code>
+          {t("暂无可显示的因子，请稍后刷新重试")}
         </div>
       )}
 

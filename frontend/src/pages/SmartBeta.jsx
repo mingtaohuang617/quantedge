@@ -300,6 +300,7 @@ export default function SmartBeta() {
   const [snapshot, setSnapshot] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [isDemoMode, setIsDemoMode] = useState(false);
 
   const fetchSnapshot = async () => {
     setLoading(true);
@@ -314,12 +315,23 @@ export default function SmartBeta() {
         params.set("current_holdings", config.current_holdings.trim());
       }
       const data = await apiFetch(`/smart-beta/snapshot?${params.toString()}`);
-      if (!data) {
-        setError("API 不可用 — 请确认后端 server.py 在跑");
-      } else if (data.detail) {
+      if (data && !data.detail) {
+        setSnapshot(data);
+        setIsDemoMode(false);
+      } else if (data && data.detail) {
         setError(typeof data.detail === "string" ? data.detail : JSON.stringify(data.detail));
       } else {
-        setSnapshot(data);
+        // 后端不可达 → 灌 demo 数据让 Vercel 等纯前端部署也能展示完整功能。
+        // Dynamic import 拆独立 chunk，只在 fallback 时下载，不污染本地 dev bundle。
+        try {
+          const mod = await import("../data/smartBetaDemo.js");
+          setSnapshot(mod.demoSmartBeta);
+          setIsDemoMode(true);
+          setError(null);
+        } catch {
+          // demo 模块加载也失败（罕见）→ 友好文案
+          setError("数据服务暂时无法连接，请稍后点击「重新计算」重试");
+        }
       }
     } catch (e) {
       setError(String(e));
@@ -346,9 +358,17 @@ export default function SmartBeta() {
       <div className="sticky top-0 z-10 bg-[#0d1117]/95 backdrop-blur border-b border-white/10 px-4 py-2.5">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <Layers size={16} className="text-indigo-400" />
               <h2 className="text-sm font-semibold tracking-tight">Smart Beta · 指数 + 行业 ETF 动态轮动</h2>
+              {isDemoMode && (
+                <span
+                  className="px-1.5 py-0.5 rounded text-[9px] font-mono uppercase tracking-wider bg-amber-500/15 text-amber-300 border border-amber-500/40"
+                  title="后端未连接，展示静态示例快照。启动 backend/server.py 后点「重新计算」可拉真实数据。"
+                >
+                  DEMO 模式
+                </span>
+              )}
             </div>
             <p className="text-[10px] text-[#a0aec0] mt-0.5">
               三层：风险层（VIX/趋势/信用利差/实际利率）→ Core ETF 配比 → 行业 ETF 评分轮动

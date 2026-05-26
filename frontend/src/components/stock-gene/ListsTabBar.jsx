@@ -49,6 +49,7 @@ export function ListsTabBar({ lists, activeId, onSelect, onCreate, onRename, onD
       })}
       <button
         onClick={onCreate}
+        aria-label="新建分组"
         className="flex items-center justify-center w-6 h-6 rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white border border-white/10 transition"
         title="新建分组"
       >

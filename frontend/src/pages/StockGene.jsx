@@ -886,6 +886,7 @@ export default function StockGene() {
           <button
             onClick={handleExport}
             disabled={isDemoMode || items.length === 0}
+            aria-label="导出股性检测 JSON 备份"
             className="flex items-center justify-center w-7 h-7 rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white transition border border-white/10 disabled:opacity-40 disabled:cursor-not-allowed"
             title="导出 JSON 备份（含所有观察项 + 双引擎评分 + 历史）"
           >

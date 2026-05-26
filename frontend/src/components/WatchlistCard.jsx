@@ -162,23 +162,25 @@ export default function WatchlistCard({
           {!archived && onMarkReviewed && (
             <button
               onClick={onMarkReviewed}
+              aria-label="标记已复盘"
               className="p-1 rounded hover:bg-emerald-500/20 text-[#a0aec0] hover:text-emerald-300"
               title="标记已复盘 — 重置「N 天未复盘」badge（不必重新生成 AI 草稿）"
             >
               <Check size={10} />
             </button>
           )}
-          <button onClick={onEdit} className="p-1 rounded hover:bg-white/10 text-[#a0aec0] hover:text-white" title="编辑">
+          <button onClick={onEdit} aria-label="编辑观察项" className="p-1 rounded hover:bg-white/10 text-[#a0aec0] hover:text-white" title="编辑">
             <Edit2 size={10} />
           </button>
           <button
             onClick={onToggleArchive}
+            aria-label={archived ? "恢复观察项" : "归档观察项"}
             className={`p-1 rounded hover:bg-amber-500/20 text-[#a0aec0] ${archived ? "hover:text-emerald-300" : "hover:text-amber-300"}`}
             title={archived ? "恢复（取消归档）" : "归档（保留 thesis，不再显示）"}
           >
             {archived ? <ArchiveRestore size={10} /> : <Archive size={10} />}
           </button>
-          <button onClick={onDelete} className="p-1 rounded hover:bg-red-500/20 text-[#a0aec0] hover:text-red-300" title="删除">
+          <button onClick={onDelete} aria-label="删除观察项" className="p-1 rounded hover:bg-red-500/20 text-[#a0aec0] hover:text-red-300" title="删除">
             <Trash2 size={10} />
           </button>
         </div>

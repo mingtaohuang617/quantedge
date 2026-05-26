@@ -27,10 +27,14 @@
 │  React 18    │               │   ├─ /api/*       proxy → :8001 后端    │
 │  + Recharts  │               │   └─ /yahoo-api/* proxy → query1.yahoo  │
 └──────────────┘               └────────────────────────────────────────┘
-       │  Vercel 部署（生产，Hobby plan 12 函数硬上限）
-       ├─► frontend/api/yahoo.js  serverless proxy（带 referer 白名单）
+       │  Vercel 部署（生产；v0.8 重构后 8 serverless functions，详见 §5）
+       ├─► frontend/api/yahoo.js              serverless proxy（带 referer 白名单）
+       ├─► frontend/api/stock-gene/index.js   单点 dispatcher（rewrite 接所有子路径）
+       ├─► frontend/api/watchlist/10x.js + 10x/[slug].js
+       ├─► frontend/api/llm/[endpoint].js     本地 4 handler + 反代 Render 兜底
+       ├─► frontend/api/{smart-beta/snapshot, universe/stats}
        └─► frontend/public/data/universe/universe_{us,hk,cn}.json
-           Vercel SPA fallback：演示模式直接读静态 JSON（无后端时仍可见赛道）
+           Vercel SPA fallback：无后端时静态 JSON 直接喂赛道列表
 ```
 
 ## 2. 数据加载的四条路径
@@ -132,8 +136,13 @@ src/
 ## 5. 部署
 
 - **前端**：Vercel — 根目录 = `frontend/`，build = `npm run build`，output = `dist/`
-  - 12 函数硬上限（Hobby plan），`.vercelignore` 排除 stock-gene 10 个 → 部署 12 贴顶
-  - 生产 `quantedge-chi.vercel.app` 上 stock-gene tab = demo 模式（详见 CHANGELOG PR #104）
+  - **8 个 serverless functions**（v0.8 重构后，远低于 Hobby plan 12 上限）— 详见 PR #173/#176/#178：
+    - `llm/[endpoint].js` — 4 本地 handler + 反代 Render 兜底
+    - `watchlist/10x.js` + `watchlist/10x/[slug].js` — 列表根 + 子路由
+    - `stock-gene/index.js` — 单点 dispatcher（vercel.json rewrite `/api/stock-gene/(.+) → /api/stock-gene?path=$1`）
+    - `smart-beta/snapshot.js` / `universe/stats.js` / `yahoo.js` — 各自独立
+  - handler 文件 `_*.js` 前缀 Vercel 自动忽略（不当 function），由 dispatcher 静态 import
+  - 生产 `quantedge-chi.vercel.app` 上 stock-gene tab **已可正常工作**（PR #178 解除 `.vercelignore` 排除）
 - **后端**：本地 `python backend/server.py`（端口 8001），暂无生产部署
 - **定时任务**：`backend/scripts/install_pipeline_scheduler.ps1`（Windows）/ `install_cron.sh`（macOS/Linux）
 - **CI**：`.github/workflows/ci.yml` — push/PR 跑 ruff + pytest（非网络）+ vitest + vite build
