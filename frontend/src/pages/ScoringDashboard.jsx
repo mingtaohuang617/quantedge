@@ -930,7 +930,7 @@ const ScoringDashboard = () => {
       <span className="ml-auto flex items-center gap-2 text-[9px] text-[#778] shrink-0">
         <Clock size={9} className="opacity-60" />
         {indicesTime ? new Date(indicesTime).toLocaleTimeString(lang === 'zh' ? 'zh-CN' : 'en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '—'}
-        <button onClick={fetchIndices} disabled={indicesLoading} className="p-1 rounded hover:bg-white/10 active:scale-95 transition-all disabled:opacity-40" title={t('刷新')}>
+        <button onClick={fetchIndices} disabled={indicesLoading} aria-label={t('刷新指数')} className="p-1 rounded hover:bg-white/10 active:scale-95 transition-all disabled:opacity-40" title={t('刷新')}>
           <RefreshCw size={10} className={`${indicesLoading ? 'animate-spin' : ''} text-[#a0aec0]`} />
         </button>
       </span>

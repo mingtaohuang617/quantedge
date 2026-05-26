@@ -1007,20 +1007,33 @@ export default function Screener10x() {
               <span className={precise ? "text-amber-300 font-medium" : ""}>精严</span>
             </label>
 
-            {/* 市场切换 */}
+            {/* 市场切换 — active 用 indigo 实色 + bold + 圆点；inactive 灰文字带删除线
+                视觉差异加强：避免用户分不清"已选"和"未选"（之前 bg-indigo-500/20 vs
+                bg-white/5 透明度差异太小，反复有用户报告"取消了 US 但 US 票还在"的 bug） */}
             <div className="flex items-center gap-1">
               {["US", "HK", "CN"].map((m) => {
                 const on = markets.includes(m);
+                const isOnlyOne = on && markets.length === 1;
                 return (
                   <button
                     key={m}
-                    onClick={() => setMarkets((cur) => on ? cur.filter((x) => x !== m) : [...cur, m])}
-                    className={`px-1.5 py-0.5 text-[9px] font-mono rounded border transition ${
+                    onClick={() => {
+                      // 保护：至少保留 1 个市场。点击唯一选中的市场会切换到"全选"
+                      // （否则 markets=[] 永远 0 结果，对用户没意义）
+                      if (isOnlyOne) {
+                        setMarkets(["US", "HK", "CN"]);
+                      } else {
+                        setMarkets((cur) => on ? cur.filter((x) => x !== m) : [...cur, m]);
+                      }
+                    }}
+                    title={isOnlyOne ? "至少保留 1 个市场 — 点击恢复全选" : (on ? `点击取消 ${m}` : `点击启用 ${m}`)}
+                    className={`px-2 py-0.5 text-[9px] font-mono rounded border transition flex items-center gap-1 ${
                       on
-                        ? "bg-indigo-500/20 border-indigo-500/40 text-indigo-200"
-                        : "bg-white/5 border-white/10 text-[#7a8497]"
+                        ? "bg-indigo-500/40 border-indigo-400 text-white font-semibold shadow-sm shadow-indigo-500/20"
+                        : "bg-transparent border-white/15 text-[#5a6477] line-through"
                     }`}
                   >
+                    {on && <span className="w-1 h-1 rounded-full bg-emerald-400 inline-block" />}
                     {m}
                   </button>
                 );
@@ -1411,6 +1424,7 @@ export default function Screener10x() {
               <button
                 onClick={handleExport}
                 disabled={isDemoMode}
+                aria-label="导出观察列表 JSON"
                 className="flex items-center justify-center w-5 h-5 text-[#a0aec0] hover:text-white hover:bg-white/10 rounded transition disabled:opacity-30 disabled:cursor-not-allowed"
                 title="导出 JSON 备份（含所有观察项 + 自定义赛道）"
               >
