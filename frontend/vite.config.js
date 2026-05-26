@@ -65,18 +65,21 @@ export default defineConfig(({ command }) => ({
     chunkSizeWarningLimit: 1500,
     // C2: 关掉 lazy chunk 的 modulepreload — 让 recharts/各 page chunk 真正按需加载
     // 否则 <link rel="modulepreload"> 会让浏览器在首屏就把它们拉下来，违背懒加载初衷
+    //
+    // LAZY_PAGES 与 quant-platform.jsx 顶端 lazy() 列表保持一致。新增 lazy page
+    // 时把名字加进来，否则它会被默默预加载，浪费首屏带宽。
     modulePreload: {
       resolveDependencies: (filename, deps) => {
+        const LAZY_PAGES = [
+          'Journal', 'Monitor', 'BacktestEngine', 'ScoringDashboard',
+          'MacroDashboard', 'Screener10x', 'MiningAlpha', 'StockGene',
+          'SmartBeta', 'CompoundPower',
+        ];
         // 仅保留主壳依赖（quant-platform / icons-vendor / react-vendor）
-        // 过滤掉 page chunks 和 recharts-vendor，让它们随 dynamic import 才加载
-        return deps.filter(d =>
-          !d.includes('recharts-vendor') &&
-          !d.includes('/Journal-') &&
-          !d.includes('/Monitor-') &&
-          !d.includes('/BacktestEngine-') &&
-          !d.includes('/ScoringDashboard-') &&
-          !d.includes('/stats-')
-        );
+        return deps.filter(d => {
+          if (d.includes('recharts-vendor') || d.includes('/stats-')) return false;
+          return !LAZY_PAGES.some(name => d.includes(`/${name}-`));
+        });
       },
     },
     rollupOptions: {
