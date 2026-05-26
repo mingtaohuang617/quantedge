@@ -2073,6 +2073,21 @@ function QuantPlatformInner() {
   const [tab, setTab] = useState("scoring");
   // 复利模块 → 一键回测：把选中的组合 weights 预加载进 BacktestEngine
   const [backtestPreload, setBacktestPreload] = useState(null);
+  // weights: { TICKER: 0.7 } (0-1 小数) → portfolio: { TICKER: 70 } (整数百分比，总和强制=100)
+  // 浮点舍入累计误差用余数补在最后一项上（与 BacktestEngine.equalizeWeights 同思路）
+  const handleOneClickBacktest = useCallback((weights) => {
+    const entries = Object.entries(weights || {});
+    if (entries.length === 0) return;
+    const portfolio = {};
+    entries.forEach(([t, w]) => { portfolio[t] = Math.round(w * 100); });
+    const sum = Object.values(portfolio).reduce((a, b) => a + b, 0);
+    if (sum !== 100) {
+      portfolio[entries[entries.length - 1][0]] += 100 - sum;
+    }
+    setBacktestPreload(portfolio);
+    setTab("backtest");
+  }, []);
+  const handlePreloadConsumed = useCallback(() => setBacktestPreload(null), []);
   const [showManager, setShowManager] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [cmdOpen, setCmdOpen] = useState(false);
@@ -2392,7 +2407,7 @@ function QuantPlatformInner() {
           {tab === "backtest" && (
             <BacktestEngine
               preloadPortfolio={backtestPreload}
-              onPreloadConsumed={() => setBacktestPreload(null)}
+              onPreloadConsumed={handlePreloadConsumed}
             />
           )}
           {tab === "monitor" && <Monitor />}
@@ -2403,17 +2418,7 @@ function QuantPlatformInner() {
           {tab === "stockgene" && <StockGene />}
           {tab === "smartBeta" && <SmartBeta />}
           {tab === "compound" && (
-            <CompoundPower
-              onOneClickBacktest={(weights) => {
-                // weights 是 { SPY: 0.70, QQQ: 0.30 } — 转成整数百分比
-                const portfolio = {};
-                for (const [ticker, w] of Object.entries(weights)) {
-                  portfolio[ticker] = Math.round(w * 100);
-                }
-                setBacktestPreload(portfolio);
-                setTab("backtest");
-              }}
-            />
+            <CompoundPower onOneClickBacktest={handleOneClickBacktest} />
           )}
         </Suspense>
       </main>

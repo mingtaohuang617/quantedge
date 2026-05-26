@@ -205,9 +205,15 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
     }
     return init;
   });
-  // 通知父组件 preload 已消费，避免下次重新 mount 时重复注入
+  // mount 时若有 preload：显示来源 hint（4 秒自动隐藏）+ 通知父组件已消费
+  const [preloadHint, setPreloadHint] = useState(
+    preloadPortfolio && Object.keys(preloadPortfolio).length > 0 ? preloadPortfolio : null
+  );
   useEffect(() => {
-    if (preloadPortfolio && onPreloadConsumed) onPreloadConsumed();
+    if (!preloadPortfolio || Object.keys(preloadPortfolio).length === 0) return;
+    if (onPreloadConsumed) onPreloadConsumed();
+    const tid = setTimeout(() => setPreloadHint(null), 4000);
+    return () => clearTimeout(tid);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const [initialCap, setInitialCap] = useState(100000);
@@ -1318,7 +1324,23 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
   const m = btResult?.metrics;
 
   return (
-    <div className="flex flex-col md:grid md:grid-cols-12 gap-5 md:gap-4 h-full min-h-0 overflow-auto md:overflow-hidden">
+    <>
+      {/* 一键回测 — 加载来源提示（fixed banner，4 秒后自动隐藏） */}
+      {preloadHint && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed top-20 left-1/2 -translate-x-1/2 px-4 py-2 rounded-lg bg-indigo-500/15 border border-indigo-500/50 backdrop-blur text-[11px] text-indigo-100 shadow-lg flex items-center gap-2"
+          style={{ zIndex: Z_ELEVATED }}
+        >
+          <Sparkles size={12} className="text-indigo-300" />
+          <span className="font-medium">已从复利模块加载组合：</span>
+          <span className="font-mono text-indigo-200">
+            {Object.entries(preloadHint).map(([t, w]) => `${t} ${w}%`).join(" · ")}
+          </span>
+        </div>
+      )}
+      <div className="flex flex-col md:grid md:grid-cols-12 gap-5 md:gap-4 h-full min-h-0 overflow-auto md:overflow-hidden">
       {/* ── 左栏：组合构建器 ── */}
       <div className={`md:col-span-4 flex flex-col gap-2 md:min-h-0 ${builderOpen ? "md:overflow-auto" : ""} pr-0 md:pr-1`}>
         {/* B3: NL 策略输入 → DeepSeek 自动填 portfolio */}
@@ -2949,6 +2971,7 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
         />
       )}
     </div>
+    </>
   );
 };
 
