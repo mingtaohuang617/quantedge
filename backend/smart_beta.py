@@ -250,7 +250,7 @@ def allocate_sector_weights(
         total = sum(s)
         if total <= 0:
             return {t: round(1.0 / len(selected), 4) for t in selected}
-        return {t: round(si / total, 4) for t, si in zip(selected, s)}
+        return {t: round(si / total, 4) for t, si in zip(selected, s, strict=False)}
     # equal
     return {t: round(1.0 / len(selected), 4) for t in selected}
 

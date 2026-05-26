@@ -181,7 +181,7 @@ def parse_leverage(leverage) -> float | None:
             val = float(s)
         except ValueError:
             return None
-    if val == 0.0 or val == 1.0:
+    if val in {0.0, 1.0}:
         return None
     return val
 

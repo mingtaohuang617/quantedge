@@ -94,7 +94,7 @@ def search_stocks(keyword: str, market: str = "HK") -> pd.DataFrame:
         )
         return df[mask].head(20)
     except Exception as e:
-        raise AKShareError(f"AKShare 搜索失败: {e}")
+        raise AKShareError(f"AKShare 搜索失败: {e}") from e
 
 
 def health_check() -> tuple[bool, str]:
@@ -109,7 +109,7 @@ def health_check() -> tuple[bool, str]:
 
 
 def _safe_float(val) -> float | None:
-    if val is None or val == "" or val == "--":
+    if val is None or val in {"", "--"}:
         return None
     try:
         return float(val)

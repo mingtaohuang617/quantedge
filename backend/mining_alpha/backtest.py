@@ -62,8 +62,8 @@ def select_top_n(
       {date: [ticker, ticker, ...]}
     """
     out: dict[pd.Timestamp, list[str]] = {}
-    for t, row in scores.iterrows():
-        row = row.dropna()
+    for t, row_raw in scores.iterrows():
+        row = row_raw.dropna()
         if len(row) == 0:
             out[t] = []
             continue

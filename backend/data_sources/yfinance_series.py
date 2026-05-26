@@ -33,7 +33,7 @@ def fetch_close_series(yf_symbol: str, start: str = "1990-01-01") -> list[dict]:
     rows: list[dict] = []
     for ts, row in df.iterrows():
         close = row.get("Close")
-        if close is None or close != close:  # 跳 NaN
+        if close is None or close != close:  # 跳 NaN  # noqa: PLR0124
             continue
         d = ts.date().isoformat() if hasattr(ts, "date") else str(ts)[:10]
         rows.append({"value_date": d, "publish_date": d, "value": float(close)})

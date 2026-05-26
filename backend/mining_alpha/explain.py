@@ -84,7 +84,7 @@ def top_contributions_for_holdings(
         sv = shap_values[i]
         # 按 |shap| 降序
         top_k_idx = np.argsort(-np.abs(sv))[:top_k_factors]
-        for k, fi in enumerate(top_k_idx):
+        for _, fi in enumerate(top_k_idx):
             rows.append({
                 "ticker": ticker,
                 "rank": i + 1,
