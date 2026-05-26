@@ -8,6 +8,7 @@
 import React, { useEffect, useState } from "react";
 import { X, Sparkles, Loader, AlertCircle, Save } from "lucide-react";
 import { apiFetch } from "../quant-platform.jsx";
+import { Z_ELEVATED } from "../lib/zIndex.js";
 
 function emptyForm(strategy = "growth") {
   return { id: "", name: "", note: "", strategy, keywords_zh: "", keywords_en: "" };
@@ -109,7 +110,8 @@ export default function AddSupertrendDialog({ open, onClose, onSaved, defaultStr
 
   return (
     <div
-      className="fixed inset-0 z-[95] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+      className="fixed inset-0 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+      style={{ zIndex: Z_ELEVATED }}
       onClick={onClose}
     >
       <div
