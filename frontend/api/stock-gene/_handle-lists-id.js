@@ -1,7 +1,7 @@
 // /api/stock-gene/lists/[id] — PUT (rename/color) / DELETE
-import { requireReferer, readJson } from '../../_lib/auth.js';
-import { KV_ENABLED } from '../../_lib/kv.js';
-import { updateList, deleteList } from '../../_lib/stockGene.js';
+import { requireReferer, readJson } from '../_lib/auth.js';
+import { KV_ENABLED } from '../_lib/kv.js';
+import { updateList, deleteList } from '../_lib/stockGene.js';
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');

@@ -47,10 +47,8 @@ stock_gene — 股性检测 / 牛股特征器
 from __future__ import annotations
 
 import json
-import math
 from datetime import date, datetime, timedelta
 from pathlib import Path
-from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -85,7 +83,7 @@ def load_watchlist() -> dict:
     if not WATCHLIST_PATH.exists():
         return {"version": 2, "lists": [DEFAULT_LIST.copy()], "items": []}
     try:
-        with open(WATCHLIST_PATH, "r", encoding="utf-8") as f:
+        with open(WATCHLIST_PATH, encoding="utf-8") as f:
             data = json.load(f)
         return _migrate_to_v2(data)
     except Exception:

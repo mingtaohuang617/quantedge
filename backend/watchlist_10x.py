@@ -31,7 +31,7 @@ from __future__ import annotations
 import json
 from datetime import date
 from pathlib import Path
-from typing import Iterable
+from collections.abc import Iterable
 
 import sector_mapping as _sm
 from universe import load_universe
@@ -47,7 +47,7 @@ def load_watchlist() -> dict:
     if not WATCHLIST_PATH.exists():
         return {"version": 1, "user_supertrends": [], "items": []}
     try:
-        with open(WATCHLIST_PATH, "r", encoding="utf-8") as f:
+        with open(WATCHLIST_PATH, encoding="utf-8") as f:
             data = json.load(f)
         # 容错：缺字段补默认
         data.setdefault("version", 1)

@@ -24,7 +24,6 @@ from __future__ import annotations
 import argparse
 import sys
 import time
-from datetime import datetime, timedelta
 from pathlib import Path
 
 import numpy as np
@@ -207,7 +206,7 @@ def main():
     print("\n[synthetic_demo] ✓ 完成。接下来跑：")
     start = panel["close"].index.min().strftime("%Y-%m-%d")
     end = panel["close"].index.max().strftime("%Y-%m-%d")
-    print(f"  cd backend")
+    print("  cd backend")
     print(f"  .venv/Scripts/python -m mining_alpha.run compute-factors "
           f"--universe DEMO --start {start} --end {end} --run-id demo")
     print(f"  .venv/Scripts/python -m mining_alpha.run ic-report "

@@ -1,7 +1,7 @@
 // /api/stock-gene/[ticker]/move  —  PUT (move to another list)
-import { requireReferer, readJson } from '../../_lib/auth.js';
-import { KV_ENABLED } from '../../_lib/kv.js';
-import { moveItem } from '../../_lib/stockGene.js';
+import { requireReferer, readJson } from '../_lib/auth.js';
+import { KV_ENABLED } from '../_lib/kv.js';
+import { moveItem } from '../_lib/stockGene.js';
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');

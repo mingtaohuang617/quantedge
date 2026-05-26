@@ -93,7 +93,7 @@ def test_save_then_load_roundtrip(tmp_watchlist):
     assert data["items"][0]["ticker"] == "NVDA"
     # 文件确实写出了
     assert tmp_watchlist.exists()
-    with open(tmp_watchlist, "r", encoding="utf-8") as f:
+    with open(tmp_watchlist, encoding="utf-8") as f:
         on_disk = json.load(f)
     assert on_disk["items"][0]["ticker"] == "NVDA"
 

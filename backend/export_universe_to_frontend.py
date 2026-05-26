@@ -24,7 +24,7 @@ export_universe_to_frontend — 把 backend/output/universe_*.json 复制到 fro
 """
 from __future__ import annotations
 
-import shutil
+import json
 import sys
 from pathlib import Path
 
@@ -34,6 +34,16 @@ DST_DIR = ROOT / "frontend" / "public" / "data" / "universe"
 
 MARKETS = ["us", "cn", "hk"]
 
+# 复制时剥离 frontend 不用的字段（瘦身）
+# - futu_code: 仅 backend sync 用，frontend 完全不引用
+# - is_derivative: frontend 不引用
+# 保留：ticker / name / market / exchange / sector / industry / marketCap /
+#       is_etf / pe / pb / dividend_yield / roe / debt_to_equity
+DROP_FIELDS = ("futu_code", "is_derivative")
+
+# 空字符串 = 没数据，去掉省字节；frontend 用 `it.sector || ''` 兼容缺字段
+EMPTY_STRING_FIELDS = ("sector", "industry", "exchange", "market")
+
 
 def fmt_size(n: int) -> str:
     if n >= 1024 * 1024:
@@ -41,6 +51,53 @@ def fmt_size(n: int) -> str:
     if n >= 1024:
         return f"{n / 1024:.1f} KB"
     return f"{n} B"
+
+
+def slim_item(item: dict) -> int:
+    """就地剥离 universe item 的无用字段。
+
+    剥离规则：
+      1. DROP_FIELDS 中的字段（futu_code / is_derivative）
+      2. EMPTY_STRING_FIELDS 中字段值为空字符串的（sector/industry/exchange/market）
+      3. marketCap 为 None / 0 的
+
+    输入：item dict（mutated）
+    返回：剥离的字段总数
+    """
+    n_stripped = 0
+    for k in DROP_FIELDS:
+        if k in item:
+            del item[k]
+            n_stripped += 1
+    for k in EMPTY_STRING_FIELDS:
+        if item.get(k) == "":
+            del item[k]
+            n_stripped += 1
+    if item.get("marketCap") in (None, 0) and "marketCap" in item:
+        del item["marketCap"]
+        n_stripped += 1
+    return n_stripped
+
+
+def process_file(src: Path, dst: Path) -> tuple[int, int, int]:
+    """读 src JSON → 对每个 item 调 slim_item → 写 dst。
+
+    返回 (剥离字段总数, 输入大小 bytes, 输出大小 bytes)。
+    src 不存在时 raise FileNotFoundError（让调用方决定要 skip 还是 fail）。
+    """
+    if not src.exists():
+        raise FileNotFoundError(src)
+    with open(src, encoding="utf-8") as f:
+        data = json.load(f)
+    src_size = src.stat().st_size
+
+    n_stripped = 0
+    for it in data.get("items", []):
+        n_stripped += slim_item(it)
+
+    with open(dst, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2, allow_nan=False)
+    return n_stripped, src_size, dst.stat().st_size
 
 
 def main() -> int:
@@ -64,17 +121,17 @@ def main() -> int:
             print(f"  [skip] {fname} not found at {src}")
             continue
 
-        shutil.copy2(src, dst)
-        size = dst.stat().st_size
+        n_stripped, src_size, size = process_file(src, dst)
         total_bytes += size
         copied.append((fname, size))
-        print(f"  [ok]   {fname} -> {fmt_size(size)}")
+        saving = src_size - size
+        print(f"  [ok]   {fname} -> {fmt_size(size)} (剥离 {n_stripped} 字段，省 {fmt_size(saving)})")
 
     print()
     print(f"copied {len(copied)} file(s), total {fmt_size(total_bytes)}")
     if missing:
         print(f"missing {len(missing)} file(s): {', '.join(missing)}")
-        print(f"  -> run sync first, e.g. python -m backend.universe.sync_us --enrich")
+        print("  -> run sync first, e.g. python -m backend.universe.sync_us --enrich")
 
     print()
     print("next steps:")

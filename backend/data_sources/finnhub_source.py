@@ -24,7 +24,6 @@ from __future__ import annotations
 
 import os
 import time
-from typing import Optional
 
 import httpx
 
@@ -38,11 +37,11 @@ class FinnhubError(Exception):
     """Finnhub API 调用失败（限频 / 鉴权 / 网络等）。"""
 
 
-def _get_api_key() -> Optional[str]:
+def _get_api_key() -> str | None:
     return os.getenv("FINNHUB_API_KEY")
 
 
-def fetch_fundamentals_finnhub(symbol: str, timeout: float = 10.0) -> Optional[dict]:
+def fetch_fundamentals_finnhub(symbol: str, timeout: float = 10.0) -> dict | None:
     """
     拉单只 US ticker 的 fundamentals。
 
@@ -71,7 +70,7 @@ def fetch_fundamentals_finnhub(symbol: str, timeout: float = 10.0) -> Optional[d
     params = {"symbol": symbol, "metric": "all", "token": api_key}
     try:
         r = httpx.get(url, params=params, timeout=timeout)
-    except httpx.HTTPError as e:
+    except httpx.HTTPError:
         return None  # 单只网络错不阻断批量
 
     if r.status_code == 429:
@@ -107,7 +106,7 @@ def fetch_fundamentals_finnhub(symbol: str, timeout: float = 10.0) -> Optional[d
 def enrich_us_fundamentals_finnhub(
     items: list[dict],
     *,
-    limit: Optional[int] = None,
+    limit: int | None = None,
     sleep_sec: float = DEFAULT_SLEEP,
     only_missing: bool = True,
     checkpoint_fn=None,

@@ -11,7 +11,6 @@ stock_gene 单测
 
 所有 IO 重定向到 tmp_path 避免污染真实数据。
 """
-import json
 import sys
 from pathlib import Path
 

@@ -123,7 +123,7 @@ def main() -> int:
         "GROUP BY sector ORDER BY c DESC"
     ).fetchall()
     print(f"  当前 SP500 成分股数: {cnt}")
-    print(f"  分行业分布:")
+    print("  分行业分布:")
     for r in sectors[:15]:
         print(f"    {r['sector']:35s} {r['c']:3d}")
     return 0

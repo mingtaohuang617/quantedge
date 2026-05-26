@@ -70,7 +70,7 @@ def main() -> int:
         return 1
 
     print(f"[1/3] 加载 {OUTPUT_PATH}")
-    with open(OUTPUT_PATH, "r", encoding="utf-8") as f:
+    with open(OUTPUT_PATH, encoding="utf-8") as f:
         data = json.load(f)
     items = data.get("items", [])
     print(f"  {len(items)} items loaded")
