@@ -19,7 +19,7 @@ from .core import (
     list_factors,
     get_factor,
     sync_factor_meta,
-    _REGISTRY,
+    _REGISTRY,  # noqa: F401
     # PIT 读写
     upsert_series_meta,
     upsert_observations,

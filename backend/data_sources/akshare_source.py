@@ -221,7 +221,7 @@ def search_stocks(keyword: str, market: str = "HK") -> pd.DataFrame:
         )
         return df[mask].head(20)
     except Exception as e:
-        raise AKShareError(f"AKShare 搜索失败: {e}")
+        raise AKShareError(f"AKShare 搜索失败: {e}") from e
 
 
 def health_check() -> tuple[bool, str]:

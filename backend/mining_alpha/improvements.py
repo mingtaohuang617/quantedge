@@ -219,10 +219,10 @@ def regime_aware_combine(
         days = common_idx[regime_mask]
         if len(days) == 0:
             continue
-        for num in factor_panel.keys():
+        for num, fdata in factor_panel.items():
             if num not in w_df.columns:
                 continue
-            fdf = factor_panel[num].reindex(index=days, columns=combined.columns)
+            fdf = fdata.reindex(index=days, columns=combined.columns)
             # 用最新权重（取该 regime 内最后一日的权重作为该 regime 的稳定权重）
             w_val = float(w_df[num].dropna().iloc[-1]) if not w_df[num].dropna().empty else 0.0
             combined.loc[days] = combined.loc[days].add(fdf * w_val, fill_value=0.0)

@@ -99,7 +99,7 @@ def _chat(
             if attempt < MAX_RETRIES:
                 time.sleep(1.5 * (attempt + 1))  # 简单退避
                 continue
-            raise LLMError(f"DeepSeek 调用失败（{MAX_RETRIES + 1} 次重试后）: {e}")
+            raise LLMError(f"DeepSeek 调用失败（{MAX_RETRIES + 1} 次重试后）: {e}") from e
 
     raise LLMError(f"unreachable: {last_err}")
 
@@ -696,7 +696,7 @@ def macro_narrative(composite: dict, ttl_seconds: int = 43200, force: bool = Fal
 
     # 极端因子（≥90 或 ≤10 分位）
     extremes = []
-    for cat, info in cats.items():
+    for _, info in cats.items():
         for f in info.get("factors", []):
             pct = f.get("percentile")
             raw = f.get("raw_value")

@@ -401,7 +401,7 @@ def test_no_lookahead_rolling_ops():
                         index=pd.date_range("2024-01-01", periods=20))
     truncated = full.iloc[:15]
 
-    for op, kwargs in [
+    for op, _ in [
         (lambda x: SUM_(x, 5), {}),
         (lambda x: MEAN(x, 5), {}),
         (lambda x: STD(x, 5), {}),
