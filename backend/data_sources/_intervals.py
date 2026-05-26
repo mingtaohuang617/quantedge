@@ -27,7 +27,7 @@ class Interval(str, Enum):
     DAY_1 = "1d"
 
     @classmethod
-    def from_str(cls, s: str | "Interval") -> "Interval":
+    def from_str(cls, s: str | Interval) -> Interval:
         if isinstance(s, cls):
             return s
         try:

@@ -9,7 +9,6 @@ publish_date == value_date（日收盘当日可见，无修订概念）。
 """
 from __future__ import annotations
 
-from datetime import datetime
 
 import factors_lib as _fl
 

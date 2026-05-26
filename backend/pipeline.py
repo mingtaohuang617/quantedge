@@ -27,14 +27,13 @@ if sys.platform == "win32":
             _stream.reconfigure(encoding="utf-8", errors="replace")
 
 import traceback
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 
 import numpy as np
-import pandas as pd
 import yfinance as yf
 
-from config import TICKERS, SECTOR_ETF_MAP
+from config import TICKERS
 from factors import (
     calc_rsi, calc_momentum, calc_stock_score, calc_etf_score,
     calc_leverage_decay, parse_leverage,

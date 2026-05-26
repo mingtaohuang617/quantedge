@@ -5,7 +5,7 @@ stock_gene_scheduler 单测
 不真启动后台线程 — 跑业务逻辑就够。
 """
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -47,7 +47,6 @@ def test_save_load_roundtrip(tmp_sched):
 
 def test_load_with_missing_fields_fills_defaults(tmp_sched):
     """老状态文件可能缺字段 → load 时补默认"""
-    import json
     tmp_sched.write_text('{"enabled": true}', encoding="utf-8")
     state = sched.load_state()
     assert state["enabled"] is True
