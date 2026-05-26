@@ -21,6 +21,13 @@ const StockGene = lazy(() => import("./pages/StockGene.jsx"));
 const SmartBeta = lazy(() => import("./pages/SmartBeta.jsx"));
 const CompoundPower = lazy(() => import("./pages/CompoundPower.jsx"));
 
+// TODO(perf): data.js 当前 1.09 MB / gzip 264 KB，含 277 个标的的完整 STOCKS
+// + ALERTS。通过 top-level await 在 entry parse 阶段加载，跟主 bundle 并行下载，
+// 因为 ScoringDashboard 首屏需要 STATIC_STOCKS 才能渲染评分列表。
+// 真正优化路径：按 market（US/HK/CN）分片 + lazy load 非首屏市场。需要：
+//   1) backend/export_stocks_to_frontend.py 改成生成 data-us.js / data-hk.js / data-cn.js
+//   2) DataProvider mount 时按 user preference 优先 load 当前市场，其他 idle 时 prefetch
+//   3) 多个 readers（L260/L275/L348）改成 React state（接受首屏空状态 → fetched 后重渲染）
 let STATIC_STOCKS = [];
 let STATIC_ALERTS = [];
 try {
@@ -45,14 +52,38 @@ const API_BASE = (() => {
   if (!remote || typeof remote !== "string") return "/api";
   return `${remote.replace(/\/$/, "")}/api`;
 })();
+// Silent retry：Render free tier 有 30s cold start + 偶发 502，第一次失败后静默重试
+// 1 次（800ms 后），不打 console.warn；只有真正不可达才 warn 并返回 null。
+// 对 GET 自动重试；POST 等可能有副作用的，调用方传 opts.noRetry=true 跳过。
+const RETRY_DELAY_MS = 800;
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
 export const apiFetch = async (path, opts = {}) => {
-  try {
+  const { noRetry, ...fetchOpts } = opts;
+  const isGet = !fetchOpts.method || fetchOpts.method.toUpperCase() === "GET";
+  const shouldRetry = isGet && !noRetry;
+
+  const doFetch = async () => {
     const res = await fetch(`${API_BASE}${path}`, {
       headers: { "Content-Type": "application/json" },
-      ...opts,
+      ...fetchOpts,
     });
     return await res.json();
+  };
+
+  try {
+    return await doFetch();
   } catch (e) {
+    if (shouldRetry) {
+      // 静默重试一次 — 多数 cold-start / 偶发 502 会在第二次成功
+      await sleep(RETRY_DELAY_MS);
+      try {
+        return await doFetch();
+      } catch (e2) {
+        console.warn("API unavailable:", e2.message);
+        return null;
+      }
+    }
     console.warn("API unavailable:", e.message);
     return null;
   }
