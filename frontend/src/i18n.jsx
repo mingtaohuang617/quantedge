@@ -451,9 +451,9 @@ const EN = {
   // header
   '宏观因子看板': 'Macro Factor Dashboard',
   '因子': 'factors',
-  '加载失败：检查 backend 是否启动 + FRED_API_KEY 已设置 + 已运行 refresh_macro.py': 'Load failed: check backend is running + FRED_API_KEY set + refresh_macro.py executed',
+  '宏观数据暂时无法加载，请稍后点击刷新重试': 'Macro data is temporarily unavailable. Please refresh later.',
   '加载中…': 'Loading…',
-  '没有因子。先在 backend 跑': 'No factors. First run in backend:',
+  '暂无可显示的因子，请稍后刷新重试': 'No factors available right now. Please refresh later.',
   // snapshot staleness tiers
   '新鲜': 'Fresh',
   '近期': 'Recent',
