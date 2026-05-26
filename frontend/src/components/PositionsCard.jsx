@@ -8,6 +8,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Briefcase, Plus, Loader, RefreshCw, Trash2 } from "lucide-react";
 import { apiFetch } from "../quant-platform.jsx";
+import EmptyState from "./EmptyState.jsx";
 
 export default function PositionsCard({ onAddClick }) {
   const [positions, setPositions] = useState([]);
@@ -88,9 +89,10 @@ export default function PositionsCard({ onAddClick }) {
       )}
 
       {!loading && positions.length === 0 && !error && (
-        <div className="text-[10px] text-[#778] py-2">
-          还没有交易记录。点"录入"开始追踪持仓。
-        </div>
+        <EmptyState
+          className="text-[10px] text-[#778] py-2"
+          message='还没有交易记录。点"录入"开始追踪持仓。'
+        />
       )}
 
       {open.length > 0 && (

@@ -6,7 +6,6 @@ HMM 训练需要 hmmlearn + 真实 W5000 序列，留给集成测试，这里不
 import sys
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 
 BACKEND = Path(__file__).resolve().parents[1]

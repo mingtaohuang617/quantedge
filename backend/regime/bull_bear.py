@@ -15,7 +15,6 @@ Lunde-Timmermann (2004) 牛熊机械标注
 """
 from __future__ import annotations
 
-from typing import Iterable
 
 import pandas as pd
 
@@ -59,20 +58,19 @@ def label_bull_bear(
             # 否则 regime 跟随 state 已经默认
             else:
                 regimes[i] = "bull"
-        else:  # bear
-            if v < extreme_val:
-                extreme_val = v
-                extreme_idx = i
-                regimes[i] = "bear"
-            elif v >= extreme_val * (1 + threshold):
-                pt[extreme_idx] = "T"
-                for j in range(extreme_idx + 1, i + 1):
-                    regimes[j] = "bull"
-                state = "bull"
-                extreme_idx = i
-                extreme_val = v
-            else:
-                regimes[i] = "bear"
+        elif v < extreme_val:
+            extreme_val = v
+            extreme_idx = i
+            regimes[i] = "bear"
+        elif v >= extreme_val * (1 + threshold):
+            pt[extreme_idx] = "T"
+            for j in range(extreme_idx + 1, i + 1):
+                regimes[j] = "bull"
+            state = "bull"
+            extreme_idx = i
+            extreme_val = v
+        else:
+            regimes[i] = "bear"
 
     return pd.DataFrame({"regime": regimes, "peak_or_trough": pt}, index=s.index)
 

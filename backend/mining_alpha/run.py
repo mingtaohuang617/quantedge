@@ -22,7 +22,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import pickle
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -227,7 +226,7 @@ def cmd_ic_report(args):
             "selected": kept,
             "n": len(kept),
             "criteria": (
-                f"|IC|>=0.02 & |ICIR|>=0.3"
+                "|IC|>=0.02 & |ICIR|>=0.3"
                 + (f" & |corr|<={args.corr_threshold}" if args.filter_redundant else "")
             ),
             "preprocessing": {
@@ -333,7 +332,7 @@ def cmd_train(args):
             }
             print(f"  使用 Optuna 优化的超参: {params}")
         else:
-            print(f"  [warn] 找不到 optuna_best.json；用默认超参")
+            print("  [warn] 找不到 optuna_best.json；用默认超参")
 
     # Regime-aware 训练分支
     if args.regime_aware:
@@ -471,7 +470,7 @@ def cmd_backtest(args):
     if not preds_path.exists():
         preds_path = OUTPUT_ROOT / "predictions.parquet"
     if not preds_path.exists():
-        raise RuntimeError(f"predictions.parquet 不存在；先跑 `train`")
+        raise RuntimeError("predictions.parquet 不存在；先跑 `train`")
     scores = pd.read_parquet(preds_path)
     scores.index = pd.to_datetime(scores.index)
     scores = scores.loc[args.start:args.end]
@@ -522,7 +521,6 @@ def cmd_backtest(args):
             tradeable_mask=tmask,
         )
         from mining_alpha.backtest import compute_metrics
-        from dataclasses import dataclass as _dc
         bench_ret = benchmark.pct_change().reindex(strat_ret.index).fillna(0.0) if benchmark is not None else None
         metrics = compute_metrics(strat_ret, bench_ret)
         metrics.update({
@@ -555,13 +553,13 @@ def cmd_backtest(args):
     report.equity_curve.to_csv(out_dir / "equity_curve.csv", header=["equity"])
     if report.benchmark_equity is not None:
         report.benchmark_equity.to_csv(out_dir / "benchmark_equity.csv", header=["bench_equity"])
-    print(f"\n  ╭──── 回测指标 ────╮")
+    print("\n  ╭──── 回测指标 ────╮")
     for k, v in report.metrics.items():
         if isinstance(v, float):
             print(f"  {k:30s}: {v:.4f}")
         else:
             print(f"  {k:30s}: {v}")
-    print(f"  ╰──────────────────╯")
+    print("  ╰──────────────────╯")
 
     # 画图
     try:
@@ -639,7 +637,7 @@ def cmd_explain(args):
         models_dir = OUTPUT_ROOT / "models"
     lgb_files = sorted(models_dir.glob("fold_*.lgb"))
     if not lgb_files:
-        raise RuntimeError(f"没找到 LGB 模型；先跑 train")
+        raise RuntimeError("没找到 LGB 模型；先跑 train")
     booster = lgb.Booster(model_file=str(lgb_files[-1]))
 
     df = top_contributions_for_holdings(

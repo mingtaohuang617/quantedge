@@ -8,6 +8,7 @@ import { idbGet, idbSet } from "./lib/idb.js";
 import macroSnapshot from "./macroSnapshot.json";
 import { TEMP_TEXT, TEMP_LABEL } from "./components/macro/shared.js";
 import ShortcutsModal from "./components/ShortcutsModal.jsx";
+import { Z_ELEVATED, Z_TOUR } from "./lib/zIndex.js";
 
 // C1/C2: 拆分主文件 + 代码分割 — 各 Tab 按需加载（首屏不打包这些 chunk）
 const Journal = lazy(() => import("./pages/Journal.jsx"));
@@ -1901,7 +1902,7 @@ const CommandPalette = ({ open, onClose, stocks, onPickStock, onSwitchTab, curre
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-start justify-center pt-[10vh] px-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 flex items-start justify-center pt-[10vh] px-4 bg-black/50 backdrop-blur-sm" style={{ zIndex: Z_TOUR }} onClick={onClose}>
       <div className="w-full max-w-xl glass-card border border-white/15 shadow-2xl shadow-black/60 overflow-hidden animate-slide-up" onClick={e => e.stopPropagation()}>
         <div className="flex items-center gap-2 px-3 py-2.5 border-b border-white/8">
           <Search size={14} className="text-[#a0aec0]" />
@@ -2018,7 +2019,7 @@ const OnboardingTour = ({ open, onClose }) => {
     onClose();
   };
   return (
-    <div className="fixed inset-0 z-[95] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md" onClick={finish}>
+    <div className="fixed inset-0 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md" style={{ zIndex: Z_ELEVATED }} onClick={finish}>
       <div className="w-full max-w-md glass-card border border-white/15 shadow-2xl shadow-black/60 overflow-hidden animate-slide-up" onClick={e => e.stopPropagation()}>
         {/* 进度条 */}
         <div className="h-1 bg-white/5">

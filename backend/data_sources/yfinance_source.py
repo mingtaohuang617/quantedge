@@ -15,7 +15,8 @@ import math
 import os
 import sys
 import time
-from typing import Callable, TypeVar
+from typing import TypeVar
+from collections.abc import Callable
 
 import pandas as pd
 import yfinance as yf
@@ -69,8 +70,7 @@ def _with_retry(
     """
     n = max_attempts if max_attempts is not None else YFINANCE_RETRY_MAX
     base = base_delay if base_delay is not None else YFINANCE_RETRY_BASE_DELAY
-    if n < 1:
-        n = 1
+    n = max(n, 1)
     if sleep is None:
         sleep = time.sleep
     fn_name = getattr(fn, "__name__", repr(fn))
