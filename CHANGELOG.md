@@ -227,6 +227,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **monitor: severity + type filter chips** (PR #73)：alerts 列表加严重度 / 类型过滤 chip，长列表时快速聚焦
 - **stock-gene: dual-engine detector** (PR #81)：新增「股票基因」检测器 — bull pattern（8 个动量/趋势因子）+ value health（6 个估值/财务因子）；新 page `frontend/src/pages/StockGene.jsx` + backend `stock_gene.py` + LLM context 模块
 - **qol: NAV clock per-min + HTML meta + global focus-visible** (PR #79)：导航栏时钟按分钟刷新；HTML meta 完善；全局 focus-visible 焦点环统一
+- **10x 猎手 strategy 字段语义统一 + UI 清理**（PR #80，v2.0 polish）：让混合 watchlist 上 growth/value item 一眼可辨；修 value tab 加自定义赛道时新赛道默认 strategy=growth 不显示的 bug
   - `frontend/src/components/AddSupertrendDialog.jsx`：接 `defaultStrategy` prop；POST `/supertrends` 透传 `strategy` 字段（backend / serverless 早已支持，只是前端原来漏传）；头部加 strategy 标识 chip（与 WatchlistCard badge 同款配色）
   - `frontend/src/pages/Screener10x.jsx`：
     - WatchlistCard 加 strategy badge 「成」/「值」（indigo / emerald 颜色区分）
