@@ -37,6 +37,7 @@ import StockDetailPanel from "../components/StockDetailPanel.jsx";
 import { serializeWatchlistCsv } from "../lib/csvExport.js";
 import { fmtMcap, fmtNum, fmtPct } from "../lib/formatters.js";
 import { fetchCurrentPrice } from "../lib/yahoo.js";
+import EmptyState from "../components/EmptyState.jsx";
 
 const STRATEGY_LABEL = { growth: "成长型", value: "价值型" };
 
@@ -1470,9 +1471,10 @@ export default function Screener10x() {
           </div>
           <div className="flex-1 overflow-auto p-2 space-y-2">
             {items.length === 0 && (
-              <div className="h-full flex items-center justify-center text-[11px] text-[#7a8497] p-4 text-center">
-                还没有观察项 — 从中间候选列表点击 "观察" 加入
-              </div>
+              <EmptyState
+                className="h-full flex items-center justify-center text-[11px] text-[#7a8497] p-4 text-center"
+                message='还没有观察项 — 从中间候选列表点击 "观察" 加入'
+              />
             )}
             {items.map((it) => (
               <WatchlistCard

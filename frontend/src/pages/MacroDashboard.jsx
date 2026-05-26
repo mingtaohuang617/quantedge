@@ -25,7 +25,6 @@ import FactorCard from "../components/macro/FactorCard.jsx";
 import DataStatusBanner from "../components/macro/DataStatusBanner.jsx";
 import FactorDetailModal from "../components/macro/FactorDetailModal.jsx";
 import TopMovers from "../components/macro/TopMovers.jsx";
-import ShortcutsHelp from "../components/macro/ShortcutsHelp.jsx";
 import FilterBar from "../components/macro/FilterBar.jsx";
 import AlertBacktestPanel from "../components/macro/AlertBacktestPanel.jsx";
 import { buildDigest } from "../components/macro/digestBuilder.js";
@@ -96,7 +95,6 @@ export default function MacroDashboard() {
   useEffect(() => {
     try { localStorage.setItem("quantedge_macro_compact", compact ? "1" : "0"); } catch {}
   }, [compact]);
-  const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
   const [shared, setShared] = useState(false);  // "已复制 URL" 短暂提示
 
   // ─── 视图分享：URL hash ↔ filter state ───────────────────
@@ -195,19 +193,17 @@ export default function MacroDashboard() {
         return;
       }
       if (selectedFactor) return;  // modal 优先
-      if (showShortcutsHelp) return;  // 帮助 modal 优先
       if (e.key === "r") { e.preventDefault(); load(); }
       else if (e.key === "c") { e.preventDefault(); setCompact(v => !v); }
       else if (e.key === "s" || e.key === "/") {
         e.preventDefault();
         searchInputRef.current?.focus();
       }
-      else if (e.key === "?") { e.preventDefault(); setShowShortcutsHelp(true); }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedFactor, search, compact, showShortcutsHelp]);
+  }, [selectedFactor, search, compact]);
 
   const load = async () => {
     setLoading(true);
@@ -539,8 +535,6 @@ export default function MacroDashboard() {
           );
         })}
       </div>
-
-      <ShortcutsHelp open={showShortcutsHelp} onClose={() => setShowShortcutsHelp(false)} />
 
       <FactorDetailModal
         f={selectedFactor}

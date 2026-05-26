@@ -704,7 +704,7 @@ def patch_file(path: Path, patches: dict, label: str) -> tuple[int, int, int]:
     if not path.exists():
         print(f"[skip] 不存在: {path}")
         return 0, 0, 0
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         data = json.load(f)
 
     by_ticker = {it["ticker"]: it for it in data.get("items", [])}
