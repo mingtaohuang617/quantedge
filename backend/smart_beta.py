@@ -136,9 +136,14 @@ def score_sector_etf(
         return empty
 
     # 趋势动量：1M*0.3 + 3M*0.5 + 6M*0.2
-    r_1m = float(prices.iloc[-1] / prices.iloc[-21] - 1) if len(prices) >= 22 else 0.0
-    r_3m = float(prices.iloc[-1] / prices.iloc[-63] - 1) if len(prices) >= 64 else 0.0
-    r_6m = float(prices.iloc[-1] / prices.iloc[-126] - 1) if len(prices) >= 127 else 0.0
+    # 外层已保证 n >= 120，r_1m / r_3m 永远可算。
+    # r_6m 优先 iloc[-126]；数据 120-126 时退化到 iloc[0]（实际能拿到的最远点
+    # ≈ 6 个月），与原意接近 — 避免 r_6m=0 系统性拉低 trend 分。
+    n = len(prices)
+    r_1m = float(prices.iloc[-1] / prices.iloc[-21] - 1)
+    r_3m = float(prices.iloc[-1] / prices.iloc[-63] - 1)
+    r_6m_idx = -126 if n >= 127 else 0
+    r_6m = float(prices.iloc[-1] / prices.iloc[r_6m_idx] - 1)
     trend_pct = r_1m * 0.3 + r_3m * 0.5 + r_6m * 0.2
     # -10% → 0, 0% → 50, +10% → 100
     trend = max(0.0, min(100.0, 50.0 + trend_pct * 500.0))

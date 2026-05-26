@@ -14,38 +14,17 @@
 // ─────────────────────────────────────────────────────────────
 import React, { useEffect, useState } from "react";
 import { X, Plus, Activity, TrendingUp, TrendingDown, ExternalLink } from "lucide-react";
+import { fmtMcap, fmtNum, fmtPct } from "../lib/formatters.js";
+import { tickerToYahoo, fetchPriceHistory } from "../lib/yahoo.js";
 
-function fmtMcap(mc) {
-  if (mc == null) return "—";
-  if (mc >= 1e12) return `${(mc / 1e12).toFixed(2)}T`;
-  if (mc >= 1e9) return `${(mc / 1e9).toFixed(2)}B`;
-  if (mc >= 1e6) return `${(mc / 1e6).toFixed(0)}M`;
-  return `${mc.toFixed(0)}`;
-}
-
-function fmtNum(v, prec = 2) {
-  return typeof v === "number" && isFinite(v) ? v.toFixed(prec) : "—";
-}
-
-function fmtPct(v) {
-  return typeof v === "number" && isFinite(v) ? `${(v * 100).toFixed(1)}%` : "—";
-}
+// fmtMcap / fmtNum / fmtPct 已抽到 src/lib/formatters.js（PR #163）
 
 /** 取赛道名（与 Screener10x.trendName 同逻辑，但本地拷贝） */
 function defaultTrendName(supertrends) {
   return (id) => supertrends.find((s) => s.id === id)?.name || id;
 }
 
-/** ticker → Yahoo Finance 标准代码（与 Screener10x._tickerToYahoo 同逻辑） */
-function tickerToYahoo(ticker) {
-  if (!ticker) return null;
-  if (ticker.endsWith(".HK")) {
-    const num = ticker.replace(".HK", "").replace(/^0+/, "").padStart(4, "0");
-    return num + ".HK";
-  }
-  if (ticker.endsWith(".SH")) return ticker.replace(".SH", ".SS");
-  return ticker;
-}
+// tickerToYahoo 已抽到 src/lib/yahoo.js（PR #161），import 自顶部
 
 /** Sparkline — SVG 折线，30 日涨跌区分色 */
 function Sparkline({ prices, width = 280, height = 50 }) {
@@ -83,23 +62,9 @@ export default function StockDetailPanel({
     if (!open || !item?.ticker) return;
     let cancelled = false;
     setPriceHistory({ prices: null, loading: true });
-    const yfSym = tickerToYahoo(item.ticker);
-    if (!yfSym) {
-      setPriceHistory({ prices: null, loading: false });
-      return;
-    }
-    const path = `/v8/finance/chart/${encodeURIComponent(yfSym)}?interval=1d&range=1mo`;
-    const url = `/api/yahoo?host=query1&path=${encodeURIComponent(path)}`;
-    fetch(url, { signal: AbortSignal.timeout(8000) })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((j) => {
-        if (cancelled) return;
-        const closes = j?.chart?.result?.[0]?.indicators?.quote?.[0]?.close;
-        setPriceHistory({ prices: Array.isArray(closes) ? closes : null, loading: false });
-      })
-      .catch(() => {
-        if (!cancelled) setPriceHistory({ prices: null, loading: false });
-      });
+    fetchPriceHistory(item.ticker, "1mo").then((prices) => {
+      if (!cancelled) setPriceHistory({ prices, loading: false });
+    });
     return () => { cancelled = true; };
   }, [open, item?.ticker]);
 

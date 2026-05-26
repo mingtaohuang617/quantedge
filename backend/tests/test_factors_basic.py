@@ -31,7 +31,8 @@ def test_parse_leverage_no_leverage():
     assert parse_leverage("") is None
     assert parse_leverage("None") is None
     assert parse_leverage("1x") is None  # 1x 视作非杠杆
-    assert parse_leverage("-1x") is None  # |L|=1 也视作非杠杆
+    # 注：-1x 现在被识别为反向杠杆（SQQQ 类）；历史上被误判为非杠杆，已修
+    assert parse_leverage("-1x") == -1.0
 
 
 def test_parse_leverage_numeric():
