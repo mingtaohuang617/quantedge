@@ -1,5 +1,21 @@
 """
 universe.loader — 合并加载多市场 universe
+
+数据流（避免再踩 PR #193 那个坑）：
+
+  backend/universe/sync_*.py
+    ├── 写 → backend/output/universe_*.json  (本地, .gitignore 排除)
+    └── (手动) python backend/export_universe_to_frontend.py
+        └── 写 → frontend/public/data/universe/universe_*.json  (slim 版, git track)
+            ├── Vercel: vercel.json includeFiles 打进 lambda bundle
+            └── Render: render.yaml buildCommand `cp` 到 backend/output/
+
+也就是说，本文件读取的 backend/output/*.json 在：
+  - 本地：用户跑 sync_*.py 直接生成
+  - Render production：build 时从 frontend/public/data/universe/ 拷贝过来
+
+如果在 Render 上 count=0 / exists=false，去检查 render.yaml 的 buildCommand
+是否包含那一步 `cp ../frontend/public/data/universe/*.json output/`。
 """
 from __future__ import annotations
 
