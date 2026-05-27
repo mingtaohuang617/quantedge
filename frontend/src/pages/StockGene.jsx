@@ -31,7 +31,7 @@ import {
   ACTIVE_LIST_STORAGE_KEY, LAST_SEEN_ALERTS_KEY, NOTIFY_PERMISSION_KEY,
 } from "../components/stock-gene/helpers.js";
 import { ConfirmDialog, ShortcutsHelp, WeightsPanel, ListDialog, AlertsPanel, SchedulerPanel } from "../components/stock-gene/dialogs.jsx";
-import { VerdictFilterChips, TagFilterChips } from "../components/stock-gene/filters.jsx";
+import { VerdictFilterChips, TagFilterChips, TagsInput } from "../components/stock-gene/filters.jsx";
 import { PeersTable } from "../components/stock-gene/cards.jsx";
 import { ListsTabBar } from "../components/stock-gene/ListsTabBar.jsx";
 import { ScoreDetail } from "../components/stock-gene/ScoreDetail.jsx";
