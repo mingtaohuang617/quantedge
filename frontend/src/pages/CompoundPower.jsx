@@ -382,21 +382,22 @@ export default function CompoundPower({ onOneClickBacktest = null }) {
   const strategies = STRATEGY_LIBRARY[currentTier] || [];
 
   return (
-    <div className="h-full overflow-y-auto bg-[#0d1117] text-white">
-      {/* ── Header ─────────────────────────────────────── */}
-      <div className="sticky top-0 z-10 bg-[#0d1117]/95 backdrop-blur border-b border-white/10 px-4 py-2.5">
+    // v5 对齐：移除 bg-[#0d1117] 硬编码，让父 shell 的 theme bg 透出来（同 PR #195 SmartBeta 模式）
+    <div className="h-full overflow-y-auto">
+      {/* ── Header ─ sticky + theme-aware bg ─ */}
+      <div className="sticky top-0 z-10 backdrop-blur border-b border-white/8 px-4 py-2.5" style={{ background: "color-mix(in srgb, var(--bg-base) 92%, transparent)" }}>
         <div className="flex items-center gap-2">
           <Sparkles size={16} className="text-indigo-400" />
-          <h2 className="text-sm font-semibold tracking-tight">复利的力量 · The Power of Compounding</h2>
+          <h2 className="text-sm font-semibold tracking-tight" style={{ color: "var(--text-heading)" }}>复利的力量 · The Power of Compounding</h2>
         </div>
-        <p className="text-[10px] text-[#a0aec0] mt-0.5">
+        <p className="text-[10px] mt-0.5" style={{ color: "var(--text-secondary)" }}>
           "时间是投资人最好的朋友" — 输入年化收益率、年限、本金，看复利曲线，并对照同档风险下的可行组合。
         </p>
       </div>
 
       {/* ── §1 复利计算器 ────────────────────────────── */}
       <div className="p-4 space-y-3">
-        <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3">
+        <div className="glass-card p-3">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
             <div>
               <label className="text-[10px] text-[#a0aec0] mb-1 block">年化收益率</label>
@@ -443,7 +444,7 @@ export default function CompoundPower({ onOneClickBacktest = null }) {
                 }`}
               />
               <div className={`text-[10px] mt-0.5 font-mono ${
-                principalInvalid ? "text-rose-400" : "text-[#a0aec0]"
+                principalInvalid ? "text-down" : "text-[#a0aec0]"
               }`}>
                 {principalInvalid
                   ? `非法输入，已回退到 1`
@@ -507,10 +508,10 @@ export default function CompoundPower({ onOneClickBacktest = null }) {
         </div>
 
         {/* 增长曲线 */}
-        <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3">
+        <div className="glass-card p-3">
           <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
             <h3 className="text-[11px] font-semibold text-white/90 flex items-center gap-1.5">
-              <TrendingUp size={13} className="text-emerald-400" />
+              <TrendingUp size={13} className="text-up" />
               增长曲线 · {fmtPct(selectedRate, 0)} × {years} 年
             </h3>
             <span className="text-[10px] text-[#a0aec0] font-mono space-x-2">
@@ -523,7 +524,7 @@ export default function CompoundPower({ onOneClickBacktest = null }) {
         </div>
 
         {/* ── §2 风险等级对照表 ─────────────────────── */}
-        <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3">
+        <div className="glass-card p-3">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-[11px] font-semibold text-white/90 flex items-center gap-1.5">
               <Shield size={13} className="text-sky-400" />
@@ -554,7 +555,7 @@ export default function CompoundPower({ onOneClickBacktest = null }) {
         </div>
 
         {/* ── §3 策略组合推荐 ─────────────────────────── */}
-        <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3">
+        <div className="glass-card p-3">
           <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
             <h3 className="text-[11px] font-semibold text-white/90 flex items-center gap-1.5">
               <Sparkles size={13} className={ACCENT_CLASS[tierMeta.accent].text} />
@@ -573,7 +574,7 @@ export default function CompoundPower({ onOneClickBacktest = null }) {
             ))}
           </div>
           {currentTier === "extreme" && (
-            <div className="mt-3 rounded-md bg-rose-500/10 border border-rose-500/30 px-3 py-2 text-[11px] text-rose-300 flex items-start gap-2">
+            <div className="mt-3 rounded-md bg-down/10 border border-down/30 px-3 py-2 text-[11px] text-down flex items-start gap-2">
               <AlertTriangle size={12} className="shrink-0 mt-0.5" />
               <span>
                 <strong>提醒：</strong>50%+ 持续年化在任何成熟资产类别上都不可持续。
