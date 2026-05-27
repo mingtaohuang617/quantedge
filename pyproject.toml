@@ -62,3 +62,12 @@ markers = [
   "network: requires network access (deselected by default)",
   "slow: slow test (e.g. e2e / large data); 用 -m 'not slow' 跳过",
 ]
+# 屏蔽测试输出中的预期 / 第三方噪音
+# - mining_alpha：numpy 在稀疏数据上的 RuntimeWarning（输出已正确处理为 NaN）
+# - futu-api：SDK 内部 protobuf 生成代码的 DeprecationWarning（第三方，我们无法修）
+# 精确匹配 message，其他 warning 仍会显示
+filterwarnings = [
+  "ignore:Mean of empty slice:RuntimeWarning",
+  "ignore:invalid value encountered in divide:RuntimeWarning",
+  "ignore:Call to deprecated create function:DeprecationWarning",
+]
