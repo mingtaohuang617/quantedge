@@ -165,11 +165,11 @@ const RebalanceHint = ({ selected, currentHoldings }) => {
       )}
       {added.length > 0 && (
         <div className="flex items-start gap-1">
-          <TrendingUp size={11} className="text-emerald-400 mt-0.5 shrink-0" />
+          <TrendingUp size={11} className="text-up mt-0.5 shrink-0" />
           <div>
-            <span className="text-emerald-300">买入：</span>
+            <span className="text-up">买入：</span>
             {added.map(t => (
-              <span key={t} className="ml-1 px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-mono">
+              <span key={t} className="ml-1 px-1.5 py-0.5 rounded bg-up/10 text-up border border-up/30 font-mono">
                 {t}
               </span>
             ))}
@@ -178,11 +178,11 @@ const RebalanceHint = ({ selected, currentHoldings }) => {
       )}
       {removed.length > 0 && (
         <div className="flex items-start gap-1">
-          <TrendingDown size={11} className="text-rose-400 mt-0.5 shrink-0" />
+          <TrendingDown size={11} className="text-down mt-0.5 shrink-0" />
           <div>
-            <span className="text-rose-300">卖出：</span>
+            <span className="text-down">卖出：</span>
             {removed.map(t => (
-              <span key={t} className="ml-1 px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-300 border border-rose-500/30 font-mono">
+              <span key={t} className="ml-1 px-1.5 py-0.5 rounded bg-down/10 text-down border border-down/30 font-mono">
                 {t}
               </span>
             ))}
@@ -241,7 +241,7 @@ const SectorRankTable = ({ ranked, selected }) => {
                 <td className="px-2 py-1.5 text-right text-[#a0aec0]">{fmtNum(c.relative, 0)}</td>
                 <td className="px-2 py-1.5 text-right text-[#a0aec0]">{fmtNum(c.flow, 0)}</td>
                 <td className="px-2 py-1.5 text-right text-[#a0aec0]">{fmtNum(c.sharpe, 0)}</td>
-                <td className={`px-2 py-1.5 text-right ${c.rsi > 75 ? "text-rose-300" : "text-[#a0aec0]"}`}>
+                <td className={`px-2 py-1.5 text-right ${c.rsi > 75 ? "text-down" : "text-[#a0aec0]"}`}>
                   {fmtNum(c.rsi, 0)}
                 </td>
                 <td className="px-2 py-1.5 text-right text-[#a0aec0]">
@@ -353,14 +353,15 @@ export default function SmartBeta() {
   const sectorAlloc = snapshot?.sector_alloc || {};
 
   return (
-    <div className="h-full overflow-y-auto bg-[#0d1117] text-white">
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-[#0d1117]/95 backdrop-blur border-b border-white/10 px-4 py-2.5">
+    // v5 对齐：移除 bg-[#0d1117] 硬编码，让父 shell 的 theme bg 透出来
+    <div className="h-full overflow-y-auto">
+      {/* Header — sticky + glass-card 风（与其他 tab 一致） */}
+      <div className="sticky top-0 z-10 backdrop-blur border-b border-white/8 px-4 py-2.5" style={{ background: "color-mix(in srgb, var(--bg-base) 92%, transparent)" }}>
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <Layers size={16} className="text-indigo-400" />
-              <h2 className="text-sm font-semibold tracking-tight">Smart Beta · 指数 + 行业 ETF 动态轮动</h2>
+              <h2 className="text-sm font-semibold tracking-tight" style={{ color: "var(--text-heading)" }}>Smart Beta · 指数 + 行业 ETF 动态轮动</h2>
               {isDemoMode && (
                 <span
                   className="px-1.5 py-0.5 rounded text-[9px] font-mono uppercase tracking-wider bg-amber-500/15 text-amber-300 border border-amber-500/40"
@@ -370,7 +371,7 @@ export default function SmartBeta() {
                 </span>
               )}
             </div>
-            <p className="text-[10px] text-[#a0aec0] mt-0.5">
+            <p className="text-[10px] mt-0.5" style={{ color: "var(--text-secondary)" }}>
               三层：风险层（VIX/趋势/信用利差/实际利率）→ Core ETF 配比 → 行业 ETF 评分轮动
               {snapshot?.as_of && <span className="ml-2 font-mono">· 基准日 {snapshot.as_of.slice(0, 10)}</span>}
             </p>
@@ -378,6 +379,7 @@ export default function SmartBeta() {
           <button
             onClick={fetchSnapshot}
             disabled={loading}
+            aria-label={loading ? "正在计算" : "重新计算 Smart Beta 快照"}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 border border-indigo-500/30 disabled:opacity-50"
           >
             {loading ? <Loader size={12} className="animate-spin" /> : <RefreshCw size={12} />}
@@ -435,7 +437,7 @@ export default function SmartBeta() {
       </div>
 
       {error && (
-        <div className="m-4 p-3 rounded-md bg-rose-500/10 border border-rose-500/30 text-rose-300 text-[11px] flex items-start gap-2">
+        <div className="m-4 p-3 rounded-md bg-down/10 border border-down/30 text-down text-[11px] flex items-start gap-2">
           <AlertCircle size={14} className="shrink-0 mt-0.5" />
           <div>
             <div className="font-semibold mb-0.5">加载失败</div>
@@ -447,7 +449,7 @@ export default function SmartBeta() {
       {snapshot && (
         <div className="p-4 space-y-3">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-            <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3">
+            <div className="glass-card p-3">
               <div className="flex items-center gap-2 mb-2">
                 <Compass size={13} className="text-amber-400" />
                 <h3 className="text-[11px] font-semibold text-white/90">L1 · 风险评分</h3>
@@ -455,7 +457,7 @@ export default function SmartBeta() {
               <RiskDial score={riskScore} components={riskComponents} />
             </div>
 
-            <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3">
+            <div className="glass-card p-3">
               <div className="flex items-center gap-2 mb-2">
                 <Layers size={13} className="text-indigo-400" />
                 <h3 className="text-[11px] font-semibold text-white/90">L1 → 总比例</h3>
@@ -463,9 +465,9 @@ export default function SmartBeta() {
               <CoreSectorPie coreWeight={coreWeight} sectorWeight={sectorWeight} />
             </div>
 
-            <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3">
+            <div className="glass-card p-3">
               <div className="flex items-center gap-2 mb-2">
-                <ArrowRight size={13} className="text-emerald-400" />
+                <ArrowRight size={13} className="text-up" />
                 <h3 className="text-[11px] font-semibold text-white/90">L3 · 调仓建议</h3>
               </div>
               <RebalanceHint selected={selected} currentHoldings={config.current_holdings} />
@@ -473,7 +475,7 @@ export default function SmartBeta() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-            <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3">
+            <div className="glass-card p-3">
               <h3 className="text-[11px] font-semibold text-white/90 mb-1.5">
                 L2 Core 内部配置 <span className="text-[#a0aec0] font-normal">· {config.core_preset}</span>
               </h3>
@@ -485,7 +487,7 @@ export default function SmartBeta() {
                 ))}
               </div>
             </div>
-            <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3">
+            <div className="glass-card p-3">
               <h3 className="text-[11px] font-semibold text-white/90 mb-1.5">
                 L3 Sector 选中 ETF <span className="text-[#a0aec0] font-normal">· {config.weight_mode}</span>
               </h3>
@@ -500,7 +502,7 @@ export default function SmartBeta() {
             </div>
           </div>
 
-          <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3">
+          <div className="glass-card p-3">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-[11px] font-semibold text-white/90 flex items-center gap-1.5">
                 <Activity size={13} className="text-cyan-400" />
@@ -513,7 +515,7 @@ export default function SmartBeta() {
             <SectorRankTable ranked={ranked} selected={selected} />
           </div>
 
-          <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3">
+          <div className="glass-card p-3">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-[11px] font-semibold text-white/90 flex items-center gap-1.5">
                 <Settings size={13} className="text-indigo-400" />
