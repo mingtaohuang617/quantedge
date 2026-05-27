@@ -83,16 +83,19 @@ describe('useMiningAlphaData — mount 与 status 分流', () => {
     expect(paths.some(p => p.startsWith('/mining-alpha/top-holdings'))).toBe(false);
   });
 
-  it('status 返回 null → 不发其他 GET，loading 收尾，error 不被设', async () => {
+  it('status 返回 null → 触发 demo fallback，isDemoMode=true，error 不被设', async () => {
     apiFetch.mockImplementation((path) => {
       if (path === '/mining-alpha/status') return Promise.reject(new Error('boom'));
       if (path === '/mining-alpha/alerts') return Promise.resolve({ alerts: [] });
       return Promise.resolve(null);
     });
     const { result } = renderHook(() => useMiningAlphaData());
-    await waitFor(() => expect(result.current.loading).toBe(false));
-    expect(result.current.status).toBeNull();
-    expect(result.current.error).toBeNull();  // status 的 catch(() => null) 吞掉异常，error 不应设
+    // demo chunk 动态 import 完成后 isDemoMode 翻 true
+    await waitFor(() => expect(result.current.isDemoMode).toBe(true));
+    expect(result.current.error).toBeNull();
+    // status 已被 demo 数据替换（非 null）
+    expect(result.current.status).not.toBeNull();
+    expect(result.current.status.current_run_id).toBe('demo-2024-12');
   });
 });
 

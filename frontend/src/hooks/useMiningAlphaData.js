@@ -31,7 +31,31 @@ export function useMiningAlphaData() {
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  // Vercel/无后端部署兜底：当 backend 不可达或在线但没数据时，加载示例数据。
+  // 动态 import 拆独立 chunk，不污染主 bundle。
+  const [isDemoMode, setIsDemoMode] = useState(false);
   const fetchSeqRef = useRef(0);
+
+  const loadDemo = async (isStale) => {
+    try {
+      const mod = await import("../data/miningAlphaDemo.js");
+      if (isStale && isStale()) return;
+      const d = mod.demoMiningAlpha;
+      setStatus(d.status);
+      setIC(d.ic);
+      setImportance(d.importance);
+      setBacktest(d.backtest);
+      setTopHoldings(d.topHoldings);
+      setRegime(d.regime);
+      setFoldIC(d.foldIC);
+      setHeatmap(d.heatmap);
+      setAlerts(d.alerts);
+      setIsDemoMode(true);
+      setError(null);
+    } catch {
+      // demo chunk 加载失败 → 退化到原行为（BackendUnreachableNotice）
+    }
+  };
 
   const fetchAll = async () => {
     const mySeq = ++fetchSeqRef.current;
@@ -41,7 +65,17 @@ export function useMiningAlphaData() {
     try {
       const s = await apiFetch("/mining-alpha/status").catch(() => null);
       if (isStale()) return;
+      // 空状态兜底：backend 完全不可达（s===null）或在线但没任何 run/数据
+      // → 加载 demo 数据 + 设 isDemoMode（前端显示 amber DEMO badge）
+      const isEmpty = s === null ||
+        (s?.factor_count === 0 && (s?.history_runs?.length ?? 0) === 0);
+      if (isEmpty) {
+        setLoading(false);
+        await loadDemo(isStale);
+        return;
+      }
       setStatus(s);
+      setIsDemoMode(false);
       const guarded = (setter) => (val) => { if (!isStale()) setter(val); };
       const rid = s?.current_run_id ? `&run_id=${encodeURIComponent(s.current_run_id)}` : "";
       const ridFirst = s?.current_run_id ? `?run_id=${encodeURIComponent(s.current_run_id)}` : "";
@@ -66,6 +100,8 @@ export function useMiningAlphaData() {
   };
 
   const switchRun = async (runId) => {
+    // demo 模式下 switch-run 是 no-op（只有一个 demo run）
+    if (isDemoMode) return;
     try {
       await apiFetch(`/mining-alpha/switch-run/${runId}`, { method: "POST" });
       await fetchAll();
@@ -82,7 +118,7 @@ export function useMiningAlphaData() {
 
   return {
     status, ic, importance, backtest, topHoldings, regime, foldIC, heatmap, alerts,
-    loading, error,
+    loading, error, isDemoMode,
     refetch: fetchAll,
     switchRun,
   };
