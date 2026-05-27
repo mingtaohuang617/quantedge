@@ -727,6 +727,36 @@ def _get_display_symbol(symbol: str) -> str:
         return _hk_5digit(symbol)
     return symbol
 
+# ── Futu OpenD 断路器 ─────────────────────────────────────────
+# 云端（如 Render）连不上本地 OpenD，futu SDK 会持续后台重连污染日志。
+# 失败后熔断 N 秒，期间所有 Futu 调用直接 short-circuit 返回空，避免再次实例化
+# OpenQuoteContext 触发新的重连循环。本地 OpenD 在线时正常工作。
+# - FUTU_DISABLE=1 环境变量：永久禁用（云端可设）
+# - 单次失败 → 熔断 60s，连续失败按 60→120→240→…→3600 指数退避
+_FUTU_DISABLED = os.getenv("FUTU_DISABLE") == "1"
+_futu_circuit = {"open_until": 0.0, "fail_count": 0}
+
+def _futu_available() -> bool:
+    """断路器：环境变量禁用 / 在熔断窗口内 → False。"""
+    if _FUTU_DISABLED:
+        return False
+    return _futu_circuit["open_until"] <= time.time()
+
+def _futu_mark_failure(reason: str = "") -> None:
+    """记录一次失败，按指数退避延长熔断窗口（60s → 120s → ... → 3600s 上限）。"""
+    _futu_circuit["fail_count"] += 1
+    cooldown = min(60 * (2 ** (_futu_circuit["fail_count"] - 1)), 3600)
+    _futu_circuit["open_until"] = time.time() + cooldown
+    print(f"[futu] 熔断 {cooldown}s（连续失败 #{_futu_circuit['fail_count']}）: {reason}")
+
+def _futu_mark_success() -> None:
+    """成功调用 → 重置断路器。"""
+    if _futu_circuit["fail_count"] > 0:
+        print(f"[futu] 恢复（之前失败 {_futu_circuit['fail_count']} 次）")
+    _futu_circuit["fail_count"] = 0
+    _futu_circuit["open_until"] = 0.0
+
+
 # Futu HK stock cache for Chinese name search
 _futu_hk_cache = []
 _futu_cache_time = 0
@@ -736,6 +766,8 @@ def _get_futu_hk_stocks():
     global _futu_hk_cache, _futu_cache_time
     if _futu_hk_cache and (time.time() - _futu_cache_time < 3600):
         return _futu_hk_cache
+    if not _futu_available():
+        return _futu_hk_cache  # 熔断中：返回旧 cache（可能为空），不实例化新 ctx
     try:
         from futu import OpenQuoteContext
         ctx = OpenQuoteContext(host='127.0.0.1', port=11111)
@@ -747,9 +779,12 @@ def _get_futu_hk_stocks():
                 for _, row in data[["code", "name"]].iterrows()
             ]
             _futu_cache_time = time.time()
+            _futu_mark_success()
             print(f"[OK] Futu HK stock cache: {len(_futu_hk_cache)} stocks")
+        else:
+            _futu_mark_failure(f"get_stock_basicinfo ret={ret}")
     except Exception as e:
-        print(f"[X] Futu HK cache failed: {e}")
+        _futu_mark_failure(f"HK cache exception: {e}")
     return _futu_hk_cache
 
 
@@ -790,12 +825,15 @@ def search_ticker(q: str = Query(..., min_length=1, description="搜索关键词
     def _futu_quote(futu_codes):
         """Fetch real-time quotes from Futu OpenD (fast, local). Returns dict[code] → {price, change, mkt_cap}."""
         quotes = {}
+        if not _futu_available():
+            return quotes  # 熔断中：不实例化新 ctx
         try:
             from futu import OpenQuoteContext
             ctx = OpenQuoteContext(host='127.0.0.1', port=11111)
             ret, data = ctx.get_market_snapshot(futu_codes)
             ctx.close()
             if ret == 0 and data is not None:
+                _futu_mark_success()
                 for _, row in data.iterrows():
                     prev = row.get("prev_close_price", 0) or 0
                     price = row.get("last_price", 0) or 0
@@ -806,8 +844,10 @@ def search_ticker(q: str = Query(..., min_length=1, description="搜索关键词
                         "mkt_cap": row.get("total_market_val"),
                         "name": row.get("name", ""),
                     }
+            else:
+                _futu_mark_failure(f"get_market_snapshot ret={ret}")
         except Exception as e:
-            print(f"[X] Futu quote error: {e}")
+            _futu_mark_failure(f"quote exception: {e}")
         return quotes
 
     # ── 1. Check if query looks like an HK stock code ──
