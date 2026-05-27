@@ -74,48 +74,67 @@ const ic = Array.from({ length: 20 }, (_, i) => {
 });
 
 // ── feature importance ───────────────────────────────────────
+// FeatureImportanceChart 读 {feature, importance}
 const importance = Array.from({ length: 20 }, (_, i) => ({
-  name: `alpha_${ic[i].alpha_num}`,
-  gain: +(2400 - i * 95 + rnd() * 50).toFixed(1),
+  feature: `α${ic[i].alpha_num}`,
+  importance: +(2400 - i * 95 + rnd() * 50).toFixed(1),
   split: 145 - i * 5 + Math.floor(rnd() * 10),
 }));
 
-// ── backtest equity curve + metrics ──────────────────────────
-// 策略：年化 ~22%，最大回撤 ~-8%；基准：年化 ~12%，回撤 ~-12%
-let strategyNav = 1.0;
+// ── backtest equity + benchmark curves + metrics ─────────────
+// EquityCurveChart 读 equity_curve/{date, equity} + benchmark_curve/{date, bench_equity}
+let stratNav = 1.0;
 let benchNav = 1.0;
-const equity_curve = dates.map((d, i) => {
-  const stratRet = 0.00085 + (rnd() - 0.5) * 0.013;  // ~ +22% 年化
+const equity_curve = [];
+const benchmark_curve = [];
+for (let i = 0; i < dates.length; i++) {
+  const stratRet = 0.00085 + (rnd() - 0.5) * 0.013;
   const benchRet = 0.00045 + (rnd() - 0.5) * 0.015;
-  strategyNav *= 1 + stratRet;
+  stratNav *= 1 + stratRet;
   benchNav *= 1 + benchRet;
-  return {
-    date: d,
-    strategy: +strategyNav.toFixed(4),
-    benchmark: +benchNav.toFixed(4),
-  };
-});
+  equity_curve.push({ date: dates[i], equity: +stratNav.toFixed(4) });
+  benchmark_curve.push({ date: dates[i], bench_equity: +benchNav.toFixed(4) });
+}
 
 const backtest = {
   run_id: RUN_ID,
   metrics: {
     annual_return: 0.218,
+    annual_vol: 0.127,
     sharpe: 1.72,
     calmar: 2.81,
     max_drawdown: -0.078,
-    ic_avg: 0.082,
-    ir: 0.41,
-    turnover: 0.34,
-    win_rate: 0.561,
-    n_trades: 1248,
+    monthly_win_rate: 0.583,
+    alpha_annual: 0.095,
+    ir_vs_benchmark: 1.18,
+    turnover_annual: 3.40,
+    total_return: +(stratNav - 1).toFixed(4),
     benchmark_annual: 0.123,
     benchmark_max_dd: -0.118,
-    alpha_annual: 0.095,
     benchmark: "CSI500",
     start_date: dates[0],
     end_date: dates[dates.length - 1],
+    top_n: 50,
+    cost: 0.002,
+    has_tradeable_mask: true,
+    n_trades: 1248,
   },
   equity_curve,
+  benchmark_curve,
+  multi_topn: [20, 30, 50, 80, 100].map((n) => {
+    const scale = 50 / n;
+    return {
+      top_n: n,
+      annual_return: +(0.218 * scale).toFixed(4),
+      sharpe: +(1.72 / Math.sqrt(scale)).toFixed(2),
+      max_drawdown: +(-0.078 * scale).toFixed(4),
+      calmar: +(2.81 / scale).toFixed(2),
+      alpha_annual: +(0.095 * scale).toFixed(4),
+      ir_vs_benchmark: +(1.18 / Math.sqrt(scale)).toFixed(2),
+      monthly_win_rate: +(0.583 - (n - 50) * 0.001).toFixed(3),
+      turnover_annual: +(3.40 + (50 - n) * 0.03).toFixed(2),
+    };
+  }),
 };
 
 // ── top holdings (Top 20 by predicted return) ────────────────
@@ -154,18 +173,15 @@ const regime = dates.map((d, i) => {
   return { date: d, label };
 });
 
-// ── 5-fold cross-validation IC ───────────────────────────────
+// ── 5-fold walk-forward IC ───────────────────────────────────
+// FoldICTable 读 {fold, test_start, test_end, test_ic_mean, test_ic_ir, best_iter}
 const foldIC = Array.from({ length: 5 }, (_, i) => ({
   fold: i + 1,
-  ic_mean: +(0.072 + (rnd() - 0.5) * 0.025).toFixed(4),
-  ic_std: +(0.13 + rnd() * 0.03).toFixed(4),
-  ir: +(0.38 + (rnd() - 0.5) * 0.18).toFixed(3),
-  train_start: dates[i * 40],
-  train_end: dates[i * 40 + 100],
-  valid_start: dates[i * 40 + 100],
-  valid_end: dates[i * 40 + 140],
-  n_train: 100,
-  n_valid: 40,
+  test_start: dates[40 + i * 40],
+  test_end: dates[Math.min(40 + i * 40 + 40, dates.length - 1)],
+  test_ic_mean: +(0.072 + (rnd() - 0.5) * 0.025).toFixed(4),
+  test_ic_ir: +(0.38 + (rnd() - 0.5) * 0.18).toFixed(3),
+  best_iter: 120 + Math.floor(rnd() * 80),
 }));
 
 // ── IC heatmap (top 20 alpha × 24 months) ────────────────────
@@ -174,13 +190,23 @@ const heatmapMonths = Array.from({ length: 24 }, (_, i) => {
   const y = 2023 + Math.floor(i / 12);
   return `${y}-${String(m).padStart(2, "0")}`;
 });
+// ICHeatmap 读 {alphas, months, cells:[{alpha, month, ic}]}
+const heatmapAlphas = ic.slice(0, 20).map(r => r.alpha_num);
+const heatmapCells = [];
+heatmapAlphas.forEach((alpha, idx) => {
+  const trend = ic[idx].ic_mean;
+  heatmapMonths.forEach((month) => {
+    heatmapCells.push({
+      alpha,
+      month,
+      ic: +(trend + (rnd() - 0.5) * 0.12).toFixed(4),
+    });
+  });
+});
 const heatmap = {
-  alphas: ic.slice(0, 20).map(r => r.alpha_num),
+  alphas: heatmapAlphas,
   months: heatmapMonths,
-  values: ic.slice(0, 20).map(row => {
-    const trend = row.ic_mean;
-    return heatmapMonths.map(() => +(trend + (rnd() - 0.5) * 0.12).toFixed(4));
-  }),
+  cells: heatmapCells,
 };
 
 // ── alerts ───────────────────────────────────────────────────
