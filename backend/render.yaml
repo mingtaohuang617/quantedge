@@ -9,7 +9,11 @@ services:
     plan: free                        # 免费 tier：512MB RAM / 15min sleep / cold start ~30s
     region: singapore                 # 离中国大陆最近的 free region
     rootDir: backend
-    buildCommand: pip install -r requirements.txt
+    # universe_*.json 在 .gitignore 中（本地 sync 生成），但前端版本已 git track 进
+    # frontend/public/data/universe/。build 时把它们拷到 backend/output/，让 Render
+    # backend 的 /api/universe/stats、/api/watchlist/10x/screen 能读到数据。
+    # 不拷就会出现 count:0、exists:false → screener 候选永远 0（用户报的 bug）。
+    buildCommand: pip install -r requirements.txt && mkdir -p output && cp ../frontend/public/data/universe/*.json output/
     startCommand: python server.py    # 内部已读 $PORT
     healthCheckPath: /api/llm/stats   # 任何 200 端点都行，避开会卡 Futu 的 /api/status
     envVars:
