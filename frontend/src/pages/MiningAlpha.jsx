@@ -783,7 +783,7 @@ const FoldICTable = ({ rows }) => {
 export default function MiningAlpha() {
   const {
     status, ic, importance, backtest, topHoldings, regime, foldIC, heatmap, alerts,
-    loading, error, refetch: fetchAll, switchRun: onSwitchRun,
+    loading, error, isDemoMode, refetch: fetchAll, switchRun: onSwitchRun,
   } = useMiningAlphaData();
   const [pickedAlpha, setPickedAlpha] = useState(null);
 
@@ -792,9 +792,9 @@ export default function MiningAlpha() {
   const summary = topHoldings ? {
     n_new: topHoldings.n_new, n_held: topHoldings.n_held, n_dropped: topHoldings.n_dropped,
   } : {};
-  // 后端整体不可达：首次 fetchAll 完成、status 仍为 null、也没有 error。
-  // 这里短路出去渲染单一友好提示，而不是在 8 个面板里都喷 CLI 命令。
-  const backendUnreachable = !loading && status === null && !error;
+  // 后端整体不可达且 demo 也加载失败：渲染单一友好提示。
+  // 正常 Vercel 部署会走 demo fallback（hook 里 dynamic import）。
+  const backendUnreachable = !loading && status === null && !error && !isDemoMode;
 
   return (
     <div className="p-3 md:p-4 space-y-3 max-w-[1400px] mx-auto">
@@ -804,6 +804,14 @@ export default function MiningAlpha() {
           <Zap size={18} className="text-violet-400" />
           <h2 className="text-base md:text-lg font-bold text-white">Mining Alpha</h2>
           <span className="text-[10px] text-[#a0aec0]">因子挖掘 · ML 合成 · 回测</span>
+          {isDemoMode && (
+            <span
+              className="text-[10px] font-semibold px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 cursor-help"
+              title="后端无数据 — 显示静态示例。要看真实结果需 self-hosted backend 跑过 pipeline。"
+            >
+              DEMO 模式
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2">
           {status && <RunSwitcher status={status} onSwitch={onSwitchRun} />}
@@ -831,8 +839,24 @@ export default function MiningAlpha() {
       {/* 后端不可达时下面所有依赖 backend 的面板都不渲染 */}
       {!backendUnreachable && (<>
 
-      {/* Run Pipeline 面板 */}
-      <RunPipelinePanel runId={status?.current_run_id} onJobDone={fetchAll} />
+      {/* Run Pipeline 面板（demo 模式下隐藏，因为无后端可触发 subprocess）*/}
+      {!isDemoMode && <RunPipelinePanel runId={status?.current_run_id} onJobDone={fetchAll} />}
+
+      {/* Demo 模式横幅 — 替代下面的"还没数据 → CLI"提示 */}
+      {isDemoMode && (
+        <div className="border border-amber-500/30 bg-amber-500/5 rounded-md p-3">
+          <div className="text-[12px] font-semibold text-amber-300 mb-1">
+            📊 DEMO 模式 — 静态示例数据
+          </div>
+          <div className="text-[11px] text-white/80 leading-relaxed">
+            后端在线但还没跑过 pipeline，下面 IC 报告 / 回测净值 / Top 20 持仓 / 特征重要性
+            等面板展示的是 deterministic 合成示例。要看真实结果，请在 self-hosted backend 上跑：
+          </div>
+          <div className="mt-1.5 text-[10px] font-mono text-emerald-300/90">
+            cd backend && python -m mining_alpha.synthetic_demo && python -m mining_alpha.run all --universe DEMO --run-id demo
+          </div>
+        </div>
+      )}
 
       {/* 流水线状态 */}
       <div className="bg-white/[0.02] border border-white/5 rounded-lg p-3">
@@ -861,7 +885,7 @@ export default function MiningAlpha() {
         ) : (
           <div className="text-[#a0aec0] text-xs">{loading ? "加载中..." : "无法连接 API；后端是否启动？"}</div>
         )}
-        {!allDone && status && (
+        {!allDone && status && !isDemoMode && (
           <div className="mt-2 space-y-1.5">
             {status.factor_count === 0 ? (
               <div className="border border-cyan-500/30 bg-cyan-500/5 rounded-md p-2.5">
