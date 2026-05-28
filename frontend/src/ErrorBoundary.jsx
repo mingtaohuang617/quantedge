@@ -18,6 +18,13 @@ export default class ErrorBoundary extends React.Component {
     // 尽力记录到 console，便于排查
     console.error('[QuantEdge:ErrorBoundary]', error, info);
     this.setState({ info });
+    // Stale chunk：Vite 新部署后旧 hash 的 JS chunk 会 404。
+    // 检测到这种错误时自动刷新一次，让浏览器拉取最新 bundle。
+    const msg = error?.message || '';
+    if (msg.includes('dynamically imported module') || msg.includes('Failed to fetch')) {
+      window.location.reload();
+      return;
+    }
     // 让 E2E 能抓 — React 渲染期错误不会冒到 window.onerror，需要主动 dispatch
     try {
       if (typeof window !== 'undefined') {
