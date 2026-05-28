@@ -147,16 +147,18 @@ export default function StockGene() {
     setError(null);
     const json = await apiFetch("/stock-gene");
     setLoading(false);
-    if (json && Array.isArray(json.items)) {
+    // 真实数据路径：后端返回了非空 items（用户已经在跟踪标的）
+    if (json && Array.isArray(json.items) && json.items.length > 0) {
       setItems(json.items);
       if (Array.isArray(json.lists)) setLists(json.lists);
       setIsDemoMode(false);
-      // 默认选中第一项
-      if (json.items.length > 0 && !selectedTicker) {
-        setSelectedTicker(json.items[0].ticker);
-      }
+      if (!selectedTicker) setSelectedTicker(json.items[0].ticker);
     } else {
-      // 后端不可达 → 灌 demo 数据让 Vercel 等纯前端部署也能展示完整功能。
+      // 两种走 demo 的情况：
+      // 1) 后端不可达（json 为 null / 非对象）
+      // 2) 后端在线但 watchlist 是空（Vercel demo 环境 / 全新部署） — 与
+      //    Mining Alpha 同模式，因为这是公开 demo 平台，"空"等价于"没人用过"
+      // Dynamic import 拆独立 chunk，只在 fallback 时下载。
       // Dynamic import 拆独立 chunk，只在 fallback 时下载，不污染本地 dev bundle。
       try {
         const demo = await import("../data/stockGeneDemo.js");
