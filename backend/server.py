@@ -1403,6 +1403,115 @@ def smart_beta_snapshot(
     return sanitize(snap)
 
 
+# ── Smart Beta 历史回测 ─────────────────────────────────
+_smart_beta_bt_cache: dict = {}
+_SMART_BETA_BT_TTL_SEC = 3600  # 回测开销大，缓存 1 小时
+
+
+@app.get("/api/smart-beta/backtest")
+def smart_beta_backtest(
+    start_date: str = Query(..., description="回测起始日 YYYY-MM-DD"),
+    end_date: str | None = Query(None, description="回测结束日 YYYY-MM-DD，默认今天"),
+    core_preset: str = Query("balanced", description="balanced / simple / factor"),
+    k: int = Query(3, ge=1, le=10),
+    weight_mode: str = Query("equal", description="equal / momentum"),
+):
+    """Smart Beta 历史回测 — 月度再平衡 vs SPY benchmark。
+
+    数据需求：覆盖 [start_date - 200d, end_date] 的 SPY + 所有 sector + core ETF 价格。
+    回测开销较大（~3-5 年 daily × 月度重算 snapshot），结果缓存 1 小时。
+    """
+    import smart_beta as sb
+
+    # 解析日期
+    try:
+        start_ts = pd.Timestamp(start_date)
+        end_ts = pd.Timestamp(end_date) if end_date else pd.Timestamp.now().normalize()
+    except (ValueError, TypeError) as e:
+        raise HTTPException(400, f"日期格式错误: {e}") from e
+    if start_ts >= end_ts:
+        raise HTTPException(400, "start_date 必须早于 end_date")
+
+    cache_key = (start_date, end_ts.isoformat()[:10], core_preset, k, weight_mode)
+    now_ts = time.time()
+    cached = _smart_beta_bt_cache.get(cache_key)
+    if cached and (now_ts - cached["_cached_at"]) < _SMART_BETA_BT_TTL_SEC:
+        return sanitize({**cached["data"], "_cached": True})
+
+    universe = sb.load_universe()
+
+    # 计算需要拉的天数：start_date 倒推 250 天 lookback
+    today = pd.Timestamp.now().normalize()
+    days_needed = (today - start_ts).days + 250
+
+    # SPY
+    spy_close, _ = _fetch_etf_prices("SPY", days=days_needed)
+    if spy_close is None or len(spy_close) < 200:
+        raise HTTPException(503, f"SPY 数据不足（拿到 {len(spy_close) if spy_close is not None else 0} bars）")
+
+    # Core ETF（按 preset 拉具体 tickers）
+    core_preset_cfg = universe.get("core", {}).get(core_preset)
+    if not core_preset_cfg:
+        raise HTTPException(400, f"未知 core_preset: {core_preset}")
+    core_tickers = list(core_preset_cfg.get("weights", {}).keys())
+
+    # Sector ETF — 全拉
+    sector_entries = universe.get("sector", [])
+
+    # 并行拉所有 ETF
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    all_tickers = list(set(core_tickers + [e["ticker"] for e in sector_entries]) - {"SPY"})
+
+    def _fetch_one(ticker):
+        try:
+            close, volume = _fetch_etf_prices(ticker, days=days_needed)
+            return ticker, close, volume, None
+        except Exception as e:  # noqa: BLE001
+            return ticker, None, None, str(e)
+
+    sector_prices: dict = {}
+    sector_volumes: dict = {}
+    core_prices: dict = {"SPY": spy_close}
+    fetch_errors: list[dict] = []
+    sector_ticker_set = {e["ticker"] for e in sector_entries}
+
+    with ThreadPoolExecutor(max_workers=min(8, len(all_tickers))) as pool:
+        futures = [pool.submit(_fetch_one, t) for t in all_tickers]
+        for fut in as_completed(futures):
+            ticker, close, volume, err = fut.result()
+            if err is not None or close is None:
+                fetch_errors.append({"ticker": ticker, "reason": err or "no_data"})
+                continue
+            if ticker in sector_ticker_set:
+                sector_prices[ticker] = close
+                if volume is not None:
+                    sector_volumes[ticker] = volume
+            if ticker in core_tickers:
+                core_prices[ticker] = close
+
+    if not sector_prices:
+        raise HTTPException(503, f"所有 sector ETF 拉取失败: {fetch_errors[:3]}")
+
+    result = sb.run_backtest(
+        spy_prices=spy_close,
+        sector_prices=sector_prices,
+        core_prices=core_prices,
+        sector_volumes=sector_volumes,
+        universe=universe,
+        start_date=start_ts,
+        end_date=end_ts,
+        core_preset=core_preset,
+        k=k,
+        weight_mode=weight_mode,
+    )
+    if "error" in result:
+        raise HTTPException(400, result["error"])
+
+    result["fetch_errors"] = fetch_errors
+    _smart_beta_bt_cache[cache_key] = {"data": result, "_cached_at": now_ts}
+    return sanitize(result)
+
+
 # ── LLM (DeepSeek) 端点 (B1 / B5) ────────────────────────
 class LLMSummaryReq(BaseModel):
     """B1: 个股 AI 摘要请求体。所有字段可选，能给多少给多少。"""
