@@ -3,7 +3,7 @@
 // - HTML network-first + 离线兜底
 // - /api/yahoo stale-while-revalidate（即刻返回缓存 + 后台刷新，命中率↑速度↑）
 // 版本号变化会触发新 SW 安装 → 自动清理旧缓存
-const VERSION = "v3";
+const VERSION = "v4";
 const CACHE = `quantedge-${VERSION}`;
 const API_CACHE = `quantedge-api-${VERSION}`;
 const APP_SHELL = ["/", "/index.html", "/manifest.webmanifest", "/icon.svg"];
@@ -74,7 +74,11 @@ self.addEventListener("fetch", (event) => {
             caches.open(CACHE).then((c) => c.put(request, copy));
           }
           return res;
-        }).catch(() => caches.match("/index.html"))
+        })
+        // ⚠ 不要 .catch(() => caches.match("/index.html")) — 那会把 .js 的网络失败
+        // 兜底成 HTML，让 module loader 拿到 HTML 解析为 JS，触发 "Failed to fetch
+        // dynamically imported module"，整个 lazy tab 永久挂掉。让真实错误自然抛
+        // 上去，ErrorBoundary 或 import().catch() 能正常处理。
       )
     );
     return;
