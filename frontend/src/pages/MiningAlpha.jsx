@@ -797,6 +797,9 @@ export default function MiningAlpha() {
   const backendUnreachable = !loading && status === null && !error && !isDemoMode;
 
   return (
+    // 外层 h-full overflow-y-auto：父 <main> 是 overflow-hidden flex-col 容器，
+    // 单页面要自己声明垂直滚动；其他长页面（SmartBeta / CompoundPower）也用这个模式。
+    <div className="h-full overflow-y-auto">
     <div className="p-3 md:p-4 space-y-3 max-w-[1400px] mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-2">
@@ -981,6 +984,7 @@ export default function MiningAlpha() {
 
       {/* 因子详情 modal — 由 pickedAlpha 控制，不依赖 backend 全局可用 */}
       <FactorDetailModal alphaNum={pickedAlpha} runId={status?.current_run_id} onClose={() => setPickedAlpha(null)} />
+    </div>
     </div>
   );
 }
