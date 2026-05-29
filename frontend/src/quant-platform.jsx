@@ -2171,9 +2171,9 @@ function QuantPlatformInner() {
       const tag = document.activeElement?.tagName;
       const inEditable = tag === "INPUT" || tag === "TEXTAREA" || document.activeElement?.isContentEditable;
       if (inEditable) return;
-      // 1-7 切换 tab（扩展至全部 7 个核心 tab）
-      if (e.key >= "1" && e.key <= "7") {
-        const idx = parseInt(e.key, 10) - 1;
+      // 数字键切换 tab：1-9 → 前 9 个，0 → 第 10 个（与 TAB_CFG 顺序一致）
+      if (/^[0-9]$/.test(e.key)) {
+        const idx = e.key === "0" ? 9 : parseInt(e.key, 10) - 1;
         if (TAB_CFG[idx]) { e.preventDefault(); setTab(TAB_CFG[idx].id); }
         return;
       }
@@ -2621,7 +2621,7 @@ function QuantPlatformInner() {
         }}
       />
       <OnboardingTour open={onboardOpen} onClose={() => setOnboardOpen(false)} />
-      <ShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+      <ShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} tabs={TAB_CFG} />
     </div>
   );
 }

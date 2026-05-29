@@ -187,11 +187,13 @@ const ICHeatmap = ({ data, onPickAlpha }) => {
 };
 
 // ─── 因子详情 modal (点击 alpha 弹) ─────────────────────────
-const FactorDetailModal = ({ alphaNum, runId, onClose }) => {
+const FactorDetailModal = ({ alphaNum, runId, onClose, isDemoMode = false }) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     if (alphaNum == null) return;
+    // demo 模式下后端无单因子详情数据，跳过 fetch 直接显示占位（见下方渲染）
+    if (isDemoMode) { setLoading(false); setData(null); return; }
     let cancelled = false;
     setLoading(true);
     const qs = runId ? `?run_id=${encodeURIComponent(runId)}` : "";
@@ -200,7 +202,7 @@ const FactorDetailModal = ({ alphaNum, runId, onClose }) => {
       .catch(() => { if (!cancelled) setData(null); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [alphaNum, runId]);
+  }, [alphaNum, runId, isDemoMode]);
   if (alphaNum == null) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
@@ -214,7 +216,13 @@ const FactorDetailModal = ({ alphaNum, runId, onClose }) => {
           <button onClick={onClose} aria-label={`关闭 α${alphaNum} 详情`} className="p-1 hover:bg-white/10 rounded text-[#a0aec0]"><X size={14} /></button>
         </div>
         {loading && <div className="text-[#a0aec0] text-xs flex items-center gap-2"><Loader size={12} className="animate-spin" />加载中...</div>}
-        {!loading && !data && <div className="text-rose-300 text-xs">未找到详情</div>}
+        {!loading && isDemoMode && (
+          <div className="text-[12px] text-amber-300/90 leading-relaxed bg-amber-500/5 border border-amber-500/20 rounded px-3 py-2.5">
+            DEMO 模式下单因子公式 / 历史 IC 详情不可用 —— 需 self-hosted backend 跑过
+            pipeline 才有逐因子数据。上方的 IC 排行 / 热力图为合成示例。
+          </div>
+        )}
+        {!loading && !isDemoMode && !data && <div className="text-rose-300 text-xs">未找到详情</div>}
         {!loading && data && (
           <div className="space-y-3">
             <div>
@@ -983,7 +991,7 @@ export default function MiningAlpha() {
       </>)}
 
       {/* 因子详情 modal — 由 pickedAlpha 控制，不依赖 backend 全局可用 */}
-      <FactorDetailModal alphaNum={pickedAlpha} runId={status?.current_run_id} onClose={() => setPickedAlpha(null)} />
+      <FactorDetailModal alphaNum={pickedAlpha} runId={status?.current_run_id} onClose={() => setPickedAlpha(null)} isDemoMode={isDemoMode} />
     </div>
     </div>
   );

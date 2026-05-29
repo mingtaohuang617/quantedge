@@ -4,23 +4,28 @@ import { KeyRound, X } from "lucide-react";
 /**
  * ShortcutsModal — 全局快捷键速查
  * 由按 `?` 键唤出（Shift+/），ESC 关闭
+ *
+ * tab 切换快捷键从 `tabs`（= TAB_CFG）派生，与 quant-platform.jsx 的键盘
+ * handler 共用同一份顺序 —— 避免硬编码漂移（曾因 Smart Beta/Mining Alpha
+ * 插到位置 3-4 导致这里的标签与实际按键行为不符）。
+ * 映射：前 9 个 tab → 数字键 1-9，第 10 个 → 数字键 0。
  */
-const SHORTCUTS = [
-  { keys: ["Ctrl", "K"], altKeys: ["⌘", "K"], desc: "打开命令面板（搜索 / 跳转）" },
-  { keys: ["1"], desc: "切换到 量化评分" },
-  { keys: ["2"], desc: "切换到 组合回测" },
-  { keys: ["3"], desc: "切换到 实时监控" },
-  { keys: ["4"], desc: "切换到 投资日志" },
-  { keys: ["5"], desc: "切换到 宏观看板" },
-  { keys: ["6"], desc: "切换到 10x 猎手" },
-  { keys: ["7"], desc: "切换到 股性检测" },
-  { keys: ["J"], desc: "下一只标的（评分页）" },
-  { keys: ["K"], desc: "上一只标的（评分页）" },
-  { keys: ["R"], desc: "刷新所有标的行情" },
-  { keys: ["/"], desc: "聚焦主搜索框" },
-  { keys: ["?"], desc: "打开本面板" },
-  { keys: ["Esc"], desc: "关闭当前模态 / 取消" },
-];
+export function buildShortcuts(tabs) {
+  const tabRows = tabs.map((tab, i) => ({
+    keys: [i < 9 ? String(i + 1) : "0"],
+    desc: `切换到 ${tab.label}`,
+  })).slice(0, 10);
+  return [
+    { keys: ["Ctrl", "K"], altKeys: ["⌘", "K"], desc: "打开命令面板（搜索 / 跳转）" },
+    ...tabRows,
+    { keys: ["J"], desc: "下一只标的（评分页）" },
+    { keys: ["K"], desc: "上一只标的（评分页）" },
+    { keys: ["R"], desc: "刷新所有标的行情" },
+    { keys: ["/"], desc: "聚焦主搜索框" },
+    { keys: ["?"], desc: "打开本面板" },
+    { keys: ["Esc"], desc: "关闭当前模态 / 取消" },
+  ];
+}
 
 function Kbd({ children }) {
   return (
@@ -30,7 +35,7 @@ function Kbd({ children }) {
   );
 }
 
-export default function ShortcutsModal({ open, onClose }) {
+export default function ShortcutsModal({ open, onClose, tabs = [] }) {
   useEffect(() => {
     if (!open) return;
     const onKey = (e) => {
@@ -43,6 +48,7 @@ export default function ShortcutsModal({ open, onClose }) {
   if (!open) return null;
 
   const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
+  const SHORTCUTS = buildShortcuts(tabs);
 
   return (
     <div

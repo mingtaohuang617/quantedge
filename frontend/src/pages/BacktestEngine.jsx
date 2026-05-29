@@ -212,6 +212,10 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
   useEffect(() => {
     if (!preloadPortfolio || Object.keys(preloadPortfolio).length === 0) return;
     if (onPreloadConsumed) onPreloadConsumed();
+    // 复利"一键回测"注入的组合可能含债券 ETF（BND/AGG/TLT）等不在前端 STOCKS
+    // 里的标的 —— 与模板加载同样自动从 Yahoo 补齐，否则会被静默丢弃。
+    // autoAddMissingTickers 在 mount 后才执行，引用顺序虽在其定义之前但无 TDZ。
+    autoAddMissingTickers(preloadPortfolio);
     const tid = setTimeout(() => setPreloadHint(null), 4000);
     return () => clearTimeout(tid);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -423,20 +427,11 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
       return next;
     });
   }, [wsId]);
-  const loadTemplate = useCallback(async (tpl) => {
-    const tplPortfolio = tpl.portfolio || {};
-    setPortfolio(tplPortfolio);
-    if (tpl.initialCap != null) setInitialCap(tpl.initialCap);
-    if (tpl.costBps != null) setCostBps(tpl.costBps);
-    if (tpl.benchTicker) setBenchTicker(tpl.benchTicker);
-    if (tpl.btRange) setBtRange(tpl.btRange);
-    if (tpl.rebalance) setRebalance(tpl.rebalance);
-    // 清除旧结果，让新组合自动重新回测
-    setHasResult(false);
-    setBtResult(null);
-    autoRan.current = false;
-    // 模板中缺失的标的 — 从 Yahoo Finance 自动添加到平台
-    const wantTickers = Object.keys(tplPortfolio);
+  // 把组合里不在 liveStocks 的标的从 Yahoo Finance 自动添加到平台。
+  // 模板加载 + 复利模块"一键回测"preload 共用 —— 避免 BND/AGG/TLT 等债券
+  // ETF（不在前端 STOCKS demo 里）被静默丢弃导致组合只剩 1 只票。
+  const autoAddMissingTickers = useCallback(async (portfolioObj) => {
+    const wantTickers = Object.keys(portfolioObj || {});
     const missingTickers = wantTickers.filter(tk => !liveStocks.find(s => s.ticker === tk));
     if (missingTickers.length === 0) return;
     setDataLoading(true);
@@ -456,6 +451,21 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
     setDataLoading(false);
     setDataLoadMsg("");
   }, [liveStocks, addTickerToPlatform, t]);
+  const loadTemplate = useCallback(async (tpl) => {
+    const tplPortfolio = tpl.portfolio || {};
+    setPortfolio(tplPortfolio);
+    if (tpl.initialCap != null) setInitialCap(tpl.initialCap);
+    if (tpl.costBps != null) setCostBps(tpl.costBps);
+    if (tpl.benchTicker) setBenchTicker(tpl.benchTicker);
+    if (tpl.btRange) setBtRange(tpl.btRange);
+    if (tpl.rebalance) setRebalance(tpl.rebalance);
+    // 清除旧结果，让新组合自动重新回测
+    setHasResult(false);
+    setBtResult(null);
+    autoRan.current = false;
+    // 模板中缺失的标的 — 从 Yahoo Finance 自动添加到平台
+    await autoAddMissingTickers(tplPortfolio);
+  }, [autoAddMissingTickers]);
   // 内置策略预设
   const BUILTIN_PRESETS = useMemo(() => [
     { name: "🚀 " + t("动量成长"), portfolio: { NVDA: 30, AMD: 20, AVGO: 20, META: 15, GOOGL: 15 }, initialCap: 100000, costBps: 15, benchTicker: "SPY", btRange: "1Y", rebalance: "quarterly" },
