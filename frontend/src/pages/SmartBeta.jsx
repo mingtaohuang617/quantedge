@@ -57,18 +57,20 @@ const RiskDial = ({ score, components }) => {
   const endY = cy + rad * Math.sin(angle);
   const startX = cx - rad;
   const startY = cy;
-  const largeArc = r > 0.5 ? 1 : 0;
+  // SVG y 向下：sweep=1 走上半圆（视觉 CCW，math CW），large=0 总是短弧
+  // 注意：endY 用 sin(angle) 计算 → r<1 时 endY < cy，端点在上方
+  //       所以 from (26,90) 到 endpoint 的"短弧"已经在上半圆，不需要 large-arc
 
   return (
     <div className="flex flex-col items-center">
       <svg width={180} height={110} viewBox="0 0 180 110">
         <path
-          d={`M ${startX} ${startY} A ${rad} ${rad} 0 1 1 ${cx + rad} ${cy}`}
-          fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={10}
+          d={`M ${startX} ${startY} A ${rad} ${rad} 0 0 1 ${cx + rad} ${cy}`}
+          fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth={10}
           strokeLinecap="round"
         />
         <path
-          d={`M ${startX} ${startY} A ${rad} ${rad} 0 ${largeArc} 1 ${endX} ${endY}`}
+          d={`M ${startX} ${startY} A ${rad} ${rad} 0 0 1 ${endX} ${endY}`}
           fill="none" stroke={riskColor(r)} strokeWidth={10}
           strokeLinecap="round"
         />
@@ -99,7 +101,8 @@ const CoreSectorPie = ({ coreWeight, sectorWeight }) => {
     { name: "Sector 行业", value: sectorWeight * 100, color: "#f59e0b" },
   ];
   return (
-    <div className="flex flex-col items-center">
+    // w-full 关键：父 flex-col items-center 不带宽度时 ResponsiveContainer 100% 会坍缩成 0
+    <div className="flex flex-col items-center w-full">
       <ResponsiveContainer width="100%" height={130}>
         <PieChart>
           <Pie
