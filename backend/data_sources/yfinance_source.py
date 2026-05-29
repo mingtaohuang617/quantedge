@@ -205,3 +205,56 @@ def fetch_fundamentals(yf_symbol: str) -> dict:
         # yfinance debtToEquity 单位是百分比，例如 Verizon 显示 162（=1.62 倍）
         "debt_to_equity": (de_pct / 100.0) if de_pct is not None else None,
     }
+
+
+# ── 港股财务补充（取代 akshare/eastmoney 兜底）──────────────
+def _coerce_float(v) -> float | None:
+    """容错转 float；None / NaN / Inf / 非数 → None。"""
+    if v is None:
+        return None
+    try:
+        f = float(v)
+        if math.isnan(f) or math.isinf(f):
+            return None
+        return f
+    except (TypeError, ValueError):
+        return None
+
+
+def fetch_hk_fundamentals(yf_symbol: str) -> dict:
+    """港股财务补充：从 .info 取 pe / roe / revenue_growth / profit_margin。
+
+    取代原 akshare(eastmoney) 兜底——eastmoney 对 Python TLS 指纹反爬不可用
+    （直接 curl 200，但 requests/urllib/curl_cffi 全被 RST）；而 yfinance 本
+    就是 pipeline 港股基本面的主源，港股池规模小（.info 不触发限频）足够可靠。
+
+    返回 dict（缺失字段 None），单位与 pipeline 主路径（pipeline.py）严格一致：
+      - pe:             trailingPE，round 2
+      - roe:            returnOnEquity ×100，round 1（百分比）
+      - revenue_growth: revenueGrowth  ×100，round 1（百分比）
+      - profit_margin:  profitMargins  ×100，round 1（百分比）
+
+    .info 失败指数退避重试（默认 3 次）；全部失败返回全 None（不抛错，
+    让上游 router/pipeline 回落 static_overrides）。
+    """
+    out = {"pe": None, "roe": None, "revenue_growth": None, "profit_margin": None}
+    if not yf_symbol:
+        return out
+    try:
+        info = _with_retry(_do_fetch_fundamentals_info, yf_symbol)
+    except Exception:
+        return out  # 静默：让上游回落 static_overrides
+
+    pe = _coerce_float(info.get("trailingPE"))
+    out["pe"] = round(pe, 2) if pe else None
+
+    roe = _coerce_float(info.get("returnOnEquity"))
+    out["roe"] = round(roe * 100, 1) if roe is not None else None
+
+    rg = _coerce_float(info.get("revenueGrowth"))
+    out["revenue_growth"] = round(rg * 100, 1) if rg is not None else None
+
+    pm = _coerce_float(info.get("profitMargins"))
+    out["profit_margin"] = round(pm * 100, 1) if pm is not None else None
+
+    return out

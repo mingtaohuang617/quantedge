@@ -12,7 +12,7 @@
 任何远程层成功后会自动写库（_persist_to_db），下次直接命中 L0。
 
 行情数据 (K线/报价): L0 → tushare → iTick → Futu(港股/A股) → yfinance
-财务数据:           iTick info + AKShare(港股) + yfinance info
+财务数据:           iTick info + yfinance info（含港股基本面）
 
 市场支持:
   US (美股)       — tushare → iTick → yfinance
@@ -276,18 +276,21 @@ def fetch_info(cfg: dict) -> tuple[dict, str]:
     return {}, "none"
 
 
-# ── 港股财务补充 (AKShare) ────────────────────────────────
+# ── 港股财务补充 (yfinance) ───────────────────────────────
 
 def fetch_hk_fundamentals(cfg: dict) -> tuple[dict, str]:
-    """获取港股财务数据（PE/ROE/利润率等）。仅对 market=HK 的标的有效。"""
+    """获取港股财务数据（PE/ROE/利润率等）。仅对 market=HK 的标的有效。
+
+    源：yfinance .info（取代原 akshare/eastmoney——后者对 Python TLS 指纹反爬不可用）。
+    """
     market = (cfg.get("market") or "").upper()
     if market != "HK":
         return {}, "n/a"
-    if not HAS_AKSHARE:
-        return {}, "akshare-unavailable"
+    if not HAS_YFINANCE:
+        return {}, "yfinance-unavailable"
     try:
         ticker_key = cfg.get("yf_symbol", "")
-        return akshare_source.fetch_hk_fundamentals(ticker_key), "AKShare"
+        return yfinance_source.fetch_hk_fundamentals(ticker_key), "yfinance"
     except Exception:
         return {}, "none"
 
