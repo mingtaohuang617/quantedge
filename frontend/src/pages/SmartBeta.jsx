@@ -10,11 +10,11 @@
 import React, { useEffect, useState } from "react";
 import {
   Activity, RefreshCw, Loader, AlertCircle, Settings, Layers, Compass,
-  TrendingUp, TrendingDown, ArrowRight, Info,
+  TrendingUp, TrendingDown, ArrowRight, Info, Play,
 } from "lucide-react";
 import {
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip, BarChart, Bar, XAxis,
-  YAxis, CartesianGrid,
+  YAxis, CartesianGrid, LineChart, Line, Legend,
 } from "recharts";
 import { apiFetch } from "../quant-platform.jsx";
 
@@ -301,6 +301,38 @@ export default function SmartBeta() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isDemoMode, setIsDemoMode] = useState(false);
+  // 历史回测 — 月度再平衡 vs SPY
+  const [btStart, setBtStart] = useState(() => {
+    const d = new Date(); d.setFullYear(d.getFullYear() - 3); return d.toISOString().slice(0, 10);
+  });
+  const [btResult, setBtResult] = useState(null);
+  const [btLoading, setBtLoading] = useState(false);
+  const [btError, setBtError] = useState(null);
+
+  const runBacktest = async () => {
+    setBtLoading(true); setBtError(null);
+    try {
+      const params = new URLSearchParams({
+        start_date: btStart,
+        core_preset: config.core_preset,
+        k: String(config.k),
+        weight_mode: config.weight_mode,
+      });
+      const data = await apiFetch(`/smart-beta/backtest?${params.toString()}`);
+      if (data && !data.detail && !data.error) {
+        setBtResult(data);
+      } else {
+        setBtError(typeof (data?.detail || data?.error) === "string"
+          ? (data.detail || data.error)
+          : "回测失败 — 后端未就绪");
+        setBtResult(null);
+      }
+    } catch (e) {
+      setBtError(String(e?.message || e));
+    } finally {
+      setBtLoading(false);
+    }
+  };
 
   const fetchSnapshot = async () => {
     setLoading(true);
@@ -526,6 +558,105 @@ export default function SmartBeta() {
               </span>
             </div>
             <FinalWeightsChart weights={finalWeights} />
+          </div>
+
+          {/* §6 历史回测 — 月度再平衡 vs SPY benchmark */}
+          <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3 space-y-2">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <Play size={13} className="text-emerald-400" />
+                <span className="text-[11px] font-semibold text-white/90">历史回测</span>
+                <span className="text-[10px] text-[#a0aec0]">月度再平衡 + K+2 缓冲带 vs SPY 100%</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-[10px] text-[#a0aec0]">起始日</label>
+                <input
+                  type="date"
+                  value={btStart}
+                  onChange={(e) => setBtStart(e.target.value)}
+                  max={new Date().toISOString().slice(0, 10)}
+                  className="bg-white/[0.03] border border-white/10 rounded px-2 py-1 text-[11px] text-white font-mono focus:outline-none focus:border-indigo-500/50"
+                />
+                <button
+                  onClick={runBacktest}
+                  disabled={btLoading}
+                  className="px-3 py-1 rounded bg-emerald-500/20 border border-emerald-500/40 text-[11px] text-emerald-200 hover:bg-emerald-500/30 disabled:opacity-40 flex items-center gap-1"
+                >
+                  {btLoading ? <Loader size={11} className="animate-spin" /> : <Play size={11} />}
+                  {btLoading ? "回测中…" : "运行回测"}
+                </button>
+              </div>
+            </div>
+
+            {btError && (
+              <div className="rounded-md bg-rose-500/10 border border-rose-500/30 p-2 text-[10px] text-rose-300 flex items-start gap-1.5">
+                <AlertCircle size={11} className="shrink-0 mt-0.5" />
+                <span>{btError}</span>
+              </div>
+            )}
+
+            {btLoading && !btResult && (
+              <div className="text-[10px] text-[#a0aec0] py-4 text-center">
+                首次回测开销大（拉 ETF 历史 + 月度滚动重算）— 预计 30-60s，缓存后秒回
+              </div>
+            )}
+
+            {btResult && (
+              <>
+                {/* 指标卡 */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  {[
+                    { label: "策略总收益", val: btResult.metrics.total_return, bench: btResult.benchmark_metrics.total_return, isPct: true },
+                    { label: "年化收益", val: btResult.metrics.annualized_return, bench: btResult.benchmark_metrics.annualized_return, isPct: true },
+                    { label: "Sharpe", val: btResult.metrics.sharpe, bench: btResult.benchmark_metrics.sharpe, isPct: false },
+                    { label: "最大回撤", val: btResult.metrics.max_dd, bench: btResult.benchmark_metrics.max_dd, isPct: true, negGood: true },
+                  ].map((m) => {
+                    const win = m.negGood ? m.val > m.bench : m.val > m.bench;
+                    const fmt = m.isPct ? fmtPct : fmtNum;
+                    return (
+                      <div key={m.label} className="rounded border border-white/10 bg-white/[0.02] p-2">
+                        <div className="text-[9px] text-[#a0aec0]">{m.label}</div>
+                        <div className={`text-sm font-mono font-bold ${win ? "text-emerald-300" : "text-rose-300"}`}>
+                          {fmt(m.val, 2)}
+                        </div>
+                        <div className="text-[9px] text-[#778] font-mono">SPY: {fmt(m.bench, 2)}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* 净值曲线 */}
+                <div className="h-[220px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={btResult.dates.map((d, i) => ({
+                      date: d, strategy: btResult.strategy_nav[i], benchmark: btResult.benchmark_nav[i],
+                    }))} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
+                      <CartesianGrid stroke="rgba(255,255,255,0.05)" />
+                      <XAxis dataKey="date" tick={{ fill: "#a0aec0", fontSize: 9 }} interval="preserveStartEnd" minTickGap={50} />
+                      <YAxis tick={{ fill: "#a0aec0", fontSize: 9 }} domain={["auto", "auto"]} />
+                      <Tooltip
+                        contentStyle={{ background: "#0d1117", border: "1px solid rgba(255,255,255,0.1)", fontSize: 10 }}
+                        formatter={(v) => fmtNum(v, 3)}
+                      />
+                      <Legend wrapperStyle={{ fontSize: 10 }} />
+                      <Line type="monotone" dataKey="strategy" name="Smart Beta" stroke="#10b981" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+                      <Line type="monotone" dataKey="benchmark" name="SPY" stroke="#a0aec0" strokeWidth={1} strokeDasharray="3 3" dot={false} isAnimationActive={false} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <div className="text-[10px] text-[#a0aec0] flex items-center gap-3 flex-wrap">
+                  <span>窗口：<span className="text-white/80 font-mono">{btResult.start_date} → {btResult.end_date}</span></span>
+                  <span>再平衡：<span className="text-white/80 font-mono">{btResult.rebalances.length} 次</span></span>
+                  <span>累计 alpha：
+                    <span className={`font-mono ml-1 ${btResult.alpha_total >= 0 ? "text-emerald-300" : "text-rose-300"}`}>
+                      {btResult.alpha_total >= 0 ? "+" : ""}{fmtPct(btResult.alpha_total, 2)}
+                    </span>
+                  </span>
+                  {btResult._cached && <span className="text-amber-300">· 缓存命中</span>}
+                </div>
+              </>
+            )}
           </div>
 
           {snapshot.fetch_errors && snapshot.fetch_errors.length > 0 && (

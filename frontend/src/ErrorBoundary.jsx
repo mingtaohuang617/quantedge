@@ -25,6 +25,31 @@ export default class ErrorBoundary extends React.Component {
         window.dispatchEvent(new CustomEvent('quantedge:renderError', { detail: window.__QUANTEDGE_LAST_ERROR__ }));
       }
     } catch {}
+    // 自愈：lazy chunk 加载失败（典型 message: "Failed to fetch dynamically imported module"）
+    // 通常是新部署后 hash chunk 文件名变了 + 老 SW/Cache 在拦截。自动 unregister
+    // SW + 清 caches + 硬刷一次，让用户拿到最新 index.html。最多自愈一次，避免无限重载。
+    try {
+      const msg = String(error?.message || '');
+      const isChunkErr = /Failed to fetch dynamically imported module|Loading chunk \d+ failed|ChunkLoadError|error loading dynamically imported module/i.test(msg);
+      const sessionKey = 'quantedge_self_heal_done';
+      if (isChunkErr && typeof window !== 'undefined' && !sessionStorage.getItem(sessionKey)) {
+        sessionStorage.setItem(sessionKey, '1');
+        console.warn('[QuantEdge:ErrorBoundary] chunk 加载失败 — 自动清 SW + cache + reload');
+        (async () => {
+          try {
+            if (navigator.serviceWorker) {
+              const regs = await navigator.serviceWorker.getRegistrations();
+              await Promise.all(regs.map(r => r.unregister()));
+            }
+            if (typeof caches !== 'undefined') {
+              const keys = await caches.keys();
+              await Promise.all(keys.map(k => caches.delete(k)));
+            }
+          } catch {}
+          window.location.reload();
+        })();
+      }
+    } catch {}
     // H7: 上报到 Sentry（若已配置 DSN）
     try {
       if (typeof window !== 'undefined' && window.__SENTRY__) {
