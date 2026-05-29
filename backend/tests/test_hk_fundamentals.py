@@ -136,9 +136,11 @@ class TestFallbackOrder:
 
 @pytest.mark.network
 @pytest.mark.xfail(
-    reason="akshare_source.fetch_hk_fundamentals 实测对 0005.HK 全部返回 None — "
-           "ak.stock_hk_spot_em() 代码列匹配不上 '00005'，或 stock_financial_hk_report_em "
-           "字段名漂移。本任务（集成 pipeline）不修源端 bug；属另一个 follow-up。",
+    reason="akshare SDK ↔ eastmoney TLS 指纹反爬（2026-05-27 复盘）：直接 curl "
+           "eastmoney HTTP 200，但 Python requests/urllib/甚至 curl_cffi 都被 RST "
+           "(Connection closed abruptly)。字段映射/代码格式/ROE 逻辑层已修，"
+           "test_akshare_source.py 36 mock 单测全绿。此处真实拉数据 xfail 反映上游 "
+           "SDK 稳定性问题，不是本仓代码 bug。绕开见 akshare_source.py 顶部 docstring。",
     strict=False,
 )
 def test_real_0005hk_fundamentals():

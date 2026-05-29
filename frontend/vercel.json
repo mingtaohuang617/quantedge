@@ -2,7 +2,7 @@
   "rewrites": [
     { "source": "/api/stock-gene/(.+)", "destination": "/api/stock-gene?path=$1" },
     { "source": "/api/(.*)", "destination": "/api/$1" },
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
+    { "source": "/((?!api/|assets/).*)", "destination": "/index.html" }
   ],
   "functions": {
     "api/**/*.js": {
