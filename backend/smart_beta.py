@@ -337,3 +337,184 @@ def build_snapshot(
         "sector_selected":  selected,
         "weights":          weights,
     }
+
+
+# ─── 历史回测 ────────────────────────────────────────────
+def _metrics_from_nav(nav: pd.Series) -> dict:
+    """从日频净值序列计算关键指标。"""
+    if len(nav) < 2:
+        return {"total_return": 0.0, "annualized_return": 0.0, "sharpe": 0.0, "max_dd": 0.0, "volatility": 0.0}
+    daily_ret = nav.pct_change().dropna()
+    total_return = float(nav.iloc[-1] / nav.iloc[0] - 1)
+    days = (nav.index[-1] - nav.index[0]).days
+    years = max(days / 365.25, 1 / 365.25)
+    if years > 0 and (1 + total_return) > 0:
+        annualized = float((1 + total_return) ** (1 / years) - 1)
+    else:
+        annualized = 0.0
+    sigma = float(daily_ret.std() * np.sqrt(252))
+    sharpe = float(annualized / sigma) if sigma > 1e-9 else 0.0
+    cum_max = nav.cummax()
+    dd = (nav / cum_max - 1)
+    max_dd = float(dd.min())
+    return {
+        "total_return":      total_return,
+        "annualized_return": annualized,
+        "sharpe":            sharpe,
+        "max_dd":            max_dd,
+        "volatility":        sigma,
+    }
+
+
+def run_backtest(
+    spy_prices: pd.Series,
+    sector_prices: dict,
+    core_prices: dict,
+    *,
+    sector_volumes: dict | None = None,
+    universe: dict | None = None,
+    start_date=None,
+    end_date=None,
+    core_preset: str = "balanced",
+    k: int = 3,
+    weight_mode: str = "equal",
+    initial_nav: float = 1.0,
+) -> dict:
+    """Smart Beta 历史回测 — 月度再平衡 + K+2 缓冲带。
+
+    流程：
+      1. 月末作为再平衡日；用截至该日的历史数据 build_snapshot 得到 weights
+      2. 持仓期间按权重计算日组合收益，递推净值
+      3. SPY 100% 持仓为 benchmark
+
+    简化（MVP）：
+      - L1 风险层只用 SPY 趋势（VIX/HY/real_rate 传 None）
+      - 无交易成本
+      - 缺失价格 ffill
+    """
+    if universe is None:
+        universe = load_universe()
+    if sector_volumes is None:
+        sector_volumes = {}
+
+    if len(spy_prices) < 200:
+        return {"error": "SPY 数据不足（< 200 bars），无法回测"}
+
+    if start_date is None:
+        start_date = spy_prices.index[200]
+    if end_date is None:
+        end_date = spy_prices.index[-1]
+    start_date = pd.Timestamp(start_date)
+    end_date = pd.Timestamp(end_date)
+
+    # 月末再平衡日，对齐到 SPY 交易日
+    month_ends = pd.date_range(start=start_date, end=end_date, freq="ME")
+    rebalance_dates = []
+    for me in month_ends:
+        valid = spy_prices.index[spy_prices.index <= me]
+        if len(valid) > 0 and valid[-1] >= start_date:
+            rebalance_dates.append(valid[-1])
+    rebalance_dates = pd.DatetimeIndex(sorted(set(rebalance_dates)))
+    if len(rebalance_dates) < 2:
+        return {"error": f"再平衡日不足（{len(rebalance_dates)}），扩大回测窗口"}
+
+    # 统一价格表
+    price_cols: dict = {"SPY": spy_prices}
+    for t, p in core_prices.items():
+        if p is not None:
+            price_cols[t] = p
+    for t, p in sector_prices.items():
+        if p is not None:
+            price_cols[t] = p
+    price_df = pd.DataFrame(price_cols).sort_index().ffill()
+
+    # 1. 各再平衡日生成 weights
+    rebalances: list[dict] = []
+    current_holdings = None
+    for rb_date in rebalance_dates:
+        spy_slice = spy_prices.loc[:rb_date]
+        sector_data_slice = {}
+        for ticker, prices in sector_prices.items():
+            ps = prices.loc[:rb_date]
+            if len(ps) < 120:
+                continue
+            vs = sector_volumes.get(ticker)
+            vs_slice = vs.loc[:rb_date] if vs is not None else None
+            sector_data_slice[ticker] = {
+                "prices":  ps,
+                "volumes": vs_slice,
+                "name":    ticker,
+            }
+        snap = build_snapshot(
+            spy_prices=spy_slice,
+            sector_data=sector_data_slice,
+            vix=None, hy_spread=None, real_rate_chg=None,
+            core_preset=core_preset, k=k, weight_mode=weight_mode,
+            current_holdings=current_holdings, universe=universe,
+        )
+        rebalances.append({
+            "date":        rb_date.isoformat()[:10],
+            "weights":     snap["weights"],
+            "risk_score":  snap["risk"]["risk_score"],
+            "core_weight": snap["core_weight"],
+        })
+        current_holdings = list(snap.get("sector_alloc", {}).keys())
+
+    # 2. 串净值
+    nav_dates: list = []
+    strategy_nav: list[float] = []
+    benchmark_nav: list[float] = []
+    cur_nav = initial_nav
+    bench_start_price = float(spy_prices.loc[rebalance_dates[0]])
+
+    for i, rb_date in enumerate(rebalance_dates):
+        next_rb = rebalance_dates[i + 1] if i + 1 < len(rebalance_dates) else end_date
+        period_idx = price_df.loc[rb_date:next_rb].index
+        period_weights = rebalances[i]["weights"]
+
+        valid_w = {t: w for t, w in period_weights.items() if t in price_df.columns and w > 0}
+        if not valid_w or len(period_idx) == 0:
+            for d in period_idx:
+                if i > 0 and d == rb_date:
+                    continue
+                nav_dates.append(d.isoformat()[:10])
+                strategy_nav.append(cur_nav)
+                benchmark_nav.append(initial_nav * float(spy_prices.loc[d]) / bench_start_price)
+            continue
+
+        period_prices = price_df.loc[period_idx, list(valid_w.keys())]
+        base_prices = period_prices.iloc[0]
+        rel = period_prices.divide(base_prices, axis=1)
+        port_factor = (rel * pd.Series(valid_w)).sum(axis=1)
+
+        for j, d in enumerate(period_idx):
+            if i > 0 and j == 0:
+                continue
+            nav_dates.append(d.isoformat()[:10])
+            this_nav = cur_nav * float(port_factor.iloc[j])
+            strategy_nav.append(this_nav)
+            benchmark_nav.append(initial_nav * float(spy_prices.loc[d]) / bench_start_price)
+
+        cur_nav = cur_nav * float(port_factor.iloc[-1])
+
+    # 3. 指标
+    nav_series = pd.Series(strategy_nav, index=pd.DatetimeIndex(nav_dates))
+    bench_series = pd.Series(benchmark_nav, index=pd.DatetimeIndex(nav_dates))
+    metrics = _metrics_from_nav(nav_series)
+    bench_metrics = _metrics_from_nav(bench_series)
+
+    return {
+        "start_date":         start_date.isoformat()[:10],
+        "end_date":           end_date.isoformat()[:10],
+        "config":             {
+            "core_preset": core_preset, "k": k, "weight_mode": weight_mode,
+            "rebalance":   "monthly", "buffer": 2,
+        },
+        "dates":              nav_dates,
+        "strategy_nav":       strategy_nav,
+        "benchmark_nav":      benchmark_nav,
+        "rebalances":         rebalances,
+        "metrics":            metrics,
+        "benchmark_metrics":  bench_metrics,
+        "alpha_total":        metrics["total_return"] - bench_metrics["total_return"],
+    }
