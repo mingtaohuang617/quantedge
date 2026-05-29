@@ -53,8 +53,8 @@ FRONTEND_DATA_PATH = BASE_DIR.parent / "frontend" / "src" / "data.js"
 LOG_LINES: list[str] = []
 
 
-# akshare → result 字段名映射（snake_case → result 的 camelCase）
-# 仅 4 个数值字段；marketCap/eps 留给 yfinance/static_overrides 避免 fmt_big 复杂度
+# yfinance 港股兜底 → result 字段名映射（snake_case → result 的 camelCase）
+# 仅 4 个数值字段；marketCap/eps 由 pipeline 主路径 yfinance .info 提供
 _HK_FALLBACK_FIELDS = {
     "pe": "pe",
     "roe": "roe",
@@ -65,11 +65,15 @@ _HK_FALLBACK_FIELDS = {
 
 def apply_hk_fundamentals_fallback(result: dict, cfg: dict) -> dict:
     """
-    对港股标的，在 yfinance 字段缺失时用 AKShare（东方财富）补齐。
-    顺序：yfinance → AKShare → static_overrides（外层 apply_overrides 兜底）。
+    对港股标的，在主路径字段缺失时再用 yfinance .info 重试补齐。
+    顺序：yfinance(主) → yfinance(兜底重试) → static_overrides（外层 apply_overrides 兜底）。
 
-    仅在 market=HK 且 result[key] is None 时填入 AKShare 值。
-    AKShare 调用失败一律静默（不影响其他标的）。
+    仅在 market=HK 且 result[key] is None 时填入兜底值。
+    兜底调用失败一律静默（不影响其他标的）。
+
+    注：原 akshare/eastmoney 兜底因 eastmoney 对 Python TLS 指纹反爬不可用，
+    已切 yfinance（见 router.fetch_hk_fundamentals）。主路径已是 yfinance 时
+    本步多为一次同源重试，仍可救主路径瞬时限频的港股标的。
     """
     market = (cfg.get("market") or "").upper()
     if market != "HK":
@@ -77,7 +81,7 @@ def apply_hk_fundamentals_fallback(result: dict, cfg: dict) -> dict:
     try:
         ak_data, src = fetch_hk_fundamentals(cfg)
     except Exception as e:
-        log(f"    [AKShare 港股财务] 失败 {cfg.get('yf_symbol')}: {e}")
+        log(f"    [港股财务兜底] 失败 {cfg.get('yf_symbol')}: {e}")
         return result
     if not ak_data:
         return result
@@ -87,7 +91,7 @@ def apply_hk_fundamentals_fallback(result: dict, cfg: dict) -> dict:
             result[result_key] = ak_data[ak_key]
             filled.append(result_key)
     if filled:
-        log(f"    [AKShare 港股财务] 补齐 {len(filled)} 字段: {', '.join(filled)} (src={src})")
+        log(f"    [港股财务兜底] 补齐 {len(filled)} 字段: {', '.join(filled)} (src={src})")
     return result
 
 
