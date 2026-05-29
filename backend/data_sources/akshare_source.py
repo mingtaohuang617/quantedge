@@ -5,6 +5,27 @@ AKShare 数据源
 主要用途: 港股财务数据补充（PE/ROE/营收增长/利润率等）。
 
 pip install akshare
+
+────────────────────────────────────────────────────────────────────
+已知限制（2026-05-27 复盘）
+────────────────────────────────────────────────────────────────────
+eastmoney push2.eastmoney.com 对**非浏览器 TLS 指纹**反爬：直接 curl 200，
+但 Python urllib / requests / 甚至 curl_cffi(impersonate=chrome) 都
+被 RST（"Connection closed abruptly" / "RemoteDisconnected"）。
+
+→ akshare SDK 内部基于 requests，在某些环境下会偶发 ConnectionError；
+  本模块的所有 ak.* 调用都包了 try/except 静默 + 写诊断日志到 stderr。
+→ 字段映射 / 代码格式 / ROE 计算 / placeholder 等逻辑层修复都已完成，
+  36 个 mock 单测（test_akshare_source.py）锁定行为；故"0005.HK 拉不到"
+  在我们这一层无法再修，属上游 akshare ↔ eastmoney 的会话稳定性问题。
+
+绕开方案（如未来必要）：
+  - 系统 curl 子进程兜底（curl CLI 默认指纹通过反爬）
+  - 完全重写为直调 eastmoney /api/qt/clist/get 等 endpoint
+  详见 docs/proposals/ 下相关方案（如需立项）。
+
+当前 pipeline.apply_hk_fundamentals_fallback 已在 None 时自动回退到
+config.static_overrides，对终端用户体感影响可控。
 """
 from __future__ import annotations
 
