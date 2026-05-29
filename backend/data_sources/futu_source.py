@@ -38,6 +38,9 @@ def to_futu_symbol(cfg: dict) -> str:
         return f"SH.{yf_sym.split('.')[0]}"
     if market == "SZ":
         return f"SZ.{yf_sym.split('.')[0]}"
+    if market == "US":
+        # 美股 yf_symbol 即裸 symbol（NVDA / BRK-B）；富途用 US.NVDA，连字符转点
+        return f"US.{yf_sym.replace('-', '.')}"
 
     raise FutuError(f"无法将 {yf_sym} (market={market}) 转换为 Futu 代码")
 
