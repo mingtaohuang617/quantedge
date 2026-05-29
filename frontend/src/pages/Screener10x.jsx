@@ -186,14 +186,17 @@ export default function Screener10x() {
     const archivedFlag = opts.showArchived ?? showArchived;
     const url = archivedFlag ? "/watchlist/10x?include_archived=true" : "/watchlist/10x";
     const json = await apiFetch(url);
-    if (json) {
+    // 真实数据：后端在线且 watchlist 非空（用户已添加过观察项）
+    if (json && Array.isArray(json.items) && json.items.length > 0) {
       setSupertrends(json.supertrends || []);
-      setItems(json.items || []);
+      setItems(json.items);
       setIsDemoMode(false);
     } else {
-      // backend 不可用（如 production vercel SPA）：退回内置赛道 + 灌 demo items，
-      // 让漏斗"你的观察"段不再是 0。screen 候选也走 demo（见下方 effect）。
-      setSupertrends(BUILTIN_SUPERTRENDS_FALLBACK);
+      // 走 demo 的两种情况（同 StockGene 模式）：
+      // 1) 后端不可达（json 为 null）
+      // 2) 后端在线但观察列表为空（Vercel demo 环境 / 全新部署 — "空"等价于"没人用过"）
+      // 仍优先使用 backend 给的 supertrends（如可用），否则用内置兜底列表。
+      setSupertrends(json?.supertrends?.length ? json.supertrends : BUILTIN_SUPERTRENDS_FALLBACK);
       setIsDemoMode(true);
       try {
         const mod = await import("../data/screener10xDemo.js");
