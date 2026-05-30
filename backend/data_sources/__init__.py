@@ -5,7 +5,7 @@
   - 行情K线:  L0 SQLite → tushare → iTick → Futu(港股) → yfinance
   - 实时报价:  iTick → yfinance
   - 公司信息:  iTick
-  - 港股财务:  AKShare(东方财富)
+  - 港股财务:  yfinance .info
   - 搜索:     AKShare
 
 容错：

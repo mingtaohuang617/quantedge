@@ -69,17 +69,17 @@ for cfg in test_cases:
     except Exception as e:
         print(f"  [FAIL] {cfg['name']:10s} | {e}")
 
-# ── 5. 测试港股财务 (AKShare) ─────────────────────────────
+# ── 5. 测试港股财务 (yfinance) ────────────────────────────
 print("\n" + "=" * 60)
-print("  港股财务测试 (fetch_hk_fundamentals → AKShare)")
+print("  港股财务测试 (fetch_hk_fundamentals → yfinance)")
 print("=" * 60)
 hk_cfg = {"yf_symbol": "0005.HK", "market": "HK", "name": "汇丰控股"}
 try:
     fund, src = fetch_hk_fundamentals(hk_cfg)
     pe = fund.get("pe", "N/A")
-    mcap = fund.get("market_cap", "N/A")
+    roe = fund.get("roe", "N/A")
     pm = fund.get("profit_margin", "N/A")
-    print(f"  [OK]   汇丰控股     | 源={src:8s} | PE={pe} | 市值={mcap} | 利润率={pm}%")
+    print(f"  [OK]   汇丰控股     | 源={src:8s} | PE={pe} | ROE={roe}% | 利润率={pm}%")
 except Exception as e:
     print(f"  [FAIL] 汇丰控股     | {e}")
 
