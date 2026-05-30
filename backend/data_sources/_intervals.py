@@ -56,11 +56,18 @@ _YFINANCE_PERIOD: dict[Interval, tuple[str, int]] = {
 def yfinance_period_for(interval: Interval, days: int) -> str:
     """根据 interval + 用户请求 days，返回 yfinance 的 period 字符串。
 
-    对日 K 保留原逻辑（≤90 天 → 3mo，否则 6mo）；
+    对日 K：按 days 阶梯映射到 yfinance 支持的 period（3mo/6mo/1y/2y/5y/10y/max），
+    避免长周期请求（如 Smart Beta 回测要 3-5 年）被 cap 到 6mo 只拿 ~126 bars。
     对分钟级取该 interval 上限对应的 period 字符串。
     """
     if interval == Interval.DAY_1:
-        return "6mo" if days > 90 else "3mo"
+        if days <= 90:    return "3mo"
+        if days <= 180:   return "6mo"
+        if days <= 365:   return "1y"
+        if days <= 730:   return "2y"
+        if days <= 1825:  return "5y"
+        if days <= 3650:  return "10y"
+        return "max"
     return _YFINANCE_PERIOD[interval][0]
 
 
