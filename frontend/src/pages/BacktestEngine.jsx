@@ -820,6 +820,7 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
       // 持有份额（模拟实际持仓）
       let shares = normSeries.map(ns => ns.weight * 100 / ns.series[0]); // 初始份额
       let rebalanceCount = 0;
+      const rebalanceDates = [];  // v5.3：再平衡发生的日期，用于 NAV 图 marker
 
       for (let i = 0; i < numPts; i++) {
         // 计算当前净值
@@ -833,6 +834,7 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
             shares[j] = (initWeights[j] * nav) / ns.series[i];
           });
           rebalanceCount++;
+          rebalanceDates.push(dateAxis[i]);
         }
 
         // benchmark 缺失时设为 null（之前用 100+i*线性递增 伪造，导致 Underwater 图显示 "QQQ 0%" 假相）
@@ -932,6 +934,20 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
       if (curDDDuration > maxDDDuration) maxDDDuration = curDDDuration;
       // 估算回撤持续天数
       const ddDays = Math.round(maxDDDuration * (totalDays / Math.max(numPts, 1)));
+
+      // v5.3：最深回撤窗口（peak→trough）作为"压力区间"— 把组合实际经历的最大压力在 NAV 图上标出
+      let stressBand = null;
+      if (navCurve.length > 2) {
+        let runPeak = navCurve[0].strategy, runPeakIdx = 0, worst = 0, peakIdx = 0, troughIdx = 0;
+        for (let i = 0; i < navCurve.length; i++) {
+          if (navCurve[i].strategy > runPeak) { runPeak = navCurve[i].strategy; runPeakIdx = i; }
+          const dd = runPeak > 0 ? (navCurve[i].strategy - runPeak) / runPeak * 100 : 0;
+          if (dd < worst) { worst = dd; troughIdx = i; peakIdx = runPeakIdx; }
+        }
+        if (worst < -3 && troughIdx > peakIdx) {
+          stressBand = { startDate: navCurve[peakIdx].date, endDate: navCurve[troughIdx].date, dd: Math.round(worst * 10) / 10 };
+        }
+      }
 
       // 超额收益 Alpha（策略收益 - 基准收益）
       // 基准缺失时 benchReturn/alpha 都置 null，下游 UI 显示"—"
@@ -1216,7 +1232,7 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
 
       setBtResult({
         navCurve, drawdownCurve, holdingResults, segments, monthlyReturns, isAnnual,
-        corrMatrix, corrTickers: tickers, rebalanceCount,
+        corrMatrix, corrTickers: tickers, rebalanceCount, rebalanceDates, stressBand,
         stressResults, riskParityWeights,
         // S8: 实际渲染出数据的额外基准列表
         extraBenches: Object.keys(extraBenchSeries),
@@ -1419,7 +1435,8 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
               )}
             </div>
             <div className="flex items-center gap-2">
-              <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-md ${totalWeight === 100 ? "bg-up/10 text-up border border-up/20" : totalWeight > 100 ? "bg-down/10 text-down border border-down/20" : "bg-amber-500/10 text-amber-400 border border-amber-500/20"}`}>
+              <span className={`inline-flex items-center gap-0.5 text-[10px] font-mono px-1.5 py-0.5 rounded-md ${totalWeight === 100 ? "bg-up/10 text-up border border-up/20" : totalWeight > 100 ? "bg-down/10 text-down border border-down/20" : "bg-amber-500/10 text-amber-400 border border-amber-500/20"}`}>
+                {totalWeight === 100 && <Check size={10} />}
                 {totalWeight}% / 100%
               </span>
               <ChevronDown size={14} className={`text-[#a0aec0] shrink-0 transition-transform duration-200 ${builderOpen ? "rotate-180" : ""}`} />
@@ -1926,6 +1943,10 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
                     }`}
                   >
                     {tab.label}
+                    {/* v5.2：风险页若有深回撤（≤−15%）则标红色 ⚠ pip，引导用户别跳过风险页 */}
+                    {tab.id === "risk" && m.maxDD != null && m.maxDD <= -15 && (
+                      <span className="ml-1 inline-flex items-center justify-center h-[14px] px-1 rounded-full bg-down/20 text-down text-[8px] font-bold border border-down/40 align-middle" title={`${t('最大回撤')} ${m.maxDD.toFixed(1)}%`}>⚠1</span>
+                    )}
                   </button>
                 );
               })}
@@ -1954,6 +1975,12 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
                       "1M":t("近1月"),"6M":t("近6月"),"YTD":t("年初至今"),"1Y":t("近1年"),"5Y":t("近5年"),"ALL":t("全部历史"),
                       "CUSTOM": customStart && customEnd ? `${customStart} ~ ${customEnd}` : t("自定义")
                     })[btRange] || btRange})</span>
+                    {/* v5.3：α 超额徽章 — 把"跑赢基准多少"从正文提到标题级 */}
+                    {m.alpha != null && (
+                      <span className={`inline-flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded-md border ${m.alpha >= 0 ? "bg-up/10 text-up border-up/20" : "bg-down/10 text-down border-down/20"}`} title={t('相对基准超额收益（percentage points）')}>
+                        α {m.alpha >= 0 ? "+" : ""}{m.alpha}pp
+                      </span>
+                    )}
                     {zoomRange && (
                       <button onClick={() => setZoomRange(null)}
                         className="flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/25 hover:bg-indigo-500/25 transition-colors">
@@ -2102,6 +2129,16 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
                       fill={highlightRange.ret >= 0 ? "rgba(0,229,160,0.10)" : "rgba(255,107,107,0.10)"}
                       stroke={highlightRange.ret >= 0 ? "rgba(0,229,160,0.30)" : "rgba(255,107,107,0.30)"}
                       strokeDasharray="2 2" />}
+                    {/* v5.3：压力区间 — 组合最深回撤窗口（peak→trough），对应 AI 总结里"某段表现欠佳" */}
+                    {btResult.stressBand && !zoomRange && !highlightRange && (
+                      <ReferenceArea x1={btResult.stressBand.startDate} x2={btResult.stressBand.endDate}
+                        fill="rgba(255,107,107,0.08)" stroke="rgba(255,107,107,0.25)" strokeDasharray="2 2"
+                        label={{ value: `压力 ${btResult.stressBand.dd}%`, position: "insideTopRight", fontSize: 9, fill: "#FF6B6B" }} />
+                    )}
+                    {/* v5.3：再平衡点 — 季度/年度调仓位置（虚线竖标） */}
+                    {rebalance !== "none" && !zoomRange && (btResult.rebalanceDates || []).map((d) => (
+                      <ReferenceLine key={`rb-${d}`} x={d} stroke="rgba(129,140,248,0.28)" strokeDasharray="3 3" />
+                    ))}
                     <Area type="linear" dataKey="strategy" stroke="url(#navStroke)" strokeWidth={2} fill="url(#navGrad)" dot={false} name={t("组合")} />
                     <Line type="linear" dataKey="benchmark" stroke="#667" strokeWidth={1.5} dot={false} strokeDasharray="4 4" name={benchTicker} />
                     {/* S8: 额外基准曲线 */}
