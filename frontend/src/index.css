@@ -511,6 +511,13 @@ input[type="range"]::-webkit-slider-runnable-track {
   background: linear-gradient(90deg, #8A2BE2, #4169E1);
 }
 
+/* ── Compound 假设滑块：透明轨道（外层自绘绿色填充）+ 白色绿光拇指 ── */
+.cp-slider { background: transparent; }
+.cp-slider::-webkit-slider-runnable-track { background: transparent; }
+.cp-slider::-moz-range-track { background: transparent; }
+.cp-slider::-webkit-slider-thumb { box-shadow: 0 0 0 1px #1ED395, 0 0 8px rgba(30, 211, 149, 0.55); }
+.cp-slider::-moz-range-thumb { box-shadow: 0 0 0 1px #1ED395, 0 0 8px rgba(30, 211, 149, 0.55); }
+
 /* ── Weight factor slider (custom per-color) ── */
 .weight-slider::-webkit-slider-runnable-track {
   height: 0px;
