@@ -168,6 +168,35 @@ export default function Screener10x() {
   // 当前价（用于 target/stop 预警 badge）；只对设了 target 或 stop 的 item 拉
   const [pricesByTicker, setPricesByTicker] = useState({});
 
+  // v5.3：已存筛选预设（localStorage）— 让调好的赛道+筛选条件可复用/切换
+  const [presets, setPresets] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("quantedge_10x_presets") || "[]"); } catch { return []; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem("quantedge_10x_presets", JSON.stringify(presets)); } catch {}
+  }, [presets]);
+  const saveCurrentPreset = () => {
+    const name = window.prompt("预设名称", `筛选 ${presets.length + 1}`);
+    if (!name) return;
+    setPresets(prev => [...prev, { id: Date.now(), name, trends: selectedTrends, maxMcapInput, includeETF, precise, markets, activeStrategy }]);
+  };
+  const applyPreset = (p) => {
+    setSelectedTrends(p.trends || []);
+    if (p.maxMcapInput != null) setMaxMcapInput(p.maxMcapInput);
+    if (typeof p.includeETF === "boolean") setIncludeETF(p.includeETF);
+    if (typeof p.precise === "boolean") setPrecise(p.precise);
+    if (Array.isArray(p.markets)) setMarkets(p.markets);
+    if (p.activeStrategy) setActiveStrategy(p.activeStrategy);
+  };
+  const deletePreset = (id) => setPresets(prev => prev.filter(p => p.id !== id));
+  const activePresetId = useMemo(() => {
+    const cur = JSON.stringify([...selectedTrends].sort());
+    return presets.find(p => JSON.stringify([...(p.trends || [])].sort()) === cur)?.id ?? null;
+  }, [presets, selectedTrends]);
+
+  // v5.3：候选列表 J/K 键盘 cursor
+  const [cursorIdx, setCursorIdx] = useState(-1);
+
   // ── localStorage 偏好持久化（依赖变化时序列化写回，静默忽略写失败）─
   useEffect(() => {
     savePrefs({
@@ -350,6 +379,22 @@ export default function Screener10x() {
     }
     return cs;
   }, [candidates, search, aiRanking, sortKey, sortDir]);
+
+  // v5.3：候选列表键盘流 — J/K 移动 cursor · ↵ 看详情 · + 加观察（未聚焦输入时）
+  useEffect(() => {
+    const onKey = (e) => {
+      if (!filteredCandidates.length) return;
+      const tag = e.target?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || e.metaKey || e.ctrlKey || e.altKey) return;
+      const k = e.key.toLowerCase();
+      if (k === "j") { e.preventDefault(); setCursorIdx(i => Math.min((i < 0 ? -1 : i) + 1, filteredCandidates.length - 1)); }
+      else if (k === "k") { e.preventDefault(); setCursorIdx(i => Math.max((i <= 0 ? 1 : i) - 1, 0)); }
+      else if (e.key === "Enter" && cursorIdx >= 0 && filteredCandidates[cursorIdx]) { e.preventDefault(); setDetailItem(filteredCandidates[cursorIdx]); }
+      else if ((k === "+" || k === "=") && cursorIdx >= 0 && filteredCandidates[cursorIdx]) { e.preventDefault(); openAdd(filteredCandidates[cursorIdx]); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [filteredCandidates, cursorIdx]);
 
   /** 点击列头切换排序：用 nextSortState 计算（pure，可测） */
   const toggleSort = useCallback((key) => {
@@ -842,6 +887,35 @@ export default function Screener10x() {
         );
       })()}
 
+      {/* v5.2 总转化总览 + v5.3 已存筛选预设 */}
+      {(() => {
+        const totalUniverse = universeStats ? (universeStats.US?.count || 0) + (universeStats.HK?.count || 0) + (universeStats.CN?.count || 0) : 0;
+        const finalN = items.length;
+        return (
+          <div className="flex flex-wrap items-center gap-2 -mt-1">
+            {totalUniverse > 0 && (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-cyan-500/[0.05] border border-cyan-400/15 text-[10px]">
+                <span className="text-cyan-300 font-mono font-semibold">{(finalN / totalUniverse * 100).toFixed(2)}% 总转化</span>
+                <span className="text-[#556]">·</span>
+                <span className="text-[#a0aec0] font-mono">{totalUniverse.toLocaleString()} → {finalN}</span>
+                {finalN > 0 && <><span className="text-[#556]">·</span><span className="text-cyan-200 font-mono">≈ {Math.round(totalUniverse / finalN)}× 放大</span></>}
+              </div>
+            )}
+            <div className="flex flex-wrap items-center gap-1.5">
+              {presets.map(p => (
+                <span key={p.id} className={`group/preset inline-flex items-center gap-1 px-2 py-1 rounded-lg border text-[10px] transition ${p.id === activePresetId ? "bg-indigo-500/20 border-indigo-400/40 text-indigo-100" : "bg-white/[0.03] border-white/10 text-[#a0aec0] hover:bg-white/[0.06]"}`}>
+                  <button onClick={() => applyPreset(p)} className="font-medium" title="应用此预设">{p.name}</button>
+                  <button onClick={() => deletePreset(p.id)} className="opacity-0 group-hover/preset:opacity-60 hover:opacity-100 transition" title="删除预设">×</button>
+                </span>
+              ))}
+              <button onClick={saveCurrentPreset} className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-dashed border-white/15 text-[10px] text-[#7a8497] hover:text-white hover:border-white/30 transition" title="把当前赛道 + 筛选条件存为预设">
+                <Plus size={10} /> 存为预设
+              </button>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* 三栏 grid */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-[220px_1fr_320px] gap-3 overflow-hidden min-h-0">
 
@@ -1279,7 +1353,8 @@ export default function Screener10x() {
                     const isTop3 = idx < 3 && Object.keys(aiRanking).length > 0 && ai != null;
                     return (
                       <tr key={c.ticker} className={`border-t border-white/5 transition ${
-                        isTop3 ? "bg-violet-500/[0.06] hover:bg-violet-500/[0.10]" : "hover:bg-white/[0.04]"
+                        idx === cursorIdx ? "bg-indigo-500/[0.12] ring-1 ring-inset ring-indigo-400/40"
+                        : isTop3 ? "bg-violet-500/[0.06] hover:bg-violet-500/[0.10]" : "hover:bg-white/[0.04]"
                       }`}>
                         <td className="px-2 py-1.5 font-mono text-[10px] text-white">
                           <div className="flex items-center gap-1">
@@ -1408,6 +1483,24 @@ export default function Screener10x() {
                   })}
                 </tbody>
               </table>
+            )}
+            {/* v5.3：结果计数 + 被过滤透明化 + J/K 键盘流 hint */}
+            {!loadingCands && candidates.length > 0 && (
+              <div className="flex items-center justify-between gap-2 px-3 py-1.5 mt-1 border-t border-white/5 text-[9px] text-[#7a8497]">
+                <span className="font-mono">
+                  显示 {filteredCandidates.length}/{candidates.length}
+                  {candidates.length - filteredCandidates.length > 0 && (
+                    <span className="text-amber-300/80"> · {candidates.length - filteredCandidates.length} 项被过滤</span>
+                  )}
+                </span>
+                <span className="hidden md:inline-flex items-center gap-1.5">
+                  <span><kbd className="px-1 py-px rounded bg-white/[0.06] border border-white/12 font-mono text-[8px]">J</kbd>/<kbd className="px-1 py-px rounded bg-white/[0.06] border border-white/12 font-mono text-[8px]">K</kbd> 移动</span>
+                  <span className="opacity-40">·</span>
+                  <span><kbd className="px-1 py-px rounded bg-white/[0.06] border border-white/12 font-mono text-[8px]">↵</kbd> 详情</span>
+                  <span className="opacity-40">·</span>
+                  <span><kbd className="px-1 py-px rounded bg-white/[0.06] border border-white/12 font-mono text-[8px]">+</kbd> 观察</span>
+                </span>
+              </div>
             )}
           </div>
         </div>
