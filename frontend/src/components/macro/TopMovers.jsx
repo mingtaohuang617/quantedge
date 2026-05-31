@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { TrendingUp, TrendingDown, Zap } from "lucide-react";
 import { useLang } from "../../i18n.jsx";
 import {
@@ -17,6 +17,7 @@ import {
 // 数据需求：每个因子的 latest.percentile + direction + contrarian_at_extremes（已在 snapshot 中）
 export default function TopMovers({ factors }) {
   const { t } = useLang();
+  const [sortKey, setSortKey] = useState("impact"); // v5.2：impact=|偏离50| / pct=历史分位
 
   const { topBull, topBear, contrarianAlerts } = useMemo(() => {
     if (!factors || factors.length === 0) return { topBull: [], topBear: [], contrarianAlerts: [] };
@@ -29,8 +30,11 @@ export default function TopMovers({ factors }) {
       }))
       .filter(x => x.contrib != null);
 
-    const topBull = [...enriched].sort((a, b) => b.contrib - a.contrib).slice(0, 3).filter(x => x.contrib > 0);
-    const topBear = [...enriched].sort((a, b) => a.contrib - b.contrib).slice(0, 3).filter(x => x.contrib < 0);
+    // v5.2：排序键可切换 — 影响（贡献绝对值）或历史分位
+    const topBull = [...enriched].filter(x => x.contrib > 0)
+      .sort(sortKey === "pct" ? (a, b) => (b.pct ?? 0) - (a.pct ?? 0) : (a, b) => b.contrib - a.contrib).slice(0, 3);
+    const topBear = [...enriched].filter(x => x.contrib < 0)
+      .sort(sortKey === "pct" ? (a, b) => (a.pct ?? 0) - (b.pct ?? 0) : (a, b) => a.contrib - b.contrib).slice(0, 3);
 
     const contrarianAlerts = factors.filter(f =>
       f.contrarian_at_extremes &&
@@ -39,7 +43,7 @@ export default function TopMovers({ factors }) {
     ).slice(0, 4);
 
     return { topBull, topBear, contrarianAlerts };
-  }, [factors]);
+  }, [factors, sortKey]);
 
   if (!topBull.length && !topBear.length && !contrarianAlerts.length) return null;
 
@@ -69,9 +73,18 @@ export default function TopMovers({ factors }) {
 
   return (
     <div className={PANEL.secondary}>
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-3 flex-wrap gap-1.5">
         <span className="text-sm font-medium text-white/85">{t("当下推动力")}</span>
-        <span className="text-[10px] text-white/40">{t("基于每个因子的方向化分数偏离 50")}</span>
+        {/* v5.2：排序方向控制 — 让 6 卡次序由用户主动选择，而非随机摆放 */}
+        <div className="flex items-center gap-1 text-[10px]">
+          <span className="text-white/40 mr-0.5">{t("排序")}</span>
+          {[["impact", t("影响 |Δ|")], ["pct", t("分位")]].map(([k, label]) => (
+            <button key={k} onClick={() => setSortKey(k)}
+              className={`px-1.5 py-0.5 rounded border transition ${sortKey === k ? "bg-indigo-500/20 border-indigo-400/40 text-indigo-200" : "bg-white/[0.03] border-white/10 text-white/50 hover:text-white/80"}`}>
+              {label}{sortKey === k ? " ▼" : ""}
+            </button>
+          ))}
+        </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {/* 拉牛 */}

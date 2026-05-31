@@ -11,7 +11,7 @@ import {
 // 整张卡 clickable → 弹出 FactorDetailModal（由父组件管理 selected state）
 // 右上角 star 切换"收藏"状态（持久化到 localStorage）
 // React.memo 避免 filter 切换时全量重渲（23 卡 × DOM）
-function FactorCard({ f, onSelect, isStarred, onToggleStar }) {
+function FactorCard({ f, onSelect, isStarred, onToggleStar, alert }) {
   const { t } = useLang();
   const pct = f.latest?.percentile;
   const sparkValues = f.sparkline?.values || [];
@@ -95,6 +95,12 @@ function FactorCard({ f, onSelect, isStarred, onToggleStar }) {
             />
           )}
         </div>
+        {/* v5.3：预警卡的触发阈值 + 越界幅度（只标"⚠ 预警"不知道差多远，给出距离更可判读） */}
+        {alert && (
+          <div className="text-[9px] font-mono text-amber-300 pt-0.5" title={t("当前分位距触发阈值的越界幅度")}>
+            {t("分位阈值")} {alert.side === "high" ? `>${alert.thresh}` : `<${alert.thresh}`}% · {t("已破")} +{alert.over}
+          </div>
+        )}
       </div>
 
       <div className="flex items-center gap-1.5 mb-2 flex-wrap">
