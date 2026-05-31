@@ -36,6 +36,10 @@ import {
   fmtPrice,
 } from "../quant-platform.jsx";
 
+// MA20 趋势均线只在「日线级别」区间有效（interval=1d）。其余区间画 20 点均线
+// 会偷换单位（分时/周/月），所以只在这几个区间显示，标注才诚实。
+const MA_RANGES = new Set(["1M", "6M", "YTD", "1Y"]);
+
 // ─── 市场交易时段判定 ───────────────────────────────────
 // 返回 { usOpen, usPre, usPost, hkOpen, cnOpen, krOpen }，仅判断时段（不含节假日）
 // 注：使用 IANA 时区名 (America/New_York 等)，DST 由 Intl 自动处理 — 美股冬令时
@@ -619,12 +623,40 @@ const ScoringDashboard = () => {
     return () => { cancelled = true; };
   }, [showBenchmark, sel?.ticker, sel?.market, chartRange]);
 
-  // 合并基准到图表数据
+  // 合并基准 + MA20 趋势均线到图表数据
+  // MA20 = 20 个收盘价的简单移动平均。只有「日线级别」区间（interval=1d，即
+  // 1M/6M/YTD/1Y）才是货真价实的「20 个交易日」；1D/5D 是分时、5Y 是周线、ALL
+  // 是月线，画 20 点均线会把单位偷换成「20 根分时/20 周/20 月」——所以那些区间不画，
+  // 避免误导。1M 只有 ~21 个交易日、MA20 几乎只剩 1 个有效点，也一并跳过（要求 ≥30 点）。
   const chartDataWithBench = useMemo(() => {
-    if (!showBenchmark || benchmarkData.length === 0) return chartData;
-    const benchMap = new Map(benchmarkData.map(b => [b.m, b.bpct]));
-    return chartData.map(d => ({ ...d, bpct: benchMap.get(d.m) ?? null }));
-  }, [chartData, benchmarkData, showBenchmark]);
+    let base = chartData;
+    if (showBenchmark && benchmarkData.length > 0) {
+      const benchMap = new Map(benchmarkData.map(b => [b.m, b.bpct]));
+      base = base.map(d => ({ ...d, bpct: benchMap.get(d.m) ?? null }));
+    }
+    if (MA_RANGES.has(chartRange) && base.length >= 30) {
+      const W = 20;
+      base = base.map((d, i) => {
+        if (i < W - 1) return d;
+        let sum = 0;
+        for (let k = i - W + 1; k <= i; k++) sum += base[k].p;
+        return { ...d, ma20: +(sum / W).toFixed(2) };
+      });
+    }
+    return base;
+  }, [chartData, benchmarkData, showBenchmark, chartRange]);
+
+  // MA20 信号：现价 vs 均线 → 趋势加仓位 / 均线下方观望
+  const maSignal = useMemo(() => {
+    if (!MA_RANGES.has(chartRange)) return null;
+    const withMa = chartDataWithBench.filter(d => d.ma20 != null);
+    if (withMa.length === 0) return null;
+    const last = withMa[withMa.length - 1];
+    if (!(last.p > 0) || !(last.ma20 > 0)) return null;
+    const above = last.p >= last.ma20;
+    const gap = ((last.p - last.ma20) / last.ma20) * 100;
+    return { above, gap, ma: last.ma20, px: last.p };
+  }, [chartDataWithBench, chartRange]);
 
   // 自己测量图表容器尺寸，避免 ResponsiveContainer 在 StrictMode 下的初次挂载 bug
   const [chartContainerRef, chartSize] = useContainerSize();
@@ -1634,13 +1666,26 @@ const ScoringDashboard = () => {
                   );
                 })}
               </div>
-              {/* 区间收益率标签 */}
-              {periodReturn !== null && (
-                <div className="flex items-center justify-end gap-1.5 mb-1">
-                  <span className="text-[10px] text-[#778]">{t('区间收益')}</span>
-                  <span className={`text-xs font-bold font-mono tabular-nums px-1.5 py-0.5 rounded ${safeChange(periodReturn) >= 0 ? "text-up bg-up/10" : "text-down bg-down/10"}`}>
-                    {safeChange(periodReturn) >= 0 ? "+" : ""}{fmtChange(periodReturn)}%
-                  </span>
+              {/* 区间收益率 + MA20 趋势信号 */}
+              {(periodReturn !== null || maSignal) && (
+                <div className="flex items-center gap-1.5 mb-1">
+                  {maSignal && (
+                    <span
+                      title={`MA20 = 最近 20 个交易日收盘均价 ${currencySymbol(sel.currency)}${maSignal.ma.toFixed(2)}；现价${maSignal.above ? '在 20 日均线上方' : '在 20 日均线下方'} ${maSignal.gap >= 0 ? '+' : ''}${maSignal.gap.toFixed(1)}%`}
+                      className={`inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border ${maSignal.above ? 'text-warn bg-warn/10 border-warn/30' : 'text-[#a0aec0] bg-white/5 border-white/10'}`}
+                    >
+                      <span className="inline-block w-3" style={{ borderTop: '2px dashed #F5B53C' }} />
+                      MA20 {maSignal.above ? `↗ 站上均线 +${maSignal.gap.toFixed(1)}%` : `↘ 跌破均线 ${maSignal.gap.toFixed(1)}%`}
+                    </span>
+                  )}
+                  {periodReturn !== null && (
+                    <span className="ml-auto inline-flex items-center gap-1.5">
+                      <span className="text-[10px] text-[#778]">{t('区间收益')}</span>
+                      <span className={`text-xs font-bold font-mono tabular-nums px-1.5 py-0.5 rounded ${safeChange(periodReturn) >= 0 ? "text-up bg-up/10" : "text-down bg-down/10"}`}>
+                        {safeChange(periodReturn) >= 0 ? "+" : ""}{fmtChange(periodReturn)}%
+                      </span>
+                    </span>
+                  )}
                 </div>
               )}
               <div ref={chartContainerRef} className="h-36 chart-glow relative">
@@ -1736,6 +1781,7 @@ const ScoringDashboard = () => {
                     />
                     {/* PDF2 抛光 4.4：1100ms 描边 + ease-out 让 K 线"画出来"而不是突然显形 */}
                     <Area yAxisId="price" type="monotone" dataKey="p" stroke={chartData.length >= 2 && chartData[chartData.length-1].p >= chartData[0].p ? "url(#strokeGrad)" : "#FF6B6B"} strokeWidth={2} fill="url(#pg)" dot={false} activeDot={{ r: 4, fill: "#fff", stroke: "#8A2BE2", strokeWidth: 2, filter: "drop-shadow(0 0 4px rgba(138,43,226,0.6))" }} animationDuration={1100} animationEasing="ease-out" />
+                    {maSignal && <Line yAxisId="price" type="monotone" dataKey="ma20" stroke="#F5B53C" strokeWidth={1.5} strokeDasharray="5 4" dot={false} connectNulls activeDot={false} isAnimationActive={false} name="MA20" />}
                     <Line yAxisId="pct" type="monotone" dataKey="pct" stroke="transparent" dot={false} activeDot={false} isAnimationActive={false} />
                     {showBenchmark && <Line yAxisId="pct" type="monotone" dataKey="bpct" stroke="#94a3b8" strokeWidth={1.5} strokeDasharray="4 3" dot={false} activeDot={{ r: 3, fill: "#cbd5e1", stroke: "#94a3b8", strokeWidth: 1.5 }} animationDuration={1100} animationEasing="ease-out" />}
                   </ComposedChart>
@@ -2516,6 +2562,7 @@ const ScoringDashboard = () => {
                     return [v, name];
                   }} />
                 <Area yAxisId="price" type="monotone" dataKey="p" stroke={chartData.length >= 2 && chartData[chartData.length-1].p >= chartData[0].p ? "url(#strokeGradFull)" : "#FF6B6B"} strokeWidth={2.5} fill="url(#pgFull)" dot={false} activeDot={{ r: 5, fill: "#fff", stroke: "#8A2BE2", strokeWidth: 2 }} />
+                {maSignal && <Line yAxisId="price" type="monotone" dataKey="ma20" stroke="#F5B53C" strokeWidth={2} strokeDasharray="6 4" dot={false} connectNulls activeDot={false} isAnimationActive={false} name="MA20" />}
                 <Line yAxisId="pct" type="monotone" dataKey="pct" stroke="transparent" dot={false} activeDot={false} />
                 {showBenchmark && <Line yAxisId="pct" type="monotone" dataKey="bpct" stroke="#94a3b8" strokeWidth={2} strokeDasharray="5 4" dot={false} activeDot={{ r: 4, fill: "#cbd5e1", stroke: "#94a3b8", strokeWidth: 2 }} />}
               </ComposedChart>
