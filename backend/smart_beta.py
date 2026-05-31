@@ -473,6 +473,12 @@ def run_backtest(
         period_weights = rebalances[i]["weights"]
 
         valid_w = {t: w for t, w in period_weights.items() if t in price_df.columns and w > 0}
+        # 关键修复：缺失 ticker（数据没拉到）后必须把剩余权重重新归一化到 Σ=1。
+        # 否则 port_factor 起点 = Σw < 1，净值递推每次再平衡被错误地 ×Σw（如 ×0.65），
+        # 月月叠加 → 阶梯式暴跌。归一化 = 满仓再平衡假设（缺失仓位按比例分给其余）。
+        _tot = sum(valid_w.values())
+        if _tot > 0:
+            valid_w = {t: w / _tot for t, w in valid_w.items()}
         if not valid_w or len(period_idx) == 0:
             for d in period_idx:
                 if i > 0 and d == rb_date:

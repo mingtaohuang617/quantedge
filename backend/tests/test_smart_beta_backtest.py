@@ -170,3 +170,24 @@ def test_different_core_presets(sample_prices, universe):
     w_balanced = res_balanced["rebalances"][0]["weights"]
     w_simple = res_simple["rebalances"][0]["weights"]
     assert w_balanced != w_simple
+
+
+def test_missing_ticker_normalizes_no_stepdrop(sample_prices, universe):
+    """回归（生产 -82% 暴跌 bug）：balanced 权重含 QQQ/IWM，但 core_prices 只给 SPY
+    （模拟 QQQ/IWM 数据没拉到）。修复前 valid_w 总和 < 1 → 净值每次再平衡 ×Σw 阶梯
+    暴跌；修复后归一化到 Σ=1 → 净值起点 ≈1.0 且无人为断崖。"""
+    spy, sector, _full_core = sample_prices
+    core_only_spy = {"SPY": spy}  # 故意缺 QQQ/IWM
+    result = sb.run_backtest(
+        spy_prices=spy, sector_prices=sector, core_prices=core_only_spy,
+        universe=universe, core_preset="balanced", initial_nav=1.0,
+    )
+    assert "error" not in result
+    nav = result["strategy_nav"]
+    # 1) 起点 ≈ 1.0（修复前会是 Σw ≈ 0.x）
+    assert abs(nav[0] - 1.0) < 0.05, f"净值起点异常 {nav[0]}（归一化失效?）"
+    # 2) 无单日人为断崖（再平衡边界不应出现 ~35% 的跳水）
+    max_drop = min((nav[i] / nav[i - 1] - 1) for i in range(1, len(nav)))
+    assert max_drop > -0.20, f"出现单日 {max_drop*100:.0f}% 断崖 — 归一化未生效"
+    # 3) 总收益落在合理范围（不该是 -80%+ 的暴亏）
+    assert result["metrics"]["total_return"] > -0.5
