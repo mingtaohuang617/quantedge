@@ -638,6 +638,36 @@ const Monitor = () => {
                   {t('建议')}：{featuredAlert.action}
                 </p>
               )}
+              {/* v5: 价格位置条 — 用真实 52周高低 + 现价，告诉用户告警价在年内什么位置。
+                   注：持仓%/影响$ 需要持仓数据、止损 mini bar 需要止损价，Monitor 没有这些
+                   数据源，故诚实只渲染能被真实数据驱动的 52周位置条，不臆造持仓与止损线。 */}
+              {featuredAlert.type !== "macro" && (() => {
+                const stk = liveStocks.find(s => s.ticker === featuredAlert.ticker);
+                if (!stk || stk.week52Low == null || stk.week52High == null || !(stk.price > 0)) return null;
+                const lo = stk.week52Low, hi = stk.week52High;
+                const range = hi - lo || 1;
+                const pct = Math.max(0, Math.min(100, ((stk.price - lo) / range) * 100));
+                const cur = currencySymbol(stk.currency);
+                const distHigh = ((stk.price - hi) / hi) * 100; // ≤ 0
+                const distLow = ((stk.price - lo) / lo) * 100;   // ≥ 0
+                return (
+                  <div className="mb-2 pt-1.5 border-t border-white/[0.04]">
+                    <div className="flex items-center justify-between text-[9px] text-[#778] mb-1">
+                      <span className="font-mono">{cur}{lo}</span>
+                      <span className="uppercase tracking-wider">{t('52周价格位置')}</span>
+                      <span className="font-mono">{cur}{hi}</span>
+                    </div>
+                    <div className="relative w-full h-1.5 rounded-full bg-gradient-to-r from-down/30 via-amber-500/25 to-up/30">
+                      <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full bg-white border-2 border-indigo-400 shadow-[0_0_6px_rgba(99,102,241,0.6)]" style={{ left: `${pct}%` }} />
+                    </div>
+                    <div className="flex items-center justify-between text-[9px] mt-1 tabular-nums">
+                      <span className="text-up font-mono">{t('距低')} +{distLow.toFixed(0)}%</span>
+                      <span className="font-mono text-white font-semibold">{cur}{stk.price} · {pct.toFixed(0)}%</span>
+                      <span className="text-down font-mono">{t('距高')} {distHigh.toFixed(0)}%</span>
+                    </div>
+                  </div>
+                );
+              })()}
               <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-rose-400/15">
                 {featuredAlert.type === "macro" && (
                   <button onClick={() => window.dispatchEvent(new CustomEvent("quantedge:nav", { detail: "macro" }))}
