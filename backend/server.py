@@ -1443,6 +1443,10 @@ def smart_beta_backtest(
     # 计算需要拉的天数：start_date 倒推 250 天 lookback
     today = pd.Timestamp.now().normalize()
     days_needed = (today - start_ts).days + 250
+    # 回测必须拿到覆盖整个窗口的多年历史。_fetch_etf_prices 默认 min_bars=120，
+    # cache 有 >120 bars（如最近 1 年）就直接返回短数据 → 回测只跑 1 年且权重缺失
+    # 导致净值暴跌。按交易日估算传足够大的 min_bars，强制 cache 不足时远程拉满。
+    min_bars_needed = int(days_needed * 0.6)
 
     # Core ETF（按 preset 拉具体 tickers）
     core_preset_cfg = universe.get("core", {}).get(core_preset)
@@ -1461,7 +1465,7 @@ def smart_beta_backtest(
 
     def _fetch_one(ticker):
         try:
-            close, volume = _fetch_etf_prices(ticker, days=days_needed)
+            close, volume = _fetch_etf_prices(ticker, days=days_needed, min_bars=min_bars_needed)
             return ticker, close, volume, None
         except Exception as e:  # noqa: BLE001
             return ticker, None, None, str(e)
