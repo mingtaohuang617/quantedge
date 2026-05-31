@@ -1444,23 +1444,20 @@ def smart_beta_backtest(
     today = pd.Timestamp.now().normalize()
     days_needed = (today - start_ts).days + 250
 
-    # SPY
-    spy_close, _ = _fetch_etf_prices("SPY", days=days_needed)
-    if spy_close is None or len(spy_close) < 200:
-        raise HTTPException(503, f"SPY 数据不足（拿到 {len(spy_close) if spy_close is not None else 0} bars）")
-
     # Core ETF（按 preset 拉具体 tickers）
     core_preset_cfg = universe.get("core", {}).get(core_preset)
     if not core_preset_cfg:
         raise HTTPException(400, f"未知 core_preset: {core_preset}")
     core_tickers = list(core_preset_cfg.get("weights", {}).keys())
 
-    # Sector ETF — 全拉
     sector_entries = universe.get("sector", [])
+    sector_ticker_set = {e["ticker"] for e in sector_entries}
 
-    # 并行拉所有 ETF
+    # 并行拉所有 ETF（含 SPY）。profiling：月度滚动计算仅 ~0.7s，首次耗时几乎全在
+    # 数据拉取（~19 ticker × 多年历史）。故 SPY 不再串行先拉，统一纳入并行池，
+    # 并把并行度从 8 提到 16，让 ~19 个 ticker 尽量一批并发拉完（少 2 批往返）。
     from concurrent.futures import ThreadPoolExecutor, as_completed
-    all_tickers = list(set(core_tickers + [e["ticker"] for e in sector_entries]) - {"SPY"})
+    all_tickers = list(set(core_tickers + [e["ticker"] for e in sector_entries]) | {"SPY"})
 
     def _fetch_one(ticker):
         try:
@@ -1469,25 +1466,31 @@ def smart_beta_backtest(
         except Exception as e:  # noqa: BLE001
             return ticker, None, None, str(e)
 
-    sector_prices: dict = {}
-    sector_volumes: dict = {}
-    core_prices: dict = {"SPY": spy_close}
+    prices_all: dict = {}
+    volumes_all: dict = {}
     fetch_errors: list[dict] = []
-    sector_ticker_set = {e["ticker"] for e in sector_entries}
 
-    with ThreadPoolExecutor(max_workers=min(8, len(all_tickers))) as pool:
+    with ThreadPoolExecutor(max_workers=min(16, len(all_tickers))) as pool:
         futures = [pool.submit(_fetch_one, t) for t in all_tickers]
         for fut in as_completed(futures):
             ticker, close, volume, err = fut.result()
             if err is not None or close is None:
                 fetch_errors.append({"ticker": ticker, "reason": err or "no_data"})
                 continue
-            if ticker in sector_ticker_set:
-                sector_prices[ticker] = close
-                if volume is not None:
-                    sector_volumes[ticker] = volume
-            if ticker in core_tickers:
-                core_prices[ticker] = close
+            prices_all[ticker] = close
+            if volume is not None:
+                volumes_all[ticker] = volume
+
+    # SPY fail-fast 检查（移到并行拉取后，避免一次串行往返阻塞）
+    spy_close = prices_all.get("SPY")
+    if spy_close is None or len(spy_close) < 200:
+        raise HTTPException(503, f"SPY 数据不足（拿到 {len(spy_close) if spy_close is not None else 0} bars）")
+
+    # 分发到 sector / core
+    sector_prices = {t: prices_all[t] for t in sector_ticker_set if t in prices_all}
+    sector_volumes = {t: volumes_all[t] for t in sector_ticker_set if t in volumes_all}
+    core_prices = {t: prices_all[t] for t in core_tickers if t in prices_all}
+    core_prices["SPY"] = spy_close  # run_backtest 需要 SPY 在 core_prices
 
     if not sector_prices:
         raise HTTPException(503, f"所有 sector ETF 拉取失败: {fetch_errors[:3]}")
