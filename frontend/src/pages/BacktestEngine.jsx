@@ -1796,6 +1796,23 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
           </div>
         ) : btResult && (
           <div ref={reportRef} className={`flex flex-col gap-2 backtest-tabs tab-${resultTab}`}>
+            {/* 数据异常警示 — 极端指标强烈暗示某只成分股价格数据有问题
+                （如分拆复权错误 / 数据源返回极端值），避免误导用户当成真实 alpha */}
+            {(m.sharpe > 4 || m.calmar > 20 || m.sortino > 6 || m.annReturn > 200) && (
+              <div className="rounded-lg px-3 py-2 border border-amber-500/40 bg-amber-500/10 flex items-start gap-2">
+                <AlertTriangle size={14} className="text-amber-400 shrink-0 mt-0.5" />
+                <div className="text-[11px] text-amber-200 leading-relaxed">
+                  <span className="font-semibold">指标异常 · 数据可能有问题</span> —
+                  {' '}{[
+                    m.sharpe > 4 && `夏普 ${m.sharpe}`,
+                    m.calmar > 20 && `Calmar ${m.calmar}`,
+                    m.sortino > 6 && `索提诺 ${m.sortino}`,
+                    m.annReturn > 200 && `年化 ${m.annReturn}%`,
+                  ].filter(Boolean).join(' · ')}
+                  {' '}远超正常区间（顶级策略夏普约 2–3、Calmar 通常 &lt; 5）。常见原因：某只成分股价格数据异常（分拆复权 / 数据源返回极端值）。请核对各标的价格真实性后再参考此结果。
+                </div>
+              </div>
+            )}
             {/* 回测结果 header — 可折叠 + C11 PNG 导出按钮 */}
             <div className="rounded-xl px-3 py-2.5 border border-indigo-500/15 bg-indigo-500/[0.04]">
               <div className="flex items-center justify-between select-none">
