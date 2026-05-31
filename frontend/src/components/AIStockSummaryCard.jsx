@@ -26,9 +26,19 @@ export default function AIStockSummaryCard({ stock }) {
     cached: false,
     error: null,
     expanded: false,
+    generatedAt: null,    // v5.3：生成时间戳，用于"更新于 N 分钟前"
   });
 
   if (!stock || !stock.ticker) return null;
+
+  // v5.3：相对时间（生成解读的鲜度）
+  const relTime = (ts) => {
+    if (!ts) return null;
+    const mins = Math.floor((Date.now() - ts) / 60000);
+    if (mins < 1) return "刚刚";
+    if (mins < 60) return `${mins} 分钟前`;
+    return `${Math.floor(mins / 60)} 小时前`;
+  };
 
   const handleGenerate = async () => {
     setState((s) => ({ ...s, loading: true, error: null, expanded: true }));
@@ -61,6 +71,7 @@ export default function AIStockSummaryCard({ stock }) {
         cached: !!json.cached,
         error: null,
         expanded: true,
+        generatedAt: Date.now(),
       });
     } catch (e) {
       setState((s) => ({
@@ -131,7 +142,30 @@ export default function AIStockSummaryCard({ stock }) {
           <Row icon="📈" label="看点" text={state.data["看点"]} />
           <Row icon="⚠️" label="风险" text={state.data["风险"]} />
           <Row icon="💎" label="估值" text={state.data["估值"]} />
-          <div className="lead-paragraph__based-on">based on · PE · ROE · 营收 · RSI · 52W 区间</div>
+          {/* v5.3：模型置信度量表 — 由数据覆盖度诚实推导（6 因子覆盖越全，AI 判断越可信），
+              把 AI 论点从"黑箱断言"变成"带可信度与鲜度的判断" */}
+          {(() => {
+            const factors = [stock.pe, stock.roe, stock.momentum, stock.rsi, stock.revenueGrowth, stock.profitMargin];
+            const covered = factors.filter((v) => v != null && Number.isFinite(Number(v))).length;
+            const pct = Math.round((covered / factors.length) * 100);
+            const level = pct >= 80 ? "高" : pct >= 50 ? "中" : "低";
+            const lvColor = pct >= 80 ? "text-up" : pct >= 50 ? "text-amber-300" : "text-down";
+            const segColor = pct >= 80 ? "#1ED395" : pct >= 50 ? "#F5B53C" : "#FF6B6B";
+            const filled = Math.round(pct / 20); // 5 段量表
+            return (
+              <div className="flex items-center gap-2 flex-wrap pt-2 mt-0.5 border-t border-white/5">
+                <span className="text-[9px] text-[#778] uppercase tracking-wider shrink-0">模型置信度</span>
+                <div className="flex items-center gap-0.5" aria-hidden>
+                  {[0, 1, 2, 3, 4].map((i) => (
+                    <span key={i} className="w-3 h-1.5 rounded-sm transition-colors" style={{ background: i < filled ? segColor : "rgba(255,255,255,0.1)" }} />
+                  ))}
+                </div>
+                <span className={`text-[10px] font-mono font-bold ${lvColor}`}>{pct}% · {level}</span>
+                <span className="text-[9px] text-[#778] ml-auto">数据覆盖 {covered}/{factors.length} 因子{covered === factors.length ? " · 无缺失" : ""}</span>
+              </div>
+            );
+          })()}
+          <div className="lead-paragraph__based-on">based on · PE · ROE · 营收 · RSI · 52W 区间{state.generatedAt ? ` · 更新于 ${relTime(state.generatedAt)}` : ""}</div>
         </div>
       )}
 

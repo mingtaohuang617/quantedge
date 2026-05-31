@@ -711,6 +711,9 @@ const ScoringDashboard = () => {
     };
     const peers = liveStocks.filter(s => s.sector === sel.sector && s.isETF === sel.isETF && s.ticker !== sel.ticker);
     if (peers.length === 0) return null;
+    // v5.3：最佳同行（同业评分最高者）— 给三要素卡一个具体参照锚点（"对比 AVGO 74.9"）
+    const best = peers.reduce((b, s) => (s.score != null && Number.isFinite(s.score) && (b == null || s.score > b.score)) ? s : b, null);
+    const topPeer = best ? { ticker: best.ticker, score: best.score } : null;
     if (sel.isETF) {
       return {
         cost: median(peers.map(s => s.subScores?.cost)),
@@ -719,6 +722,7 @@ const ScoringDashboard = () => {
         risk: median(peers.map(s => s.subScores?.risk)),
         score: median(peers.map(s => s.score)),
         peerCount: peers.length,
+        topPeer,
       };
     }
     return {
@@ -727,6 +731,7 @@ const ScoringDashboard = () => {
       growth: median(peers.map(s => s.subScores?.growth)),
       score: median(peers.map(s => s.score)),    // PDF1 评分锚点：详情头部 vs 行业中位
       peerCount: peers.length,
+      topPeer,
     };
   }, [sel, liveStocks]);
 
@@ -1429,6 +1434,20 @@ const ScoringDashboard = () => {
                     <h3 className="text-[28px] sm:text-[36px] font-serif font-semibold text-white leading-none tracking-tight" style={{ letterSpacing: '-0.02em' }}>{sel.ticker}</h3>
                     {/* PDF1 收敛：sector 从 accent Badge 改 neutral 文字（信息性，无需视觉权重） */}
                     <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>{sel.market} · {sel.sector}</span>
+                    {/* v5.2：下次财报倒计时 chip — 提前把加/减仓窗口与财报日对齐 */}
+                    {(() => {
+                      if (!sel.nextEarnings) return null;
+                      const d = new Date(sel.nextEarnings);
+                      if (isNaN(d.getTime())) return null;
+                      const days = Math.ceil((d - new Date()) / 86400000);
+                      if (days < 0) return null;
+                      const md = `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                      return (
+                        <span className="inline-flex items-center gap-1 text-[9px] font-mono px-1.5 py-0.5 rounded bg-amber-500/[0.12] text-amber-300 border border-amber-500/25" title={t('下次财报')}>
+                          {t('财报')} {md} · T-{days}d
+                        </span>
+                      );
+                    })()}
                     {/* PDF1 P0 收敛：etfType（国家/主题/行业 ETF）是分类信息，不是 warning。
                         leverage 保留 danger（杠杆是真风险标记）；普通 ETF 用 default neutral。 */}
                     {sel.isETF && <Badge variant={sel.leverage ? "danger" : "default"} size="sm">{sel.etfType}</Badge>}
@@ -1512,11 +1531,13 @@ const ScoringDashboard = () => {
                 <div className="mb-3">
                   <div className="flex items-baseline justify-between mb-1.5">
                     <h3 className="text-[11px] font-medium text-white/90">{t('评分由三大要素构成')}</h3>
+                    {/* v5.3：给"79 分"一个坐标系 — 对比同业最佳 + 行业中位的绝对锚点 */}
                     {sectorMedians?.score != null && (
-                      <span className="text-[9px] text-[#778]">
-                        vs {t('行业中位')} <span className={`font-mono ${(sel.score - sectorMedians.score) >= 0 ? 'text-up' : 'text-down'}`}>
-                          {(sel.score - sectorMedians.score) >= 0 ? '+' : ''}{(sel.score - sectorMedians.score).toFixed(1)}
-                        </span>
+                      <span className="text-[9px] text-[#778] font-mono">
+                        {sectorMedians.topPeer?.score != null && (
+                          <>{t('对比')} <span className="text-white/70">{sectorMedians.topPeer.ticker} {sectorMedians.topPeer.score.toFixed(1)}</span> · </>
+                        )}
+                        {t('行业中位')} <span className="text-white/70">{sectorMedians.score.toFixed(0)}</span>
                       </span>
                     )}
                   </div>
