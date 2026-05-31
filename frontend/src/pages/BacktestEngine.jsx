@@ -281,6 +281,7 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
     } catch { setTemplates([]); }
   }, [wsId]);
   const [showTemplates, setShowTemplates] = useState(false);
+  const [showKellyEffect, setShowKellyEffect] = useState(false); // Half-Kelly 仓位缩放效果展开
   const [logScale, setLogScale] = useState(false); // 对数坐标（长周期更合理）
   const [shareToast, setShareToast] = useState(null); // {msg, t}
   const [savedRuns, setSavedRuns] = useState([]); // 多次回测对比 — [{id, label, navCurve, metrics, color}]
@@ -2919,6 +2920,49 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
                     </div>
                   </div>
                   <div className="mt-2 text-[9px] text-[#778]">{t('f* = (p×b − q) / b，Half Kelly 降低破产风险')}</div>
+                  {/* v5: Half-Kelly 仓位效果 — 诚实做法。回测引擎恒满仓(权重归一化到 100%)，
+                       无法"重跑"一个含现金的组合，所以不做假的覆写按钮；改为线性派生：
+                       按 Half-Kelly 比例部署资金、余下持币(0%)，收益与回撤同比例缩放、夏普≈不变。 */}
+                  {btResult.kelly.half > 0 && btResult.metrics && (() => {
+                    const k = Math.min(1, btResult.kelly.half / 100);
+                    const scAnn = btResult.metrics.annReturn * k;
+                    const scDD = btResult.metrics.maxDD * k; // maxDD 为负值，缩放后绝对值更小
+                    const baseFinal = btResult.finalValue || initialCap;
+                    const scFinal = Math.round(initialCap * (1 - k) + baseFinal * k);
+                    return (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => setShowKellyEffect(v => !v)}
+                          className="w-full mt-2 py-1.5 rounded-md text-[10px] font-semibold bg-gradient-to-r from-indigo-500/20 to-indigo-500/10 text-indigo-200 border border-indigo-400/35 hover:from-indigo-500/30 hover:to-indigo-500/15 transition flex items-center justify-center gap-1.5"
+                          title={t('按 Half-Kelly 比例部署资金、其余持币的风险/收益效果（线性缩放，不重跑回测）')}
+                        >
+                          <Zap size={11} /> {showKellyEffect ? t('收起 Half-Kelly 仓位效果') : `${t('查看 Half-Kelly 仓位效果')} · ${btResult.kelly.half}%`}
+                        </button>
+                        {showKellyEffect && (
+                          <div className="mt-2 p-2 rounded-md bg-black/20 border border-indigo-500/15 space-y-1 text-[10px]">
+                            <div className="flex justify-between">
+                              <span className="text-[#a0aec0]">{t('预期年化')}</span>
+                              <span className="font-mono"><span className="text-[#778]">{btResult.metrics.annReturn}%</span> <span className="text-[#556]">→</span> <span className="text-white font-semibold">{scAnn.toFixed(1)}%</span></span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-[#a0aec0]">{t('最大回撤')}</span>
+                              <span className="font-mono"><span className="text-[#778]">{btResult.metrics.maxDD}%</span> <span className="text-[#556]">→</span> <span className="text-up font-semibold">{scDD.toFixed(1)}%</span></span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-[#a0aec0]">{t('夏普比率')}</span>
+                              <span className="font-mono"><span className="text-white font-semibold">{btResult.metrics.sharpe}</span> <span className="text-[9px] text-[#778]">≈ {t('不变')}</span></span>
+                            </div>
+                            <div className="flex justify-between border-t border-white/5 pt-1">
+                              <span className="text-[#a0aec0]">{t('终值')}</span>
+                              <span className="font-mono"><span className="text-[#778]">${baseFinal.toLocaleString()}</span> <span className="text-[#556]">→</span> <span className="text-white font-semibold">${scFinal.toLocaleString()}</span></span>
+                            </div>
+                            <div className="text-[9px] text-[#778] pt-0.5 leading-snug">{t('部署')} {btResult.kelly.half}% {t('资金 · 余下持币按 0% 计；收益与回撤同比例缩放、夏普≈不变 —— Kelly 用更低回撤换生存。')}</div>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
                 {/* 风险平价 */}
                 <div className="p-2.5 rounded-lg border border-white/10 bg-white/[0.02]">
