@@ -314,16 +314,47 @@ export default function SmartBeta() {
 
   const runBacktest = async () => {
     setBtLoading(true); setBtError(null);
+    const params = new URLSearchParams({
+      start_date: btStart,
+      core_preset: config.core_preset,
+      k: String(config.k),
+      weight_mode: config.weight_mode,
+    });
+    const url = `/smart-beta/backtest?${params.toString()}`;
+    // 首次回测计算量大（拉 16 ETF × 数年历史 + 月度滚动），Vercel 代理 ~55s 会超时，
+    // 但后端不会中断、会跑完并写 1h 缓存。检测到超时就倒计时等后端落地，再重试一次秒回。
+    const isTimeout = (data, err) =>
+      /timeout|超时|abort|504/i.test(String(data?.error || data?.detail || err?.message || ""));
+    const attempt = () => apiFetch(url);
+
     try {
-      const params = new URLSearchParams({
-        start_date: btStart,
-        core_preset: config.core_preset,
-        k: String(config.k),
-        weight_mode: config.weight_mode,
-      });
-      const data = await apiFetch(`/smart-beta/backtest?${params.toString()}`);
+      let data;
+      try {
+        data = await attempt();
+      } catch (e) {
+        if (!isTimeout(null, e)) throw e;
+        data = { error: "timeout" };
+      }
+
+      if (isTimeout(data, null)) {
+        // 后端首次约 60-90s 算完写缓存；等 35s 让它落地，再重试 → 命中缓存秒回
+        for (let s = 35; s > 0; s--) {
+          setBtError(`首次回测计算量大（16 ETF × 数年），后端计算中，${s}s 后自动重试…`);
+          await new Promise(r => setTimeout(r, 1000));
+        }
+        setBtError(null);
+        try {
+          data = await attempt();
+        } catch (e) {
+          if (!isTimeout(null, e)) throw e;
+          data = { error: "still_computing" };
+        }
+      }
+
       if (data && !data.detail && !data.error) {
         setBtResult(data);
+      } else if (data?.error === "still_computing") {
+        setBtError("回测仍在计算 — 请稍后再点「运行回测」，缓存就绪后会秒回。");
       } else {
         setBtError(typeof (data?.detail || data?.error) === "string"
           ? (data.detail || data.error)
