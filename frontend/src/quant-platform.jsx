@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, createContext, useContext, lazy, Suspense } from "react";
 // C1/C2: Recharts 已下沉到各 lazy page chunk（CompareModal 已迁至 ScoringDashboard），主文件不再直接依赖
-import { TrendingUp, TrendingDown, Search, Bell, BookOpen, BarChart3, Activity, Settings, ChevronRight, ChevronDown, ChevronLeft, Star, AlertTriangle, Clock, Target, Zap, Filter, ArrowUpRight, ArrowDownRight, Minus, RefreshCw, Plus, X, Check, Eye, EyeOff, Layers, Globe, Briefcase, Info, Database, Trash2, Loader, ExternalLink, Sun, Moon, Calendar, User, LogOut, Mail, Lock, Shield, KeyRound, UserCircle, Share2, GripVertical, Maximize2, AlertCircle } from "lucide-react";
+import { TrendingUp, TrendingDown, Search, Bell, BookOpen, BarChart3, Activity, Settings, ChevronRight, ChevronDown, ChevronLeft, Star, AlertTriangle, Clock, Target, Zap, Filter, ArrowUpRight, ArrowDownRight, Minus, RefreshCw, Plus, X, Check, Eye, EyeOff, Layers, Globe, Briefcase, Info, Database, Trash2, Loader, ExternalLink, Sun, Moon, Calendar, User, LogOut, Mail, Lock, Shield, KeyRound, UserCircle, Share2, GripVertical, Maximize2, AlertCircle, GraduationCap } from "lucide-react";
 import { searchTickers as standaloneSearch, fetchStockData, fetchBenchmarkPrices, fetchRangePrices, validateStockData, validateAllStocks, loadStandaloneStocks, saveStandaloneStocks, checkStandaloneMode, resolveSector, STOCK_CN_NAMES, STOCK_CN_DESCS } from "./standalone.js";
 import { LangProvider, useLang } from "./i18n.jsx";
 import { monteCarlo as mcSimulate, navToReturns as mcNavToReturns, hhi as hhiCalc, effectiveN as effN } from "./math/stats.ts";
@@ -1989,27 +1989,18 @@ const OnboardingTour = ({ open, onClose }) => {
     {
       icon: <BarChart3 size={28} className="text-indigo-300" />,
       title: t('欢迎来到 QuantEdge'),
-      body: t('这是一个端到端量化研究工作台，覆盖 171+ 标的的评分 · 回测 · 监控 · 投资日志。我们用 60 秒带你了解主要功能。'),
+      body: t('这是一个端到端量化研究工作台，覆盖 171+ 标的的评分 · 回测 · 监控 · 投资日志。下面用 1 分钟快速认识每个功能，想看详细用法随时点 🎓「功能教程」。'),
     },
     {
-      icon: <BarChart3 size={28} className="text-indigo-300" />,
-      title: t('① 量化评分'),
-      body: t('多因子综合评分（价值 · 动量 · 质量 · 情绪），支持市场/行业筛选、模糊搜索、多标的对比（最多4个）、关注列表。右键标的可快速加入对比或关注。'),
-    },
-    {
-      icon: <Activity size={28} className="text-violet-300" />,
-      title: t('② 组合回测'),
-      body: t('拖动旋钮分配权重，选择基准与时间维度，一键运行回测。内置 5 个策略预设（动量 / 红利 / 半导体 / 航天 / 60-40），也可保存自己的模板。'),
-    },
-    {
-      icon: <Bell size={28} className="text-amber-300" />,
-      title: t('③ 实时监控 & 投资日志'),
-      body: t('价格/信号预警自动滚动，重要预警带呼吸发光。投资日志记录持仓锚定价，自动跟踪盈亏。'),
+      icon: <Layers size={28} className="text-violet-300" />,
+      title: t('全部功能一览'),
+      body: t('平台共 {n} 个功能模块，先简单了解各自能做什么（详细步骤见「功能教程」）：', { n: TAB_CFG.length }),
+      list: TAB_CFG.map(c => ({ id: c.id, icon: c.icon, label: c.label, intro: FEATURE_GUIDES[c.id]?.intro || '' })),
     },
     {
       icon: <KeyRound size={28} className="text-cyan-300" />,
-      title: t('快捷键'),
-      body: t('Ctrl/⌘ + K 打开全局命令面板，按 / 聚焦搜索，按 1-4 切换页签。右上角用户菜单可随时重开此引导。'),
+      title: t('快捷键 & 获取帮助'),
+      body: t('Ctrl/⌘ + K 打开全局命令面板，按 / 聚焦搜索，按 1-4 切换页签。需要某个功能的详细步骤，随时点侧边栏 / 顶部的 🎓「功能教程」；也可在用户菜单重开本引导。'),
     },
   ];
   const cur = steps[step];
@@ -2032,6 +2023,22 @@ const OnboardingTour = ({ open, onClose }) => {
           </div>
           <h2 className="text-base font-semibold" style={{ color: "var(--text-heading)" }}>{cur.title}</h2>
           <p className="text-[12px] leading-relaxed text-[#a0aec0] max-w-sm">{cur.body}</p>
+          {cur.list && (
+            <div className="w-full max-h-[42vh] overflow-y-auto pr-1 flex flex-col gap-1.5 text-left mt-1">
+              {cur.list.map(item => {
+                const I = item.icon;
+                return (
+                  <div key={item.id} className="flex items-start gap-2.5 px-2.5 py-1.5 rounded-lg bg-white/[0.02] border border-white/5">
+                    <I size={14} className="text-indigo-300 mt-0.5 shrink-0" />
+                    <div className="min-w-0">
+                      <div className="text-[11px] font-medium text-white">{t(item.label)}</div>
+                      <div className="text-[10px] leading-snug text-[#8b95a5]">{t(item.intro)}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
           {/* 点点 */}
           <div className="flex items-center gap-1.5 mt-1">
             {steps.map((_, i) => (
@@ -2066,6 +2073,165 @@ const OnboardingTour = ({ open, onClose }) => {
   );
 };
 
+// ─── 功能教程（按功能引导） ───────────────────────────────
+// 每个 key 对应 TAB_CFG.id；label / icon 复用 TAB_CFG，避免重复维护。
+const FEATURE_GUIDES = {
+  scoring: {
+    intro: "多因子综合评分（价值 · 动量 · 质量 · 情绪），帮你快速排序与对比全市场标的。",
+    steps: [
+      "用顶部市场 / 行业筛选 + 搜索框（按 / 聚焦）缩小标的范围。",
+      "点任意标的，查看评分拆解、价格走势与基本面 / 技术面雷达。",
+      "右键标的可快速「加入对比（最多 4 个）」或「加入关注列表」。",
+      "在因子权重配置里调整价值 / 技术 / 成长权重，点「应用并重新评分」。",
+    ],
+  },
+  backtest: {
+    intro: "自定义权重组合，选基准与周期，一键跑历史回测。",
+    steps: [
+      "搜索添加标的，拖动旋钮分配权重，或点「等权分配」。",
+      "设置初始资金、交易成本、基准（QQQ / EWY 等）与回测周期。",
+      "选再平衡策略（不再平衡 / 季度 / 年度），点「运行回测」。",
+      "查看净值曲线、回撤、夏普等指标；⌘K 命令面板可调用策略模板库。",
+    ],
+  },
+  smartBeta: {
+    intro: "指数 + 行业 ETF 的三层动态轮动模型。",
+    steps: [
+      "三层逻辑：风险层（VIX / 趋势 / 信用利差 / 实际利率）→ Core ETF 配比 → 行业 ETF 评分轮动。",
+      "顶部可切换策略版本（如因子版 MTUM / QUAL / VLUE / USMV）。",
+      "设「行业 ETF 选 K 只」与缓冲带，控制换手率。",
+      "查看当前持仓行业 ETF 与调仓建议。",
+    ],
+  },
+  miningAlpha: {
+    intro: "因子挖掘 → ML 合成 → 回测的 Alpha 研究流水线。",
+    steps: [
+      "浏览挖掘出的候选因子及其 IC / 回测表现。",
+      "用右上角 RunSwitcher 切换不同运行批次（run）。",
+      "标「DEMO 模式」时为静态示例，需自建后端跑 pipeline 才有真实结果。",
+    ],
+  },
+  monitor: {
+    intro: "价格 / 信号预警与市场情绪实时滚动。",
+    steps: [
+      "顶部看市场情绪指数（恐惧贪婪）与关注板块今日表现。",
+      "预警流自动滚动，重要预警带呼吸发光提示。",
+      "在「预警规则」里管理 RSI 超买 / 评分突变 / 财报预警等规则。",
+    ],
+  },
+  journal: {
+    intro: "记录看好标的与投资论点，自动锚定价格、跟踪盈亏。",
+    steps: [
+      "搜索标的，写下投资论点与标签，点「记录（自动锚定当前价）」。",
+      "卡片自动对比锚定价 vs 现价，显示自记录以来的盈亏与天数。",
+      "持仓可一键跳转到回测引擎做组合分析。",
+    ],
+  },
+  macro: {
+    intro: "综合 17 个宏观因子的方向化「市场温度」。",
+    steps: [
+      "看顶部市场温度（17 因子方向化加权）与 AI 当日宏观画像。",
+      "用市场 / 方向筛选 + 搜索定位因子，点因子卡看历史分位与时间序列。",
+      "关注 L4 HMM 三态识别、持续期预测与 L5 双重确认告警。",
+      "快捷键：r 刷新、/ 聚焦搜索、? 显示帮助（仅本页生效）。",
+    ],
+  },
+  screener10x: {
+    intro: "挖掘高成长 / 低估潜力标的的选股器。",
+    steps: [
+      "顶部切换「成长型 / 价值型」策略。",
+      "成长型逻辑 = 超级趋势 + 双层瓶颈 + 卡位公司。",
+      "按结果筛选并查看候选标的明细。",
+    ],
+  },
+  stockgene: {
+    intro: "多引擎刻画个股「股性」（波动 / 趋势 / 节奏等特征）。",
+    steps: [
+      "顶部切换检测引擎（不同 framework / 特征维度）。",
+      "选标的查看其股性画像与评分明细。",
+    ],
+  },
+  compound: {
+    intro: "直观感受复利曲线，并对照同风险下的可行组合。",
+    steps: [
+      "输入年化收益率、年限、本金，看复利增长曲线。",
+      "对照同档风险下的可行组合配置方案。",
+      "选中组合可「一键回测」跳到回测引擎验证。",
+    ],
+  },
+};
+
+const FeatureGuideModal = ({ open, tabId, onClose, onJump }) => {
+  const { t } = useLang();
+  const [sel, setSel] = useState(tabId || TAB_CFG[0].id);
+  useEffect(() => { if (open) setSel(tabId || TAB_CFG[0].id); }, [open, tabId]);
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+  if (!open) return null;
+  const cfg = TAB_CFG.find(c => c.id === sel) || TAB_CFG[0];
+  const guide = FEATURE_GUIDES[sel] || { intro: "", steps: [] };
+  const Icon = cfg.icon;
+  return (
+    <div className="fixed inset-0 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md" style={{ zIndex: Z_TOUR }} onClick={onClose}>
+      <div className="w-full max-w-3xl h-[min(560px,82vh)] glass-card border border-white/15 shadow-2xl shadow-black/60 overflow-hidden flex flex-col animate-slide-up" onClick={e => e.stopPropagation()}>
+        {/* header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-white/8 bg-white/[0.02]">
+          <div className="flex items-center gap-2">
+            <GraduationCap size={16} className="text-indigo-300" />
+            <h2 className="text-sm font-semibold" style={{ color: "var(--text-heading)" }}>{t('功能教程')}</h2>
+          </div>
+          <button onClick={onClose} aria-label={t('关闭')} className="p-1.5 rounded-md text-[#778] hover:text-white hover:bg-white/5 transition-all"><X size={16} /></button>
+        </div>
+        {/* body: 功能列表 + 教程内容 */}
+        <div className="flex flex-1 min-h-0">
+          <nav aria-label={t('功能教程')} className="w-32 md:w-44 shrink-0 border-r border-white/8 overflow-y-auto py-2 bg-white/[0.01]">
+            {TAB_CFG.map(c => {
+              const I = c.icon;
+              const active = c.id === sel;
+              return (
+                <button key={c.id} onClick={() => setSel(c.id)}
+                  className={`w-full flex items-center gap-2 px-3 py-2 text-left text-[11px] font-medium transition-all ${active ? "bg-white/[0.05] text-white" : "text-[#a0aec0] hover:text-white hover:bg-white/[0.03]"}`}>
+                  <I size={13} className="shrink-0" />
+                  <span className="truncate">{t(c.label)}</span>
+                </button>
+              );
+            })}
+          </nav>
+          <div className="flex-1 min-w-0 overflow-y-auto p-5">
+            <div className="flex items-center gap-2.5 mb-3">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-gradient-to-br from-indigo-500/20 to-violet-500/20 border border-white/10 shrink-0">
+                <Icon size={18} className="text-indigo-300" />
+              </div>
+              <h3 className="text-base font-semibold" style={{ color: "var(--text-heading)" }}>{t(cfg.label)}</h3>
+            </div>
+            <p className="text-[12px] leading-relaxed text-[#a0aec0] mb-4">{t(guide.intro)}</p>
+            <ol className="space-y-2.5">
+              {guide.steps.map((s, i) => (
+                <li key={i} className="flex gap-2.5 text-[12px] leading-relaxed text-[#c0c8d4]">
+                  <span className="shrink-0 w-5 h-5 rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-400/25 flex items-center justify-center text-[10px] font-semibold">{i + 1}</span>
+                  <span>{t(s)}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </div>
+        {/* footer */}
+        <div className="flex items-center justify-between px-4 py-3 border-t border-white/8 bg-white/[0.02]">
+          <span className="text-[10px] text-[#667]">{t('共 {n} 个功能模块', { n: TAB_CFG.length })}</span>
+          <button onClick={() => { onJump?.(sel); onClose(); }}
+            className="text-[11px] font-medium px-4 py-1.5 rounded-md bg-gradient-to-r from-indigo-500 to-violet-500 text-white hover:shadow-glow-indigo transition-all inline-flex items-center gap-1">
+            {t('前往该功能')} <ChevronRight size={13} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 function QuantPlatformInner() {
   const { stocks, alerts, apiOnline, refreshing, priceUpdatedAt, priceRefreshing, quickPriceRefresh } = useData();
   const { user } = useAuth();
@@ -2093,6 +2259,10 @@ function QuantPlatformInner() {
   const [cmdOpen, setCmdOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [onboardOpen, setOnboardOpen] = useState(false);
+  // 功能教程：从侧边栏「教程」按钮打开，默认定位到当前 tab
+  const [guideOpen, setGuideOpen] = useState(false);
+  const [guideTabId, setGuideTabId] = useState(null);
+  const openGuide = useCallback(() => { setGuideTabId(tab); setGuideOpen(true); }, [tab]);
   useEffect(() => {
     try {
       if (!localStorage.getItem(ONBOARD_KEY)) {
@@ -2271,10 +2441,21 @@ function QuantPlatformInner() {
               );
             })}
           </nav>
-          {/* 底部：⌘K 提示 */}
-          <div className="mt-auto px-2 py-2 text-[9px] text-[#667] flex items-center gap-1.5 overflow-hidden whitespace-nowrap">
-            <kbd className="px-1 py-[1px] rounded bg-white/5 border border-white/10 font-mono">⌘K</kbd>
-            <span className="opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">{t('搜索')}</span>
+          {/* 底部：功能教程 + ⌘K 提示 */}
+          <div className="mt-auto px-1.5 pt-1.5 flex flex-col gap-0.5 border-t border-white/5">
+            <button
+              onClick={openGuide}
+              aria-label={t('功能教程')}
+              title={t('功能教程')}
+              className="relative flex items-center gap-2 px-2 py-2 rounded-md text-[11px] font-medium text-[#a0aec0] hover:text-white hover:bg-white/[0.04] transition-all overflow-hidden whitespace-nowrap btn-tactile"
+            >
+              <GraduationCap size={14} className="shrink-0" />
+              <span className="opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">{t('功能教程')}</span>
+            </button>
+            <div className="px-2 py-1.5 text-[9px] text-[#667] flex items-center gap-1.5 overflow-hidden whitespace-nowrap">
+              <kbd className="px-1 py-[1px] rounded bg-white/5 border border-white/10 font-mono">⌘K</kbd>
+              <span className="opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">{t('搜索')}</span>
+            </div>
           </div>
         </aside>
       )}
@@ -2371,6 +2552,15 @@ function QuantPlatformInner() {
           >
             {useSidebar ? '◧' : '◨'}
           </button>
+          {/* 功能教程入口 — 仅顶部布局显示（侧栏布局已在侧边栏底部提供），放右侧工具区不挤占 tab 行 */}
+          {!useSidebar && (
+            <button onClick={openGuide}
+              className="hidden md:flex items-center p-1.5 rounded-lg bg-white/5 text-[#a0aec0] hover:text-white hover:bg-white/10 border border-white/5 transition-all btn-tactile"
+              title={t("功能教程")} aria-label={t("功能教程")}
+            >
+              <GraduationCap size={14} />
+            </button>
+          )}
           <button onClick={() => setShowManager(true)} className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[10px] font-medium bg-white/5 text-[#a0aec0] hover:text-white hover:bg-white/10 border border-white/5 transition-all btn-tactile" title={t("标的管理")}>
             <Database size={12} />
             <span>{stocks.length}</span>
@@ -2621,6 +2811,7 @@ function QuantPlatformInner() {
         }}
       />
       <OnboardingTour open={onboardOpen} onClose={() => setOnboardOpen(false)} />
+      <FeatureGuideModal open={guideOpen} tabId={guideTabId} onClose={() => setGuideOpen(false)} onJump={setTab} />
       <ShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} tabs={TAB_CFG} />
     </div>
   );
