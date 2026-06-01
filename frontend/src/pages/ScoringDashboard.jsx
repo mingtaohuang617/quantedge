@@ -18,6 +18,7 @@ import { macroAdjustedScore } from "../lib/macroAdjust.js";
 import {
   DataContext,
   useData,
+  useWorkspace,
   apiFetch,
   displayTicker,
   safeChange,
@@ -35,6 +36,21 @@ import {
   currencySymbol,
   fmtPrice,
 } from "../quant-platform.jsx";
+
+// C16: 按工作区读取评分权重（localStorage key: quantedge_weights_<wsId>）
+const DEFAULT_WEIGHTS = { fundamental: 40, technical: 30, growth: 30 };
+function loadWeights(wsId) {
+  try {
+    const raw = localStorage.getItem(`quantedge_weights_${wsId || 'default'}`);
+    if (raw) {
+      const w = JSON.parse(raw);
+      if (typeof w?.fundamental === 'number' && typeof w?.technical === 'number' && typeof w?.growth === 'number') {
+        return w;
+      }
+    }
+  } catch { /* 静默回退 */ }
+  return { ...DEFAULT_WEIGHTS };
+}
 
 // MA20 趋势均线只在「日线级别」区间有效（interval=1d）。其余区间画 20 点均线
 // 会偷换单位（分时/周/月），所以只在这几个区间显示，标注才诚实。
@@ -238,29 +254,19 @@ const ScoringDashboard = () => {
   }, [mktOpen, typeOpen]);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("score"); // score | change | name
-  // A2: 评分权重 — 从 localStorage 读取（按 workspace 隔离），失败回退默认
-  const [weights, setWeights] = useState(() => {
-    try {
-      const wsId = localStorage.getItem('quantedge_active_workspace') || 'default';
-      const raw = localStorage.getItem(`quantedge_weights_${wsId}`);
-      if (raw) {
-        const w = JSON.parse(raw);
-        // 校验必要字段 + 都是数字
-        if (typeof w?.fundamental === 'number' && typeof w?.technical === 'number' && typeof w?.growth === 'number') {
-          return w;
-        }
-      }
-    } catch { /* 静默回退 */ }
-    return { fundamental: 40, technical: 30, growth: 30 };
-  });
+  // A2/C16: 评分权重 — 按 workspace 隔离 + 工作区切换响应式
+  const wsCtx = useWorkspace();
+  const wsId = wsCtx?.activeId || 'default';
+  const [weights, setWeights] = useState(() => loadWeights(wsId));
   const [showW, setShowW] = useState(false);
-  const [weightToast, setWeightToast] = useState(null); // 应用权重后的反馈 { n }
-  // A2: weights 改动时持久化到 localStorage（按当前 workspace）
+  const [weightToast, setWeightToast] = useState(null); // 应用权重后的反馈 { n, ws? }
+  const skipNextSaveRef = useRef(false);  // 工作区切换重载时跳过一次回写
+  // A2: weights 改动持久化到当前 workspace（切换重载触发的那次跳过）
   useEffect(() => {
-    try {
-      const wsId = localStorage.getItem('quantedge_active_workspace') || 'default';
-      localStorage.setItem(`quantedge_weights_${wsId}`, JSON.stringify(weights));
-    } catch { /* 私密模式可能 setItem 失败，忽略 */ }
+    if (skipNextSaveRef.current) { skipNextSaveRef.current = false; return; }
+    try { localStorage.setItem(`quantedge_weights_${wsId}`, JSON.stringify(weights)); }
+    catch { /* 私密模式可能 setItem 失败，忽略 */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [weights]);
   const [chartRange, setChartRange] = useState("YTD"); // 1D|5D|1M|6M|YTD|1Y|5Y|ALL
   const [loading, setLoading] = useState(false);
@@ -392,6 +398,41 @@ const ScoringDashboard = () => {
     return () => clearInterval(iv);
   }, [fetchIndices]);
   const { stocks: ctxStocks, setStocks: ctxSetStocks, addTicker, removeTicker, apiOnline, standalone, quickPriceRefresh } = useData() || {};
+
+  // C16: 重新评分 — 按权重对个股 subScores 加权（ETF 保持后端原分）。返回变更标的数。
+  const applyWeights = useCallback((w) => {
+    const tw = (w?.fundamental || 0) + (w?.technical || 0) + (w?.growth || 0);
+    if (tw === 0 || !ctxSetStocks) return 0;
+    const wf = w.fundamental / tw, wt = w.technical / tw, wg = w.growth / tw;
+    let n = 0;
+    ctxSetStocks(prev => prev.map(s => {
+      // ETF 用后端四维专属评分，与个股三维权重无关，保持不动
+      if (!s.subScores || s.isETF) return s;
+      const f = s.subScores.fundamental ?? 0;
+      const tch = s.subScores.technical ?? 0;
+      const g = s.subScores.growth ?? 0;
+      const newScore = Math.round((f * wf + tch * wt + g * wg) * 10) / 10;
+      if (newScore === s.score) return s;
+      n++;
+      return { ...s, score: newScore };
+    }));
+    return n;
+  }, [ctxSetStocks]);
+
+  // C16: 工作区切换 → 重载该工作区权重 + 自动重新评分（首次挂载跳过，useState 已加载）
+  const wsMountedRef = useRef(false);
+  useEffect(() => {
+    if (!wsMountedRef.current) { wsMountedRef.current = true; return; }
+    const w = loadWeights(wsId);
+    const wsName = wsCtx?.active?.name;
+    skipNextSaveRef.current = true;   // 切换重载不触发回写
+    setWeights(w);
+    const n = applyWeights(w);
+    setWeightToast({ n, ws: wsName });
+    setTimeout(() => setWeightToast(cur => (cur && cur.ws === wsName ? null : cur)), 3200);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wsId]);
+
   // F3 移动端 pull-to-refresh — 列表容器顶部下拉超过 60px 触发刷新
   const [pullDist, setPullDist] = useState(0);
   const pullRef = useRef({ startY: 0, active: false, container: null });
@@ -1261,29 +1302,10 @@ const ScoringDashboard = () => {
             {/* 确认应用按钮 */}
             <button
               onClick={() => {
-                const tw = weights.fundamental + weights.technical + weights.growth;
-                if (tw === 0) return;
-                const wf = weights.fundamental / tw;
-                const wt = weights.technical / tw;
-                const wg = weights.growth / tw;
-                let n = 0;
-                if (ctxSetStocks) {
-                  ctxSetStocks(prev => prev.map(s => {
-                    // ETF 用 成本/流动性/动量/风险 四维后端专属评分，与个股的基本面/技术面/成长性
-                    // 权重无关；前端无原始维度权重，等权平均会扭曲分数（杠杆 ETF 虚高 15+ 分），
-                    // 故 ETF 保持后端原分不动 —— 这三个滑块只作用于个股。
-                    if (!s.subScores || s.isETF) return s;
-                    const f = s.subScores.fundamental ?? 0;
-                    const t = s.subScores.technical ?? 0;
-                    const g = s.subScores.growth ?? 0;
-                    const newScore = Math.round((f * wf + t * wt + g * wg) * 10) / 10;
-                    if (newScore === s.score) return s;
-                    n++;
-                    return { ...s, score: newScore };
-                  }));
-                }
+                // ETF 保持后端原分；三维滑块只作用于个股（详见 applyWeights）
+                const n = applyWeights(weights);
                 setWeightToast({ n });
-                setTimeout(() => setWeightToast(cur => (cur && cur.n === n ? null : cur)), 3200);
+                setTimeout(() => setWeightToast(cur => (cur && cur.n === n && !cur.ws ? null : cur)), 3200);
                 setShowW(false);
               }}
               className="w-full py-2 rounded-lg text-[11px] font-semibold bg-gradient-to-r from-indigo-500 to-cyan-500 text-white flex items-center justify-center gap-1.5 shadow-glow-indigo btn-tactile btn-shine mt-1"
@@ -1296,6 +1318,7 @@ const ScoringDashboard = () => {
           <div className="mb-2 px-2.5 py-1.5 rounded-lg text-[10px] flex items-center gap-1.5 bg-up/10 border border-up/20 text-up animate-slide-up">
             <Check size={12} className="shrink-0" />
             <span>
+              {weightToast.ws && <b className="font-semibold text-white/90">{weightToast.ws} · </b>}
               {weightToast.n > 0
                 ? t('已按新权重重算 {n} 只个股评分（ETF 独立评分不受影响）', { n: weightToast.n })
                 : t('评分无变化：当前已是该权重')}
