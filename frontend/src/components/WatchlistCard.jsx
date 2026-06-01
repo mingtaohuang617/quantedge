@@ -105,6 +105,21 @@ export default function WatchlistCard({
         <div className="min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="font-mono text-[12px] font-semibold text-white">{item.ticker}</span>
+            {/* v5.2：已观察时长 age chip（≤7 天高亮 cyan「新」）— 区分新近 vs 陈旧观察；归档项保持安静 */}
+            {(() => {
+              if (archived || !item.added_at) return null;
+              const d = new Date(item.added_at);
+              if (isNaN(d)) return null;
+              const days = Math.floor((Date.now() - d.getTime()) / 86400000);
+              if (days < 0) return null;
+              const fresh = days <= 7;
+              return (
+                <span className={`text-[9px] font-mono px-1 py-px rounded border ${fresh ? "bg-cyan-500/15 text-cyan-200 border-cyan-500/40" : "bg-white/[0.03] text-[#7a8497] border-white/10"}`}
+                  title={`加入观察 ${days} 天`}>
+                  {fresh ? "新 " : ""}{days}d
+                </span>
+              );
+            })()}
             {/* strategy badge — 让混合 watchlist 一眼可辨 */}
             <span
               className={`text-[9px] px-1 py-px rounded font-medium border ${

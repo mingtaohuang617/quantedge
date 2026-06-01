@@ -13,7 +13,7 @@ import macroSnapshot from "../macroSnapshot.json";
 
 import {
   CATEGORY_LABEL, snapshotStaleness, readStarred, writeStarred, factorStarKey,
-  encodeMacroState, decodeMacroState,
+  encodeMacroState, decodeMacroState, directionalScore,
 } from "../components/macro/shared.js";
 import NarrativePanel from "../components/macro/NarrativePanel.jsx";
 import CompositePanel from "../components/macro/CompositePanel.jsx";
@@ -346,6 +346,28 @@ export default function MacroDashboard() {
     return { alertedFactors: alerted, normalFactors: normal };
   }, [factors, filter, dirFilter, marketFilter, search, starred, onlyStarred]);
 
+  // v5.3：因子方向分布（偏多/中性/偏空/预警）— 一条 stacked bar 给"市场总体偏多但有 N 处隐患"鸟瞰
+  const factorDist = useMemo(() => {
+    const base = alertedFactors.length > 0 ? normalFactors : filtered;
+    let bull = 0, neutral = 0, bear = 0;
+    base.forEach(f => {
+      const s = directionalScore(f);  // 50=中性，>50 偏多，<50 偏空
+      if (s == null) { neutral++; return; }
+      if (s >= 55) bull++; else if (s <= 45) bear++; else neutral++;
+    });
+    return { bull, neutral, bear, warn: alertedFactors.length, total: base.length + alertedFactors.length };
+  }, [alertedFactors, normalFactors, filtered]);
+
+  // v5.3：预警因子当前分位距触发阈值的越界幅度（与上面警示规则一致：contrarian 用 10/90，其余 5/95）
+  const alertDistance = (f) => {
+    const pct = f.latest?.percentile;
+    if (pct == null) return null;
+    const lo = f.contrarian_at_extremes ? 10 : 5, hi = f.contrarian_at_extremes ? 90 : 95;
+    if (pct < lo) return { side: 'low', thresh: lo, over: +(lo - pct).toFixed(1) };
+    if (pct > hi) return { side: 'high', thresh: hi, over: +(pct - hi).toFixed(1) };
+    return null;
+  };
+
   return (
     <div ref={scrollRef} className="space-y-4 flex-1 min-h-0 overflow-y-auto pr-1 -mr-1 relative">
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -489,6 +511,28 @@ export default function MacroDashboard() {
         </div>
       )}
 
+      {/* v5.3：因子方向分布鸟瞰 — stacked bar（偏多/中性/偏空/预警），先给整体感再看 23 张卡 */}
+      {factors && factorDist.total > 0 && (
+        <div className="rounded-xl bg-white/[0.02] border border-white/[0.06] p-3">
+          <div className="flex items-center justify-between mb-2 flex-wrap gap-1.5">
+            <span className="text-[11px] font-medium text-white/70">{t('因子方向分布')} · <span className="font-mono text-white/50">{factorDist.total}</span></span>
+            <div className="flex items-center gap-2.5 text-[9px] font-mono">
+              <span className="text-emerald-300">● {t('偏多')} {factorDist.bull}</span>
+              <span className="text-slate-300">● {t('中性')} {factorDist.neutral}</span>
+              {factorDist.bear > 0 && <span className="text-orange-300">● {t('偏空')} {factorDist.bear}</span>}
+              <span className="text-red-300">● {t('预警')} {factorDist.warn}</span>
+            </div>
+          </div>
+          <div className="flex h-2 rounded-full overflow-hidden bg-white/[0.04]">
+            {[['bull', '#1ED395'], ['neutral', '#64748b'], ['bear', '#fb923c'], ['warn', '#f87171']].map(([k, c]) => {
+              const v = factorDist[k];
+              if (!v) return null;
+              return <div key={k} style={{ width: `${v / factorDist.total * 100}%`, background: c }} title={`${k}: ${v}`} />;
+            })}
+          </div>
+        </div>
+      )}
+
       {/* v5 编辑式：警示因子（contrarian × 极端区，或任意 < 5/> 95 分位）单独成卡组高亮 */}
       {alertedFactors.length > 0 && (
         <>
@@ -509,6 +553,7 @@ export default function MacroDashboard() {
                   onSelect={setSelectedFactor}
                   isStarred={starred.has(k)}
                   onToggleStar={toggleStar}
+                  alert={alertDistance(f)}
                 />
               );
             })}

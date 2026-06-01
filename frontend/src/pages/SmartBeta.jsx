@@ -637,6 +637,31 @@ export default function SmartBeta() {
 
             {btResult && (
               <>
+                {/* v5「预期特征四卡」— serif 大数字，一眼读出这套倾斜值不值（真实回测派生）*/}
+                {(() => {
+                  const m = btResult.metrics, bm = btResult.benchmark_metrics || {};
+                  const alpha = (m.annualized_return != null && bm.annualized_return != null) ? m.annualized_return - bm.annualized_return : null;
+                  const ws = Object.values(finalWeights || {});
+                  const hhi = ws.length ? ws.reduce((a, w) => a + w * w, 0) : null;
+                  const effN = hhi ? 1 / hhi : null;
+                  const cards = [
+                    { l: "预期年化", v: m.annualized_return != null ? fmtPct(m.annualized_return, 1) : "—", c: "#1ED395" },
+                    { l: "超额 α (vs SPY)", v: alpha != null ? `${alpha >= 0 ? "+" : ""}${fmtPct(alpha, 1)}` : "—", c: alpha != null && alpha >= 0 ? "#1ED395" : "#FF6B6B" },
+                    { l: "集中度", v: effN != null ? `${effN.toFixed(1)}` : "—", c: "#818CF8", sub: effN != null ? `有效持仓 · HHI ${(hhi * 100).toFixed(0)}` : "" },
+                    { l: "Sharpe", v: m.sharpe != null ? fmtNum(m.sharpe, 2) : "—", c: "#5EE6E6" },
+                  ];
+                  return (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-2">
+                      {cards.map((c) => (
+                        <div key={c.l} className="rounded-lg border border-white/10 bg-white/[0.02] p-2.5">
+                          <div className="text-[9px] uppercase tracking-wider text-[#778] mb-1">{c.l}</div>
+                          <div className="font-serif font-semibold text-[22px] leading-none" style={{ color: c.c, letterSpacing: "-0.02em" }}>{c.v}</div>
+                          {c.sub && <div className="text-[9px] text-[#778] mt-1">{c.sub}</div>}
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
                 {/* 指标卡 */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                   {[

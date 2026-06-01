@@ -99,6 +99,7 @@ const Monitor = () => {
     catch { return {}; }
   });
   const [showAcked, setShowAcked] = useState(false);
+  const [lastBulkAck, setLastBulkAck] = useState(null);  // v5.3：记录"全部标记已读"批次，支持撤销
 
   useEffect(() => { try { localStorage.setItem('quantedge_acked_alerts', JSON.stringify([...ackedIds])); } catch {} }, [ackedIds]);
   useEffect(() => { try { localStorage.setItem('quantedge_muted_tickers', JSON.stringify(mutedTickers)); } catch {} }, [mutedTickers]);
@@ -196,6 +197,19 @@ const Monitor = () => {
     ? liveAlerts.find(a => a.severity === "high")
     : null;
   const restAlerts = featuredAlert ? liveAlerts.filter(a => a.id !== featuredAlert.id) : liveAlerts;
+
+  // v5.3：批量标记已读 + 撤销（闭环：处理完不悬空，误操作可逆）
+  const ackAllRest = () => {
+    const ids = restAlerts.filter(a => !ackedIds.has(a.id)).map(a => a.id);
+    if (ids.length === 0) return;
+    setAckedIds(prev => new Set([...prev, ...ids]));
+    setLastBulkAck(ids);
+  };
+  const undoBulkAck = () => {
+    if (!lastBulkAck?.length) return;
+    setAckedIds(prev => { const s = new Set(prev); lastBulkAck.forEach(id => s.delete(id)); return s; });
+    setLastBulkAck(null);
+  };
 
   // 每个 severity/type 的当前 count（用于 chip badge）
   const sevCounts = useMemo(() => {
@@ -319,6 +333,20 @@ const Monitor = () => {
     return isFinite(c) ? c : null;
   }, [liveStocks]);
 
+  // v5.2：featured alert 键盘快捷 — E 标记已处理 / M 静音（仅 spotlight 存在且未聚焦输入时）
+  useEffect(() => {
+    if (!featuredAlert) return;
+    const onKey = (e) => {
+      const tag = e.target?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || e.metaKey || e.ctrlKey || e.altKey) return;
+      const k = e.key.toLowerCase();
+      if (k === "e") { e.preventDefault(); ackAlert(featuredAlert.id); }
+      else if (k === "m" && featuredAlert.type !== "macro") { e.preventDefault(); muteTicker(featuredAlert.ticker); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [featuredAlert]);
+
   return (
     <div className="flex flex-col md:grid md:grid-cols-12 gap-4 h-full min-h-0 overflow-auto md:overflow-hidden">
       <div className="md:col-span-4 flex flex-col gap-4 md:gap-3 md:min-h-0 md:overflow-auto pr-0 md:pr-1">
@@ -399,13 +427,16 @@ const Monitor = () => {
             <div className="text-[11px] py-4 text-center" style={{ color: "var(--text-dim)" }}>{t('暂无足够数据计算板块')}</div>
           ) : (
             <div className="space-y-2">
-              {sectors.map(s => {
+              {sectors.map((s, i) => {
                 // v5: 双值列 — 绝对 + vs SPY 超额（pp），零点对称 mini bar
                 const vsSpy = spyChange != null ? s.value - spyChange : null;
                 return (
                 <button key={s.name} onClick={() => setSelSector(s.name.split("/")[0])} className={`w-full flex flex-col gap-1 p-2 rounded-lg transition-all ${selSector === s.name.split("/")[0] ? "bg-indigo-500/10 border border-indigo-500/20" : "hover:bg-white/5 border border-transparent"}`}>
                   <div className="w-full flex items-center justify-between">
-                    <span className="text-xs text-white">{s.displayName}<span className="ml-1.5 text-[9px]" style={{ color: "var(--text-dim)" }}>({s.count})</span></span>
+                    <span className="text-xs text-white">{s.displayName}<span className="ml-1.5 text-[9px]" style={{ color: "var(--text-dim)" }}>({s.count})</span>
+                      {/* v5.2：板块排名 pip — 在所有板块中即刻定位领涨/领跌 */}
+                      <span className={`ml-1.5 text-[8px] font-mono font-bold ${s.value >= 0 ? "text-up" : "text-down"}`} title={t('今日板块排名')}>{s.value >= 0 ? "▲" : "▼"}#{i + 1}</span>
+                    </span>
                     <div className="flex items-baseline gap-2">
                       <span className={`text-[10px] font-mono ${s.value >= 0 ? "text-[#a0aec0]" : "text-[#7a8497]"}`} title={t('今日绝对涨跌')}>{s.value >= 0 ? "+" : ""}{s.value}%</span>
                       {vsSpy != null && (
@@ -580,6 +611,8 @@ const Monitor = () => {
               <div className="flex items-center gap-2 mb-2">
                 <span className="w-2 h-2 rounded-full bg-rose-400 shadow-[0_0_8px_rgba(248,113,113,0.7)] animate-breathe" />
                 <span className="text-[9px] uppercase tracking-wider font-semibold text-rose-300">{t('需要处理 · 当下最重要')}</span>
+                {/* v5.3：严重度排名 pill — 让"为什么是它被 spotlight"有量化依据 */}
+                <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-full bg-rose-500/20 text-rose-200 border border-rose-400/30" title={t('在全部告警中的严重度位次')}>{t('严重度')} #1/{liveAlerts.length}</span>
                 <span className="text-[9px] text-[#778] font-mono ml-auto">{featuredAlert.time}</span>
               </div>
               <div className="flex items-baseline gap-2 flex-wrap mb-1.5">
@@ -605,6 +638,36 @@ const Monitor = () => {
                   {t('建议')}：{featuredAlert.action}
                 </p>
               )}
+              {/* v5: 价格位置条 — 用真实 52周高低 + 现价，告诉用户告警价在年内什么位置。
+                   注：持仓%/影响$ 需要持仓数据、止损 mini bar 需要止损价，Monitor 没有这些
+                   数据源，故诚实只渲染能被真实数据驱动的 52周位置条，不臆造持仓与止损线。 */}
+              {featuredAlert.type !== "macro" && (() => {
+                const stk = liveStocks.find(s => s.ticker === featuredAlert.ticker);
+                if (!stk || stk.week52Low == null || stk.week52High == null || !(stk.price > 0)) return null;
+                const lo = stk.week52Low, hi = stk.week52High;
+                const range = hi - lo || 1;
+                const pct = Math.max(0, Math.min(100, ((stk.price - lo) / range) * 100));
+                const cur = currencySymbol(stk.currency);
+                const distHigh = ((stk.price - hi) / hi) * 100; // ≤ 0
+                const distLow = ((stk.price - lo) / lo) * 100;   // ≥ 0
+                return (
+                  <div className="mb-2 pt-1.5 border-t border-white/[0.04]">
+                    <div className="flex items-center justify-between text-[9px] text-[#778] mb-1">
+                      <span className="font-mono">{cur}{lo}</span>
+                      <span className="uppercase tracking-wider">{t('52周价格位置')}</span>
+                      <span className="font-mono">{cur}{hi}</span>
+                    </div>
+                    <div className="relative w-full h-1.5 rounded-full bg-gradient-to-r from-down/30 via-amber-500/25 to-up/30">
+                      <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full bg-white border-2 border-indigo-400 shadow-[0_0_6px_rgba(99,102,241,0.6)]" style={{ left: `${pct}%` }} />
+                    </div>
+                    <div className="flex items-center justify-between text-[9px] mt-1 tabular-nums">
+                      <span className="text-up font-mono">{t('距低')} +{distLow.toFixed(0)}%</span>
+                      <span className="font-mono text-white font-semibold">{cur}{stk.price} · {pct.toFixed(0)}%</span>
+                      <span className="text-down font-mono">{t('距高')} {distHigh.toFixed(0)}%</span>
+                    </div>
+                  </div>
+                );
+              })()}
               <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-rose-400/15">
                 {featuredAlert.type === "macro" && (
                   <button onClick={() => window.dispatchEvent(new CustomEvent("quantedge:nav", { detail: "macro" }))}
@@ -625,6 +688,14 @@ const Monitor = () => {
                     🔕 {t('静音 24h')}
                   </button>
                 )}
+                {/* v5.2：键盘快捷 hint（E/M 已接入 keydown）— 重度用户 1 秒处理 */}
+                <span className="ml-auto hidden md:inline-flex items-center gap-1 text-[9px] text-[#778]">
+                  <kbd className="px-1 py-px rounded bg-white/[0.06] border border-white/12 font-mono text-[8px] text-[#a0aec0]">E</kbd>{t('处置')}
+                  <span className="opacity-40">·</span>
+                  {featuredAlert.type !== "macro" && (<>
+                    <kbd className="px-1 py-px rounded bg-white/[0.06] border border-white/12 font-mono text-[8px] text-[#a0aec0]">M</kbd>{t('静音')}
+                  </>)}
+                </span>
               </div>
             </div>
           )}
@@ -706,6 +777,27 @@ const Monitor = () => {
               </div>
               );
             })}
+            {/* v5.3：列表收尾行 — 全部标记已读 + 撤销（清空闭环 + 可逆） */}
+            {restAlerts.length > 0 && (() => {
+              const ackedCount = restAlerts.filter(a => ackedIds.has(a.id)).length;
+              const pending = restAlerts.filter(a => !ackedIds.has(a.id));
+              return (
+                <div className="flex items-center justify-between gap-2 pt-2 mt-1 border-t border-white/5 text-[10px]">
+                  <span style={{ color: "var(--text-dim)" }}>
+                    {ackedCount > 0 ? t('已处理 {n} 条', { n: ackedCount }) : t('共 {n} 条', { n: restAlerts.length })}
+                    {lastBulkAck?.length > 0 && (
+                      <button onClick={undoBulkAck} className="ml-2 text-indigo-300 hover:text-indigo-200 underline-offset-2 hover:underline">↶ {t('撤销')}</button>
+                    )}
+                  </span>
+                  {pending.length > 0 && (
+                    <button onClick={ackAllRest}
+                      className="px-2 py-0.5 rounded-md bg-up/10 text-up border border-up/25 hover:bg-up/20 transition font-medium">
+                      ✓ {t('全部标记已读')}
+                    </button>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         </MobileAccordion>
       </div>

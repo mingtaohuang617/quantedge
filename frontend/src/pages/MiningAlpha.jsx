@@ -964,6 +964,28 @@ export default function MiningAlpha() {
       {/* Per-fold IC */}
       <FoldICTable rows={foldIC} />
 
+      {/* v5「信号体质」serif hero — 头部因子的 IC/ICIR/胜率 + 策略 Sharpe（真实 IC 报告派生）*/}
+      {Array.isArray(ic) && ic.length > 0 && (() => {
+        const top = ic[0];
+        const sharpe = backtest?.metrics?.sharpe;
+        const cards = [
+          { l: "头部因子 IC mean", v: top.ic_mean != null ? `${(top.ic_mean * 100).toFixed(2)}%` : "—", c: (top.ic_mean ?? 0) >= 0 ? "#1ED395" : "#FF6B6B" },
+          { l: "ICIR", v: top.ic_ir != null ? top.ic_ir.toFixed(2) : "—", c: Math.abs(top.ic_ir ?? 0) >= 0.5 ? "#F5B53C" : "#C9CDDA" },
+          { l: "IC 胜率", v: top.ic_pos_rate != null ? `${(top.ic_pos_rate * 100).toFixed(0)}%` : "—", c: "#818CF8" },
+          { l: "策略 Sharpe", v: sharpe != null ? sharpe.toFixed(2) : "—", c: "#5EE6E6" },
+        ];
+        return (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
+            {cards.map((c) => (
+              <div key={c.l} className="rounded-lg border border-white/10 bg-white/[0.02] p-2.5">
+                <div className="text-[9px] uppercase tracking-wider text-[#778] mb-1 truncate">{c.l}</div>
+                <div className="font-serif font-semibold text-[24px] leading-none" style={{ color: c.c, letterSpacing: "-0.02em" }}>{c.v}</div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
+
       {/* IC 表 + 特征重要性 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         <div className="bg-white/[0.02] border border-white/5 rounded-lg p-3">

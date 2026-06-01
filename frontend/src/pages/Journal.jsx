@@ -753,6 +753,22 @@ ${angleQuestion}
               }`}>
                 {positionSummary.gain >= 0 ? '+' : ''}{positionSummary.gainPct.toFixed(2)}%
               </span>
+              {/* v5.2：连续记录 streak — 把"持续投资记录"做成可见的行为反馈 */}
+              {(() => {
+                const days = [...new Set(entries.map(e => e.anchorDate).filter(Boolean))].sort();
+                if (days.length < 2) return null;
+                let streak = 1;
+                for (let i = days.length - 1; i > 0; i--) {
+                  const diff = Math.round((new Date(days[i]) - new Date(days[i - 1])) / 86400000);
+                  if (diff === 1) streak++; else break;
+                }
+                if (streak < 2) return null;
+                return (
+                  <span className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded border tabular-nums inline-flex items-center gap-1 text-amber-300 bg-amber-500/10 border-amber-500/25" title={t('连续有记录的天数')}>
+                    🔥 {t('连续 {n} 天', { n: streak })}
+                  </span>
+                );
+              })()}
             </div>
             <div className="grid grid-cols-2 gap-2 text-center pt-2 border-t border-white/5">
               <div>
@@ -901,7 +917,30 @@ ${angleQuestion}
                     </Badge>
                   </div>
                 </div>
-                <p className="text-xs md:text-sm leading-relaxed border-l-2 border-indigo-500/30 pl-3" style={{ color: "var(--text-secondary)" }}>{sel.thesis}</p>
+                {/* v5.2/v5.3：记录时信心 dot 量表（可点击设置·持久化）+ 由信心映射的情绪标签 */}
+                <div className="flex items-center gap-2 mb-2 flex-wrap">
+                  <span className="text-[10px] text-[#778] uppercase tracking-wider">{t('记录信心')}</span>
+                  <div className="flex items-center gap-0.5">
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => {
+                      const conv = sel.conviction || 0;
+                      const col = conv >= 8 ? '#1ED395' : conv >= 6 ? '#F5B53C' : '#FF6B6B';
+                      return <button key={n} onClick={() => updateEntry(sel.id, { conviction: n })} title={`${t('设为')} ${n}/10`} className="w-2 h-2 rounded-full transition-transform hover:scale-150" style={{ background: n <= conv ? col : 'rgba(255,255,255,0.12)' }} />;
+                    })}
+                  </div>
+                  {sel.conviction ? (() => {
+                    const c = sel.conviction;
+                    const col = c >= 8 ? '#1ED395' : c >= 6 ? '#F5B53C' : '#FF6B6B';
+                    const emo = c >= 8 ? t('乐观') : c >= 6 ? t('谨慎') : t('警惕');
+                    return (<>
+                      <span className="text-[10px] font-mono font-bold" style={{ color: col }}>{c}/10</span>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded-full border" style={{ color: col, background: `${col}1a`, borderColor: `${col}40` }}>{t('记录时情绪')} · {emo}</span>
+                    </>);
+                  })() : (
+                    <span className="text-[9px] text-[#778]">{t('点击圆点评估记录时的信心')}</span>
+                  )}
+                </div>
+                {/* v5: thesis 升级为 serif 编辑式引述 — 投资论点是日志的"主角文字" */}
+                <p className="font-serif text-sm md:text-base leading-relaxed border-l-2 border-indigo-500/40 pl-3.5" style={{ color: "var(--text-primary)" }}>{sel.thesis}</p>
               </div>
 
               <PositionEditor entry={sel} currency={currency} onUpdate={(patch) => updateEntry(sel.id, patch)} />
@@ -913,6 +952,10 @@ ${angleQuestion}
                   <div className="min-w-0">
                     <div className="text-[11px] font-medium text-white">{t('AI 复盘助手')}</div>
                     <div className="text-[9px] text-[#a0aec0]">{t('用 Claude 帮你做反事实 / 卖出策略 / 加仓 / 风险分析')}</div>
+                    {/* v5.3：复盘闭环 — 已存入日志的复盘次数 */}
+                    {sel.reviewLog?.length > 0 && (
+                      <div className="text-[9px] text-cyan-300/80 mt-0.5">{t('已复盘 {n} 次 · 最近 {d}', { n: sel.reviewLog.length, d: sel.reviewLog[sel.reviewLog.length - 1].date })}</div>
+                    )}
                   </div>
                 </div>
                 <button onClick={() => setAiOpen(true)}
@@ -929,12 +972,58 @@ ${angleQuestion}
                 <div className="glass-card glass-card-hover p-2 md:p-3 text-center">
                   <div className="text-[9px] md:text-[10px] text-[#a0aec0] mb-1">{t('当前价格')}</div>
                   <div className="text-sm md:text-lg font-bold font-mono tabular-nums" style={{ color: "var(--text-heading)" }}>{currency}{sel.currentPrice}</div>
+                  {/* v5: 当日 delta — 来自 live stock 今日涨跌（真实） */}
+                  {stk && Number.isFinite(Number(stk.change)) && (
+                    <div className={`text-[9px] md:text-[10px] font-mono tabular-nums mt-0.5 ${Number(stk.change) >= 0 ? "text-up" : "text-down"}`}>
+                      {t('今日')} {Number(stk.change) >= 0 ? "+" : ""}{Number(stk.change).toFixed(2)}%
+                    </div>
+                  )}
                 </div>
                 <div className="glass-card glass-card-hover p-2 md:p-3 text-center">
                   <div className="text-[9px] md:text-[10px] text-[#a0aec0] mb-1">{t('收益率')}</div>
                   <div className={`text-sm md:text-lg font-bold font-mono tabular-nums ${ret >= 0 ? "text-up" : "text-down"}`}>{ret >= 0 ? "+" : ""}{ret}%</div>
                 </div>
               </div>
+
+              {/* v5: 52周持仓轨迹 — 用真实 52周高低 + 锚定价 + 现价，画出"在哪买入、现在到哪"。
+                   没有"目标价"字段，不臆造目标，改为锚→现价的真实轨迹 + 52周区间背景 + 持有天数。 */}
+              {stk && stk.week52Low != null && stk.week52High != null && sel.anchorPrice > 0 && sel.currentPrice > 0 && (() => {
+                const lo = stk.week52Low, hi = stk.week52High;
+                const range = hi - lo || 1;
+                const clamp = (v) => Math.max(0, Math.min(100, ((v - lo) / range) * 100));
+                const aPos = clamp(sel.anchorPrice);
+                const cPos = clamp(sel.currentPrice);
+                const left = Math.min(aPos, cPos);
+                const width = Math.abs(cPos - aPos);
+                const up = sel.currentPrice >= sel.anchorPrice;
+                const days = Math.max(0, Math.floor((Date.now() - new Date(sel.anchorDate).getTime()) / 86400000));
+                const fromAnchor = ((sel.currentPrice - sel.anchorPrice) / sel.anchorPrice) * 100;
+                return (
+                  <div className="glass-card p-3 md:p-4">
+                    <div className="flex items-center justify-between mb-3 flex-wrap gap-1">
+                      <div className="flex items-center gap-2">
+                        <Activity size={12} className="text-indigo-400" />
+                        <span className="text-xs font-medium" style={{ color: "var(--text-heading)" }}>{t('52周持仓轨迹')}</span>
+                      </div>
+                      <span className="text-[9px] font-mono text-[#778]">{t('持有')} {days} {t('天')}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[9px] text-[#778] font-mono mb-1.5">
+                      <span className="text-down">{currency}{lo}</span>
+                      <span className="text-up">{currency}{hi}</span>
+                    </div>
+                    <div className="relative w-full h-2 rounded-full bg-gradient-to-r from-down/25 via-amber-500/20 to-up/25">
+                      <div className="absolute top-0 h-full rounded-full" style={{ left: `${left}%`, width: `${width}%`, background: up ? "rgba(30,211,149,0.55)" : "rgba(255,107,107,0.55)" }} />
+                      <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full bg-[#0d0f16] border-2 border-white/60" style={{ left: `${aPos}%` }} title={`${t('锚定')} ${currency}${sel.anchorPrice}`} />
+                      <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 rounded-full border-2" style={{ left: `${cPos}%`, background: up ? "#1ED395" : "#FF6B6B", borderColor: "#fff", boxShadow: `0 0 6px ${up ? "rgba(30,211,149,0.6)" : "rgba(255,107,107,0.6)"}` }} title={`${t('现价')} ${currency}${sel.currentPrice}`} />
+                    </div>
+                    <div className="flex items-center justify-between text-[9px] mt-2 tabular-nums">
+                      <span className="text-[#a0aec0]">○ {t('锚定')} <span className="font-mono text-white">{currency}{sel.anchorPrice}</span></span>
+                      <span className={`font-mono font-semibold ${up ? "text-up" : "text-down"}`}>{up ? "↗" : "↘"} {t('距锚')} {fromAnchor >= 0 ? "+" : ""}{fromAnchor.toFixed(1)}%</span>
+                      <span className="text-[#a0aec0]">● {t('现价')} <span className="font-mono text-white">{currency}{sel.currentPrice}</span></span>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* 宏观背景卡：当前 temperature + 这只票在当下 regime 下的风格契合度 */}
               {(() => {
@@ -1243,6 +1332,15 @@ AAPL,50,189.2,2025-04-01
               </div>
             </div>
             <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-white/8 shrink-0">
+              {/* v5.3：复盘闭环动作 — 换个角度（循环 4 角度）/ 采纳并存入日志（计入 entry.reviewLog） */}
+              <button onClick={() => { const ks = ['counterfactual', 'exit', 'addmore', 'risk']; setAiAngle(a => ks[(ks.indexOf(a) + 1) % ks.length]); }}
+                className="text-[11px] px-3 py-1.5 rounded text-[#a0aec0] hover:text-white hover:bg-white/5 border border-white/10 mr-auto">
+                🔄 {t('换个角度')}
+              </button>
+              <button onClick={() => { updateEntry(sel.id, { reviewLog: [...(sel.reviewLog || []), { angle: aiAngle, date: new Date().toISOString().slice(0, 10) }] }); setAiOpen(false); }}
+                className="text-[11px] font-medium px-3 py-1.5 rounded-md bg-cyan-500/15 text-cyan-200 hover:bg-cyan-500/25 border border-cyan-400/30 transition">
+                📌 {t('采纳并存入日志')}
+              </button>
               <button onClick={() => setAiOpen(false)}
                 className="text-[11px] px-3 py-1.5 rounded text-[#a0aec0] hover:text-white hover:bg-white/5">
                 {t('取消')}

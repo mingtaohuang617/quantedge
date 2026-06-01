@@ -281,6 +281,7 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
     } catch { setTemplates([]); }
   }, [wsId]);
   const [showTemplates, setShowTemplates] = useState(false);
+  const [showKellyEffect, setShowKellyEffect] = useState(false); // Half-Kelly 仓位缩放效果展开
   const [logScale, setLogScale] = useState(false); // 对数坐标（长周期更合理）
   const [shareToast, setShareToast] = useState(null); // {msg, t}
   const [savedRuns, setSavedRuns] = useState([]); // 多次回测对比 — [{id, label, navCurve, metrics, color}]
@@ -820,6 +821,7 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
       // 持有份额（模拟实际持仓）
       let shares = normSeries.map(ns => ns.weight * 100 / ns.series[0]); // 初始份额
       let rebalanceCount = 0;
+      const rebalanceDates = [];  // v5.3：再平衡发生的日期，用于 NAV 图 marker
 
       for (let i = 0; i < numPts; i++) {
         // 计算当前净值
@@ -833,6 +835,7 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
             shares[j] = (initWeights[j] * nav) / ns.series[i];
           });
           rebalanceCount++;
+          rebalanceDates.push(dateAxis[i]);
         }
 
         // benchmark 缺失时设为 null（之前用 100+i*线性递增 伪造，导致 Underwater 图显示 "QQQ 0%" 假相）
@@ -932,6 +935,20 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
       if (curDDDuration > maxDDDuration) maxDDDuration = curDDDuration;
       // 估算回撤持续天数
       const ddDays = Math.round(maxDDDuration * (totalDays / Math.max(numPts, 1)));
+
+      // v5.3：最深回撤窗口（peak→trough）作为"压力区间"— 把组合实际经历的最大压力在 NAV 图上标出
+      let stressBand = null;
+      if (navCurve.length > 2) {
+        let runPeak = navCurve[0].strategy, runPeakIdx = 0, worst = 0, peakIdx = 0, troughIdx = 0;
+        for (let i = 0; i < navCurve.length; i++) {
+          if (navCurve[i].strategy > runPeak) { runPeak = navCurve[i].strategy; runPeakIdx = i; }
+          const dd = runPeak > 0 ? (navCurve[i].strategy - runPeak) / runPeak * 100 : 0;
+          if (dd < worst) { worst = dd; troughIdx = i; peakIdx = runPeakIdx; }
+        }
+        if (worst < -3 && troughIdx > peakIdx) {
+          stressBand = { startDate: navCurve[peakIdx].date, endDate: navCurve[troughIdx].date, dd: Math.round(worst * 10) / 10 };
+        }
+      }
 
       // 超额收益 Alpha（策略收益 - 基准收益）
       // 基准缺失时 benchReturn/alpha 都置 null，下游 UI 显示"—"
@@ -1216,7 +1233,7 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
 
       setBtResult({
         navCurve, drawdownCurve, holdingResults, segments, monthlyReturns, isAnnual,
-        corrMatrix, corrTickers: tickers, rebalanceCount,
+        corrMatrix, corrTickers: tickers, rebalanceCount, rebalanceDates, stressBand,
         stressResults, riskParityWeights,
         // S8: 实际渲染出数据的额外基准列表
         extraBenches: Object.keys(extraBenchSeries),
@@ -1419,7 +1436,8 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
               )}
             </div>
             <div className="flex items-center gap-2">
-              <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-md ${totalWeight === 100 ? "bg-up/10 text-up border border-up/20" : totalWeight > 100 ? "bg-down/10 text-down border border-down/20" : "bg-amber-500/10 text-amber-400 border border-amber-500/20"}`}>
+              <span className={`inline-flex items-center gap-0.5 text-[10px] font-mono px-1.5 py-0.5 rounded-md ${totalWeight === 100 ? "bg-up/10 text-up border border-up/20" : totalWeight > 100 ? "bg-down/10 text-down border border-down/20" : "bg-amber-500/10 text-amber-400 border border-amber-500/20"}`}>
+                {totalWeight === 100 && <Check size={10} />}
                 {totalWeight}% / 100%
               </span>
               <ChevronDown size={14} className={`text-[#a0aec0] shrink-0 transition-transform duration-200 ${builderOpen ? "rotate-180" : ""}`} />
@@ -1943,6 +1961,10 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
                     }`}
                   >
                     {tab.label}
+                    {/* v5.2：风险页若有深回撤（≤−15%）则标红色 ⚠ pip，引导用户别跳过风险页 */}
+                    {tab.id === "risk" && m.maxDD != null && m.maxDD <= -15 && (
+                      <span className="ml-1 inline-flex items-center justify-center h-[14px] px-1 rounded-full bg-down/20 text-down text-[8px] font-bold border border-down/40 align-middle" title={`${t('最大回撤')} ${m.maxDD.toFixed(1)}%`}>⚠1</span>
+                    )}
                   </button>
                 );
               })}
@@ -1971,6 +1993,12 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
                       "1M":t("近1月"),"6M":t("近6月"),"YTD":t("年初至今"),"1Y":t("近1年"),"5Y":t("近5年"),"ALL":t("全部历史"),
                       "CUSTOM": customStart && customEnd ? `${customStart} ~ ${customEnd}` : t("自定义")
                     })[btRange] || btRange})</span>
+                    {/* v5.3：α 超额徽章 — 把"跑赢基准多少"从正文提到标题级 */}
+                    {m.alpha != null && (
+                      <span className={`inline-flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded-md border ${m.alpha >= 0 ? "bg-up/10 text-up border-up/20" : "bg-down/10 text-down border-down/20"}`} title={t('相对基准超额收益（percentage points）')}>
+                        α {m.alpha >= 0 ? "+" : ""}{m.alpha}pp
+                      </span>
+                    )}
                     {zoomRange && (
                       <button onClick={() => setZoomRange(null)}
                         className="flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/25 hover:bg-indigo-500/25 transition-colors">
@@ -2119,6 +2147,16 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
                       fill={highlightRange.ret >= 0 ? "rgba(0,229,160,0.10)" : "rgba(255,107,107,0.10)"}
                       stroke={highlightRange.ret >= 0 ? "rgba(0,229,160,0.30)" : "rgba(255,107,107,0.30)"}
                       strokeDasharray="2 2" />}
+                    {/* v5.3：压力区间 — 组合最深回撤窗口（peak→trough），对应 AI 总结里"某段表现欠佳" */}
+                    {btResult.stressBand && !zoomRange && !highlightRange && (
+                      <ReferenceArea x1={btResult.stressBand.startDate} x2={btResult.stressBand.endDate}
+                        fill="rgba(255,107,107,0.08)" stroke="rgba(255,107,107,0.25)" strokeDasharray="2 2"
+                        label={{ value: `压力 ${btResult.stressBand.dd}%`, position: "insideTopRight", fontSize: 9, fill: "#FF6B6B" }} />
+                    )}
+                    {/* v5.3：再平衡点 — 季度/年度调仓位置（虚线竖标） */}
+                    {rebalance !== "none" && !zoomRange && (btResult.rebalanceDates || []).map((d) => (
+                      <ReferenceLine key={`rb-${d}`} x={d} stroke="rgba(129,140,248,0.28)" strokeDasharray="3 3" />
+                    ))}
                     <Area type="linear" dataKey="strategy" stroke="url(#navStroke)" strokeWidth={2} fill="url(#navGrad)" dot={false} name={t("组合")} />
                     <Line type="linear" dataKey="benchmark" stroke="#667" strokeWidth={1.5} dot={false} strokeDasharray="4 4" name={benchTicker} />
                     {/* S8: 额外基准曲线 */}
@@ -2899,6 +2937,49 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
                     </div>
                   </div>
                   <div className="mt-2 text-[9px] text-[#778]">{t('f* = (p×b − q) / b，Half Kelly 降低破产风险')}</div>
+                  {/* v5: Half-Kelly 仓位效果 — 诚实做法。回测引擎恒满仓(权重归一化到 100%)，
+                       无法"重跑"一个含现金的组合，所以不做假的覆写按钮；改为线性派生：
+                       按 Half-Kelly 比例部署资金、余下持币(0%)，收益与回撤同比例缩放、夏普≈不变。 */}
+                  {btResult.kelly.half > 0 && btResult.metrics && (() => {
+                    const k = Math.min(1, btResult.kelly.half / 100);
+                    const scAnn = btResult.metrics.annReturn * k;
+                    const scDD = btResult.metrics.maxDD * k; // maxDD 为负值，缩放后绝对值更小
+                    const baseFinal = btResult.finalValue || initialCap;
+                    const scFinal = Math.round(initialCap * (1 - k) + baseFinal * k);
+                    return (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => setShowKellyEffect(v => !v)}
+                          className="w-full mt-2 py-1.5 rounded-md text-[10px] font-semibold bg-gradient-to-r from-indigo-500/20 to-indigo-500/10 text-indigo-200 border border-indigo-400/35 hover:from-indigo-500/30 hover:to-indigo-500/15 transition flex items-center justify-center gap-1.5"
+                          title={t('按 Half-Kelly 比例部署资金、其余持币的风险/收益效果（线性缩放，不重跑回测）')}
+                        >
+                          <Zap size={11} /> {showKellyEffect ? t('收起 Half-Kelly 仓位效果') : `${t('查看 Half-Kelly 仓位效果')} · ${btResult.kelly.half}%`}
+                        </button>
+                        {showKellyEffect && (
+                          <div className="mt-2 p-2 rounded-md bg-black/20 border border-indigo-500/15 space-y-1 text-[10px]">
+                            <div className="flex justify-between">
+                              <span className="text-[#a0aec0]">{t('预期年化')}</span>
+                              <span className="font-mono"><span className="text-[#778]">{btResult.metrics.annReturn}%</span> <span className="text-[#556]">→</span> <span className="text-white font-semibold">{scAnn.toFixed(1)}%</span></span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-[#a0aec0]">{t('最大回撤')}</span>
+                              <span className="font-mono"><span className="text-[#778]">{btResult.metrics.maxDD}%</span> <span className="text-[#556]">→</span> <span className="text-up font-semibold">{scDD.toFixed(1)}%</span></span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-[#a0aec0]">{t('夏普比率')}</span>
+                              <span className="font-mono"><span className="text-white font-semibold">{btResult.metrics.sharpe}</span> <span className="text-[9px] text-[#778]">≈ {t('不变')}</span></span>
+                            </div>
+                            <div className="flex justify-between border-t border-white/5 pt-1">
+                              <span className="text-[#a0aec0]">{t('终值')}</span>
+                              <span className="font-mono"><span className="text-[#778]">${baseFinal.toLocaleString()}</span> <span className="text-[#556]">→</span> <span className="text-white font-semibold">${scFinal.toLocaleString()}</span></span>
+                            </div>
+                            <div className="text-[9px] text-[#778] pt-0.5 leading-snug">{t('部署')} {btResult.kelly.half}% {t('资金 · 余下持币按 0% 计；收益与回撤同比例缩放、夏普≈不变 —— Kelly 用更低回撤换生存。')}</div>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
                 {/* 风险平价 */}
                 <div className="p-2.5 rounded-lg border border-white/10 bg-white/[0.02]">

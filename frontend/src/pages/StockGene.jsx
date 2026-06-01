@@ -17,13 +17,13 @@
 //   - POST   /api/stock-gene/score-all           批量评分
 //   - POST   /api/stock-gene/compare-peers       横向对比
 // ─────────────────────────────────────────────────────────────
-import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import React, { useEffect, useState, useCallback, useMemo, useRef, useContext } from "react";
 import {
   Activity, Plus, Trash2, RefreshCw, Loader, AlertCircle, Check, X,
   Sparkles, BarChart3, TrendingUp, Layers, Search,
   ArrowUpDown, Download, Upload, Sliders, Briefcase, Bell, Clock,
 } from "lucide-react";
-import { apiFetch } from "../quant-platform.jsx";
+import { apiFetch, DataContext } from "../quant-platform.jsx";
 import {
   ENGINES, ENGINE_IDS, eng, engResult,
   DEFAULT_WEIGHTS, WEIGHTS_STORAGE_KEY, compositeScore, compositeStyle,
@@ -33,6 +33,7 @@ import {
 import { ConfirmDialog, ShortcutsHelp, WeightsPanel, ListDialog, AlertsPanel, SchedulerPanel } from "../components/stock-gene/dialogs.jsx";
 import { VerdictFilterChips, TagFilterChips, TagsInput } from "../components/stock-gene/filters.jsx";
 import { PeersTable } from "../components/stock-gene/cards.jsx";
+import CharacterProfile from "../components/stock-gene/CharacterProfile.jsx";
 import { ListsTabBar } from "../components/stock-gene/ListsTabBar.jsx";
 import { ScoreDetail } from "../components/stock-gene/ScoreDetail.jsx";
 import { TickerSearchBox } from "../components/stock-gene/TickerSearchBox.jsx";
@@ -712,6 +713,13 @@ export default function StockGene() {
   const selectedItem = useMemo(
     () => items.find(i => i.ticker === selectedTicker),
     [items, selectedTicker]
+  );
+
+  // v5 性格档案：从行情数据池按 ticker 取选中标的的市场数据（价格序列/β/动量）
+  const { stocks: mktStocks } = useContext(DataContext) || {};
+  const selStock = useMemo(
+    () => (Array.isArray(mktStocks) ? mktStocks.find(s => s.ticker === selectedTicker) : null),
+    [mktStocks, selectedTicker]
   );
 
   // 排序 + 过滤后的列表
@@ -1480,28 +1488,32 @@ export default function StockGene() {
               ← 选择左侧的观察项查看{eng(engine).framework}（{eng(engine).featureCount} 维）评分
             </div>
           ) : (
-            <ScoreDetail
-              item={selectedItem}
-              engine={engine}
-              onRescore={() => handleScore(selectedItem.ticker)}
-              onDelete={() => handleDelete(selectedItem.ticker)}
-              scoring={scoringTicker === selectedItem.ticker}
-              onExplain={() => handleExplain(selectedItem, engine)}
-              explainLoading={aiLoading === `${selectedItem.ticker}:${engine}`}
-              narrative={aiNarratives[`${selectedItem.ticker}:${engine}`]}
-              editingNotes={editingNotesTicker}
-              notesDraft={notesDraft}
-              setNotesDraft={setNotesDraft}
-              onEditNotes={handleEditNotes}
-              onSaveNotes={handleSaveNotes}
-              onCancelNotes={() => setEditingNotesTicker(null)}
-              notesSaving={notesSaving}
-              onSaveTags={(nextTags) => handleSaveTags(selectedItem.ticker, nextTags)}
-              weights={weights}
-              position={positions[selectedItem.ticker]}
-              lists={lists}
-              onMove={(targetListId) => handleMoveItem(selectedItem.ticker, targetListId)}
-            />
+            <div className="flex-1 overflow-y-auto min-h-0">
+              {/* v5 性格档案：一句性格标签 + 六维雷达 + 相似性格标的（由真实行情派生）*/}
+              <CharacterProfile stock={selStock} allStocks={mktStocks} onPick={setSelectedTicker} />
+              <ScoreDetail
+                item={selectedItem}
+                engine={engine}
+                onRescore={() => handleScore(selectedItem.ticker)}
+                onDelete={() => handleDelete(selectedItem.ticker)}
+                scoring={scoringTicker === selectedItem.ticker}
+                onExplain={() => handleExplain(selectedItem, engine)}
+                explainLoading={aiLoading === `${selectedItem.ticker}:${engine}`}
+                narrative={aiNarratives[`${selectedItem.ticker}:${engine}`]}
+                editingNotes={editingNotesTicker}
+                notesDraft={notesDraft}
+                setNotesDraft={setNotesDraft}
+                onEditNotes={handleEditNotes}
+                onSaveNotes={handleSaveNotes}
+                onCancelNotes={() => setEditingNotesTicker(null)}
+                notesSaving={notesSaving}
+                onSaveTags={(nextTags) => handleSaveTags(selectedItem.ticker, nextTags)}
+                weights={weights}
+                position={positions[selectedItem.ticker]}
+                lists={lists}
+                onMove={(targetListId) => handleMoveItem(selectedItem.ticker, targetListId)}
+              />
+            </div>
           )}
         </div>
 
