@@ -254,6 +254,7 @@ const ScoringDashboard = () => {
     return { fundamental: 40, technical: 30, growth: 30 };
   });
   const [showW, setShowW] = useState(false);
+  const [weightToast, setWeightToast] = useState(null); // 应用权重后的反馈 { n }
   // A2: weights 改动时持久化到 localStorage（按当前 workspace）
   useEffect(() => {
     try {
@@ -1252,6 +1253,11 @@ const ScoringDashboard = () => {
                 </div>
               );
             })}
+            {/* 作用范围说明：滑块只作用于个股，ETF 独立评分 */}
+            <div className="text-[9px] leading-relaxed px-2 py-1.5 rounded-md flex items-start gap-1.5" style={{ background: "var(--bg-muted)", color: "var(--text-muted)" }}>
+              <Info size={11} className="shrink-0 mt-px opacity-70" />
+              <span>{t('权重仅作用于个股；ETF 按 成本/流动性/动量/风险 单独评分，不受此处影响')}</span>
+            </div>
             {/* 确认应用按钮 */}
             <button
               onClick={() => {
@@ -1260,28 +1266,40 @@ const ScoringDashboard = () => {
                 const wf = weights.fundamental / tw;
                 const wt = weights.technical / tw;
                 const wg = weights.growth / tw;
+                let n = 0;
                 if (ctxSetStocks) {
                   ctxSetStocks(prev => prev.map(s => {
-                    if (!s.subScores) return s;
-                    let newScore;
-                    if (s.isETF) {
-                      const vals = [s.subScores.cost, s.subScores.liquidity, s.subScores.momentum, s.subScores.risk].filter(v => v != null);
-                      newScore = vals.length > 0 ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length * 10) / 10 : s.score;
-                    } else {
-                      const f = s.subScores.fundamental ?? 0;
-                      const t = s.subScores.technical ?? 0;
-                      const g = s.subScores.growth ?? 0;
-                      newScore = Math.round((f * wf + t * wt + g * wg) * 10) / 10;
-                    }
-                    return newScore !== s.score ? { ...s, score: newScore } : s;
+                    // ETF 用 成本/流动性/动量/风险 四维后端专属评分，与个股的基本面/技术面/成长性
+                    // 权重无关；前端无原始维度权重，等权平均会扭曲分数（杠杆 ETF 虚高 15+ 分），
+                    // 故 ETF 保持后端原分不动 —— 这三个滑块只作用于个股。
+                    if (!s.subScores || s.isETF) return s;
+                    const f = s.subScores.fundamental ?? 0;
+                    const t = s.subScores.technical ?? 0;
+                    const g = s.subScores.growth ?? 0;
+                    const newScore = Math.round((f * wf + t * wt + g * wg) * 10) / 10;
+                    if (newScore === s.score) return s;
+                    n++;
+                    return { ...s, score: newScore };
                   }));
                 }
+                setWeightToast({ n });
+                setTimeout(() => setWeightToast(cur => (cur && cur.n === n ? null : cur)), 3200);
                 setShowW(false);
               }}
               className="w-full py-2 rounded-lg text-[11px] font-semibold bg-gradient-to-r from-indigo-500 to-cyan-500 text-white flex items-center justify-center gap-1.5 shadow-glow-indigo btn-tactile btn-shine mt-1"
             >
               <Zap size={12} /> {t('应用权重并重新评分')}
             </button>
+          </div>
+        )}
+        {weightToast && (
+          <div className="mb-2 px-2.5 py-1.5 rounded-lg text-[10px] flex items-center gap-1.5 bg-up/10 border border-up/20 text-up animate-slide-up">
+            <Check size={12} className="shrink-0" />
+            <span>
+              {weightToast.n > 0
+                ? t('已按新权重重算 {n} 只个股评分（ETF 独立评分不受影响）', { n: weightToast.n })
+                : t('评分无变化：当前已是该权重')}
+            </span>
           </div>
         )}
         <div
