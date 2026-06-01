@@ -939,7 +939,8 @@ ${angleQuestion}
                     <span className="text-[9px] text-[#778]">{t('点击圆点评估记录时的信心')}</span>
                   )}
                 </div>
-                <p className="text-xs md:text-sm leading-relaxed border-l-2 border-indigo-500/30 pl-3" style={{ color: "var(--text-secondary)" }}>{sel.thesis}</p>
+                {/* v5: thesis 升级为 serif 编辑式引述 — 投资论点是日志的"主角文字" */}
+                <p className="font-serif text-sm md:text-base leading-relaxed border-l-2 border-indigo-500/40 pl-3.5" style={{ color: "var(--text-primary)" }}>{sel.thesis}</p>
               </div>
 
               <PositionEditor entry={sel} currency={currency} onUpdate={(patch) => updateEntry(sel.id, patch)} />
@@ -971,12 +972,58 @@ ${angleQuestion}
                 <div className="glass-card glass-card-hover p-2 md:p-3 text-center">
                   <div className="text-[9px] md:text-[10px] text-[#a0aec0] mb-1">{t('当前价格')}</div>
                   <div className="text-sm md:text-lg font-bold font-mono tabular-nums" style={{ color: "var(--text-heading)" }}>{currency}{sel.currentPrice}</div>
+                  {/* v5: 当日 delta — 来自 live stock 今日涨跌（真实） */}
+                  {stk && Number.isFinite(Number(stk.change)) && (
+                    <div className={`text-[9px] md:text-[10px] font-mono tabular-nums mt-0.5 ${Number(stk.change) >= 0 ? "text-up" : "text-down"}`}>
+                      {t('今日')} {Number(stk.change) >= 0 ? "+" : ""}{Number(stk.change).toFixed(2)}%
+                    </div>
+                  )}
                 </div>
                 <div className="glass-card glass-card-hover p-2 md:p-3 text-center">
                   <div className="text-[9px] md:text-[10px] text-[#a0aec0] mb-1">{t('收益率')}</div>
                   <div className={`text-sm md:text-lg font-bold font-mono tabular-nums ${ret >= 0 ? "text-up" : "text-down"}`}>{ret >= 0 ? "+" : ""}{ret}%</div>
                 </div>
               </div>
+
+              {/* v5: 52周持仓轨迹 — 用真实 52周高低 + 锚定价 + 现价，画出"在哪买入、现在到哪"。
+                   没有"目标价"字段，不臆造目标，改为锚→现价的真实轨迹 + 52周区间背景 + 持有天数。 */}
+              {stk && stk.week52Low != null && stk.week52High != null && sel.anchorPrice > 0 && sel.currentPrice > 0 && (() => {
+                const lo = stk.week52Low, hi = stk.week52High;
+                const range = hi - lo || 1;
+                const clamp = (v) => Math.max(0, Math.min(100, ((v - lo) / range) * 100));
+                const aPos = clamp(sel.anchorPrice);
+                const cPos = clamp(sel.currentPrice);
+                const left = Math.min(aPos, cPos);
+                const width = Math.abs(cPos - aPos);
+                const up = sel.currentPrice >= sel.anchorPrice;
+                const days = Math.max(0, Math.floor((Date.now() - new Date(sel.anchorDate).getTime()) / 86400000));
+                const fromAnchor = ((sel.currentPrice - sel.anchorPrice) / sel.anchorPrice) * 100;
+                return (
+                  <div className="glass-card p-3 md:p-4">
+                    <div className="flex items-center justify-between mb-3 flex-wrap gap-1">
+                      <div className="flex items-center gap-2">
+                        <Activity size={12} className="text-indigo-400" />
+                        <span className="text-xs font-medium" style={{ color: "var(--text-heading)" }}>{t('52周持仓轨迹')}</span>
+                      </div>
+                      <span className="text-[9px] font-mono text-[#778]">{t('持有')} {days} {t('天')}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[9px] text-[#778] font-mono mb-1.5">
+                      <span className="text-down">{currency}{lo}</span>
+                      <span className="text-up">{currency}{hi}</span>
+                    </div>
+                    <div className="relative w-full h-2 rounded-full bg-gradient-to-r from-down/25 via-amber-500/20 to-up/25">
+                      <div className="absolute top-0 h-full rounded-full" style={{ left: `${left}%`, width: `${width}%`, background: up ? "rgba(30,211,149,0.55)" : "rgba(255,107,107,0.55)" }} />
+                      <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full bg-[#0d0f16] border-2 border-white/60" style={{ left: `${aPos}%` }} title={`${t('锚定')} ${currency}${sel.anchorPrice}`} />
+                      <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 rounded-full border-2" style={{ left: `${cPos}%`, background: up ? "#1ED395" : "#FF6B6B", borderColor: "#fff", boxShadow: `0 0 6px ${up ? "rgba(30,211,149,0.6)" : "rgba(255,107,107,0.6)"}` }} title={`${t('现价')} ${currency}${sel.currentPrice}`} />
+                    </div>
+                    <div className="flex items-center justify-between text-[9px] mt-2 tabular-nums">
+                      <span className="text-[#a0aec0]">○ {t('锚定')} <span className="font-mono text-white">{currency}{sel.anchorPrice}</span></span>
+                      <span className={`font-mono font-semibold ${up ? "text-up" : "text-down"}`}>{up ? "↗" : "↘"} {t('距锚')} {fromAnchor >= 0 ? "+" : ""}{fromAnchor.toFixed(1)}%</span>
+                      <span className="text-[#a0aec0]">● {t('现价')} <span className="font-mono text-white">{currency}{sel.currentPrice}</span></span>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* 宏观背景卡：当前 temperature + 这只票在当下 regime 下的风格契合度 */}
               {(() => {
