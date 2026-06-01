@@ -2299,7 +2299,7 @@ const ScoringDashboard = () => {
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-xs text-[#a0aec0]">{t('跟踪误差')}</span>
-                        <Badge variant={sel.trackingError === null ? "success" : "warning"}>{sel.trackingError || t("N/A (主动管理)")}</Badge>
+                        <Badge variant={sel.trackingError == null ? "default" : "info"}>{sel.trackingError || t("N/A (主动管理)")}</Badge>
                       </div>
                       {/* 流动性与规模 */}
                       <div className="text-[10px] text-indigo-400 font-medium mt-2 mb-0.5">{t('流动性与规模')}</div>
