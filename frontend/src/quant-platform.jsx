@@ -1588,6 +1588,19 @@ const WorkspaceSwitcher = () => {
     return () => document.removeEventListener('click', handler);
   }, [open]);
 
+  // C16: 每个工作区的内容统计（日志条数 / 回测模板数）— 打开时才计算
+  const wsStats = useMemo(() => {
+    const m = {};
+    if (!open || !ws?.workspaces) return m;
+    for (const w of ws.workspaces) {
+      let journal = 0, templates = 0;
+      try { journal = (JSON.parse(localStorage.getItem(`quantedge_journal_${w.id}`) || '[]') || []).length; } catch {}
+      try { templates = (JSON.parse(localStorage.getItem(`quantedge_bt_templates_${w.id}`) || '[]') || []).length; } catch {}
+      m[w.id] = { journal, templates };
+    }
+    return m;
+  }, [open, ws?.workspaces]);
+
   if (!ws) return null;
   const { workspaces, active, setActiveId, create, rename, recolor, remove } = ws;
 
@@ -1636,10 +1649,18 @@ const WorkspaceSwitcher = () => {
                     </>
                   ) : (
                     <>
-                      <button onClick={() => { setActiveId(w.id); setOpen(false); }} className="flex items-center gap-2 flex-1 min-w-0">
+                      <button onClick={() => { setActiveId(w.id); setOpen(false); }} className="flex items-center gap-2 flex-1 min-w-0 text-left">
                         <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: w.color }} />
-                        <span className={`text-xs truncate ${isActive ? 'text-white font-medium' : 'text-[#a0aec0]'}`}>{w.name}</span>
-                        {isActive && <Check size={10} className="text-indigo-400 shrink-0" />}
+                        <span className="flex flex-col min-w-0">
+                          <span className="flex items-center gap-1">
+                            <span className={`text-xs truncate ${isActive ? 'text-white font-medium' : 'text-[#a0aec0]'}`}>{w.name}</span>
+                            {isActive && <Check size={10} className="text-indigo-400 shrink-0" />}
+                          </span>
+                          <span className="flex items-center gap-2 text-[9px] text-[#667] font-mono mt-0.5">
+                            <span className="flex items-center gap-0.5" title={t('投资日志条数')}><BookOpen size={8} />{wsStats[w.id]?.journal ?? 0}</span>
+                            <span className="flex items-center gap-0.5" title={t('回测模板数')}><Layers size={8} />{wsStats[w.id]?.templates ?? 0}</span>
+                          </span>
+                        </span>
                       </button>
                       <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                         <button onClick={(e) => { e.stopPropagation(); setEditing({ id: w.id, name: w.name, color: w.color }); }}
@@ -2459,7 +2480,7 @@ function QuantPlatformInner() {
           </div>
         </aside>
       )}
-      <header className="flex flex-col md:flex-row items-center justify-between px-3 md:px-6 py-2 md:py-2.5 border-b border-white/5 bg-white/[0.02] backdrop-blur-md flex-shrink-0 gap-2 md:gap-0">
+      <header className="relative z-40 flex flex-col md:flex-row items-center justify-between px-3 md:px-6 py-2 md:py-2.5 border-b border-white/5 bg-white/[0.02] backdrop-blur-md flex-shrink-0 gap-2 md:gap-0">
         <div className="flex items-center justify-between w-full md:w-auto">
           <div className="flex items-center gap-2.5 md:gap-3">
             <div className="relative w-7 h-7 md:w-8 md:h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-indigo-500/30">
