@@ -4,7 +4,7 @@
 // ─────────────────────────────────────────────────────────────
 import React, { useState, useEffect, useMemo, useCallback, useContext, useRef } from "react";
 import { BarChart, Bar, XAxis, YAxis, Cell, Tooltip, ResponsiveContainer } from "recharts";
-import { Plus, Search, Loader, Check, Briefcase, Activity, BookOpen, Trash2, Eye, Layers, Globe, ChevronRight, Zap, Database, X, Upload, Sparkles, FileText } from "lucide-react";
+import { Plus, Search, Loader, Check, Briefcase, Activity, BookOpen, Trash2, Eye, Layers, Globe, ChevronRight, Zap, Database, X, Upload, Sparkles, FileText, Mic, PenLine, Bot, ChevronLeft } from "lucide-react";
 import PositionsCard from "../components/PositionsCard.jsx";
 import AddTransactionModal from "../components/AddTransactionModal.jsx";
 import MonthlyReviewModal from "../components/MonthlyReviewModal.jsx";
@@ -16,6 +16,8 @@ import { macroDelta, macroAdjustExplain, macroAdjustedScore } from "../lib/macro
 import { buildDigest } from "../components/macro/digestBuilder.js";
 import { searchTickers as standaloneSearch, fetchStockData, STOCK_CN_NAMES } from "../standalone.js";
 import { useLang } from "../i18n.jsx";
+import useIsMobile from "../hooks/useIsMobile";
+import { BottomSheet, ThumbActionBar, MobileAppBar } from "../components/mobile";
 import {
   DataContext,
   apiFetch,
@@ -246,6 +248,10 @@ const Journal = () => {
   const [selectedStock, setSelectedStock] = useState(null);
   const [addingEntry, setAddingEntry] = useState(false);
   const [mobileShowDetail, setMobileShowDetail] = useState(false);
+  // v6 移动端专用 UI state（unconditional — hooks 不能在条件块内）
+  const [mAddOpen, setMAddOpen] = useState(false);
+  const [mAiOpen, setMAiOpen] = useState(false);
+  const [mDetailSel, setMDetailSel] = useState(null);
   // B5: AI 整理一句话日志 → 结构化字段
   const [aiOrganizing, setAiOrganizing] = useState(false);
   const [aiHint, setAiHint] = useState("");  // 解析提示文本
@@ -419,6 +425,8 @@ const Journal = () => {
     const gainPct = cost > 0 ? (gain / cost * 100) : 0;
     return { count: held.length, cost, value, gain, gainPct };
   }, [entries]);
+
+  const isMobile = useIsMobile();
 
   // ─── H4: AI 复盘助手（生成结构化 Claude prompt） ──────────
   const [aiOpen, setAiOpen] = useState(false);
@@ -600,6 +608,565 @@ ${angleQuestion}
     { name: "恒生", pe: 12.1 },
     { name: "中银", pe: 5.2 },
   ];
+
+  // ─────────────────────────────────────────────────────────────
+  // v6 移动端 — 时间线 feed + 底部「记一笔」+ AI 复盘 BottomSheet
+  // 复用所有桌面端 state / handlers（entries, sel, addEntry, aiOpen…）
+  // ─────────────────────────────────────────────────────────────
+  if (isMobile) {
+    // 持仓浮盈汇总（复用 positionSummary）
+    const heroGain = positionSummary?.gain ?? null;
+    const heroGainPct = positionSummary?.gainPct ?? null;
+    const heroUp = heroGain == null ? true : heroGain >= 0;
+
+    // 关闭"记一笔"并清空表单
+    const closeAdd = () => {
+      setMAddOpen(false);
+      setAddTicker(""); setAddThesis(""); setAddTags("");
+      setSelectedStock(null); setAddSearchResults([]);
+    };
+
+    // 提交后关闭 sheet
+    const handleMobileAdd = async () => {
+      await handleAddEntry();
+      setMAddOpen(false);
+    };
+
+    return (
+      <div className="h-full flex flex-col" style={{ background: "var(--bg-0)" }}>
+
+        {/* ── 主列表滚动区 ── */}
+        <div className="flex-1 overflow-y-auto overscroll-contain" style={{ paddingBottom: "calc(74px + env(safe-area-inset-bottom))" }}>
+
+          {/* 顶部 AppBar */}
+          <div className="px-4 pt-3 pb-1 flex items-center justify-between">
+            <h1 className="text-[22px] font-bold" style={{ color: "var(--fg-0)" }}>{t("投资日志")}</h1>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowMonthlyReview(true)}
+                className="flex items-center gap-1.5 px-3 h-9 rounded-xl border text-[12px] font-medium active:scale-95 transition"
+                style={{ borderColor: "rgba(139,92,246,.3)", background: "rgba(139,92,246,.08)", color: "#C4B5FD" }}
+              >
+                <FileText size={13} /> {t("复盘")}
+              </button>
+            </div>
+          </div>
+
+          {/* ── Hero P&L — serif 大字号（v5 t-hero-display + .font-serif） ── */}
+          <div className="px-4 pt-2 pb-4">
+            <div className="text-[10px] uppercase tracking-widest mb-2" style={{ color: "var(--fg-3)" }}>
+              {t("持仓浮盈")} · {entries.filter(e => (e.shares || 0) > 0).length} {t("只持仓")}
+            </div>
+            {heroGain != null ? (
+              <div className="flex items-end gap-3">
+                <span
+                  className="t-hero-display font-serif tabular-nums"
+                  style={{
+                    background: heroUp
+                      ? "linear-gradient(180deg, #6EE7B7, #1ED395)"
+                      : "linear-gradient(180deg, #FCA5A5, #EF4444)",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                  }}
+                >
+                  {heroUp ? "+" : "−"}${Math.abs(heroGain).toFixed(0)}
+                </span>
+                <span
+                  className="text-[12px] font-mono font-bold px-2 py-0.5 rounded mb-1"
+                  style={{
+                    background: heroUp ? "rgba(30,211,149,.12)" : "rgba(239,68,68,.12)",
+                    color: heroUp ? "var(--up)" : "var(--down)",
+                  }}
+                >
+                  {heroUp ? "▲" : "▼"} {Math.abs(heroGainPct ?? 0).toFixed(2)}%
+                </span>
+              </div>
+            ) : (
+              <div className="text-[13px]" style={{ color: "var(--fg-3)" }}>{t("添加持仓后显示浮盈")}</div>
+            )}
+          </div>
+
+          {/* ── 交易时间线 ── */}
+          <div className="px-4">
+            <div className="text-[10px] uppercase tracking-widest mb-3" style={{ color: "var(--fg-3)" }}>
+              {t("交易时间线")} · {entries.length} {t("笔")}
+            </div>
+
+            {entries.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-14 gap-3 text-center">
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: "rgba(99,102,241,.1)", border: "1px solid rgba(99,102,241,.2)" }}>
+                  <BookOpen size={20} style={{ color: "var(--indigo-2)" }} />
+                </div>
+                <div>
+                  <div className="text-[13px] font-medium mb-1" style={{ color: "var(--fg-1)" }}>{t("暂无投资记录")}</div>
+                  <div className="text-[11px]" style={{ color: "var(--fg-3)" }}>{t("点下方「记一笔」开始记录")}</div>
+                </div>
+              </div>
+            )}
+
+            {entries.map((e) => {
+              const stk = liveStocks.find(s => s.ticker === e.ticker);
+              const currency = currencySymbol(stk?.currency);
+              const ret = calcRet(e.anchorPrice, e.currentPrice);
+              const retUp = Number(ret) >= 0;
+              const hasPos = (e.shares || 0) > 0;
+              const isHK = e.ticker?.endsWith(".HK");
+              const mainLabel = isHK
+                ? (lang === "zh" ? (stk?.nameCN || STOCK_CN_NAMES[e.ticker] || stk?.name || e.name) : (stk?.name || e.name)) || e.ticker
+                : e.ticker;
+
+              return (
+                <div key={e.id} className="flex gap-3 mb-1" onClick={() => setMDetailSel(e)}>
+                  {/* timeline dot + line */}
+                  <div className="flex flex-col items-center shrink-0 pt-4">
+                    <div className="w-2.5 h-2.5 rounded-full" style={{
+                      background: retUp ? "var(--up)" : "var(--down)",
+                      boxShadow: retUp ? "0 0 8px rgba(30,211,149,.55)" : "0 0 8px rgba(239,68,68,.55)",
+                    }} />
+                    <div className="flex-1 w-px mt-1" style={{ background: "var(--line)" }} />
+                  </div>
+                  {/* card */}
+                  <div className="flex-1 mb-3 px-3.5 py-3 rounded-2xl active:scale-[0.99] transition" style={{ background: "rgba(255,255,255,.022)", border: "1px solid var(--line)" }}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="font-mono text-[14px] font-bold" style={{ color: "var(--fg-0)" }}>{mainLabel}</span>
+                      {hasPos && (
+                        <span className="text-[9px] px-1.5 py-0.5 rounded font-mono flex items-center gap-0.5" style={{ background: "rgba(99,102,241,.15)", color: "var(--indigo-2)", border: "1px solid rgba(99,102,241,.25)" }}>
+                          <Briefcase size={8} /> {e.shares}
+                        </span>
+                      )}
+                      <span className="flex-1" />
+                      <span className="font-mono text-[14px] font-bold" style={{ color: retUp ? "var(--up)" : "var(--down)" }}>
+                        {retUp ? "+" : ""}{ret}%
+                      </span>
+                    </div>
+                    {e.thesis ? (
+                      <p className="font-serif text-[13.5px] leading-relaxed mb-2.5 italic" style={{ color: "var(--fg-1)", margin: "0 0 10px" }}>
+                        "{e.thesis}"
+                      </p>
+                    ) : null}
+                    <div className="flex items-center justify-between text-[10px] font-mono" style={{ color: "var(--fg-3)" }}>
+                      <span>{currency}{e.anchorPrice} → {currency}{e.currentPrice}</span>
+                      <span>{e.anchorDate}</span>
+                    </div>
+                    {(e.tags || []).length > 0 && (
+                      <div className="flex gap-1 flex-wrap mt-2">
+                        {e.tags.map(tag => {
+                          const tc = TAG_COLORS[tag] || {};
+                          return (
+                            <span key={tag} className={`px-1.5 py-0.5 rounded text-[9px] border ${tc.bg || "bg-white/5"} ${tc.text || "text-[#a0aec0]"} ${tc.border || "border-white/10"}`}>{tag}</span>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ── 底部「记一笔」ThumbActionBar ── */}
+        <ThumbActionBar
+          sticky={false}
+          secondary={[
+            {
+              icon: <Bot size={19} />,
+              label: t("AI 复盘"),
+              onClick: () => { if (sel) setMAiOpen(true); },
+              disabled: !sel,
+            },
+            {
+              icon: <Briefcase size={19} />,
+              label: t("录入交易"),
+              onClick: () => setShowAddTx(true),
+            },
+            {
+              icon: <Mic size={19} style={{ color: "var(--indigo-2)" }} />,
+              label: t("语音"),
+              // 语音转文字暂无后端 — 打开「记一笔」sheet（UI 入口保留，与设计稿对齐）
+              onClick: () => setMAddOpen(true),
+            },
+          ]}
+          primary={{ icon: <PenLine size={17} />, label: t("记一笔"), onClick: () => setMAddOpen(true) }}
+        />
+
+        {/* ── 「记一笔」BottomSheet（复用桌面端 addEntry 表单字段 + handlers）── */}
+        <BottomSheet
+          open={mAddOpen}
+          onClose={closeAdd}
+          title={t("记一笔")}
+          maxHeight="90vh"
+          footer={
+            <button
+              onClick={handleMobileAdd}
+              disabled={!selectedStock || addingEntry}
+              className="w-full h-[46px] rounded-xl text-white text-[14.5px] font-bold flex items-center justify-center gap-2 active:scale-[0.98] transition disabled:opacity-40"
+              style={{ background: "linear-gradient(180deg, var(--indigo-2), var(--indigo))", boxShadow: "0 8px 22px -6px rgba(99,102,241,.6)" }}
+            >
+              {addingEntry
+                ? <><Loader size={14} className="animate-spin" /> {t("获取价格…")}</>
+                : <><Zap size={14} /> {t("记录（自动锚定当前价）")}</>}
+            </button>
+          }
+        >
+          <div className="space-y-3 pb-2">
+            {/* 搜索标的 */}
+            <div className="relative">
+              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "var(--fg-3)" }} />
+              <input
+                value={addTicker}
+                onChange={e => { setAddTicker(e.target.value); setSelectedStock(null); }}
+                placeholder={t("搜索代码或名称（如 AAPL, 腾讯）")}
+                autoCorrect="off" autoCapitalize="none" spellCheck={false}
+                className="w-full rounded-xl pl-9 pr-3 py-3 text-[13px] outline-none border"
+                style={{ background: "rgba(255,255,255,.04)", borderColor: "var(--line)", color: "var(--fg-0)" }}
+              />
+              {selectedStock && (
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1" style={{ background: "rgba(30,211,149,.1)", color: "var(--up)", border: "1px solid rgba(30,211,149,.25)" }}>
+                  <Check size={9} /> {selectedStock.name}
+                </span>
+              )}
+            </div>
+            {addSearching && (
+              <div className="flex items-center justify-center py-2 text-[11px]" style={{ color: "var(--fg-3)" }}>
+                <Loader size={13} className="animate-spin mr-2" /> {t("搜索中…")}
+              </div>
+            )}
+            {!addSearching && addSearchResults.length > 0 && (
+              <div className="rounded-xl overflow-hidden border" style={{ borderColor: "var(--line)", background: "var(--bg-2)" }}>
+                {addSearchResults.map(r => (
+                  <button
+                    key={r.symbol}
+                    onClick={() => handleSelectStock(r)}
+                    className="w-full text-left px-3 py-2.5 text-[12px] flex items-center gap-2 border-b active:bg-white/5"
+                    style={{ borderColor: "var(--line)" }}
+                  >
+                    <span className="font-mono font-semibold" style={{ color: "var(--fg-0)" }}>{r.symbol}</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: "rgba(99,102,241,.12)", color: "var(--indigo-2)" }}>{r.market || "US"}</span>
+                    <span className="truncate flex-1 text-[11px]" style={{ color: "var(--fg-2)" }}>
+                      {lang === "zh" ? (STOCK_CN_NAMES[r.symbol] || r.name) : r.name}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {/* 投资论点 */}
+            <div className="relative">
+              <textarea
+                value={addThesis}
+                onChange={e => setAddThesis(e.target.value)}
+                placeholder={t("投资论点 — 为什么看好？也可写一句话日记，再点 AI 整理")}
+                rows={4}
+                className="w-full rounded-xl px-3 py-3 text-[13px] outline-none resize-none border"
+                style={{ background: "rgba(255,255,255,.04)", borderColor: "var(--line)", color: "var(--fg-0)" }}
+              />
+              <button
+                type="button"
+                onClick={handleAIOrganize}
+                disabled={aiOrganizing || !addThesis.trim()}
+                className="absolute top-2 right-2 px-2 py-1 rounded-lg text-[10px] flex items-center gap-1 border transition disabled:opacity-40"
+                style={{ background: "rgba(139,92,246,.12)", borderColor: "rgba(139,92,246,.3)", color: "#C4B5FD" }}
+              >
+                {aiOrganizing ? <Loader size={10} className="animate-spin" /> : <Sparkles size={10} />}
+                {aiOrganizing ? t("整理中") : t("AI 整理")}
+              </button>
+            </div>
+            {aiHint && (
+              <div className="text-[11px] px-3 py-2 rounded-xl border" style={{ background: "rgba(139,92,246,.08)", borderColor: "rgba(139,92,246,.2)", color: "#C4B5FD" }}>
+                {aiHint}
+              </div>
+            )}
+            {/* 标签 */}
+            <input
+              value={addTags}
+              onChange={e => setAddTags(e.target.value)}
+              placeholder={t("标签（逗号分隔，如: AI, 半导体）")}
+              className="w-full rounded-xl px-3 py-3 text-[13px] outline-none border"
+              style={{ background: "rgba(255,255,255,.04)", borderColor: "var(--line)", color: "var(--fg-0)" }}
+            />
+          </div>
+        </BottomSheet>
+
+        {/* ── AI 复盘 BottomSheet（复用桌面端 generatePrompt / copyPrompt / aiAngle）── */}
+        <BottomSheet
+          open={mAiOpen}
+          onClose={() => setMAiOpen(false)}
+          title={t("AI 复盘助手")}
+          maxHeight="92vh"
+          footer={
+            <div className="flex gap-2">
+              <button
+                onClick={() => { const ks = ["counterfactual", "exit", "addmore", "risk"]; setAiAngle(a => ks[(ks.indexOf(a) + 1) % ks.length]); }}
+                className="h-[44px] px-4 rounded-xl border text-[12px] font-medium active:scale-95 transition"
+                style={{ borderColor: "var(--line-2)", background: "rgba(255,255,255,.04)", color: "var(--fg-2)" }}
+              >
+                🔄 {t("换角度")}
+              </button>
+              <button
+                onClick={copyPrompt}
+                className="flex-1 h-[44px] rounded-xl text-white text-[13px] font-bold flex items-center justify-center gap-2 active:scale-[0.98] transition"
+                style={{ background: "linear-gradient(180deg, var(--indigo-2), var(--indigo))", boxShadow: "0 8px 22px -6px rgba(99,102,241,.6)" }}
+              >
+                {aiCopied ? <><Check size={14} /> {t("已复制")}</> : <>{t("复制 Prompt")} 📋</>}
+              </button>
+            </div>
+          }
+        >
+          {sel && (
+            <div className="space-y-4 pb-2">
+              {/* 分析角度选择 */}
+              <div>
+                <div className="text-[10px] uppercase tracking-wider mb-2" style={{ color: "var(--fg-3)" }}>{t("选择分析角度")}</div>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { k: "counterfactual", icon: "🔁", label: t("反事实"), desc: t("如果当时没买…") },
+                    { k: "exit",           icon: "🚪", label: t("卖出策略"), desc: t("止盈/止损条件") },
+                    { k: "addmore",        icon: "➕", label: t("加仓时机"), desc: t("加仓/不加的信号") },
+                    { k: "risk",           icon: "⚠️", label: t("风险评估"), desc: t("尾部风险 + 对冲") },
+                  ].map(opt => {
+                    const active = aiAngle === opt.k;
+                    return (
+                      <button
+                        key={opt.k}
+                        onClick={() => setAiAngle(opt.k)}
+                        className="text-left px-3 py-2.5 rounded-xl border active:scale-[0.98] transition"
+                        style={{
+                          background: active ? "rgba(99,102,241,.15)" : "rgba(255,255,255,.03)",
+                          borderColor: active ? "rgba(99,102,241,.4)" : "var(--line)",
+                          color: active ? "var(--fg-0)" : "var(--fg-2)",
+                        }}
+                      >
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                          <span>{opt.icon}</span>
+                          <span className="text-[12px] font-medium">{opt.label}</span>
+                          {active && <Check size={11} className="ml-auto" style={{ color: "var(--indigo-2)" }} />}
+                        </div>
+                        <div className="text-[10px]" style={{ color: "var(--fg-3)" }}>{opt.desc}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              {/* AI 建议对话气泡（来自 reviewLog 最近记录，或提示生成） */}
+              {sel.reviewLog?.length > 0 && (
+                <div className="px-3 py-2.5 rounded-xl border" style={{ background: "linear-gradient(135deg,rgba(139,92,246,.1),rgba(99,102,241,.04))", borderColor: "rgba(139,92,246,.2)" }}>
+                  <p className="text-[13px] leading-relaxed m-0" style={{ color: "var(--fg-1)" }}>
+                    {t("已复盘 {n} 次 · 最近 {d}", { n: sel.reviewLog.length, d: sel.reviewLog[sel.reviewLog.length - 1].date })}
+                  </p>
+                </div>
+              )}
+              {/* prompt 预览（可滚动） */}
+              <div>
+                <div className="text-[10px] uppercase tracking-wider mb-2" style={{ color: "var(--fg-3)" }}>{t("Prompt 预览")}</div>
+                <pre className="rounded-xl p-3 text-[10px] font-mono leading-relaxed whitespace-pre-wrap max-h-[32vh] overflow-auto" style={{ background: "rgba(255,255,255,.03)", border: "1px solid var(--line)", color: "var(--fg-2)" }}>
+                  {generatePrompt()}
+                </pre>
+              </div>
+              {/* 采纳按钮 */}
+              <button
+                onClick={() => {
+                  updateEntry(sel.id, { reviewLog: [...(sel.reviewLog || []), { angle: aiAngle, date: new Date().toISOString().slice(0, 10) }] });
+                  setMAiOpen(false);
+                }}
+                className="w-full h-[44px] rounded-xl border text-[13px] font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition"
+                style={{ borderColor: "rgba(34,211,153,.3)", background: "rgba(34,211,153,.08)", color: "var(--up)" }}
+              >
+                📌 {t("采纳并存入日志")}
+              </button>
+            </div>
+          )}
+          {!sel && (
+            <div className="py-8 text-center text-[12px]" style={{ color: "var(--fg-3)" }}>
+              {t("请先在列表中选择一条记录")}
+            </div>
+          )}
+        </BottomSheet>
+
+        {/* ── 个股详情全屏覆盖 ── */}
+        {mDetailSel && (() => {
+          const e = mDetailSel;
+          const stk = liveStocks.find(s => s.ticker === e.ticker);
+          const currency = currencySymbol(stk?.currency);
+          const ret = calcRet(e.anchorPrice, e.currentPrice);
+          const retUp = Number(ret) >= 0;
+          const isHK = e.ticker?.endsWith(".HK");
+          const mainLabel = isHK
+            ? (lang === "zh" ? (stk?.nameCN || STOCK_CN_NAMES[e.ticker] || stk?.name || e.name) : (stk?.name || e.name)) || e.ticker
+            : e.ticker;
+          const days = Math.max(0, Math.floor((Date.now() - new Date(e.anchorDate).getTime()) / 86400000));
+          return (
+            <div className="fixed inset-0 z-40 flex flex-col" style={{ background: "var(--bg-0)" }}>
+              <MobileAppBar
+                onBack={() => { setMDetailSel(null); setSel(e); }}
+                title={
+                  <span className="flex items-center gap-2">
+                    <span className="font-mono text-[15px] font-bold" style={{ color: "var(--fg-0)" }}>{mainLabel}</span>
+                    <span className="font-mono text-[10px] px-1.5 py-0.5 rounded" style={{ background: retUp ? "rgba(30,211,149,.12)" : "rgba(239,68,68,.12)", color: retUp ? "var(--up)" : "var(--down)" }}>
+                      {retUp ? "+" : ""}{ret}%
+                    </span>
+                  </span>
+                }
+                actions={
+                  <button
+                    onClick={(ev) => { ev.stopPropagation(); if (window.confirm(t("确定删除 {ticker} 的投资记录？", { ticker: e.ticker }))) { deleteEntry(e.id); setMDetailSel(null); } }}
+                    className="p-1 active:scale-90 transition"
+                    style={{ color: "var(--down)" }}
+                  >
+                    <Trash2 size={17} />
+                  </button>
+                }
+              />
+              <div className="flex-1 overflow-y-auto overscroll-contain px-4" style={{ paddingBottom: "calc(80px + env(safe-area-inset-bottom))" }}>
+                {/* 价格三格 */}
+                <div className="grid grid-cols-3 gap-2 pt-3 pb-4">
+                  <div className="rounded-xl p-3 text-center" style={{ background: "rgba(255,255,255,.03)", border: "1px solid var(--line)" }}>
+                    <div className="text-[10px] mb-1" style={{ color: "var(--fg-3)" }}>{t("锚定价格")}</div>
+                    <div className="font-mono text-[15px] font-bold" style={{ color: "var(--fg-0)" }}>{currency}{e.anchorPrice}</div>
+                  </div>
+                  <div className="rounded-xl p-3 text-center" style={{ background: "rgba(255,255,255,.03)", border: "1px solid var(--line)" }}>
+                    <div className="text-[10px] mb-1" style={{ color: "var(--fg-3)" }}>{t("当前价格")}</div>
+                    <div className="font-mono text-[15px] font-bold" style={{ color: "var(--fg-0)" }}>{currency}{e.currentPrice}</div>
+                    {stk && Number.isFinite(Number(stk.change)) && (
+                      <div className="text-[9px] font-mono mt-0.5" style={{ color: Number(stk.change) >= 0 ? "var(--up)" : "var(--down)" }}>
+                        {t("今日")} {Number(stk.change) >= 0 ? "+" : ""}{Number(stk.change).toFixed(2)}%
+                      </div>
+                    )}
+                  </div>
+                  <div className="rounded-xl p-3 text-center" style={{ background: "rgba(255,255,255,.03)", border: "1px solid var(--line)" }}>
+                    <div className="text-[10px] mb-1" style={{ color: "var(--fg-3)" }}>{t("收益率")}</div>
+                    <div className="font-mono text-[15px] font-bold" style={{ color: retUp ? "var(--up)" : "var(--down)" }}>{retUp ? "+" : ""}{ret}%</div>
+                    <div className="text-[9px] font-mono mt-0.5" style={{ color: "var(--fg-3)" }}>{days}{t("天")}</div>
+                  </div>
+                </div>
+
+                {/* serif 论点 */}
+                {e.thesis && (
+                  <div className="rounded-2xl p-4 mb-3" style={{ background: "rgba(255,255,255,.022)", border: "1px solid var(--line)" }}>
+                    <div className="flex items-center gap-2 mb-2.5">
+                      <Eye size={12} style={{ color: "var(--indigo-2)" }} />
+                      <span className="text-[11px] font-medium" style={{ color: "var(--fg-2)" }}>{t("投资论点")}</span>
+                    </div>
+                    <p className="font-serif text-[15px] leading-relaxed italic border-l-2 pl-3.5 m-0" style={{ color: "var(--fg-1)", borderColor: "rgba(99,102,241,.4)" }}>
+                      "{e.thesis}"
+                    </p>
+                  </div>
+                )}
+
+                {/* 信心量表 */}
+                <div className="rounded-2xl p-4 mb-3" style={{ background: "rgba(255,255,255,.022)", border: "1px solid var(--line)" }}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-[10px] uppercase tracking-wider" style={{ color: "var(--fg-3)" }}>{t("记录信心")}</span>
+                    {e.conviction && (
+                      <span className="font-mono text-[11px] font-bold" style={{ color: e.conviction >= 8 ? "var(--up)" : e.conviction >= 6 ? "var(--warn)" : "var(--down)" }}>
+                        {e.conviction}/10
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {[1,2,3,4,5,6,7,8,9,10].map(n => {
+                      const conv = e.conviction || 0;
+                      const col = conv >= 8 ? "#1ED395" : conv >= 6 ? "#F5B53C" : "#FF6B6B";
+                      return (
+                        <button
+                          key={n}
+                          onClick={() => { updateEntry(e.id, { conviction: n }); setMDetailSel(prev => ({ ...prev, conviction: n })); }}
+                          className="w-5 h-5 rounded-full transition-transform active:scale-125"
+                          style={{ background: n <= conv ? col : "rgba(255,255,255,.12)" }}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 标签 */}
+                {(e.tags || []).length > 0 && (
+                  <div className="flex gap-1.5 flex-wrap mb-3">
+                    {e.tags.map(tag => {
+                      const tc = TAG_COLORS[tag] || {};
+                      return <span key={tag} className={`px-2 py-1 rounded-lg text-[11px] border ${tc.bg || "bg-white/5"} ${tc.text || "text-[#a0aec0]"} ${tc.border || "border-white/10"}`}>{tag}</span>;
+                    })}
+                  </div>
+                )}
+
+                {/* 52周轨迹 */}
+                {stk && stk.week52Low != null && stk.week52High != null && e.anchorPrice > 0 && (() => {
+                  const lo = stk.week52Low, hi = stk.week52High, range = hi - lo || 1;
+                  const clamp = v => Math.max(0, Math.min(100, ((v - lo) / range) * 100));
+                  const aPos = clamp(e.anchorPrice), cPos = clamp(e.currentPrice);
+                  const up = e.currentPrice >= e.anchorPrice;
+                  const fromAnchor = e.anchorPrice > 0 ? ((e.currentPrice - e.anchorPrice) / e.anchorPrice * 100) : 0;
+                  return (
+                    <div className="rounded-2xl p-4 mb-3" style={{ background: "rgba(255,255,255,.022)", border: "1px solid var(--line)" }}>
+                      <div className="flex items-center gap-2 mb-3">
+                        <Activity size={12} style={{ color: "var(--indigo-2)" }} />
+                        <span className="text-[11px] font-medium" style={{ color: "var(--fg-2)" }}>{t("52周持仓轨迹")}</span>
+                      </div>
+                      <div className="flex justify-between text-[10px] font-mono mb-1.5" style={{ color: "var(--fg-3)" }}>
+                        <span style={{ color: "var(--down)" }}>{currency}{lo}</span>
+                        <span style={{ color: "var(--up)" }}>{currency}{hi}</span>
+                      </div>
+                      <div className="relative w-full h-2.5 rounded-full" style={{ background: "linear-gradient(to right, rgba(239,68,68,.2), rgba(245,181,60,.15), rgba(30,211,149,.2))" }}>
+                        <div className="absolute top-0 h-full rounded-full" style={{ left: `${Math.min(aPos,cPos)}%`, width: `${Math.abs(cPos-aPos)}%`, background: up ? "rgba(30,211,149,.5)" : "rgba(239,68,68,.5)" }} />
+                        <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 rounded-full border-2" style={{ left: `${aPos}%`, background: "var(--bg-0)", borderColor: "rgba(255,255,255,.6)" }} />
+                        <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full border-2" style={{ left: `${cPos}%`, background: up ? "var(--up)" : "var(--down)", borderColor: "#fff", boxShadow: `0 0 6px ${up ? "rgba(30,211,149,.6)" : "rgba(239,68,68,.6)"}` }} />
+                      </div>
+                      <div className="flex justify-between text-[10px] mt-2 font-mono">
+                        <span style={{ color: "var(--fg-3)" }}>○ {t("锚定")} {currency}{e.anchorPrice}</span>
+                        <span className="font-semibold" style={{ color: up ? "var(--up)" : "var(--down)" }}>{up ? "↗" : "↘"} {fromAnchor >= 0 ? "+" : ""}{fromAnchor.toFixed(1)}%</span>
+                        <span style={{ color: "var(--fg-3)" }}>● {t("现价")} {currency}{e.currentPrice}</span>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* AI 复盘入口卡 */}
+                <button
+                  onClick={() => { setSel(e); setMAiOpen(true); }}
+                  className="w-full rounded-2xl p-4 mb-3 text-left active:scale-[0.99] transition"
+                  style={{ background: "linear-gradient(135deg,rgba(139,92,246,.08),rgba(99,102,241,.03))", border: "1px solid rgba(139,92,246,.2)" }}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-base">🤖</span>
+                    <span className="text-[13px] font-medium" style={{ color: "var(--fg-0)" }}>{t("AI 复盘助手")}</span>
+                    {e.reviewLog?.length > 0 && (
+                      <span className="text-[9px] font-mono px-1.5 py-0.5 rounded ml-auto" style={{ background: "rgba(34,211,153,.1)", color: "var(--up)" }}>
+                        {t("已复盘 {n} 次", { n: e.reviewLog.length })}
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[11px]" style={{ color: "var(--fg-3)" }}>{t("反事实 / 卖出策略 / 加仓时机 / 风险评估")}</div>
+                </button>
+              </div>
+
+              {/* 底部操作 */}
+              <ThumbActionBar
+                sticky={false}
+                secondary={[
+                  {
+                    icon: <Briefcase size={19} />,
+                    label: t("录入交易"),
+                    onClick: () => setShowAddTx(true),
+                  },
+                ]}
+                primary={{ icon: <Bot size={17} />, label: t("AI 复盘"), onClick: () => { setSel(e); setMAiOpen(true); } }}
+              />
+            </div>
+          );
+        })()}
+
+        {/* AddTransactionModal + MonthlyReviewModal（直接复用，覆盖层在 portal 内自管理） */}
+        <AddTransactionModal
+          open={showAddTx}
+          onClose={() => setShowAddTx(false)}
+          onAdded={() => setPositionsRefreshKey(k => k + 1)}
+        />
+        <MonthlyReviewModal
+          open={showMonthlyReview}
+          onClose={() => setShowMonthlyReview(false)}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col md:grid md:grid-cols-12 gap-3 md:gap-4 h-full min-h-0 overflow-auto md:overflow-hidden">
