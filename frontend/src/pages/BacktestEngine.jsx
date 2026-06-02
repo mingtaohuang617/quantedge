@@ -179,7 +179,9 @@ const RotaryKnob = ({ value, onChange, size = 76, color = "#6366f1" }) => {
 
 const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) => {
   const { t, lang } = useLang();
-  const { stocks: ctxStocks2, setStocks: ctxSetStocks2, standalone, addTicker: addTickerToPlatform } = useContext(DataContext);
+  // useContext 可能为 null：DataContext = createContext(null)，若组件在无 Provider 祖先时渲染会拿到默认 null。
+  // 与 Monitor/Journal/StockGene/AddTransactionModal 一致用 `|| {}` 兜底，避免解构 null 抛错冲到 ErrorBoundary。
+  const { stocks: ctxStocks2, setStocks: ctxSetStocks2, standalone, addTicker: addTickerToPlatform } = useContext(DataContext) || {};
   const liveStocks = ctxStocks2 || STOCKS;
   // C16: 工作区 namespace
   const ws = useWorkspace();
