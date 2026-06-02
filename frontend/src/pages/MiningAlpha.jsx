@@ -811,18 +811,21 @@ export default function MiningAlpha() {
     <div className="p-3 md:p-4 space-y-3 max-w-[1400px] mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <div className="flex items-center gap-2">
-          <Zap size={18} className="text-violet-400" />
-          <h2 className="text-base md:text-lg font-bold text-white">Mining Alpha</h2>
-          <span className="text-[10px] text-[#a0aec0]">因子挖掘 · ML 合成 · 回测</span>
-          {isDemoMode && (
-            <span
-              className="text-[10px] font-semibold px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 cursor-help"
-              title="后端无数据 — 显示静态示例。要看真实结果需 self-hosted backend 跑过 pipeline。"
-            >
-              DEMO 模式
-            </span>
-          )}
+        <div>
+          {/* v5 编辑式：eyebrow + serif 版头（与 Smart Beta 一致的视觉语言）*/}
+          <div className="t-eyebrow mb-0.5">MINING ALPHA · 信号实验室</div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Zap size={18} className="text-violet-400" />
+            <h2 className="font-serif text-base md:text-lg font-semibold text-white" style={{ letterSpacing: "-0.02em" }}>因子挖掘 · ML 合成 · 回测</h2>
+            {isDemoMode && (
+              <span
+                className="text-[10px] font-semibold px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 cursor-help"
+                title="后端无数据 — 显示静态示例。要看真实结果需 self-hosted backend 跑过 pipeline。"
+              >
+                DEMO 模式
+              </span>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-2">
           {status && <RunSwitcher status={status} onSwitch={onSwitchRun} />}
