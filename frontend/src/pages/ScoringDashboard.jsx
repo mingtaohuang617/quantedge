@@ -1259,7 +1259,7 @@ const ScoringDashboard = () => {
             {[
               ["fundamental", t("基本面"), "#6366f1", t("PE⁻¹ + ROE + EPS质量")],
               ["technical", t("技术面"), "#06b6d4", t("RSI均值回归 + 动量 + β风险")],
-              ["growth", t("成长性"), "#00E5A0", t("营收增速 + 利润率扩张")],
+              ["growth", t("成长性"), "#1ED395", t("营收增速 + 利润率扩张")],
             ].map(([k, label, color, desc]) => {
               const v = weights[k];
               return (

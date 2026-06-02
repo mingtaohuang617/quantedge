@@ -81,7 +81,7 @@ export default class ErrorBoundary extends React.Component {
     const stack = this.state.error?.stack || '';
     return (
       <div style={{
-        minHeight: '100vh', background: 'radial-gradient(ellipse at 20% 0%, #1A1A2E 0%, #0B0B15 50%, #0B0B15 100%)',
+        minHeight: '100vh', background: 'radial-gradient(ellipse at 20% 0%, #15172B 0%, #08090E 50%, #08090E 100%)',
         color: '#e2e8f0', fontFamily: "'DM Sans', system-ui, sans-serif",
         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
       }}>

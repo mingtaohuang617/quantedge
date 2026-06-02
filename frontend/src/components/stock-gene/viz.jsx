@@ -88,7 +88,7 @@ export function ScoreSparkline({ history, engine, maxScore }) {
   }
   const first = last[0].score, end = last[last.length - 1].score;
   const trend = end > first ? "up" : end < first ? "down" : "flat";
-  const color = trend === "up" ? "#00E5A0" : trend === "down" ? "#FF6B6B" : "#888";
+  const color = trend === "up" ? "#1ED395" : trend === "down" ? "#FF6B6B" : "#888";
   const arrow = trend === "up" ? "↑" : trend === "down" ? "↓" : "→";
   const fmtDate = (iso) => {
     try { return new Date(iso).toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" }); }

@@ -21,7 +21,7 @@ import {
 } from "../quant-platform.jsx";
 
 // ─── Backtesting ──────────────────────────────────────────
-const PIE_COLORS = ["#6366f1","#8b5cf6","#06b6d4","#00E5A0","#f59e0b","#FF6B6B","#ec4899","#14b8a6","#f97316","#a855f7","#3b82f6","#84cc16"];
+const PIE_COLORS = ["#6366f1","#8b5cf6","#06b6d4","#1ED395","#f59e0b","#FF6B6B","#ec4899","#14b8a6","#f97316","#a855f7","#3b82f6","#84cc16"];
 
 // ─── Rotary Knob Component ──────────────────────────────
 const RotaryKnob = ({ value, onChange, size = 76, color = "#6366f1" }) => {
@@ -250,7 +250,7 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
       const { toPng } = await import('html-to-image');
       const node = reportRef.current;
       const dataUrl = await toPng(node, {
-        backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--bg-base').trim() || '#0B0B15',
+        backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--bg-base').trim() || '#08090E',
         pixelRatio: 2,
         cacheBust: true,
         style: { padding: '16px' },
