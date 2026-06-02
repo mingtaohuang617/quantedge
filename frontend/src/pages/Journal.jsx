@@ -745,7 +745,7 @@ ${angleQuestion}
             </div>
             {/* v5 hero — 72px Fraunces serif P&L 数字 + gainPct chip */}
             <div className="flex items-baseline gap-2 flex-wrap mb-2">
-              <span className={`t-hero-lg font-serif tabular-nums ${positionSummary.gain >= 0 ? 'text-up' : 'text-down'}`}>
+              <span className={`t-hero-display font-serif tabular-nums ${positionSummary.gain >= 0 ? 'text-up' : 'text-down'}`}>
                 {positionSummary.gain >= 0 ? '+' : '−'}${Math.abs(positionSummary.gain).toFixed(0)}
               </span>
               <span className={`text-[11px] font-mono font-bold px-1.5 py-0.5 rounded border tabular-nums ${

@@ -1877,7 +1877,7 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
               })[btRange] || btRange}</div>
               <div className="flex items-end flex-wrap gap-x-4 gap-y-2">
                 <div className="flex items-baseline gap-2.5">
-                  <span className={`t-hero font-serif tabular-nums ${m.annReturn >= 0 ? 'text-up' : 'text-down'}`}>
+                  <span className={`t-hero-display font-serif tabular-nums ${m.annReturn >= 0 ? 'text-up' : 'text-down'}`}>
                     {m.annReturn >= 0 ? '+' : ''}{m.annReturn}%
                   </span>
                   {m.annBenchReturn != null && (
