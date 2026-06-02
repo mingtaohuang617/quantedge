@@ -4,7 +4,7 @@
 // ─────────────────────────────────────────────────────────────
 import React, { useState, useEffect, useMemo, useCallback, useRef, useContext } from "react";
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ComposedChart, ReferenceLine } from "recharts";
-import { Activity, ArrowDownRight, ArrowUpRight, Briefcase, Calendar, Check, ChevronDown, ChevronRight, Clock, Database, Eye, Filter, GripVertical, Info, Layers, Loader, Maximize2, Minus, Plus, RefreshCw, Search, Settings, Star, Trash2, TrendingUp, X, Zap } from "lucide-react";
+import { Activity, ArrowDownRight, ArrowUpRight, Briefcase, Calendar, Check, ChevronDown, ChevronRight, Clock, Database, Eye, Filter, GripVertical, Info, Layers, Loader, Maximize2, Minus, Plus, RefreshCw, Search, Settings, Star, Trash2, TrendingUp, X, Zap, ArrowLeftRight } from "lucide-react";
 import { searchTickers as standaloneSearch, fetchRangePrices, STOCK_CN_NAMES, STOCK_CN_DESCS } from "../standalone.js";
 import { Z_ELEVATED } from "../lib/zIndex.js";
 import { useLang } from "../i18n.jsx";
@@ -36,6 +36,8 @@ import {
   currencySymbol,
   fmtPrice,
 } from "../quant-platform.jsx";
+import useIsMobile from "../hooks/useIsMobile";
+import { BottomSheet, ThumbActionBar, MobileAppBar, FullscreenChart, Segmented } from "../components/mobile";
 
 // C16: 按工作区读取评分权重（localStorage key: quantedge_weights_<wsId>）
 const DEFAULT_WEIGHTS = { fundamental: 40, technical: 30, growth: 30 };
@@ -50,6 +52,42 @@ function loadWeights(wsId) {
     }
   } catch { /* 静默回退 */ }
   return { ...DEFAULT_WEIGHTS };
+}
+
+// ─── 移动端：评分环 + 要素条（v6 全屏个股卡用）──────────────
+function ScoreRing({ score = 0, size = 76 }) {
+  const r = 42, C = 2 * Math.PI * r;
+  const pct = Math.max(0, Math.min(100, score)) / 100;
+  const col = score >= 75 ? "var(--up)" : score >= 50 ? "var(--indigo-2)" : "var(--warn)";
+  return (
+    <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
+      <svg viewBox="0 0 100 100" style={{ transform: "rotate(-90deg)" }}>
+        <circle cx="50" cy="50" r={r} fill="none" stroke="rgba(255,255,255,.06)" strokeWidth="7" />
+        <circle cx="50" cy="50" r={r} fill="none" stroke={col} strokeWidth="7" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C * (1 - pct)} />
+      </svg>
+      <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <span className="font-mono" style={{ fontSize: size * 0.31, fontWeight: 700, color: "var(--fg-0)", lineHeight: 1 }}>{Number.isFinite(score) ? Math.round(score) : "—"}</span>
+      </div>
+    </div>
+  );
+}
+
+function MPillar({ name, v, w, c, hl }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 0", borderBottom: "1px solid var(--line)" }}>
+      <div style={{ width: 3, height: 34, borderRadius: 2, background: c, boxShadow: `0 0 8px ${c}66` }} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 5 }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--fg-0)" }}>{name}<span style={{ fontSize: 10, color: "var(--fg-3)", fontWeight: 400, marginLeft: 6 }}>权重 {w}%</span></span>
+          <span className="font-mono" style={{ fontSize: 18, fontWeight: 700, color: c, lineHeight: 1 }}>{v != null ? Math.round(v) : "—"}</span>
+        </div>
+        <div style={{ height: 4, background: "rgba(255,255,255,.05)", borderRadius: 2, overflow: "hidden" }}>
+          <div style={{ width: `${Math.max(0, Math.min(100, v || 0))}%`, height: "100%", background: `linear-gradient(90deg,${c}55,${c})`, borderRadius: 2 }} />
+        </div>
+        {hl && <div style={{ fontSize: 10.5, color: "var(--fg-3)", marginTop: 5 }}>{hl}</div>}
+      </div>
+    </div>
+  );
 }
 
 // MA20 趋势均线只在「日线级别」区间有效（interval=1d）。其余区间画 20 点均线
@@ -271,6 +309,8 @@ const ScoringDashboard = () => {
   const [chartRange, setChartRange] = useState("YTD"); // 1D|5D|1M|6M|YTD|1Y|5Y|ALL
   const [loading, setLoading] = useState(false);
   const [mobileShowDetail, setMobileShowDetail] = useState(false); // mobile: toggle list vs detail
+  const isMobile = useIsMobile();
+  const [mFilterOpen, setMFilterOpen] = useState(false); // v6 移动端筛选 sheet
   // 关注列表 — 持久化到 localStorage
   const [favorites, setFavorites] = useState(() => {
     try { return new Set(JSON.parse(localStorage.getItem('quantedge_favorites') || '[]')); } catch { return new Set(); }
@@ -885,6 +925,198 @@ const ScoringDashboard = () => {
     } catch {}
     setQuickAdding(null);
   };
+
+  // ─────────────────────────────────────────────────────────────
+  // v6 移动端：列表 → 全屏个股卡（左右滑切换）→ 筛选 Sheet → 横屏图表
+  // 复用桌面端全部数据/状态（filtered / sel / weights / chartData…）
+  // ─────────────────────────────────────────────────────────────
+  if (isMobile) {
+    const rows = filtered;
+    const idx = sel ? rows.findIndex((s) => s.ticker === sel.ticker) : -1;
+    const goRel = (d) => { const n = rows[idx + d]; if (n) setSel(n); };
+    const cur = (s) => currencySymbol(s?.currency);
+    const px = (s) => (s?.price != null ? fmtPrice(s.price, s.currency) : "—"); // fmtPrice 已含币种符号
+    const seg = typeFilter === "ETF" ? "ETF" : mkt === "US" ? "US" : mkt === "HK" ? "HK" : "ALL";
+    const setSeg = (v) => { if (v === "ETF") { setTypeFilter("ETF"); setMkt("ALL"); } else { setTypeFilter("ALL"); setMkt(v); } };
+    const nFilters = (mkt !== "ALL" ? 1 : 0) + (typeFilter !== "ALL" ? 1 : 0) + (showFavOnly ? 1 : 0) + (sortBy !== "score" ? 1 : 0);
+    const isFav = sel ? favorites.has(sel.ticker) : false;
+    const pillars = sel?.subScores ? [
+      { name: t("基本面"), v: sel.subScores.fundamental, w: weights.fundamental, c: "#818CF8", hl: "PE / ROE / 利润率" },
+      { name: t("技术面"), v: sel.subScores.technical, w: weights.technical, c: "#F5B53C", hl: "RSI / 均线 / 动量" },
+      { name: t("成长性"), v: sel.subScores.growth, w: weights.growth, c: "#1ED395", hl: "营收 / 盈利增速" },
+    ] : [];
+    let tStart = null;
+    const onTS = (e) => { const p = e.touches[0]; tStart = { x: p.clientX, y: p.clientY }; };
+    const onTE = (e) => { if (!tStart) return; const p = e.changedTouches[0]; const dx = p.clientX - tStart.x, dy = p.clientY - tStart.y; if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) goRel(dx < 0 ? 1 : -1); tStart = null; };
+    const segBtn = (on) => on
+      ? { color: "var(--indigo-2)", borderColor: "rgba(99,102,241,.3)", background: "rgba(99,102,241,.15)" }
+      : { color: "var(--fg-2)", borderColor: "var(--line)", background: "rgba(255,255,255,.03)" };
+
+    return (
+      <div className="h-full flex flex-col" style={{ background: "var(--bg-0)" }}>
+        {/* ── 列表 ── */}
+        <div className="flex-1 overflow-y-auto overscroll-contain">
+          <div className="px-4 pt-3 pb-1.5 flex items-center justify-between">
+            <h1 className="text-[22px] font-bold" style={{ color: "var(--fg-0)" }}>{t("量化评分")}</h1>
+            <button onClick={() => setMFilterOpen(true)} className="relative w-9 h-9 rounded-[10px] border flex items-center justify-center active:scale-95"
+              style={{ borderColor: nFilters ? "rgba(99,102,241,.3)" : "var(--line)", background: nFilters ? "rgba(99,102,241,.12)" : "rgba(255,255,255,.03)" }}>
+              <Filter size={17} style={{ color: nFilters ? "var(--indigo-2)" : "var(--fg-1)" }} />
+              {nFilters > 0 && <span className="absolute -top-1 -right-1 w-[15px] h-[15px] rounded-full text-[9px] font-bold text-white flex items-center justify-center" style={{ background: "var(--indigo)" }}>{nFilters}</span>}
+            </button>
+          </div>
+          <div className="px-4 mb-2 relative">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "var(--fg-3)" }} />
+            <input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder={t("搜索代码 / 名称")}
+              className="w-full rounded-[10px] pl-9 pr-3 py-2.5 text-[13px] outline-none border"
+              style={{ background: "rgba(255,255,255,.04)", borderColor: "var(--line)", color: "var(--fg-0)" }} />
+          </div>
+          <div className="px-4 mb-2">
+            <Segmented value={seg} onChange={setSeg} options={[{ value: "ALL", label: t("全部") }, { value: "US", label: t("美股") }, { value: "HK", label: t("港股") }, { value: "ETF", label: "ETF" }]} />
+          </div>
+          <div className="px-4 mb-1 text-[11px]" style={{ color: "var(--fg-3)" }}>{rows.length} {t("只标的")}</div>
+          <div className="px-2.5 pb-6">
+            {rows.map((stk) => {
+              const up = safeChange(stk.change) >= 0;
+              return (
+                <button key={stk.ticker} onClick={() => setSel(stk)} className="w-full flex items-center gap-3 px-2.5 py-3 rounded-xl active:scale-[0.99] transition text-left">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline gap-2">
+                      <span className="font-mono text-[14px] font-semibold" style={{ color: "var(--fg-0)" }}>{stk.ticker}</span>
+                      <span className="text-[11px] truncate" style={{ color: "var(--fg-3)" }}>{lang === "zh" ? (stk.nameCN || STOCK_CN_NAMES[stk.ticker] || stk.name) : stk.name}</span>
+                    </div>
+                    <div className="font-mono text-[11px] mt-1" style={{ color: up ? "var(--up)" : "var(--down)" }}>
+                      {stk.price != null ? `${px(stk)} · ` : ""}{up ? "+" : ""}{fmtChange(stk.change)}%
+                    </div>
+                  </div>
+                  <div className="w-[54px] shrink-0"><MiniSparkline data={get5DSparkData(stk)} w={54} h={20} /></div>
+                  <span className="font-mono text-[19px] font-bold w-8 text-right" style={{ color: (stk.score ?? 0) >= 75 ? "var(--up)" : "var(--indigo-2)", lineHeight: 1 }}>{stk.score?.toFixed?.(0)}</span>
+                  <ChevronRight size={16} style={{ color: "var(--fg-4)" }} />
+                </button>
+              );
+            })}
+            {rows.length === 0 && <div className="text-center py-12 text-[12px]" style={{ color: "var(--fg-3)" }}>{t("无匹配标的")}</div>}
+          </div>
+        </div>
+
+        {/* ── 全屏个股卡 ── */}
+        {sel && (
+          <div className="fixed inset-0 z-40 flex flex-col" style={{ background: "var(--bg-0)" }}>
+            <MobileAppBar onBack={() => setSel(null)}
+              title={<span className="flex items-center gap-2">
+                <span className="font-mono text-[15px] font-bold" style={{ color: "var(--fg-0)" }}>{sel.ticker}</span>
+                <span className="font-mono text-[10px] px-1.5 py-0.5 rounded" style={{ background: "rgba(30,211,149,.12)", color: "var(--up)" }}>{(sel.score ?? 0).toFixed(0)}</span>
+              </span>}
+              actions={<button onClick={() => toggleFav(sel.ticker)} aria-label={t("自选")} className="p-0.5 active:scale-90"><Star size={19} style={{ color: isFav ? "var(--warn)" : "var(--fg-3)" }} fill={isFav ? "var(--warn)" : "none"} /></button>}
+            />
+            <div className="flex-1 overflow-y-auto overscroll-contain" onTouchStart={onTS} onTouchEnd={onTE} style={{ paddingBottom: "calc(74px + env(safe-area-inset-bottom))" }}>
+              <div className="px-4 pt-3">
+                {idx >= 0 && rows.length > 1 && (
+                  <div className="flex items-center justify-center gap-2 mb-3 text-[10px]" style={{ color: "var(--fg-3)" }}>
+                    <ArrowLeftRight size={11} /> {t("左右滑动切换")} · {idx + 1}/{rows.length}
+                  </div>
+                )}
+                <div className="flex justify-between items-start mb-4">
+                  <div className="min-w-0">
+                    <div className="text-[13px] mb-1 truncate" style={{ color: "var(--fg-2)" }}>{lang === "zh" ? (sel.nameCN || STOCK_CN_NAMES[sel.ticker] || sel.name) : sel.name}</div>
+                    <div className="font-mono" style={{ fontSize: 36, fontWeight: 600, color: "var(--fg-0)", lineHeight: 1 }}>{px(sel)}</div>
+                    <div className="mt-2">
+                      <span className="font-mono text-[12px] px-2 py-1 rounded" style={{ background: safeChange(sel.change) >= 0 ? "rgba(30,211,149,.12)" : "rgba(255,107,107,.12)", color: safeChange(sel.change) >= 0 ? "var(--up)" : "var(--down)" }}>
+                        {safeChange(sel.change) >= 0 ? "▲" : "▼"} {fmtChange(sel.change)}%
+                      </span>
+                    </div>
+                  </div>
+                  <ScoreRing score={sel.score ?? 0} />
+                </div>
+                {sel.week52Low != null && sel.week52High != null && sel.price != null && (() => {
+                  const lo = sel.week52Low, hi = sel.week52High, pct = Math.max(0, Math.min(100, ((sel.price - lo) / ((hi - lo) || 1)) * 100));
+                  return (
+                    <div className="mb-4">
+                      <div className="flex justify-between font-mono text-[9px] mb-1.5" style={{ color: "var(--fg-3)" }}>
+                        <span>52W {cur(sel)}{lo}</span><span style={{ color: "var(--up)" }}>P{pct.toFixed(0)}</span><span>{cur(sel)}{hi}</span>
+                      </div>
+                      <div className="relative h-1 rounded-full" style={{ background: "rgba(255,255,255,.06)" }}>
+                        <div className="absolute top-0 bottom-0 left-0 rounded-full" style={{ width: `${pct}%`, background: "linear-gradient(90deg,rgba(255,107,107,.3),rgba(245,181,60,.4) 50%,rgba(30,211,149,.5))" }} />
+                        <div className="absolute w-2.5 h-2.5 rounded-full" style={{ left: `calc(${pct}% - 5px)`, top: -3, background: "#fff", boxShadow: "0 0 0 1.5px var(--up)" }} />
+                      </div>
+                    </div>
+                  );
+                })()}
+                <div className="mb-4"><AIStockSummaryCard stock={sel} /></div>
+                {pillars.length > 0 && (
+                  <div className="mb-4">
+                    <div className="text-[12px] font-semibold mb-1" style={{ color: "var(--fg-0)" }}>{t("评分由三大要素构成")}</div>
+                    {pillars.map((p) => <MPillar key={p.name} {...p} />)}
+                  </div>
+                )}
+                <div className="mb-4"><ScoreExplainCard stock={sel} weights={weights} /></div>
+                <div className="rounded-[14px] border p-3.5 mb-2" style={{ borderColor: "var(--line)", background: "var(--bg-2)" }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[12px] font-semibold" style={{ color: "var(--fg-0)" }}>{t("价格走势")} · {chartRange}</span>
+                    <button onClick={() => setChartFullscreen(true)} className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold active:scale-95" style={{ background: "rgba(99,102,241,.12)", border: "1px solid rgba(99,102,241,.3)", color: "var(--indigo-2)" }}><Maximize2 size={11} />{t("全屏")}</button>
+                  </div>
+                  <div style={{ height: 92 }}>
+                    {chartData.length >= 2 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={chartData} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
+                          <defs><linearGradient id="mScoreArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#5EE6E6" stopOpacity="0.25" /><stop offset="100%" stopColor="#5EE6E6" stopOpacity="0" /></linearGradient></defs>
+                          <Area type="monotone" dataKey="p" stroke="#5EE6E6" strokeWidth={2} fill="url(#mScoreArea)" dot={false} isAnimationActive={false} />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    ) : <div className="h-full flex items-center justify-center text-[11px]" style={{ color: "var(--fg-3)" }}>{t("暂无价格数据")}</div>}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <ThumbActionBar
+              secondary={[
+                { icon: <Layers size={20} />, label: t("对比"), onClick: () => setCompareSet((s) => { const n = new Set(s); n.has(sel.ticker) ? n.delete(sel.ticker) : n.add(sel.ticker); return n; }) },
+                { icon: <ArrowLeftRight size={20} />, label: t("下一只"), onClick: () => goRel(1) },
+              ]}
+              primary={{ icon: <Star size={18} fill={isFav ? "#fff" : "none"} />, label: isFav ? t("已自选") : t("加自选"), onClick: () => toggleFav(sel.ticker) }}
+            />
+          </div>
+        )}
+
+        {/* ── 筛选 Sheet ── */}
+        <BottomSheet open={mFilterOpen} onClose={() => setMFilterOpen(false)} title={t("筛选标的")}
+          footer={<button onClick={() => setMFilterOpen(false)} className="w-full h-12 rounded-[13px] text-white text-[15px] font-bold" style={{ background: "linear-gradient(180deg,var(--indigo-2),var(--indigo))", boxShadow: "0 8px 22px -6px rgba(99,102,241,.6)" }}>{t("显示")} {rows.length} {t("只标的")}</button>}>
+          <div className="text-[11px] font-mono uppercase tracking-wider mb-2.5" style={{ color: "var(--fg-3)" }}>{t("类型")}</div>
+          <div className="flex gap-2 mb-5">
+            {[["ALL", t("全部")], ["STOCK", t("个股")], ["ETF", "ETF"], ["LEV", t("杠杆")]].map(([v, l]) => (
+              <button key={v} onClick={() => setTypeFilter(v)} className="flex-1 py-2.5 rounded-[10px] text-[12px] font-medium border" style={segBtn(typeFilter === v)}>{l}</button>
+            ))}
+          </div>
+          <div className="text-[11px] font-mono uppercase tracking-wider mb-2.5" style={{ color: "var(--fg-3)" }}>{t("排序")}</div>
+          <div className="flex flex-wrap gap-2 mb-5">
+            {[["score", t("评分")], ["change", t("涨跌")], ["name", t("代码")], ["macroAdj", t("宏观调整")]].map(([v, l]) => (
+              <button key={v} onClick={() => setSortBy(v)} className="px-3.5 py-2 rounded-full text-[12px] font-medium border" style={segBtn(sortBy === v)}>{l}</button>
+            ))}
+          </div>
+          <button onClick={() => setShowFavOnly((v) => !v)} className="w-full flex items-center justify-between py-3 mb-2">
+            <span className="text-[13.5px]" style={{ color: "var(--fg-1)" }}>{t("只看关注")}</span>
+            <span className="w-11 h-6 rounded-full relative transition-colors" style={{ background: showFavOnly ? "var(--indigo)" : "var(--line-2)" }}><span className="absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all" style={{ left: showFavOnly ? 22 : 2 }} /></span>
+          </button>
+        </BottomSheet>
+
+        {/* ── 横屏全屏图表 ── */}
+        <FullscreenChart open={chartFullscreen} onClose={() => setChartFullscreen(false)} title={sel?.ticker}
+          meta={sel && <span className="font-mono text-[13px]" style={{ color: safeChange(sel.change) >= 0 ? "var(--up)" : "var(--down)" }}>{px(sel)} {safeChange(sel.change) >= 0 ? "+" : ""}{fmtChange(sel.change)}%</span>}
+          ranges={["1D", "5D", "1M", "6M", "YTD", "1Y", "5Y", "ALL"]} activeRange={chartRange} onRangeChange={setChartRange}>
+          {chartData.length >= 2 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={chartDataWithBench} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
+                <defs><linearGradient id="mScoreAreaLand" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#1ED395" stopOpacity="0.22" /><stop offset="100%" stopColor="#1ED395" stopOpacity="0" /></linearGradient></defs>
+                <CartesianGrid stroke="rgba(255,255,255,.05)" vertical={false} />
+                <YAxis domain={["auto", "auto"]} width={42} tick={{ fontSize: 10, fill: "var(--fg-3)" }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={TOOLTIP_STYLE} />
+                <Area type="monotone" dataKey="p" stroke="#1ED395" strokeWidth={2.2} fill="url(#mScoreAreaLand)" dot={false} isAnimationActive={false} />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : <div className="h-full flex items-center justify-center text-[12px]" style={{ color: "var(--fg-3)" }}>{t("暂无价格数据")}</div>}
+        </FullscreenChart>
+      </div>
+    );
+  }
 
   return (<div className="flex flex-col h-full min-h-0">
     {/* ── 来自 macro alert 的上下文横幅（可关闭） ── */}
