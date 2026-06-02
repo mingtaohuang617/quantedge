@@ -1079,6 +1079,10 @@ select:focus-visible {
 }
 .t-hero-lg { font-size: 44px; }
 .t-hero-sm { font-size: 28px; }
+/* v5 还原评审稿「报纸头版」尺度的大字号 hero —— 编辑式叙事的视觉锚。
+   clamp 让窄屏自动收缩、不挤爆密集布局（沿用复利页已验证的 clamp 模式）。 */
+.t-hero-xl { font-size: clamp(48px, 9vw, 96px); line-height: 0.94; letter-spacing: -0.035em; }
+.t-hero-display { font-size: clamp(40px, 6.5vw, 72px); line-height: 0.98; letter-spacing: -0.03em; }
 
 /* hero 数字渐变文字（白→浅灰），让大字号有"金属感"立体感而不是扁平贴底 */
 .t-hero-gradient {

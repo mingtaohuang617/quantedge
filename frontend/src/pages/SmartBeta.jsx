@@ -425,9 +425,11 @@ export default function SmartBeta() {
       <div className="sticky top-0 z-10 backdrop-blur border-b border-white/8 px-4 py-2.5" style={{ background: "color-mix(in srgb, var(--bg-base) 92%, transparent)" }}>
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
+            {/* v5 编辑式：eyebrow + serif 标题（套设计视觉语言；真实轮动功能不动） */}
+            <div className="t-eyebrow mb-0.5">SMART BETA ENGINE · 三层动态轮动</div>
             <div className="flex items-center gap-2 flex-wrap">
               <Layers size={16} className="text-indigo-400" />
-              <h2 className="text-sm font-semibold tracking-tight" style={{ color: "var(--text-heading)" }}>Smart Beta · 指数 + 行业 ETF 动态轮动</h2>
+              <h2 className="font-serif text-base sm:text-lg font-semibold tracking-tight" style={{ color: "var(--text-heading)", letterSpacing: "-0.02em" }}>指数 + 行业 ETF 动态轮动</h2>
               {isDemoMode && (
                 <span
                   className="px-1.5 py-0.5 rounded text-[9px] font-mono uppercase tracking-wider bg-amber-500/15 text-amber-300 border border-amber-500/40"

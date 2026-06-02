@@ -72,7 +72,7 @@ export default function CompositePanel({ data, history }) {
         <div className="flex-1 min-w-[260px]">
           <div className="text-[10px] text-white/55 mb-2 uppercase tracking-wider font-mono">{t("市场温度（综合 17 因子方向化加权）")}</div>
           <div className="flex items-baseline gap-3 flex-wrap mb-1">
-            <span className={`t-hero-lg font-serif tabular-nums ${TEMP_TEXT(temp)}`}>
+            <span className={`t-hero-xl font-serif tabular-nums ${TEMP_TEXT(temp)}`}>
               {temp != null ? temp.toFixed(0) : "—"}
             </span>
             <span className="text-white/35 text-sm font-mono">/ 100</span>

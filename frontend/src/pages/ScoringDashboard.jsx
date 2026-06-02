@@ -1504,7 +1504,7 @@ const ScoringDashboard = () => {
                 <div>
                   {/* v5 编辑式 hero：ticker 抬到 28/36px + Fraunces serif — 让单只标的成为主角 */}
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <h3 className="text-[28px] sm:text-[36px] font-serif font-semibold text-white leading-none tracking-tight" style={{ letterSpacing: '-0.02em' }}>{sel.ticker}</h3>
+                    <h3 className="text-[34px] sm:text-[42px] font-serif font-semibold text-white leading-none tracking-tight" style={{ letterSpacing: '-0.02em' }}>{sel.ticker}</h3>
                     {/* PDF1 收敛：sector 从 accent Badge 改 neutral 文字（信息性，无需视觉权重） */}
                     <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>{sel.market} · {sel.sector}</span>
                     {/* v5.2：下次财报倒计时 chip — 提前把加/减仓窗口与财报日对齐 */}
@@ -1573,7 +1573,7 @@ const ScoringDashboard = () => {
                 <div className="sm:text-right flex sm:block items-center gap-2">
                   {/* PDF2 抛光 4.2：主价格抬到 24/28px + 渐变文字（白→slate-300）让数字有金属感 */}
                   <div
-                    className="text-2xl sm:text-[28px] font-bold font-mono tabular-nums leading-none"
+                    className="text-[32px] sm:text-[40px] font-bold font-mono tabular-nums leading-none"
                     style={{
                       background: 'linear-gradient(180deg, #ffffff 0%, #cbd5e1 100%)',
                       WebkitBackgroundClip: 'text',
