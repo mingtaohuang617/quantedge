@@ -25,6 +25,7 @@ import {
   Download, Upload,
   Activity,
   ArrowUp, ArrowDown, ArrowUpDown, ArrowRight,
+  ChevronRight, Maximize2,
 } from "lucide-react";
 import { apiFetch } from "../quant-platform.jsx";
 import TenxItemEditor from "../components/TenxItemEditor.jsx";
@@ -38,6 +39,12 @@ import { serializeWatchlistCsv } from "../lib/csvExport.js";
 import { fmtMcap, fmtNum, fmtPct } from "../lib/formatters.js";
 import { fetchCurrentPrice } from "../lib/yahoo.js";
 import EmptyState from "../components/EmptyState.jsx";
+import useIsMobile from "../hooks/useIsMobile.js";
+import { BottomSheet, MobileAppBar, FullscreenChart } from "../components/mobile";
+import { useLang } from "../i18n.jsx";
+
+// ── 移动端：漏斗条形色阶（全宇宙→初筛→AI精选→观察名单）
+const FUNNEL_COLORS = ["#5A5E76", "#818CF8", "#8B5CF6", "#1ED395"];
 
 const STRATEGY_LABEL = { growth: "成长型", value: "价值型" };
 
@@ -111,6 +118,14 @@ function SortHeader({ label, sortKey, currentKey, currentDir, onToggle, align = 
 }
 
 export default function Screener10x() {
+  // ── v6 移动端 ────────────────────────────────────────────────
+  const isMobile = useIsMobile();
+  const { t } = useLang();
+  // 移动端专用状态（必须无条件声明，在所有早返回之前）
+  const [mFilterOpen, setMFilterOpen] = useState(false);   // 筛选 BottomSheet
+  const [mFunnelFs, setMFunnelFs] = useState(false);       // 漏斗全屏（横屏）
+  const [mDetailItem, setMDetailItem] = useState(null);    // 候选下钻卡
+
   // 数据状态
   const [supertrends, setSupertrends] = useState([]);
   const [items, setItems] = useState([]);                   // watchlist
@@ -767,6 +782,511 @@ export default function Screener10x() {
     supertrends.filter(s => (s.strategy || "growth") === activeStrategy),
     [supertrends, activeStrategy]
   );
+
+  // ── v6 移动端渲染 ─────────────────────────────────────────────
+  if (isMobile) {
+    // 漏斗数据：复用桌面端已有的 universeStats / candidates / aiPipelineState / items
+    const totalUniverse = universeStats
+      ? (universeStats.US?.count || 0) + (universeStats.HK?.count || 0) + (universeStats.CN?.count || 0)
+      : 0;
+    const funnelStages = [
+      { label: t("全宇宙"),   value: totalUniverse > 0 ? totalUniverse : 2350, widthPct: 100, color: FUNNEL_COLORS[0], sub: "US+HK+CN" },
+      { label: t("匹配赛道"), value: candidates.length,                         widthPct: 46,  color: FUNNEL_COLORS[1], sub: selectedTrends.length > 0 ? `${selectedTrends.length} 个赛道` : "未选赛道" },
+      { label: t("AI 已审"),  value: aiPipelineState.matched || 0,              widthPct: 22,  color: FUNNEL_COLORS[2], sub: "AI Pipeline" },
+      { label: t("观察名单"), value: items.length,                              widthPct: 9,   color: FUNNEL_COLORS[3], sub: `${items.length} 只跟踪中` },
+    ];
+
+    // 候选下钻卡内容（锚→当→目标轨迹）
+    const CandidateDetailCard = ({ item, onClose }) => {
+      const anchor = item.anchor_price ?? item.cost_basis ?? null;
+      const target = item.target_price ?? null;
+      const now = pricesByTicker[item.ticker] ?? null;
+      const hasTrack = anchor != null && target != null && now != null && target > anchor;
+      const pct = hasTrack ? Math.max(0, Math.min(100, ((now - anchor) / (target - anchor)) * 100)) : 0;
+      const upside = now && target && now > 0 ? (target / now).toFixed(1) : null;
+      const aiConf = aiMatchMap[item.ticker]?.confidence;
+      return (
+        <div className="fixed inset-0 z-40 flex flex-col" style={{ background: "var(--bg-0)" }}>
+          <MobileAppBar
+            onBack={onClose}
+            title={
+              <span className="flex items-center gap-2">
+                <span className="font-mono text-[15px] font-bold" style={{ color: "var(--fg-0)" }}>{item.ticker}</span>
+                <span className="text-[12px]" style={{ color: "var(--fg-3)" }}>{item.name || ""}</span>
+              </span>
+            }
+            actions={
+              aiConf != null && (
+                <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold" style={{ background: "rgba(139,92,246,.18)", color: "#C4B5FD", border: "1px solid rgba(139,92,246,.3)" }}>
+                  信心 {Math.round(aiConf * 100)}
+                </span>
+              )
+            }
+          />
+          <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-4">
+            {/* thesis */}
+            {item.thesis && (
+              <p className="text-[13px] mb-4 leading-relaxed" style={{ color: "var(--fg-2)" }}>{item.thesis}</p>
+            )}
+            {/* 超级赛道 chips */}
+            {(item.supertrend_ids || []).length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-4">
+                {item.supertrend_ids.map(id => (
+                  <span key={id} className="text-[11px] px-2 py-0.5 rounded-full" style={{ background: "rgba(99,102,241,.15)", color: "var(--indigo-2)", border: "1px solid rgba(99,102,241,.25)" }}>
+                    {trendName(id)}
+                  </span>
+                ))}
+              </div>
+            )}
+            {/* 锚→当→目标轨迹 */}
+            <div className="rounded-2xl p-4 mb-4" style={{ background: "rgba(255,255,255,.022)", border: "1px solid var(--line)" }}>
+              <div className="text-[11px] mb-3 font-medium" style={{ color: "var(--fg-3)" }}>锚 → 当 → 目标 轨迹</div>
+              {hasTrack ? (
+                <>
+                  <div className="relative h-[6px] rounded-full mb-2" style={{ background: "rgba(255,255,255,.06)" }}>
+                    <div className="absolute left-0 top-0 bottom-0 rounded-full" style={{ width: `${pct}%`, background: "linear-gradient(90deg, var(--indigo), var(--up))" }} />
+                    <div className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full" style={{ left: `${pct}%`, marginLeft: -7, background: "#fff", boxShadow: "0 0 0 2.5px var(--up)" }} />
+                  </div>
+                  <div className="flex justify-between text-[11px] font-mono">
+                    <span style={{ color: "var(--fg-3)" }}>锚 ${anchor.toFixed(2)}</span>
+                    <span style={{ color: "var(--up)", fontWeight: 600 }}>当 ${now.toFixed(2)}</span>
+                    <span style={{ color: "var(--indigo-2)" }}>目标 ${target.toFixed(2)}{upside ? ` · ${upside}x` : ""}</span>
+                  </div>
+                </>
+              ) : (
+                <div className="text-[12px]" style={{ color: "var(--fg-3)" }}>
+                  {anchor != null ? `锚点 $${anchor}` : "无锚点"}
+                  {target != null ? ` · 目标 $${target}` : " · 无目标价"}
+                  {now == null && " · 价格加载中"}
+                </div>
+              )}
+            </div>
+            {/* stop loss */}
+            {item.stop_loss != null && (
+              <div className="flex items-center gap-2 text-[12px] mb-4">
+                <span style={{ color: "var(--fg-3)" }}>止损</span>
+                <span className="font-mono" style={{ color: "var(--down)" }}>${item.stop_loss}</span>
+                {now != null && now <= item.stop_loss && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: "rgba(239,68,68,.15)", color: "var(--down)", border: "1px solid rgba(239,68,68,.3)" }}>触发</span>
+                )}
+              </div>
+            )}
+            {/* 操作按钮 */}
+            <div className="flex gap-3 mt-2">
+              <button
+                onClick={() => { setMDetailItem(null); openEdit(item); }}
+                className="flex-1 py-3 rounded-xl text-[13px] font-semibold active:scale-95 transition"
+                style={{ background: "rgba(99,102,241,.15)", color: "var(--indigo-2)", border: "1px solid rgba(99,102,241,.3)" }}
+              >
+                {t("编辑")}
+              </button>
+              <button
+                onClick={() => { setMDetailItem(null); handleDelete(item.ticker); }}
+                className="py-3 px-5 rounded-xl text-[13px] active:scale-95 transition"
+                style={{ background: "rgba(239,68,68,.08)", color: "var(--down)", border: "1px solid rgba(239,68,68,.2)" }}
+              >
+                {t("删除")}
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    return (
+      <div className="h-full flex flex-col" style={{ background: "var(--bg-0)" }}>
+        {/* ── 可滚主体 ── */}
+        <div className="flex-1 overflow-y-auto overscroll-contain">
+
+          {/* 顶栏：标题 + AI 狩猎 + 筛选按钮 */}
+          <div className="px-4 pt-3 pb-2 flex items-center gap-2">
+            <h1 className="text-[22px] font-bold flex-1" style={{ color: "var(--fg-0)" }}>
+              {t("10x 猎手")}
+            </h1>
+            {isDemoMode && (
+              <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ background: "rgba(245,181,60,.12)", color: "var(--warn)", border: "1px solid rgba(245,181,60,.25)" }}>演示</span>
+            )}
+            <button
+              onClick={handleAiPipeline}
+              disabled={aiPipelineState.loading || isDemoMode || selectedTrends.length === 0 || candidates.length === 0}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-semibold active:scale-95 transition disabled:opacity-40"
+              style={{ background: "rgba(139,92,246,.14)", color: "#C4B5FD", border: "1px solid rgba(139,92,246,.3)" }}
+            >
+              {aiPipelineState.loading
+                ? <><Loader size={12} className="animate-spin" />{aiPipelineState.matched}/{aiPipelineState.total}</>
+                : <><Sparkles size={12} />{t("AI 狩猎")}</>}
+            </button>
+            <button
+              onClick={() => setMFilterOpen(true)}
+              className="relative w-9 h-9 rounded-[10px] border flex items-center justify-center active:scale-95 transition"
+              style={{
+                borderColor: selectedTrends.length > 0 ? "rgba(99,102,241,.35)" : "var(--line)",
+                background: selectedTrends.length > 0 ? "rgba(99,102,241,.12)" : "rgba(255,255,255,.03)",
+              }}
+            >
+              <Filter size={17} style={{ color: selectedTrends.length > 0 ? "var(--indigo-2)" : "var(--fg-1)" }} />
+              {selectedTrends.length > 0 && (
+                <span className="absolute -top-1 -right-1 w-[15px] h-[15px] rounded-full text-[9px] font-bold text-white flex items-center justify-center" style={{ background: "var(--indigo)" }}>
+                  {selectedTrends.length}
+                </span>
+              )}
+            </button>
+          </div>
+
+          {/* 成长型 / 价值型 大开关 */}
+          <div className="px-4 mb-3">
+            <div className="flex gap-1.5 p-1 rounded-xl" style={{ background: "rgba(255,255,255,.04)", border: "1px solid var(--line)" }}>
+              {[["growth", t("成长猎手")], ["value", t("价值猎手")]].map(([key, label]) => {
+                const on = activeStrategy === key;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => handleStrategySwitch(key)}
+                    className="flex-1 py-2.5 rounded-[9px] text-[13px] font-semibold transition active:scale-[0.98]"
+                    style={on
+                      ? { background: "linear-gradient(180deg, var(--indigo-2), var(--indigo))", color: "#fff" }
+                      : { color: "var(--fg-2)" }}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* ── 漏斗可视化 ── */}
+          <div className="px-4 mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--fg-3)" }}>{t("狩猎漏斗")}</span>
+              <button
+                onClick={() => setMFunnelFs(true)}
+                className="flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg active:scale-95 transition"
+                style={{ color: "var(--fg-3)", background: "rgba(255,255,255,.04)", border: "1px solid var(--line)" }}
+              >
+                <Maximize2 size={11} />{t("全景")}
+              </button>
+            </div>
+            <div className="space-y-2">
+              {funnelStages.map((stage, i) => (
+                <div key={stage.label} className="flex items-center gap-3">
+                  <span className="text-[10px] w-14 text-right shrink-0" style={{ color: "var(--fg-3)" }}>{stage.label}</span>
+                  <div className="flex-1 h-7 rounded-lg relative overflow-hidden" style={{ background: "rgba(255,255,255,.03)" }}>
+                    <div
+                      className="absolute left-0 top-0 bottom-0 rounded-lg flex items-center justify-end pr-2.5"
+                      style={{ width: `${stage.widthPct}%`, background: `linear-gradient(90deg, ${stage.color}33, ${stage.color}cc)` }}
+                    >
+                      <span className="font-mono text-[12px] font-bold text-white">
+                        {typeof stage.value === "number" && stage.value > 0 ? stage.value.toLocaleString() : (i === 0 ? "—" : stage.value)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ── 观察名单·轨迹卡 ── */}
+          <div className="px-4 mb-2">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--fg-3)" }}>
+                {t("观察名单")} · {t("锚→当→目标")}
+              </span>
+              <span className="text-[11px]" style={{ color: "var(--fg-3)" }}>{items.length} {t("只")}</span>
+            </div>
+
+            {items.length === 0 && (
+              <div className="text-center py-10 text-[12px]" style={{ color: "var(--fg-3)" }}>
+                {t("还没有观察项")}
+              </div>
+            )}
+
+            {items.map((it) => {
+              const anchor = it.anchor_price ?? it.cost_basis ?? null;
+              const target = it.target_price ?? null;
+              const now = pricesByTicker[it.ticker] ?? null;
+              const hasTrack = anchor != null && target != null && now != null && target > anchor;
+              const pct = hasTrack ? Math.max(0, Math.min(100, ((now - anchor) / (target - anchor)) * 100)) : 0;
+              const upside = now && target && now > 0 ? (target / now).toFixed(1) : null;
+              const aiConf = aiMatchMap[it.ticker]?.confidence;
+              return (
+                <button
+                  key={it.ticker}
+                  onClick={() => setMDetailItem(it)}
+                  className="w-full text-left rounded-2xl p-4 mb-3 active:scale-[0.99] transition"
+                  style={{ background: "rgba(255,255,255,.022)", border: "1px solid var(--line)" }}
+                >
+                  {/* header */}
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-mono text-[15px] font-bold" style={{ color: "var(--fg-0)" }}>{it.ticker}</span>
+                    <span className="text-[12px] truncate flex-1" style={{ color: "var(--fg-3)" }}>{it.name || ""}</span>
+                    {aiConf != null && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold shrink-0" style={{ background: "rgba(139,92,246,.18)", color: "#C4B5FD", border: "1px solid rgba(139,92,246,.25)" }}>
+                        {t("信心")} {Math.round(aiConf * 100)}
+                      </span>
+                    )}
+                    {aiConf == null && aiPipelineState.matched > 0 && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold shrink-0" style={{ background: "rgba(255,255,255,.05)", color: "var(--fg-3)", border: "1px solid var(--line)" }}>
+                        {t("信心")} —
+                      </span>
+                    )}
+                  </div>
+                  {/* catalyst */}
+                  {it.thesis && (
+                    <p className="text-[12px] mb-3 line-clamp-2" style={{ color: "var(--fg-2)" }}>{it.thesis}</p>
+                  )}
+                  {/* track */}
+                  {hasTrack ? (
+                    <>
+                      <div className="relative h-[5px] rounded-full mb-2" style={{ background: "rgba(255,255,255,.06)" }}>
+                        <div className="absolute left-0 top-0 bottom-0 rounded-full" style={{ width: `${pct}%`, background: "linear-gradient(90deg, var(--indigo), var(--up))" }} />
+                        <div className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full" style={{ left: `${pct}%`, marginLeft: -6, background: "#fff", boxShadow: "0 0 0 2px var(--up)" }} />
+                      </div>
+                      <div className="flex justify-between text-[10px] font-mono">
+                        <span style={{ color: "var(--fg-3)" }}>锚 ${anchor.toFixed(2)}</span>
+                        <span style={{ color: "var(--up)", fontWeight: 600 }}>当 ${now.toFixed(2)}</span>
+                        <span style={{ color: "var(--indigo-2)" }}>目标 ${target.toFixed(2)}{upside ? ` · ${upside}x` : ""}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-[11px]" style={{ color: "var(--fg-3)" }}>
+                      {anchor != null ? `锚 $${anchor}` : "无锚点"}
+                      {target != null ? ` → 目标 $${target}` : ""}
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+
+            {/* 候选快速加观察入口（漏斗"匹配赛道"层有结果时展示 top 5） */}
+            {filteredCandidates.length > 0 && (
+              <div className="mt-2 mb-4">
+                <div className="text-[11px] mb-2 font-semibold uppercase tracking-wider" style={{ color: "var(--fg-3)" }}>
+                  {t("候选快速加入")} · {t("匹配赛道")} {filteredCandidates.length}
+                </div>
+                {filteredCandidates.slice(0, 5).map((c) => (
+                  <div key={c.ticker} className="flex items-center gap-2 py-2.5 border-b" style={{ borderColor: "var(--line)" }}>
+                    <span className="font-mono text-[13px] font-semibold flex-1" style={{ color: "var(--fg-0)" }}>{c.ticker}</span>
+                    <span className="text-[11px] truncate max-w-[120px]" style={{ color: "var(--fg-3)" }}>{c.name || ""}</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: "rgba(255,255,255,.04)", color: "var(--fg-3)" }}>{fmtMcap(c.marketCap)}</span>
+                    <button
+                      onClick={() => openAdd(c)}
+                      className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 active:scale-90 transition"
+                      style={{ background: "rgba(99,102,241,.15)", color: "var(--indigo-2)", border: "1px solid rgba(99,102,241,.3)" }}
+                    >
+                      <Plus size={14} />
+                    </button>
+                  </div>
+                ))}
+                {filteredCandidates.length > 5 && (
+                  <div className="text-center text-[11px] pt-2" style={{ color: "var(--fg-3)" }}>
+                    +{filteredCandidates.length - 5} {t("更多候选")}…
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 无赛道选中提示 */}
+            {selectedTrends.length === 0 && candidates.length === 0 && (
+              <div className="text-center py-6 text-[12px]" style={{ color: "var(--fg-3)" }}>
+                {t("点击右上角筛选选择赛道")}
+              </div>
+            )}
+            {loadingCands && (
+              <div className="flex items-center justify-center gap-2 py-6 text-[12px]" style={{ color: "var(--fg-3)" }}>
+                <Loader size={13} className="animate-spin" />{t("筛选中")}…
+              </div>
+            )}
+          </div>
+        </div>{/* end scroll */}
+
+        {/* ── 筛选 BottomSheet ── */}
+        <BottomSheet
+          open={mFilterOpen}
+          onClose={() => setMFilterOpen(false)}
+          title={t("筛选赛道")}
+          footer={
+            <button
+              onClick={() => setMFilterOpen(false)}
+              className="w-full py-3.5 rounded-xl text-[14px] font-semibold active:scale-[0.98] transition"
+              style={{ background: "linear-gradient(180deg, var(--indigo-2), var(--indigo))", color: "#fff" }}
+            >
+              {t("显示")} {filteredCandidates.length} {t("只候选")}
+            </button>
+          }
+        >
+          {/* 策略切换 */}
+          <div className="flex gap-1.5 p-1 rounded-xl mb-4" style={{ background: "rgba(255,255,255,.04)", border: "1px solid var(--line)" }}>
+            {[["growth", t("成长猎手")], ["value", t("价值猎手")]].map(([key, label]) => {
+              const on = activeStrategy === key;
+              return (
+                <button key={key} onClick={() => handleStrategySwitch(key)}
+                  className="flex-1 py-2 rounded-[9px] text-[13px] font-semibold transition"
+                  style={on ? { background: "rgba(99,102,241,.2)", color: "var(--indigo-2)", border: "1px solid rgba(99,102,241,.35)" } : { color: "var(--fg-2)" }}>
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* 超级赛道列表 */}
+          <div className="text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--fg-3)" }}>{t("超级赛道")}</div>
+          <div className="space-y-2 mb-4">
+            {displayedSupertrends.map((s) => {
+              const active = selectedTrends.includes(s.id);
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => toggleTrend(s.id)}
+                  className="w-full flex items-start gap-3 px-3 py-3 rounded-xl text-left transition active:scale-[0.99]"
+                  style={{
+                    background: active ? "rgba(99,102,241,.1)" : "rgba(255,255,255,.02)",
+                    border: `1px solid ${active ? "rgba(99,102,241,.35)" : "var(--line)"}`,
+                  }}
+                >
+                  <span className="mt-0.5 shrink-0 w-4 h-4 rounded-md flex items-center justify-center"
+                    style={{ background: active ? "var(--indigo)" : "transparent", border: `1.5px solid ${active ? "var(--indigo)" : "var(--fg-3)"}` }}>
+                    {active && <span style={{ width: 6, height: 6, borderRadius: 2, background: "#fff", display: "block" }} />}
+                  </span>
+                  <span className="flex-1 min-w-0">
+                    <span className="text-[13px] font-medium block" style={{ color: active ? "var(--fg-0)" : "var(--fg-1)" }}>{s.name}</span>
+                    <span className="text-[11px] block truncate" style={{ color: "var(--fg-3)" }}>{s.note || ""}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* 市值上限（成长型） */}
+          {activeStrategy === "growth" && (
+            <div className="mb-4">
+              <div className="text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--fg-3)" }}>{t("市值上限")} (B)</div>
+              <input
+                type="number"
+                value={maxMcapInput}
+                onChange={(e) => setMaxMcapInput(Number(e.target.value) || 0)}
+                className="w-full px-3 py-2.5 rounded-xl text-[13px] outline-none border"
+                style={{ background: "rgba(255,255,255,.04)", borderColor: "var(--line)", color: "var(--fg-0)" }}
+              />
+            </div>
+          )}
+
+          {/* 市场切换 */}
+          <div className="mb-4">
+            <div className="text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--fg-3)" }}>{t("市场")}</div>
+            <div className="flex gap-2">
+              {["US", "HK", "CN"].map((m) => {
+                const on = markets.includes(m);
+                return (
+                  <button key={m}
+                    onClick={() => {
+                      const isOnlyOne = on && markets.length === 1;
+                      if (isOnlyOne) setMarkets(["US", "HK", "CN"]);
+                      else setMarkets(cur => on ? cur.filter(x => x !== m) : [...cur, m]);
+                    }}
+                    className="flex-1 py-2.5 rounded-xl text-[13px] font-semibold transition active:scale-95"
+                    style={on
+                      ? { background: "rgba(99,102,241,.2)", color: "var(--indigo-2)", border: "1px solid rgba(99,102,241,.4)" }
+                      : { background: "rgba(255,255,255,.03)", color: "var(--fg-3)", border: "1px solid var(--line)" }}>
+                    {m}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* ETF + 精严 toggles */}
+          <div className="flex gap-3 mb-6">
+            {[
+              [includeETF, () => setIncludeETF(v => !v), "ETF"],
+              [precise, () => setPrecise(v => !v), t("精严模式")],
+            ].map(([on, toggle, label]) => (
+              <button key={label} onClick={toggle}
+                className="flex-1 py-2.5 rounded-xl text-[13px] font-medium transition active:scale-95"
+                style={on
+                  ? { background: "rgba(99,102,241,.12)", color: "var(--indigo-2)", border: "1px solid rgba(99,102,241,.3)" }
+                  : { background: "rgba(255,255,255,.03)", color: "var(--fg-3)", border: "1px solid var(--line)" }}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </BottomSheet>
+
+        {/* ── 漏斗横屏全景（FullscreenChart） ── */}
+        <FullscreenChart
+          open={mFunnelFs}
+          onClose={() => setMFunnelFs(false)}
+          title={t("成长猎手 · 狩猎漏斗")}
+          meta={<span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: "rgba(139,92,246,.18)", color: "#C4B5FD", border: "1px solid rgba(139,92,246,.3)" }}>AI Pipeline</span>}
+          footerNote={items.length > 0 ? `观察名单：${items.map(it => it.ticker).join(" · ")}` : undefined}
+        >
+          {/* 横屏内容：4 级漏斗块 + 候选 Nx 行 */}
+          <div className="w-full h-full flex flex-col justify-center gap-3 px-2">
+            {/* 漏斗块行 */}
+            <div className="flex items-end gap-1 flex-1">
+              {funnelStages.map((stage, i) => (
+                <React.Fragment key={stage.label}>
+                  <div className="flex-1 flex flex-col items-center justify-end">
+                    <div
+                      className="w-full rounded-xl flex flex-col items-center justify-center"
+                      style={{
+                        height: `${stage.widthPct * 1.5}%`,
+                        minHeight: 40,
+                        maxHeight: "90%",
+                        background: `linear-gradient(180deg, ${stage.color}cc, ${stage.color}44)`,
+                        boxShadow: `0 8px 24px -8px ${stage.color}`,
+                      }}
+                    >
+                      <span className="font-mono text-[16px] font-bold text-white">
+                        {typeof stage.value === "number" && stage.value > 0 ? stage.value.toLocaleString() : "—"}
+                      </span>
+                      <span className="text-[9px] text-white/80 mt-0.5">{stage.label}</span>
+                    </div>
+                    <span className="text-[9px] mt-1.5 text-center" style={{ color: "var(--fg-3)" }}>{stage.sub}</span>
+                  </div>
+                  {i < funnelStages.length - 1 && (
+                    <ArrowRight size={14} style={{ color: "var(--fg-4)", marginBottom: "20%" }} />
+                  )}
+                </React.Fragment>
+              ))}
+            </div>
+            {/* 候选 Nx 倍数行 */}
+            {items.length > 0 && (
+              <div className="flex gap-2 mt-1 shrink-0">
+                {items.map((it) => {
+                  const now = pricesByTicker[it.ticker];
+                  const target = it.target_price;
+                  const nx = now && target && now > 0 ? (target / now).toFixed(1) : null;
+                  return (
+                    <div key={it.ticker} className="flex-1 flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: "rgba(30,211,149,.05)", border: "1px solid rgba(30,211,149,.2)" }}>
+                      <span className="font-mono text-[12px] font-bold" style={{ color: "var(--fg-0)" }}>{it.ticker}</span>
+                      <span className="flex-1" />
+                      {nx && <span className="font-mono text-[11px]" style={{ color: "var(--indigo-2)" }}>{nx}x</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </FullscreenChart>
+
+        {/* ── 候选下钻卡 ── */}
+        {mDetailItem && (
+          <CandidateDetailCard item={mDetailItem} onClose={() => setMDetailItem(null)} />
+        )}
+
+        {/* ── 编辑 TenxItemEditor（移动端复用桌面版模态框） ── */}
+        <TenxItemEditor
+          open={editorOpen}
+          item={editing}
+          candidate={pendingCandidate}
+          supertrends={supertrends}
+          currentPrice={pricesByTicker[editing?.ticker || pendingCandidate?.ticker]}
+          onClose={() => { setEditorOpen(false); setEditing(null); setPendingCandidate(null); }}
+          onSaved={handleSaved}
+        />
+      </div>
+    );
+  }
 
   // ── 渲染 ────────────────────────────────────────────
   return (
