@@ -1101,16 +1101,25 @@ const ScoringDashboard = () => {
         {/* ── 横屏全屏图表 ── */}
         <FullscreenChart open={chartFullscreen} onClose={() => setChartFullscreen(false)} title={sel?.ticker}
           meta={sel && <span className="font-mono text-[13px]" style={{ color: safeChange(sel.change) >= 0 ? "var(--up)" : "var(--down)" }}>{px(sel)} {safeChange(sel.change) >= 0 ? "+" : ""}{fmtChange(sel.change)}%</span>}
+          indicators={maSignal && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border text-warn bg-warn/10 border-warn/30">
+              <span className="inline-block w-3" style={{ borderTop: "2px dashed #F5B53C" }} />
+              MA20 {maSignal.above ? `↗ 站上 +${maSignal.gap.toFixed(1)}%` : `↘ 跌破 ${maSignal.gap.toFixed(1)}%`}
+            </span>
+          )}
           ranges={["1D", "5D", "1M", "6M", "YTD", "1Y", "5Y", "ALL"]} activeRange={chartRange} onRangeChange={setChartRange}>
           {chartData.length >= 2 ? (
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartDataWithBench} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
+              <ComposedChart data={chartDataWithBench} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
                 <defs><linearGradient id="mScoreAreaLand" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#1ED395" stopOpacity="0.22" /><stop offset="100%" stopColor="#1ED395" stopOpacity="0" /></linearGradient></defs>
                 <CartesianGrid stroke="rgba(255,255,255,.05)" vertical={false} />
+                <XAxis dataKey="m" tick={{ fontSize: 9, fill: "var(--fg-3)" }} axisLine={false} tickLine={false} minTickGap={50} interval="preserveStartEnd" />
                 <YAxis domain={["auto", "auto"]} width={42} tick={{ fontSize: 10, fill: "var(--fg-3)" }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={TOOLTIP_STYLE} />
+                {/* v6 移动端横屏图表补齐设计稿丰富度：十字光标 + MA20 虚线（数据已算，与桌面一致） */}
+                <Tooltip contentStyle={TOOLTIP_STYLE} cursor={{ stroke: "rgba(99,102,241,0.6)", strokeWidth: 1.5, strokeDasharray: "4 3" }} />
                 <Area type="monotone" dataKey="p" stroke="#1ED395" strokeWidth={2.2} fill="url(#mScoreAreaLand)" dot={false} isAnimationActive={false} />
-              </AreaChart>
+                {maSignal && <Line type="monotone" dataKey="ma20" stroke="#F5B53C" strokeWidth={1.6} strokeDasharray="5 4" dot={false} connectNulls activeDot={false} isAnimationActive={false} />}
+              </ComposedChart>
             </ResponsiveContainer>
           ) : <div className="h-full flex items-center justify-center text-[12px]" style={{ color: "var(--fg-3)" }}>{t("暂无价格数据")}</div>}
         </FullscreenChart>
