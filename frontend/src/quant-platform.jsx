@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, createContext, useContext, lazy, Suspense } from "react";
 // C1/C2: Recharts 已下沉到各 lazy page chunk（CompareModal 已迁至 ScoringDashboard），主文件不再直接依赖
-import { TrendingUp, TrendingDown, Search, Bell, BookOpen, BarChart3, Activity, Settings, ChevronRight, ChevronDown, ChevronLeft, Star, AlertTriangle, Clock, Target, Zap, Filter, ArrowUpRight, ArrowDownRight, Minus, RefreshCw, Plus, X, Check, Eye, EyeOff, Layers, Globe, Briefcase, Info, Database, Trash2, Loader, ExternalLink, Sun, Moon, Calendar, User, LogOut, Mail, Lock, Shield, KeyRound, UserCircle, Share2, GripVertical, Maximize2, AlertCircle, GraduationCap } from "lucide-react";
+import { TrendingUp, TrendingDown, Search, Bell, BookOpen, BarChart3, Activity, Settings, ChevronRight, ChevronDown, ChevronLeft, Star, AlertTriangle, Clock, Target, Zap, Filter, ArrowUpRight, ArrowDownRight, Minus, RefreshCw, Plus, X, Check, Eye, EyeOff, Layers, Globe, Briefcase, Info, Database, Trash2, Loader, ExternalLink, Sun, Moon, Calendar, User, LogOut, Mail, Lock, Shield, KeyRound, UserCircle, Share2, GripVertical, Maximize2, AlertCircle, GraduationCap, Palette } from "lucide-react";
 import { searchTickers as standaloneSearch, fetchStockData, fetchBenchmarkPrices, fetchRangePrices, validateStockData, validateAllStocks, loadStandaloneStocks, saveStandaloneStocks, checkStandaloneMode, resolveSector, STOCK_CN_NAMES, STOCK_CN_DESCS } from "./standalone.js";
 import { LangProvider, useLang } from "./i18n.jsx";
 import { monteCarlo as mcSimulate, navToReturns as mcNavToReturns, hhi as hhiCalc, effectiveN as effN } from "./math/stats.ts";
@@ -941,7 +941,18 @@ const ToggleSwitch = ({ checked, onChange }) => (
   </button>
 );
 
-const UserProfilePanel = ({ open, onClose, theme, toggleTheme }) => {
+// ─── v7: 强调色主题（6 色 · 驱动 <html data-theme> + Tailwind indigo CSS 变量）──
+// indigo = 默认（不写 data-theme）。语义 up/down/amber 与 violet/cyan 次色不随主题变。
+const ACCENTS = [
+  { id: "indigo",  label: "靛蓝",   swatch: "#6366f1" },
+  { id: "violet",  label: "紫罗兰", swatch: "#8b5cf6" },
+  { id: "cyan",    label: "青蓝",   swatch: "#06b6d4" },
+  { id: "emerald", label: "翡翠",   swatch: "#10b981" },
+  { id: "amber",   label: "琥珀",   swatch: "#f59e0b" },
+  { id: "rose",    label: "玫瑰",   swatch: "#ec4899" },
+];
+
+const UserProfilePanel = ({ open, onClose, theme, toggleTheme, accent, setAccent }) => {
   const { user, logout, updateProfile } = useAuth();
   const { stocks, apiOnline, priceUpdatedAt } = useData();
   const { t, lang, setLang } = useLang();
@@ -1061,6 +1072,26 @@ const UserProfilePanel = ({ open, onClose, theme, toggleTheme }) => {
                 <div className="text-xs font-medium text-white">{t('深色模式')}</div>
               </div>
               <ToggleSwitch checked={theme === "dark"} onChange={toggleTheme} />
+            </div>
+
+            {/* v7: 强调色主题（6 色） */}
+            <div className="px-3 py-2.5 rounded-lg hover:bg-white/5 transition-all">
+              <div className="flex items-center gap-3">
+                <div className="w-7 h-7 rounded-lg bg-white/[0.03] border border-white/5 flex items-center justify-center text-[#a0aec0]">
+                  <Palette size={13} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-medium text-white">{t('强调色')}</div>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {ACCENTS.map(a => (
+                    <button key={a.id} type="button" onClick={() => setAccent?.(a.id)}
+                      title={t(a.label)} aria-label={t(a.label)} aria-pressed={accent === a.id}
+                      className={`w-5 h-5 rounded-full transition-transform hover:scale-110 ${accent === a.id ? "ring-2 ring-white/70 ring-offset-2 ring-offset-[#0f1019]" : "opacity-60 hover:opacity-100"}`}
+                      style={{ background: a.swatch }} />
+                  ))}
+                </div>
+              </div>
             </div>
 
             {/* 语言 / Language */}
@@ -1941,6 +1972,7 @@ const CommandPalette = ({ open, onClose, stocks, onPickStock, onSwitchTab, curre
     // C4: 快捷动作
     const actionItems = [
       { type: "action", id: "act_theme", label: t("切换深色 / 浅色"), sub: t("Theme toggle"), action: () => onQuickAction?.('theme') },
+      { type: "action", id: "act_accent", label: t("切换强调色主题"), sub: t("靛蓝 → 紫 → 青 → 翡翠 → 琥珀 → 玫瑰"), action: () => onQuickAction?.('accent') },
       { type: "action", id: "act_density", label: t("切换表格密度"), sub: t("Density: cozy / compact / dense"), action: () => onQuickAction?.('density') },
       { type: "action", id: "act_layout", label: t("切换 Bloomberg 侧栏 / 顶部导航"), sub: t("Layout: topbar / sidebar"), action: () => onQuickAction?.('layout') },
       { type: "action", id: "act_refresh", label: t("刷新行情"), sub: t("Yahoo Finance"), action: () => onQuickAction?.('refresh') },
@@ -2407,6 +2439,17 @@ function QuantPlatformInner() {
     document.documentElement.classList.toggle("light", theme === "light");
   }, [theme]);
   const toggleTheme = () => setTheme(v => v === "dark" ? "light" : "dark");
+  // v7: 强调色主题（6 色，驱动 <html data-theme>；indigo=默认不写属性，零回归）
+  const [accent, setAccent] = useState(() => localStorage.getItem("quantedge_accent") || "indigo");
+  useEffect(() => {
+    localStorage.setItem("quantedge_accent", accent);
+    if (accent && accent !== "indigo") document.documentElement.dataset.theme = accent;
+    else delete document.documentElement.dataset.theme;
+  }, [accent]);
+  const cycleAccent = () => setAccent(a => {
+    const i = ACCENTS.findIndex(x => x.id === a);
+    return ACCENTS[(i + 1) % ACCENTS.length].id;
+  });
   // S2: 表格密度切换（cozy / compact / dense）— 默认 compact，活跃量化玩家更喜欢密集
   const [density, setDensity] = useState(() => localStorage.getItem("quantedge_density") || "compact");
   useEffect(() => {
@@ -2464,6 +2507,16 @@ function QuantPlatformInner() {
       if (e.key === "j" || e.key === "k") {
         // 由 ScoringDashboard 决定是否响应（在自己监听器里 check tab）
         window.dispatchEvent(new CustomEvent("quantedge:navStock", { detail: e.key === "j" ? "next" : "prev" }));
+        return;
+      }
+      // v7 工作站：W 加/移出自选 · C 加/移出对比（评分页当前选中标的；非评分页无监听器，无副作用）
+      if (e.key === "w" || e.key === "W") {
+        window.dispatchEvent(new CustomEvent("quantedge:stockAction", { detail: "fav" }));
+        return;
+      }
+      if (e.key === "c" || e.key === "C") {
+        window.dispatchEvent(new CustomEvent("quantedge:stockAction", { detail: "compare" }));
+        return;
       }
     };
     window.addEventListener("keydown", handler);
@@ -2885,13 +2938,16 @@ function QuantPlatformInner() {
             <span>{t('搜索')}</span>
             <kbd className="px-1 py-[1px] rounded bg-white/5 border border-white/10 font-mono text-[9px] ml-1">Tab</kbd>
             <span>{t('切换')}</span>
+            <kbd className="px-1 py-[1px] rounded bg-white/5 border border-white/10 font-mono text-[9px] ml-1">J</kbd>
+            <kbd className="px-1 py-[1px] rounded bg-white/5 border border-white/10 font-mono text-[9px]">K</kbd>
+            <span>{t('选股')}</span>
           </span>
           <span className="text-[9px] md:text-[10px] text-[#778] font-mono">v0.8.0 · <span className="text-indigo-400/80">PWA</span></span>
         </div>
       </footer>
 
       <TickerManager open={showManager} onClose={() => setShowManager(false)} />
-      <UserProfilePanel open={showProfile} onClose={() => setShowProfile(false)} theme={theme} toggleTheme={toggleTheme} />
+      <UserProfilePanel open={showProfile} onClose={() => setShowProfile(false)} theme={theme} toggleTheme={toggleTheme} accent={accent} setAccent={setAccent} />
       <CommandPalette
         open={cmdOpen}
         onClose={() => setCmdOpen(false)}
@@ -2906,6 +2962,7 @@ function QuantPlatformInner() {
           else if (act === 'refresh') quickPriceRefresh?.();
           else if (act === 'onboarding') setOnboardOpen(true);
           else if (act === 'layout') toggleLayout();
+          else if (act === 'accent') cycleAccent();
         }}
         onLoadTemplate={(tpl) => {
           // C4: 加载策略模板 → 跳转回测引擎并触发加载

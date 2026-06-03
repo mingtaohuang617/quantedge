@@ -597,6 +597,19 @@ const ScoringDashboard = () => {
     return () => window.removeEventListener("quantedge:navStock", handler);
   }, []);
 
+  // v7 工作站：W / C 键盘动作 — 对当前选中标的 加自选 / 加对比
+  // （由全局键盘 handler 派发事件；非评分页无监听器 → 无副作用）
+  useEffect(() => {
+    const onAction = (e) => {
+      const cur = navRefs.current.sel;
+      if (!cur) return;
+      if (e.detail === "fav") toggleFav(cur.ticker);
+      else if (e.detail === "compare") toggleCompare(cur.ticker);
+    };
+    window.addEventListener("quantedge:stockAction", onAction);
+    return () => window.removeEventListener("quantedge:stockAction", onAction);
+  }, [toggleFav, toggleCompare]);
+
   // 详情区 scroll-spy：IntersectionObserver 跟踪 #detail-* sections，更新 activeSection
   useEffect(() => {
     if (!sel) return;
@@ -631,6 +644,29 @@ const ScoringDashboard = () => {
     e.preventDefault();
     setCtxMenu({ x: e.clientX, y: e.clientY, ticker: stk.ticker, name: stk.name });
   };
+
+  // v7 工作站：hover peek — 停留 ~280ms 浮出迷你卡（分项评分 + 走势 + W/C 提示）
+  // 仅支持 hover 的设备（桌面）；选中行不浮（与详情区重复）。
+  const [peek, setPeek] = useState(null); // { ticker, x, y }
+  const peekTimerRef = useRef(null);
+  const canHover = useMemo(() => typeof window !== "undefined" && window.matchMedia?.("(hover: hover)").matches, []);
+  const schedulePeek = useCallback((e, stk) => {
+    if (!canHover) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    clearTimeout(peekTimerRef.current);
+    peekTimerRef.current = setTimeout(() => {
+      const W = 248, H = 210, pad = 8;
+      let x = rect.right + pad;
+      if (x + W > window.innerWidth) x = rect.left - W - pad; // 右侧放不下→放左侧
+      if (x < pad) x = pad;
+      let y = rect.top;
+      if (y + H > window.innerHeight) y = window.innerHeight - H - pad;
+      if (y < pad) y = pad;
+      setPeek({ ticker: stk.ticker, x, y });
+    }, 280);
+  }, [canHover]);
+  const cancelPeek = useCallback(() => { clearTimeout(peekTimerRef.current); setPeek(null); }, []);
+  useEffect(() => () => clearTimeout(peekTimerRef.current), []);
   const handleDeleteTicker = async () => {
     if (!ctxMenu) return;
     const key = ctxMenu.ticker;
@@ -1258,6 +1294,49 @@ const ScoringDashboard = () => {
     </div>
     <div className="flex-1 flex flex-col md:grid md:grid-cols-12 gap-2 md:gap-4 min-h-0 overflow-auto md:overflow-hidden">
       {/* Right-click context menu */}
+      {/* v7 工作站：hover peek 迷你卡 — 分项评分（行内没有）+ 走势 + W/C 提示。pointer-events-none 避免 hover 抖动 */}
+      {peek && (() => {
+        const pk = liveStocks.find(s => s.ticker === peek.ticker);
+        if (!pk || pk.ticker === sel?.ticker) return null;
+        const ch = safeChange(pk.change);
+        const ss = pk.subScores;
+        return (
+          <div className="hidden md:block fixed glass-card border border-white/15 shadow-2xl shadow-black/60 p-3 animate-stagger pointer-events-none" style={{ left: peek.x, top: peek.y, width: 248, zIndex: 45 }}>
+            <div className="flex items-baseline justify-between gap-2 mb-1">
+              <div className="min-w-0 flex items-baseline gap-1.5">
+                <span className="font-mono font-bold text-sm text-white shrink-0">{pk.ticker}</span>
+                <span className="text-[10px] text-[#778] truncate">{lang === 'zh' ? (pk.nameCN || STOCK_CN_NAMES[pk.ticker] || pk.name) : pk.name}</span>
+              </div>
+              <span className={`font-mono text-sm font-bold shrink-0 ${pk.score >= 75 ? 'text-up' : 'text-indigo-300'}`}>{pk.score != null ? pk.score.toFixed(0) : '—'}</span>
+            </div>
+            <div className="flex items-baseline gap-2 mb-2">
+              <span className="font-mono text-base font-semibold text-white">{currencySymbol(pk.currency)}{pk.price}</span>
+              <span className={`text-[11px] font-mono ${ch >= 0 ? 'text-up' : 'text-down'}`}>{ch >= 0 ? '▲' : '▼'} {Math.abs(ch).toFixed(2)}%</span>
+            </div>
+            <div className="mb-2"><MiniSparkline data={get5DSparkData(pk)} w={224} h={34} /></div>
+            {ss ? (
+              <div className="space-y-1">
+                {[['基本面', ss.fundamental], ['技术面', ss.technical], ['成长性', ss.growth]].map(([lbl, v]) => (
+                  <div key={lbl} className="flex items-center gap-2">
+                    <span className="text-[9px] text-[#a0aec0] w-10 shrink-0">{t(lbl)}</span>
+                    <div className="flex-1 h-1 rounded-full bg-white/5 overflow-hidden">
+                      <div className="h-full rounded-full" style={{ width: `${Math.max(0, Math.min(100, v || 0))}%`, background: 'var(--brand-gradient)' }} />
+                    </div>
+                    <span className="text-[9px] font-mono text-white w-6 text-right">{v != null ? Math.round(v) : '—'}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-[10px] text-[#667]">{t('ETF · 无分项评分')}</div>
+            )}
+            <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-white/8 text-[9px] text-[#778]">
+              <kbd className="px-1 rounded bg-white/5 border border-white/10 font-mono">W</kbd><span>{t('自选')}</span>
+              <kbd className="px-1 rounded bg-white/5 border border-white/10 font-mono ml-1">C</kbd><span>{t('对比')}</span>
+              <span className="ml-auto font-mono uppercase">{pk.market}</span>
+            </div>
+          </div>
+        );
+      })()}
       {ctxMenu && (
         <div id="ctx-menu" className="fixed z-50 glass-card border border-white/15 shadow-2xl shadow-black/50 py-1 min-w-[160px] animate-slide-up" style={{ left: ctxMenu.x, top: ctxMenu.y }}>
           <div className="px-3 py-1.5 text-[10px] text-[#778] border-b border-white/8 truncate max-w-[200px]">{ctxMenu.ticker} · {ctxMenu.name}</div>
@@ -1654,7 +1733,7 @@ const ScoringDashboard = () => {
               ))}
             </div>
           ) : filtered.map((stk, i) => (
-            <button key={stk.ticker} onClick={() => { setSel(stk); setMobileShowDetail(true); }} onContextMenu={(e) => handleContextMenu(e, stk)} className={`virt-row w-full text-left px-2.5 ${density === "compact" ? "py-1" : "py-2.5 md:py-2"} rounded-lg transition-all duration-200 border ${i < 30 ? 'animate-stagger' : ''} active:scale-[0.98] group relative overflow-hidden ${sel?.ticker === stk.ticker ? "bg-gradient-to-r from-indigo-500/35 via-indigo-500/15 to-transparent border-indigo-500/30 shadow-lg shadow-indigo-500/5" : "bg-white/[0.02] border-transparent hover:bg-white/[0.04] hover:border-white/10"}`} style={{ animationDelay: i < 30 ? `${i * 0.03}s` : undefined }}>
+            <button key={stk.ticker} onClick={() => { cancelPeek(); setSel(stk); setMobileShowDetail(true); }} onContextMenu={(e) => handleContextMenu(e, stk)} onMouseEnter={(e) => schedulePeek(e, stk)} onMouseLeave={cancelPeek} className={`virt-row w-full text-left px-2.5 ${density === "compact" ? "py-1" : "py-2.5 md:py-2"} rounded-lg transition-all duration-200 border ${i < 30 ? 'animate-stagger' : ''} active:scale-[0.98] group relative overflow-hidden ${sel?.ticker === stk.ticker ? "bg-gradient-to-r from-indigo-500/35 via-indigo-500/15 to-transparent border-indigo-500/30 shadow-lg shadow-indigo-500/5" : "bg-white/[0.02] border-transparent hover:bg-white/[0.04] hover:border-white/10"}`} style={{ animationDelay: i < 30 ? `${i * 0.03}s` : undefined }}>
               {/* PDF2 抛光 Phase 1.1：选中态 2px 渐变光条 indigo→cyan（无入场动画，直接显示） */}
               {sel?.ticker === stk.ticker && (
                 <span aria-hidden="true" className="absolute left-0 top-1 bottom-1 w-[2px] rounded-r" style={{ background: 'var(--brand-gradient)' }} />
