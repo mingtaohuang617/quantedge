@@ -410,14 +410,24 @@ body {
   border-radius: 0.375rem;
 }
 
+/* ── v6 mobile caption utility（移动端设计稿 t-cap：等宽大写小标题）── */
+.t-cap {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px;
+  color: var(--fg-3);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
 /* ── Live pulse indicator ── */
 .live-dot {
   position: relative;
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #00E5A0;
-  box-shadow: 0 0 4px rgba(0, 229, 160, 0.6);
+  background: var(--up);
+  box-shadow: 0 0 4px rgba(30, 211, 149, 0.6);
 }
 
 .live-dot::before,
@@ -426,7 +436,7 @@ body {
   position: absolute;
   inset: -3px;
   border-radius: 50%;
-  border: 1px solid rgba(0, 229, 160, 0.3);
+  border: 1px solid rgba(30, 211, 149, 0.3);
   animation: ripple 1.5s cubic-bezier(0, 0.2, 0.8, 1) infinite;
 }
 
