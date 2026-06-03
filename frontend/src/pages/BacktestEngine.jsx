@@ -4,7 +4,12 @@
 // ─────────────────────────────────────────────────────────────
 import React, { useState, useEffect, useMemo, useCallback, useRef, useContext } from "react";
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, ComposedChart, ReferenceLine, ReferenceArea } from "recharts";
-import { Activity, AlertCircle, AlertTriangle, BarChart3, BookOpen, Briefcase, Check, ChevronDown, Database, Layers, Loader, Plus, RefreshCw, Search, Share2, Sparkles, Target, Trash2, TrendingDown, X, Zap } from "lucide-react";
+import { Activity, AlertCircle, AlertTriangle, BarChart3, BookOpen, Briefcase, Check, ChevronDown, Database, Layers, Loader, Maximize2, Plus, RefreshCw, Search, Share2, Sparkles, Target, Trash2, TrendingDown, X, Zap } from "lucide-react";
+import useIsMobile from "../hooks/useIsMobile.js";
+import BottomSheet from "../components/mobile/BottomSheet.jsx";
+import MobileAppBar from "../components/mobile/MobileAppBar.jsx";
+import Segmented from "../components/mobile/Segmented.jsx";
+import FullscreenChart from "../components/mobile/FullscreenChart.jsx";
 import { searchTickers as standaloneSearch, fetchStockData, fetchBenchmarkPrices, fetchRangePrices, fetchRangePricesEx, STOCK_CN_NAMES } from "../standalone.js";
 import { Z_ELEVATED } from "../lib/zIndex.js";
 import BacktestNarrationCard from "../components/BacktestNarrationCard.jsx";
@@ -21,7 +26,7 @@ import {
 } from "../quant-platform.jsx";
 
 // ─── Backtesting ──────────────────────────────────────────
-const PIE_COLORS = ["#6366f1","#8b5cf6","#06b6d4","#00E5A0","#f59e0b","#FF6B6B","#ec4899","#14b8a6","#f97316","#a855f7","#3b82f6","#84cc16"];
+const PIE_COLORS = ["#6366f1","#8b5cf6","#06b6d4","#1ED395","#f59e0b","#FF6B6B","#ec4899","#14b8a6","#f97316","#a855f7","#3b82f6","#84cc16"];
 
 // ─── Rotary Knob Component ──────────────────────────────
 const RotaryKnob = ({ value, onChange, size = 76, color = "#6366f1" }) => {
@@ -250,7 +255,7 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
       const { toPng } = await import('html-to-image');
       const node = reportRef.current;
       const dataUrl = await toPng(node, {
-        backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--bg-base').trim() || '#0B0B15',
+        backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--bg-base').trim() || '#08090E',
         pixelRatio: 2,
         cacheBust: true,
         style: { padding: '16px' },
@@ -1348,7 +1353,574 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
     }
   }, [portfolioStocks, dataLoading, btRange, hasResult]);
 
+  const isMobile = useIsMobile();
+  const [mSegTab, setMSegTab] = useState("perf"); // 表现 / 风险 / 韧性
+  const [mWeightsOpen, setMWeightsOpen] = useState(false); // 组合构建 Sheet
+  const [mNavFs, setMNavFs] = useState(false); // NAV 全屏图
+  const [mNavRange, setMNavRange] = useState(btRange); // 全屏图区间选择
+
   const m = btResult?.metrics;
+
+  // ─────────────────────────────────────────────────────────────
+  // v6 移动端：KPI serif 头条 + 分段 Tab + 权重 BottomSheet + 横屏 NAV
+  // 全部复用已有 state/派生值/回调：portfolio/setPortfolio, setWeight, totalWeight,
+  // runBacktest, btResult, portfolioStocks, running, dataLoading, btRange, benchTicker
+  // ─────────────────────────────────────────────────────────────
+  if (isMobile) {
+    const tickers = Object.keys(portfolio);
+    const navData = btResult?.navCurve ?? [];
+    const fmtPct = (v) => (v == null ? "—" : `${v >= 0 ? "+" : ""}${v.toFixed(1)}%`);
+    const fmtNum = (v, d = 2) => (v == null ? "—" : v.toFixed(d));
+
+    // KPI groups for the three tabs
+    const kpiGroups = {
+      perf: [
+        { label: t("年化收益"), value: fmtPct(m?.annReturn), color: m?.annReturn >= 0 ? "var(--up)" : "var(--down)" },
+        { label: t("总收益"), value: fmtPct(m?.totalReturn), color: m?.totalReturn >= 0 ? "var(--up)" : "var(--down)" },
+        { label: t("vs ") + benchTicker, value: m?.alpha != null ? fmtPct(m.alpha) : "—", color: m?.alpha != null && m.alpha >= 0 ? "var(--up)" : "var(--down)" },
+        { label: "Sharpe", value: fmtNum(m?.sharpe), color: "var(--fg-0)" },
+        { label: "Sortino", value: fmtNum(m?.sortino), color: "var(--fg-0)" },
+        { label: t("胜率"), value: m?.winRate != null ? `${m.winRate.toFixed(1)}%` : "—", color: "var(--fg-0)" },
+      ],
+      risk: [
+        { label: t("最大回撤"), value: fmtPct(m?.maxDD), color: "var(--down)" },
+        { label: t("回撤天数"), value: m?.maxDDDays != null ? `${m.maxDDDays}d` : "—", color: "var(--warn)" },
+        { label: t("年化波动率"), value: m?.vol != null ? `${m.vol.toFixed(1)}%` : "—", color: "var(--warn)" },
+        { label: "VaR 95%", value: fmtPct(m?.var95), color: "var(--down)" },
+        { label: "VaR 99%", value: fmtPct(m?.var99), color: "var(--down)" },
+        { label: "Calmar", value: fmtNum(m?.calmar), color: "var(--fg-0)" },
+      ],
+      resilience: [
+        { label: t("基准最大回撤"), value: m?.benchMaxDD != null ? fmtPct(m.benchMaxDD) : "—", color: "var(--down)" },
+        { label: t("基准年化"), value: fmtPct(m?.annBenchReturn), color: "var(--fg-0)" },
+        { label: t("基准 Sharpe"), value: fmtNum(m?.benchSharpe), color: "var(--fg-0)" },
+        { label: t("再平衡次数"), value: btResult?.rebalanceCount != null ? `${btResult.rebalanceCount}` : "—", color: "var(--fg-0)" },
+        { label: t("有效持仓"), value: portfolioStocks.length ? `${portfolioStocks.length}` : "—", color: "var(--indigo-2)" },
+        { label: t("总权重"), value: `${totalWeight}%`, color: totalWeight === 100 ? "var(--up)" : "var(--warn)" },
+      ],
+    };
+
+    const currentKpis = kpiGroups[mSegTab] ?? kpiGroups.perf;
+
+    // Primary headline metric
+    const headline = m?.annReturn;
+    const headlineStr = headline != null
+      ? `${headline >= 0 ? "+" : ""}${headline.toFixed(1)}%`
+      : null;
+    const alphaStr = m?.alpha != null
+      ? `vs ${benchTicker} ${m.alpha >= 0 ? "+" : ""}${m.alpha.toFixed(1)}pp`
+      : null;
+
+    // Mini nav chart path (normalised to SVG 300×60)
+    let miniPath = "";
+    if (navData.length >= 2) {
+      const vals = navData.map((d) => d.strategy);
+      const minV = Math.min(...vals);
+      const maxV = Math.max(...vals);
+      const rangeV = Math.max(maxV - minV, 0.1);
+      miniPath = vals
+        .map((v, i) => {
+          const x = (i / (vals.length - 1)) * 300;
+          const y = 58 - ((v - minV) / rangeV) * 52;
+          return `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`;
+        })
+        .join(" ");
+    }
+
+    // Benchmark mini path
+    let benchPath = "";
+    if (navData.length >= 2) {
+      const benchVals = navData.map((d) => d.benchmark).filter(Boolean);
+      if (benchVals.length >= 2) {
+        const allVals = navData.map((d) => d.strategy);
+        const minV = Math.min(...allVals, ...benchVals);
+        const maxV = Math.max(...allVals, ...benchVals);
+        const rangeV = Math.max(maxV - minV, 0.1);
+        let bi = 0;
+        benchPath = navData
+          .map((d, i) => {
+            if (d.benchmark == null) return null;
+            const x = (i / (navData.length - 1)) * 300;
+            const y = 58 - ((d.benchmark - minV) / rangeV) * 52;
+            const cmd = bi === 0 ? "M" : "L";
+            bi++;
+            return `${cmd}${x.toFixed(1)},${y.toFixed(1)}`;
+          })
+          .filter(Boolean)
+          .join(" ");
+      }
+    }
+
+    // Sector distribution from riskAttribution
+    const sectorBreakdown = btResult?.riskAttribution?.sectorBreakdown ?? [];
+    const SECTOR_COLORS = ["#818CF8", "#5EE6E6", "#A78BFA", "#F5B53C", "#1ED395", "#FF6B6B"];
+
+    return (
+      <div className="h-full flex flex-col" style={{ background: "var(--bg-0)" }}>
+        {/* ── App Bar ── */}
+        <MobileAppBar
+          title={t("组合回测")}
+          actions={
+            <span
+              className="text-[11px] font-mono px-2 py-0.5 rounded-full border"
+              style={
+                totalWeight === 100
+                  ? { background: "rgba(30,211,149,.1)", borderColor: "rgba(30,211,149,.3)", color: "var(--up)" }
+                  : { background: "rgba(245,181,60,.1)", borderColor: "rgba(245,181,60,.3)", color: "var(--warn)" }
+              }
+            >
+              {totalWeight === 100 ? `✓ 100%` : `${totalWeight}%`}
+            </span>
+          }
+        />
+
+        {/* ── Scrollable body ── */}
+        <div
+          className="flex-1 overflow-y-auto overscroll-contain"
+          style={{ paddingBottom: "calc(80px + env(safe-area-inset-bottom))" }}
+        >
+          {/* ── KPI Hero ── */}
+          <div className="px-4 pt-4 pb-3">
+            <div className="text-[10px] font-medium mb-2" style={{ color: "var(--fg-3)" }}>
+              {t("组合年化收益")} · {btRange} {t("回测")}
+            </div>
+            {headlineStr ? (
+              <>
+                <div className="flex items-end gap-3 mb-3">
+                  <span
+                    style={{
+                      fontSize: 52,
+                      fontWeight: 600,
+                      letterSpacing: "-0.03em",
+                      lineHeight: 0.9,
+                      color: headline >= 0 ? "var(--up)" : "var(--down)",
+                      fontFamily: "Georgia, serif",
+                    }}
+                  >
+                    {headlineStr}
+                  </span>
+                  {alphaStr && (
+                    <span
+                      className="text-[11px] font-medium px-2 py-1 rounded-full border mb-1"
+                      style={{
+                        background: m.alpha >= 0 ? "rgba(30,211,149,.1)" : "rgba(239,68,68,.1)",
+                        borderColor: m.alpha >= 0 ? "rgba(30,211,149,.3)" : "rgba(239,68,68,.3)",
+                        color: m.alpha >= 0 ? "var(--up)" : "var(--down)",
+                      }}
+                    >
+                      {alphaStr}
+                    </span>
+                  )}
+                </div>
+                {/* Secondary KPI row */}
+                <div className="flex gap-0">
+                  {[
+                    { label: "Sharpe", value: fmtNum(m?.sharpe), color: "var(--fg-0)" },
+                    { label: t("最大回撤"), value: fmtPct(m?.maxDD), color: "var(--down)" },
+                    { label: t("胜率"), value: m?.winRate != null ? `${m.winRate.toFixed(1)}%` : "—", color: "var(--fg-0)" },
+                    { label: "Sortino", value: fmtNum(m?.sortino), color: "var(--fg-0)" },
+                  ].map(({ label, value, color }, i) => (
+                    <div
+                      key={label}
+                      className="flex-1"
+                      style={{ paddingLeft: i ? 10 : 0, borderLeft: i ? "1px solid var(--line)" : "none" }}
+                    >
+                      <div className="text-[9px] mb-1" style={{ color: "var(--fg-3)" }}>{label}</div>
+                      <div className="font-mono text-[14px] font-bold" style={{ color, lineHeight: 1 }}>{value}</div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              /* Empty / CTA state */
+              <div className="flex flex-col items-center py-6 gap-3">
+                <BarChart3 size={36} style={{ color: "var(--fg-4)" }} />
+                <p className="text-[13px] text-center" style={{ color: "var(--fg-3)" }}>
+                  {running || dataLoading ? t("回测计算中…") : t("设置好组合后点击「运行回测」")}
+                </p>
+                {(running || dataLoading) && (
+                  <Loader size={18} className="animate-spin" style={{ color: "var(--indigo-2)" }} />
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* ── Segmented Tab ── */}
+          <div className="px-4 mb-3">
+            <Segmented
+              value={mSegTab}
+              onChange={setMSegTab}
+              options={[
+                { value: "perf", label: t("表现") },
+                { value: "risk", label: t("风险") },
+                { value: "resilience", label: t("韧性") },
+              ]}
+            />
+          </div>
+
+          {/* ── KPI grid for current tab ── */}
+          {m && (
+            <div className="px-4 mb-4">
+              <div
+                className="rounded-xl p-3"
+                style={{ background: "var(--bg-1)", border: "1px solid var(--line)" }}
+              >
+                <div className="grid grid-cols-3 gap-3">
+                  {currentKpis.map(({ label, value, color }) => (
+                    <div key={label} className="flex flex-col gap-1">
+                      <div className="text-[9px]" style={{ color: "var(--fg-3)" }}>{label}</div>
+                      <div className="font-mono text-[14px] font-semibold" style={{ color, lineHeight: 1 }}>{value}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── AI 回测总结 ── */}
+          <div className="px-4 mb-4">
+            <BacktestNarrationCard btResult={btResult} running={running} />
+          </div>
+
+          {/* ── NAV / 资产净值 ── */}
+          {navData.length >= 2 && (
+            <div
+              className="mx-4 mb-4 rounded-xl p-3"
+              style={{ background: "var(--bg-1)", border: "1px solid var(--line)" }}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-[12px] font-semibold" style={{ color: "var(--fg-0)" }}>{t("资产净值")}</span>
+                  {m?.alpha != null && (
+                    <span
+                      className="text-[9px] px-1.5 py-0.5 rounded-full border"
+                      style={{ background: "rgba(30,211,149,.1)", borderColor: "rgba(30,211,149,.3)", color: "var(--up)" }}
+                    >
+                      α {m.alpha >= 0 ? "+" : ""}{m.alpha.toFixed(1)}pp
+                    </span>
+                  )}
+                </div>
+                <button
+                  onClick={() => setMNavFs(true)}
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] active:scale-95 transition"
+                  style={{ background: "rgba(99,102,241,.12)", border: "1px solid rgba(99,102,241,.3)", color: "var(--indigo-2)" }}
+                >
+                  <Maximize2 size={11} />{t("全屏")}
+                </button>
+              </div>
+              {/* Mini chart */}
+              <svg viewBox="0 0 300 66" width="100%" height={66} preserveAspectRatio="none" style={{ display: "block" }}>
+                <defs>
+                  <linearGradient id="mNavGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#5EE6E6" stopOpacity="0.22" />
+                    <stop offset="100%" stopColor="#5EE6E6" stopOpacity="0" />
+                  </linearGradient>
+                </defs>
+                {miniPath && (
+                  <>
+                    <path d={`${miniPath} L300,66 L0,66 Z`} fill="url(#mNavGrad)" />
+                    <path d={miniPath} fill="none" stroke="#5EE6E6" strokeWidth="2" strokeLinecap="round" />
+                  </>
+                )}
+                {benchPath && (
+                  <path d={benchPath} fill="none" stroke="rgba(90,94,118,.8)" strokeWidth="1.4" strokeLinecap="round" />
+                )}
+              </svg>
+              {/* Legend */}
+              <div className="flex gap-3 mt-2 text-[9px]" style={{ color: "var(--fg-3)" }}>
+                <span className="flex items-center gap-1.5">
+                  <span style={{ display: "inline-block", width: 14, height: 2, background: "#5EE6E6", borderRadius: 1 }} />
+                  {t("组合")}
+                </span>
+                {benchPath && (
+                  <span className="flex items-center gap-1.5">
+                    <span style={{ display: "inline-block", width: 14, height: 2, background: "rgba(90,94,118,.8)", borderRadius: 1 }} />
+                    {benchTicker}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ── 板块分布 (from riskAttribution) ── */}
+          {sectorBreakdown.length > 0 && (
+            <div
+              className="mx-4 mb-4 rounded-xl p-3"
+              style={{ background: "var(--bg-1)", border: "1px solid var(--line)" }}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[12px] font-semibold" style={{ color: "var(--fg-0)" }}>{t("板块分布")}</span>
+                {btResult?.riskAttribution?.hhi > 0.35 && (
+                  <span
+                    className="text-[9px] px-1.5 py-0.5 rounded-full border"
+                    style={{ background: "rgba(245,181,60,.1)", borderColor: "rgba(245,181,60,.3)", color: "var(--warn)" }}
+                  >
+                    {t("集中度偏高")}
+                  </span>
+                )}
+              </div>
+              {sectorBreakdown.slice(0, 4).map(({ sector, weight }, idx) => (
+                <div key={sector} className="mb-2.5">
+                  <div className="flex justify-between text-[11px] mb-1">
+                    <span className="flex items-center gap-1.5" style={{ color: "var(--fg-1)" }}>
+                      <span style={{ width: 8, height: 8, borderRadius: 2, background: SECTOR_COLORS[idx % SECTOR_COLORS.length], display: "inline-block" }} />
+                      {sector}
+                    </span>
+                    <span className="font-mono font-semibold" style={{ color: "var(--fg-0)" }}>{weight}%</span>
+                  </div>
+                  <div style={{ height: 5, background: "rgba(255,255,255,.05)", borderRadius: 3, overflow: "hidden" }}>
+                    <div style={{ width: `${weight}%`, height: "100%", background: SECTOR_COLORS[idx % SECTOR_COLORS.length], borderRadius: 3 }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* ── 持仓收益排行 ── */}
+          {btResult?.holdingResults?.length > 0 && (
+            <div
+              className="mx-4 mb-4 rounded-xl p-3"
+              style={{ background: "var(--bg-1)", border: "1px solid var(--line)" }}
+            >
+              <span className="text-[12px] font-semibold block mb-2.5" style={{ color: "var(--fg-0)" }}>{t("持仓贡献")}</span>
+              {btResult.holdingResults.map(({ ticker: tk, weight: w, ret }) => (
+                <div key={tk} className="flex items-center gap-2 mb-2">
+                  <span className="font-mono text-[11px] font-semibold w-16 shrink-0" style={{ color: "var(--fg-0)" }}>{tk}</span>
+                  <div style={{ flex: 1, height: 4, background: "rgba(255,255,255,.05)", borderRadius: 3, overflow: "hidden" }}>
+                    <div
+                      style={{
+                        width: `${Math.min(100, Math.abs(ret))}%`,
+                        height: "100%",
+                        background: ret >= 0 ? "var(--up)" : "var(--down)",
+                        borderRadius: 3,
+                      }}
+                    />
+                  </div>
+                  <span className="font-mono text-[11px] w-12 text-right shrink-0" style={{ color: ret >= 0 ? "var(--up)" : "var(--down)" }}>
+                    {fmtPct(ret)}
+                  </span>
+                  <span className="text-[9px] w-6 text-right shrink-0" style={{ color: "var(--fg-4)" }}>{w}%</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* ── Bottom Action Bar ── */}
+        <div
+          className="shrink-0 flex gap-2.5 px-4 pt-2.5"
+          style={{
+            paddingBottom: "calc(12px + env(safe-area-inset-bottom))",
+            background: "linear-gradient(180deg, rgba(8,9,14,.4), rgba(8,9,14,.96) 40%)",
+            backdropFilter: "blur(14px)",
+            borderTop: "1px solid var(--line)",
+          }}
+        >
+          <button
+            onClick={() => setMWeightsOpen(true)}
+            className="flex-1 h-[46px] rounded-xl border flex items-center justify-center gap-2 text-[13.5px] font-semibold active:scale-95 transition"
+            style={{ borderColor: "var(--line-2)", background: "rgba(255,255,255,.04)", color: "var(--fg-1)" }}
+          >
+            <Layers size={16} style={{ color: "var(--fg-1)" }} />{t("调整组合")}
+          </button>
+          <button
+            onClick={runBacktest}
+            disabled={running || dataLoading || portfolioStocks.length === 0}
+            className="flex-[1.2] h-[46px] rounded-xl border-none flex items-center justify-center gap-2 text-[14px] font-bold active:scale-95 transition disabled:opacity-50"
+            style={{ background: "linear-gradient(180deg, var(--indigo-2), var(--indigo))", color: "#fff", boxShadow: "0 8px 22px -6px rgba(99,102,241,.6)" }}
+          >
+            {running || dataLoading
+              ? <><Loader size={16} className="animate-spin" />{t("计算中…")}</>
+              : <><Zap size={16} />{t("运行回测")}</>
+            }
+          </button>
+        </div>
+
+        {/* ── 组合构建 BottomSheet ── */}
+        <BottomSheet
+          open={mWeightsOpen}
+          onClose={() => setMWeightsOpen(false)}
+          title={`${t("组合构建")} · ${tickers.length} ${t("持仓")}`}
+          headerRight={
+            <span
+              className="text-[10.5px] font-mono px-2 py-0.5 rounded-full border"
+              style={
+                totalWeight === 100
+                  ? { background: "rgba(30,211,149,.1)", borderColor: "rgba(30,211,149,.3)", color: "var(--up)" }
+                  : { background: "rgba(245,181,60,.1)", borderColor: "rgba(245,181,60,.3)", color: "var(--warn)" }
+              }
+            >
+              ✓ {totalWeight}%
+            </span>
+          }
+          footer={
+            <button
+              onClick={() => { setMWeightsOpen(false); runBacktest(); }}
+              disabled={running || totalWeight === 0}
+              className="w-full h-[50px] rounded-[13px] border-none flex items-center justify-center gap-2 text-[15px] font-bold disabled:opacity-50 active:scale-[0.98] transition"
+              style={{ background: "linear-gradient(180deg, var(--indigo-2), var(--indigo))", color: "#fff", boxShadow: "0 8px 22px -6px rgba(99,102,241,.6)" }}
+            >
+              <Zap size={17} />{t("运行回测")}
+            </button>
+          }
+        >
+          <div className="pb-2">
+            {portfolioStocks.map(({ ticker: tk, weight: w, stk }, i) => {
+              const color = PIE_COLORS[i % PIE_COLORS.length];
+              return (
+                <div key={tk} className="mb-5">
+                  <div className="flex justify-between items-baseline mb-2">
+                    <span className="flex items-baseline gap-2">
+                      <span className="font-mono text-[14px] font-bold" style={{ color: "var(--fg-0)" }}>{tk}</span>
+                      <span className="text-[10.5px]" style={{ color: "var(--fg-3)" }}>{stk?.sector ?? ""}</span>
+                    </span>
+                    <span className="font-mono text-[16px] font-bold" style={{ color }}>{w}%</span>
+                  </div>
+                  {/* Visual progress bar */}
+                  <div style={{ position: "relative", height: 5, background: "rgba(255,255,255,.05)", borderRadius: 3, marginBottom: 4 }}>
+                    <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: `${Math.min(w, 100)}%`, background: `linear-gradient(90deg, ${color}66, ${color})`, borderRadius: 3, boxShadow: `0 0 8px ${color}55` }} />
+                    <div style={{ position: "absolute", top: "50%", left: `${Math.min(w, 100)}%`, transform: "translate(-50%, -50%)", width: 18, height: 18, borderRadius: 9, background: "#fff", boxShadow: `0 0 0 1.5px ${color}, 0 2px 8px rgba(0,0,0,.4)` }} />
+                  </div>
+                  {/* Native range input — 44px touch target */}
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={w}
+                    onChange={(e) => setWeight(tk, +e.target.value)}
+                    aria-label={`${tk} ${t("权重")}`}
+                    className="w-full"
+                    style={{ accentColor: color, height: 28, display: "block", cursor: "pointer", opacity: 0, marginTop: -14 }}
+                  />
+                </div>
+              );
+            })}
+            {/* Stacked bar */}
+            {portfolioStocks.length > 0 && (
+              <div style={{ display: "flex", height: 7, borderRadius: 4, overflow: "hidden", gap: 1.5, margin: "4px 0 8px" }}>
+                {portfolioStocks.map(({ ticker: tk, weight: w }, i) => (
+                  <div key={tk} style={{ flex: w, background: PIE_COLORS[i % PIE_COLORS.length], boxShadow: `0 0 8px ${PIE_COLORS[i % PIE_COLORS.length]}55` }} />
+                ))}
+              </div>
+            )}
+            <button
+              onClick={equalizeWeights}
+              className="w-full py-2 rounded-xl text-[11px] border flex items-center justify-center gap-1.5 active:scale-98 transition mb-1"
+              style={{ background: "rgba(255,255,255,.04)", borderColor: "var(--line)", color: "var(--fg-2)" }}
+            >
+              <Target size={12} />{t("等权分配")}
+            </button>
+          </div>
+        </BottomSheet>
+
+        {/* ── NAV 全屏横屏图 ── */}
+        <FullscreenChart
+          open={mNavFs}
+          onClose={() => setMNavFs(false)}
+          title={t("资产净值")}
+          meta={
+            headlineStr ? (
+              <span className="font-mono text-[18px] font-semibold" style={{ color: headline >= 0 ? "var(--up)" : "var(--down)", fontFamily: "Georgia,serif" }}>{headlineStr}</span>
+            ) : null
+          }
+          ranges={["1M", "6M", "1Y", "5Y", "ALL"]}
+          activeRange={mNavRange}
+          onRangeChange={(r) => { setMNavRange(r); setBtRange(r); }}
+          indicators={
+            <>
+              <span className="flex items-center gap-1.5 text-[10px]" style={{ color: "var(--fg-2)" }}>
+                <span style={{ width: 14, height: 2, background: "#5EE6E6", borderRadius: 1, display: "inline-block" }} />{t("组合")}
+              </span>
+              {benchPath && (
+                <span className="flex items-center gap-1.5 text-[10px]" style={{ color: "var(--fg-3)" }}>
+                  <span style={{ width: 14, height: 2, background: "rgba(90,94,118,.8)", borderRadius: 1, display: "inline-block" }} />{benchTicker}
+                </span>
+              )}
+              {btResult?.rebalanceDates?.length > 0 && (
+                <span className="flex items-center gap-1.5 text-[10px]" style={{ color: "var(--fg-3)" }}>
+                  <span style={{ width: 8, height: 8, borderRadius: 4, border: "1px solid #818CF8", background: "var(--bg-1)", display: "inline-block" }} />{t("再平衡")} × {btResult.rebalanceDates.length}
+                </span>
+              )}
+              {btResult?.stressBand && (
+                <span className="flex items-center gap-1.5 text-[10px]" style={{ color: "var(--fg-3)" }}>
+                  <span style={{ width: 10, height: 8, background: "rgba(255,107,107,.15)", border: "1px solid rgba(255,107,107,.3)", display: "inline-block" }} />
+                  {t("压力区间")} {btResult.stressBand.dd}%
+                </span>
+              )}
+            </>
+          }
+          footerNote={t("点击区间按钮后需重新运行回测以更新数据")}
+        >
+          {/* Full SVG nav chart */}
+          <svg width="100%" height="100%" viewBox="0 0 660 250" preserveAspectRatio="none" style={{ position: "absolute", inset: 0 }}>
+            <defs>
+              <linearGradient id="fsNavGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#5EE6E6" stopOpacity="0.22" />
+                <stop offset="100%" stopColor="#5EE6E6" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            {[0, 1, 2, 3, 4].map((i) => (
+              <line key={i} x1="0" y1={20 + i * 52} x2="660" y2={20 + i * 52} stroke="rgba(255,255,255,.04)" />
+            ))}
+            {btResult?.stressBand && (() => {
+              const dates = navData.map((d) => d.date);
+              const si = dates.indexOf(btResult.stressBand.startDate);
+              const ei = dates.indexOf(btResult.stressBand.endDate);
+              if (si < 0 || ei < 0) return null;
+              const x1 = (si / (navData.length - 1)) * 660;
+              const x2 = (ei / (navData.length - 1)) * 660;
+              return (
+                <rect x={x1} y={0} width={x2 - x1} height={250} fill="rgba(255,107,107,.07)" stroke="rgba(255,107,107,.18)" strokeDasharray="2 2" />
+              );
+            })()}
+            {benchPath && (() => {
+              if (navData.length < 2) return null;
+              const bVals = navData.map((d) => d.benchmark).filter(Boolean);
+              if (bVals.length < 2) return null;
+              const allV = navData.map((d) => d.strategy);
+              const minV = Math.min(...allV, ...bVals);
+              const maxV = Math.max(...allV, ...bVals);
+              const rv = Math.max(maxV - minV, 0.1);
+              const bp = navData.map((d, i) => {
+                if (d.benchmark == null) return null;
+                const x = (i / (navData.length - 1)) * 660;
+                const y = 240 - ((d.benchmark - minV) / rv) * 220;
+                return `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`;
+              }).filter(Boolean).join(" ");
+              return <path d={bp} fill="none" stroke="#5A5E76" strokeWidth="1.4" />;
+            })()}
+            {navData.length >= 2 && (() => {
+              const vals = navData.map((d) => d.strategy);
+              const bVals = navData.map((d) => d.benchmark).filter(Boolean);
+              const minV = Math.min(...vals, ...(bVals.length ? bVals : vals));
+              const maxV = Math.max(...vals, ...(bVals.length ? bVals : vals));
+              const rv = Math.max(maxV - minV, 0.1);
+              const p = vals.map((v, i) => {
+                const x = (i / (vals.length - 1)) * 660;
+                const y = 240 - ((v - minV) / rv) * 220;
+                return `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`;
+              }).join(" ");
+              return (
+                <>
+                  <path d={`${p} L660,250 L0,250 Z`} fill="url(#fsNavGrad)" />
+                  <path d={p} fill="none" stroke="#5EE6E6" strokeWidth="2.5" strokeLinecap="round" />
+                </>
+              );
+            })()}
+            {/* Rebalance markers */}
+            {btResult?.rebalanceDates?.map((rd) => {
+              const idx = navData.findIndex((d) => d.date === rd);
+              if (idx < 0) return null;
+              const x = (idx / (navData.length - 1)) * 660;
+              return <circle key={rd} cx={x} cy={245} r={3} fill="var(--bg-1)" stroke="#818CF8" />;
+            })}
+          </svg>
+        </FullscreenChart>
+      </div>
+    );
+  }
+  // ── End of mobile early-return ──
 
   return (
     <>

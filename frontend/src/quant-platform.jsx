@@ -1312,6 +1312,16 @@ const TAB_CFG = [
   { id: "compound",    label: "复利的力量",   short: ["复利", "之力"],     icon: TrendingUp },
 ];
 
+// 移动端底栏 5 个主目的地（v6 原则①：5 个常驻目的地）；其余 6 个功能页收进「我的」hub
+const MOBILE_PRIMARY_TABS = [
+  { id: "scoring", label: "量化评分", short: "评分", icon: BarChart3 },
+  { id: "monitor", label: "实时监控", short: "监控", icon: Bell },
+  { id: "journal", label: "投资日志", short: "日志", icon: BookOpen },
+  { id: "macro",   label: "宏观看板", short: "宏观", icon: Globe },
+  { id: "me",      label: "我的",     short: "我的", icon: UserCircle },
+];
+const MOBILE_HUB_IDS = ["backtest", "smartBeta", "miningAlpha", "screener10x", "stockgene", "compound"];
+
 // ─── Scoring ──────────────────────────────────────────────
 export const SkeletonBlock = ({ className = "" }) => <div className={`skeleton ${className}`} />;
 
@@ -1324,7 +1334,7 @@ export const MiniSparkline = ({ data, w = 56, h = 16 }) => {
   for (const v of data) { if (v < min) min = v; if (v > max) max = v; }
   const range = max - min || 1;
   const lastUp = data[data.length - 1] >= data[0];
-  const color = lastUp ? "#00E5A0" : "#FF6B6B";
+  const color = lastUp ? "#1ED395" : "#FF6B6B";
   let pts = "";
   for (let i = 0; i < data.length; i++) {
     const x = (i / (data.length - 1)) * w;
@@ -1772,22 +1782,21 @@ const LiveClock = React.memo(() => {
   return <span className="font-mono tabular-nums text-xs text-[#a0aec0]">{time.toLocaleTimeString("en-GB", { hour12: false, hour: "2-digit", minute: "2-digit" })}</span>;
 });
 
-// ─── MobileBottomNav — 移动端底部 Tab Bar（iOS / Material 通用模式） ─
-// fixed bottom，icon + 微标签 + 渐变指示器；保留 safe-area-inset-bottom
+// ─── MobileBottomNav — 移动端底部 5-Tab（v6：评分/监控/日志/宏观/我的）─
+// 其余 6 个功能页收进「我的」hub；非主 tab 时高亮「我的」。保留 safe-area-inset-bottom。
 const MobileBottomNav = React.memo(({ tab, setTab }) => {
-  const { t } = useLang();
+  const { t, lang } = useLang();
+  const PRIMARY = ["scoring", "monitor", "journal", "macro"];
   return (
     <nav
       role="tablist"
       aria-label={t('主导航')}
-      className="md:hidden fixed bottom-0 left-0 right-0 z-30 flex items-stretch bg-[#0b0b14]/95 backdrop-blur-md border-t border-white/8"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      className="md:hidden fixed bottom-0 left-0 right-0 z-30 flex items-stretch border-t border-white/8 backdrop-blur-md"
+      style={{ background: 'color-mix(in srgb, var(--bg-1) 94%, transparent)', paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
-      {TAB_CFG.map((c) => {
+      {MOBILE_PRIMARY_TABS.map((c) => {
         const I = c.icon;
-        const active = tab === c.id;
-        // 移动端 8 个 tab，375px 屏每个 ~46px。短标签 2 行避免「Mining Alpha」/「10x 猎手」横向溢出
-        const useShort = Array.isArray(c.short) && c.short.length === 2;
+        const active = c.id === "me" ? !PRIMARY.includes(tab) : tab === c.id;
         return (
           <button
             key={c.id}
@@ -1795,32 +1804,97 @@ const MobileBottomNav = React.memo(({ tab, setTab }) => {
             role="tab"
             aria-selected={active}
             aria-label={t(c.label)}
-            className={`relative flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 text-[9px] font-medium transition-colors active:scale-[0.96] ${
-              active ? 'text-white' : 'text-[#a0aec0]'
-            }`}
+            className="relative flex-1 flex flex-col items-center justify-center gap-1 py-2 text-[10px] font-medium transition-colors active:scale-[0.94]"
+            style={{ color: active ? 'var(--indigo-2)' : 'var(--fg-3)' }}
           >
-            <I size={16} className={active ? 'drop-shadow-[0_0_4px_rgba(99,102,241,0.5)]' : ''} />
-            {useShort ? (
-              <span className="flex flex-col items-center leading-[1.05] tracking-tight">
-                <span>{c.short[0]}</span>
-                <span>{c.short[1]}</span>
-              </span>
-            ) : (
-              <span className="tracking-tight">{t(c.label)}</span>
-            )}
             {active && (
               <span
                 aria-hidden="true"
-                className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-b-full"
-                style={{ background: 'var(--brand-gradient)' }}
+                className="absolute top-0 left-1/2 -translate-x-1/2 w-7 h-[2.5px] rounded-b-full"
+                style={{ background: 'var(--brand-gradient)', boxShadow: '0 0 8px rgba(99,102,241,.6)' }}
               />
             )}
+            <I size={21} strokeWidth={active ? 2.1 : 1.8} className={active ? 'drop-shadow-[0_0_5px_rgba(99,102,241,0.5)]' : ''} />
+            <span className="tracking-tight">{lang === 'zh' ? c.short : t(c.label)}</span>
           </button>
         );
       })}
     </nav>
   );
 });
+
+// ─── MobileMeHub — 移动端「我的」hub（5-tab 的第 5 个目的地）──────
+// 账户卡 + 其余 6 个功能页入口网格 + 设置项。仅移动端渲染（tab==='me'）。
+const HubRow = ({ icon, label, value, onClick, last }) => (
+  <button
+    onClick={onClick}
+    className="w-full flex items-center gap-3 px-3.5 py-3 text-left active:bg-white/[0.03] transition"
+    style={last ? undefined : { borderBottom: '1px solid var(--line)' }}
+  >
+    <span style={{ color: 'var(--fg-2)' }}>{icon}</span>
+    <span className="flex-1 text-[13.5px]" style={{ color: 'var(--fg-1)' }}>{label}</span>
+    {value != null && <span className="text-[12px] font-mono" style={{ color: 'var(--fg-3)' }}>{value}</span>}
+    <ChevronRight size={16} style={{ color: 'var(--fg-4)' }} />
+  </button>
+);
+
+const MobileMeHub = ({ setTab, user, stocks, theme, toggleTheme, density, cycleDensity, onManage, onGuide, onProfile, onRefresh }) => {
+  const { t } = useLang();
+  const features = MOBILE_HUB_IDS.map((id) => TAB_CFG.find((c) => c.id === id)).filter(Boolean);
+  const densityLabel = density === "cozy" ? t("舒适") : density === "compact" ? t("紧凑") : t("密集");
+  return (
+    <div className="md:hidden h-full overflow-y-auto" style={{ background: 'var(--bg-0)' }}>
+      <div className="px-4 pt-3 pb-2">
+        <h1 className="text-[22px] font-bold" style={{ color: 'var(--fg-0)' }}>{t("我的")}</h1>
+      </div>
+      {/* 账户卡 */}
+      <button
+        onClick={onProfile}
+        className="mx-4 mb-5 flex items-center gap-3 p-3.5 rounded-2xl border text-left active:scale-[0.99] transition"
+        style={{ width: 'calc(100% - 2rem)', borderColor: 'var(--line)', background: 'var(--bg-2)' }}
+      >
+        <div className="w-12 h-12 rounded-full flex items-center justify-center text-white text-[18px] font-bold shrink-0" style={{ background: 'var(--brand-gradient)' }}>
+          {(user?.name || "U").charAt(0).toUpperCase()}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-[15px] font-semibold truncate" style={{ color: 'var(--fg-0)' }}>{user?.name || t("访客")}</div>
+          <div className="text-[11px] truncate" style={{ color: 'var(--fg-3)' }}>{user?.email || t("点击管理账户")}</div>
+        </div>
+        <ChevronRight size={18} style={{ color: 'var(--fg-3)' }} />
+      </button>
+      {/* 更多功能 */}
+      <div className="px-4 mb-2.5 text-[11px] font-mono uppercase tracking-wider" style={{ color: 'var(--fg-3)' }}>{t("更多功能")}</div>
+      <div className="px-4 mb-5 grid grid-cols-3 gap-2.5">
+        {features.map((c) => {
+          const I = c.icon;
+          return (
+            <button
+              key={c.id}
+              onClick={() => setTab(c.id)}
+              className="flex flex-col items-center gap-2 py-3.5 rounded-xl border active:scale-95 transition"
+              style={{ borderColor: 'var(--line)', background: 'var(--bg-2)' }}
+            >
+              <span className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, rgba(99,102,241,.16), rgba(94,230,230,.06))', border: '1px solid rgba(99,102,241,.25)' }}>
+                <I size={18} style={{ color: 'var(--indigo-2)' }} />
+              </span>
+              <span className="text-[11px] font-medium text-center leading-tight" style={{ color: 'var(--fg-1)' }}>{t(c.label)}</span>
+            </button>
+          );
+        })}
+      </div>
+      {/* 设置 */}
+      <div className="px-4 mb-2.5 text-[11px] font-mono uppercase tracking-wider" style={{ color: 'var(--fg-3)' }}>{t("设置")}</div>
+      <div className="mx-4 rounded-2xl border overflow-hidden" style={{ borderColor: 'var(--line)', background: 'var(--bg-2)' }}>
+        <HubRow icon={theme === "dark" ? <Moon size={17} /> : <Sun size={17} />} label={t("主题")} value={theme === "dark" ? t("深色") : t("浅色")} onClick={toggleTheme} />
+        <HubRow icon={<Layers size={17} />} label={t("表格密度")} value={densityLabel} onClick={cycleDensity} />
+        <HubRow icon={<Database size={17} />} label={t("标的管理")} value={String(stocks?.length ?? 0)} onClick={onManage} />
+        <HubRow icon={<GraduationCap size={17} />} label={t("功能教程")} onClick={onGuide} />
+        <HubRow icon={<RefreshCw size={17} />} label={t("刷新行情")} onClick={onRefresh} last />
+      </div>
+      <div className="px-4 pt-5 pb-2 text-center text-[10px] font-mono" style={{ color: 'var(--fg-4)' }}>QuantEdge · v6 · 2026.06</div>
+    </div>
+  );
+};
 
 // ─── DataFreshnessPill — 持久数据状态条 ──────────────────────
 // 三态显示 + 一键刷新；title 显示完整状态文本
@@ -2658,7 +2732,7 @@ function QuantPlatformInner() {
         </div>
       </header>
 
-      <main id="main-content" role="main" className="flex-1 p-2 md:p-4 pb-14 md:pb-4 min-h-0 overflow-hidden flex flex-col">
+      <main id="main-content" role="main" className="flex-1 px-0 pt-0 pb-14 md:p-4 min-h-0 overflow-hidden flex flex-col">
         <Suspense fallback={
           <div className="flex items-center justify-center h-full text-[#778] text-xs">
             <div className="flex items-center gap-2">
@@ -2683,6 +2757,21 @@ function QuantPlatformInner() {
           {tab === "smartBeta" && <SmartBeta />}
           {tab === "compound" && (
             <CompoundPower onOneClickBacktest={handleOneClickBacktest} />
+          )}
+          {tab === "me" && (
+            <MobileMeHub
+              setTab={setTab}
+              user={user}
+              stocks={stocks}
+              theme={theme}
+              toggleTheme={toggleTheme}
+              density={density}
+              cycleDensity={cycleDensity}
+              onManage={() => setShowManager(true)}
+              onGuide={openGuide}
+              onProfile={() => setShowProfile(true)}
+              onRefresh={quickPriceRefresh}
+            />
           )}
         </Suspense>
       </main>

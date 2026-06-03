@@ -140,7 +140,7 @@ function TraitRadar({ traits, tone }) {
       ))}
       {traits.map((t, i) => { const [x, y] = pt(i, 1); return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="rgba(255,255,255,.06)" />; })}
       <polygon points={poly(vals)} fill={`${tone}28`} stroke={tone} strokeWidth="1.8" />
-      {traits.map((t, i) => { const [x, y] = pt(i, t.v == null ? 0 : t.v); return <circle key={i} cx={x} cy={y} r="3" fill={tone} stroke="#0B0B15" strokeWidth="1" />; })}
+      {traits.map((t, i) => { const [x, y] = pt(i, t.v == null ? 0 : t.v); return <circle key={i} cx={x} cy={y} r="3" fill={tone} stroke="#08090E" strokeWidth="1" />; })}
       {traits.map((t, i) => { const [x, y] = pt(i, 1.22); return <text key={i} x={x} y={y} textAnchor="middle" dominantBaseline="middle" fontSize="9.5" fontWeight="600" fill="#C9CDDA">{t.n}</text>; })}
     </svg>
   );
