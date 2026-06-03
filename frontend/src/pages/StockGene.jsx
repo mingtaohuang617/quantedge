@@ -959,16 +959,16 @@ export default function StockGene() {
               })}
             </svg>
           </div>
-          <div style={{ width: 220, display: "flex", flexDirection: "column", gap: 9 }}>
-            <div style={{ fontSize: 9, color: "var(--fg-3)", marginBottom: 2 }}>维度明细</div>
+          <div style={{ width: 240, display: "flex", flexDirection: "column", gap: 9 }}>
+            <div style={{ fontSize: 9, color: "var(--fg-3)", marginBottom: 2 }}>维度明细 · vs 板块中位</div>
             {traits.map(t => (
               <div key={t.k} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontSize: 11, color: "var(--fg-1)", width: 56, flexShrink: 0 }}>{t.n}</span>
+                <span style={{ fontSize: 11.5, color: "var(--fg-1)", width: 58, flexShrink: 0 }}>{t.n}</span>
                 <div style={{ flex: 1, height: 6, background: "rgba(255,255,255,.05)", borderRadius: 3, position: "relative" }}>
                   <div style={{ width: `${(t.v ?? 0) * 100}%`, height: "100%", background: "linear-gradient(90deg,var(--indigo),var(--cyan))", borderRadius: 3 }} />
                   <div style={{ position: "absolute", left: "50%", top: -2, bottom: -2, width: 1, background: "var(--fg-3)" }} />
                 </div>
-                <span style={{ fontSize: 11, color: (t.v ?? 0) > 0.5 ? "var(--up)" : "var(--fg-3)", width: 22, textAlign: "right", fontWeight: 600 }}>
+                <span style={{ fontSize: 11, color: (t.v ?? 0) > 0.5 ? "var(--up)" : "var(--fg-3)", width: 20, textAlign: "right", fontWeight: 600 }}>
                   {t.v == null ? "—" : Math.round(t.v * 100)}
                 </span>
               </div>
@@ -1061,7 +1061,7 @@ export default function StockGene() {
               </div>
               {char.paragraph && (
                 <p style={{
-                  margin: "0 auto", maxWidth: 300,
+                  margin: "0 auto", maxWidth: 280,
                   fontSize: 13, lineHeight: 1.65, color: "var(--fg-2)",
                 }}>
                   {char.paragraph}
@@ -1077,7 +1077,7 @@ export default function StockGene() {
                 background: "rgba(255,255,255,.022)",
                 border: "1px solid var(--line)",
               }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
                   <span style={{ fontSize: 12, fontWeight: 600, color: "var(--fg-1)" }}>六维性格雷达</span>
                   <button
                     onClick={() => setMRadarFs(true)}
@@ -1097,7 +1097,7 @@ export default function StockGene() {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     {char.traits.map(t => (
                       <div key={t.k} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                        <span style={{ fontSize: 10.5, color: "var(--fg-2)", width: 52, flexShrink: 0 }}>{t.n}</span>
+                        <span style={{ fontSize: 10.5, color: "var(--fg-2)", width: 50, flexShrink: 0 }}>{t.n}</span>
                         <div style={{ flex: 1, height: 4, background: "rgba(255,255,255,.05)", borderRadius: 2, overflow: "hidden" }}>
                           <div style={{
                             width: `${(t.v ?? 0) * 100}%`, height: "100%",
@@ -1105,7 +1105,7 @@ export default function StockGene() {
                             borderRadius: 2,
                           }} />
                         </div>
-                        <span style={{ fontSize: 10, color: "var(--fg-1)", width: 22, textAlign: "right", fontFamily: "var(--font-mono, monospace)" }}>
+                        <span style={{ fontSize: 10, color: "var(--fg-1)", width: 18, textAlign: "right", fontFamily: "var(--font-mono, monospace)" }}>
                           {t.v == null ? "—" : Math.round(t.v * 100)}
                         </span>
                       </div>
@@ -1126,7 +1126,7 @@ export default function StockGene() {
                       border: "1px solid var(--line)",
                     }}>
                       <div style={{ fontSize: 8.5, color: "var(--fg-3)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>{b.l}</div>
-                      <div style={{ fontSize: 22, fontWeight: 700, color: b.c || "var(--fg-0)", lineHeight: 1, fontFamily: "var(--font-mono, monospace)" }}>{b.v}</div>
+                      <div style={{ fontSize: 20, fontWeight: 700, color: b.c || "var(--fg-0)", lineHeight: 1, fontFamily: "var(--font-mono, monospace)" }}>{b.v}</div>
                       <div style={{ fontSize: 10, color: "var(--fg-3)", marginTop: 4 }}>{b.sub}</div>
                     </div>
                   ))}
