@@ -78,6 +78,14 @@
   --accent-violet-soft: #8b5cf688;
   --accent-cyan: #06b6d4;
   --accent-cyan-soft: #06b6d488;
+  /* v7：indigo 主品牌色的 Tailwind shade 三元组（rgb，供 <alpha-value>）。
+     默认 = Tailwind 原 indigo（bg-indigo-500 等零回归）。[data-theme] 覆盖见文件下方。 */
+  --tw-indigo-100: 224 231 255;
+  --tw-indigo-200: 199 210 254;
+  --tw-indigo-300: 165 180 252;
+  --tw-indigo-400: 129 140 248;
+  --tw-indigo-500: 99 102 241;
+  --tw-indigo-600: 79 70 229;
   /* Semantic role aliases — 见文件顶部说明，jsx 应优先用 var(--sem-*) */
   --sem-brand:    var(--accent-indigo);
   --sem-up:       var(--accent-up);
@@ -186,6 +194,36 @@
     --accent-cyan:      oklch(60% 0.15 200);
     --accent-cyan-soft: oklch(60% 0.15 200 / 0.55);
   }
+}
+
+/* ── v7 工作站：6 色强调主题切换 ([data-theme] on <html>) ──
+   只换 indigo 主品牌色（Tailwind indigo-* 类 + var(--accent-indigo) 内联消费者）。
+   语义 up/down/amber 与 violet/cyan 次强调色保持固定。默认 indigo = 无 data-theme（不需块）。
+   放在 @supports oklch 之后，确保覆盖 oklch 的 --accent-indigo 默认；与 .light 同特异度但靠后→生效。 */
+[data-theme="violet"] {
+  --tw-indigo-100: 237 233 254; --tw-indigo-200: 221 214 254; --tw-indigo-300: 196 181 253;
+  --tw-indigo-400: 167 139 250; --tw-indigo-500: 139 92 246;  --tw-indigo-600: 124 58 237;
+  --accent-indigo: #8b5cf6; --accent-indigo-soft: #8b5cf688;
+}
+[data-theme="cyan"] {
+  --tw-indigo-100: 207 250 254; --tw-indigo-200: 165 243 252; --tw-indigo-300: 103 232 249;
+  --tw-indigo-400: 34 211 238;  --tw-indigo-500: 6 182 212;   --tw-indigo-600: 8 145 178;
+  --accent-indigo: #06b6d4; --accent-indigo-soft: #06b6d488;
+}
+[data-theme="emerald"] {
+  --tw-indigo-100: 209 250 229; --tw-indigo-200: 167 243 208; --tw-indigo-300: 110 231 183;
+  --tw-indigo-400: 52 211 153;  --tw-indigo-500: 16 185 129;  --tw-indigo-600: 5 150 105;
+  --accent-indigo: #10b981; --accent-indigo-soft: #10b98188;
+}
+[data-theme="amber"] {
+  --tw-indigo-100: 254 243 199; --tw-indigo-200: 253 230 138; --tw-indigo-300: 252 211 77;
+  --tw-indigo-400: 251 191 36;  --tw-indigo-500: 245 158 11;  --tw-indigo-600: 217 119 6;
+  --accent-indigo: #f59e0b; --accent-indigo-soft: #f59e0b88;
+}
+[data-theme="rose"] {
+  --tw-indigo-100: 252 231 243; --tw-indigo-200: 251 207 232; --tw-indigo-300: 249 168 212;
+  --tw-indigo-400: 244 114 182; --tw-indigo-500: 236 72 153;  --tw-indigo-600: 219 39 119;
+  --accent-indigo: #ec4899; --accent-indigo-soft: #ec489988;
 }
 
 /* ── Theme-aware color overrides ──
