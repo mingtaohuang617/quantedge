@@ -10,13 +10,18 @@
 import React, { useEffect, useState } from "react";
 import {
   Activity, RefreshCw, Loader, AlertCircle, Settings, Layers, Compass,
-  TrendingUp, TrendingDown, ArrowRight, Info, Play,
+  TrendingUp, TrendingDown, ArrowRight, Info, Play, Eye,
 } from "lucide-react";
 import {
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip, BarChart, Bar, XAxis,
   YAxis, CartesianGrid, LineChart, Line, Legend,
 } from "recharts";
 import { apiFetch } from "../quant-platform.jsx";
+import { useLang } from "../i18n.jsx";
+import useIsMobile from "../hooks/useIsMobile.js";
+import MobileAppBar from "../components/mobile/MobileAppBar.jsx";
+import ThumbActionBar from "../components/mobile/ThumbActionBar.jsx";
+import FullscreenChart from "../components/mobile/FullscreenChart.jsx";
 
 // ─── 工具 ────────────────────────────────────────────────
 const fmtPct = (v, digits = 1) =>
@@ -293,7 +298,45 @@ const FinalWeightsChart = ({ weights }) => {
 // ═════════════════════════════════════════════════════════
 //  主组件
 // ═════════════════════════════════════════════════════════
+// ─── Mobile factor data (mirrors design-review MSB) ─────────────────────────
+// These are display-only defaults; they do NOT override the desktop API data.
+const MOBILE_FACTORS = [
+  { id: "value",    label: "价值 Value",    desc: "PB/PE 低估",     color: "#818CF8", tStat: "2.8" },
+  { id: "quality",  label: "质量 Quality",  desc: "高 ROE / 低杠杆", color: "#1ED395", tStat: "3.4" },
+  { id: "momentum", label: "动量 Momentum", desc: "12-1 月趋势",     color: "#F5B53C", tStat: "1.6" },
+  { id: "lowvol",   label: "低波 Low-Vol",  desc: "波动越低越好",    color: "#5EE6E6", tStat: "1.1" },
+  { id: "size",     label: "规模 Size",     desc: "偏向中小盘",      color: "#A78BFA", tStat: "1.9" },
+  { id: "growth",   label: "成长 Growth",   desc: "营收 / 利润增速", color: "#F472B6", tStat: "2.2" },
+];
+
+const MOBILE_PRESETS = [
+  { id: "quality_growth", label: "质量+成长",  ir: "1.62", weights: { value: 40, quality: 85, momentum: 55, lowvol: 20, size: 50, growth: 75 } },
+  { id: "deep_value",     label: "深度价值",   ir: "1.28", weights: { value: 90, quality: 60, momentum: 30, lowvol: 45, size: 65, growth: 25 } },
+  { id: "allweather",     label: "全天候",     ir: "1.40", weights: { value: 55, quality: 65, momentum: 55, lowvol: 70, size: 50, growth: 55 } },
+  { id: "low_vol",        label: "低波防御",   ir: "1.15", weights: { value: 45, quality: 70, momentum: 25, lowvol: 90, size: 35, growth: 30 } },
+];
+
+// Radar pentagon helpers
+function radarPoints(vals, cx, cy, r) {
+  return vals.map((v, i) => {
+    const angle = (Math.PI * 2 * i) / vals.length - Math.PI / 2;
+    const frac = v / 100;
+    return [cx + r * frac * Math.cos(angle), cy + r * frac * Math.sin(angle)];
+  });
+}
+
 export default function SmartBeta() {
+  // ── ALL HOOKS — unconditional, must come before any early return ──────────
+  const isMobile = useIsMobile();
+  const { t } = useLang();
+
+  // Mobile-only state
+  const [mFactorWeights, setMFactorWeights] = useState(() =>
+    Object.fromEntries(MOBILE_FACTORS.map((f) => [f.id, f.id === "quality" ? 85 : f.id === "value" ? 72 : f.id === "growth" ? 64 : f.id === "size" ? 55 : f.id === "momentum" ? 48 : 30]))
+  );
+  const [mActivePreset, setMActivePreset] = useState("quality_growth");
+  const [mChartOpen, setMChartOpen] = useState(false);
+
   const [config, setConfig] = useState({
     core_preset: "balanced",
     k: 3,
@@ -417,6 +460,314 @@ export default function SmartBeta() {
   const finalWeights = snapshot?.weights || {};
   const coreAlloc = snapshot?.core_alloc || {};
   const sectorAlloc = snapshot?.sector_alloc || {};
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // v6 MOBILE LAYOUT
+  // ─────────────────────────────────────────────────────────────────────────
+  if (isMobile) {
+    const applyPreset = (preset) => {
+      setMActivePreset(preset.id);
+      setMFactorWeights({ ...preset.weights });
+    };
+
+    // Derived exposure metrics from factor weights
+    const wVals = MOBILE_FACTORS.map((f) => mFactorWeights[f.id] ?? 50);
+    const avgW = wVals.reduce((a, b) => a + b, 0) / wVals.length;
+    const annualAlpha = ((avgW / 100) * 12.6).toFixed(1);
+    const trackingErr = (((100 - avgW) / 100) * 6.2 + 1.8).toFixed(1);
+    const turnover = Math.round(avgW * 0.9 + 10);
+    const irScore = (parseFloat(annualAlpha) / parseFloat(trackingErr)).toFixed(2);
+
+    // Radar chart data (pentagon: value, quality, momentum, lowvol, size, growth → 5 visible axes using first 5)
+    const radarFactors = MOBILE_FACTORS.slice(0, 5);
+    const CX = 80, CY = 80, R = 60;
+    const gridLevels = [1, 0.75, 0.5, 0.25];
+    const baseVals = radarFactors.map(() => 60); // baseline reference
+    const curVals  = radarFactors.map((f) => mFactorWeights[f.id] ?? 50);
+    const basePts  = radarPoints(baseVals, CX, CY, R);
+    const curPts   = radarPoints(curVals,  CX, CY, R);
+    const ptStr    = (pts) => pts.map((p) => p.join(",")).join(" ");
+
+    return (
+      <div className="h-full flex flex-col" style={{ background: "var(--bg-0)" }}>
+        {/* ── App bar ── */}
+        <MobileAppBar
+          title={t("Smart Beta 调音台")}
+          actions={
+            <button
+              onClick={fetchSnapshot}
+              disabled={loading}
+              className="px-2.5 py-1 rounded-lg text-[11px] font-medium active:scale-95 transition"
+              style={{ background: "rgba(99,102,241,.12)", color: "var(--indigo-2)", border: "1px solid rgba(99,102,241,.25)" }}
+            >
+              {loading ? <Loader size={11} className="animate-spin inline" /> : t("重置")}
+            </button>
+          }
+        />
+
+        {/* ── Scrollable body ── */}
+        <div className="flex-1 overflow-y-auto overscroll-contain" style={{ paddingBottom: "calc(76px + env(safe-area-inset-bottom))" }}>
+
+          {/* §1 Preset cards — horizontal scroll */}
+          <div className="pt-4 pb-1">
+            <div className="px-4 mb-2.5 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--fg-3)" }}>
+              {t("预设方案")}
+            </div>
+            <div className="flex gap-3 overflow-x-auto px-4" style={{ scrollbarWidth: "none" }}>
+              {MOBILE_PRESETS.map((preset) => {
+                const on = mActivePreset === preset.id;
+                return (
+                  <button
+                    key={preset.id}
+                    onClick={() => applyPreset(preset)}
+                    className="shrink-0 text-left rounded-xl px-4 py-3 active:scale-[0.97] transition"
+                    style={{
+                      background: on ? "linear-gradient(135deg,rgba(99,102,241,.18),rgba(94,230,230,.05))" : "rgba(255,255,255,.022)",
+                      border: `1px solid ${on ? "rgba(99,102,241,.35)" : "var(--line)"}`,
+                      minWidth: 112,
+                    }}
+                  >
+                    <div className="text-[13px] font-semibold whitespace-nowrap" style={{ color: on ? "var(--fg-0)" : "var(--fg-2)" }}>
+                      {t(preset.label)}
+                    </div>
+                    <div className="font-mono text-[9.5px] mt-1" style={{ color: on ? "var(--indigo-2)" : "var(--fg-3)" }}>
+                      {on ? t("当前") : `IR ${preset.ir}`}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* §2 Factor weight sliders — 44px hit-area list */}
+          <div className="px-4 pt-4">
+            <div className="mb-3 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--fg-3)" }}>
+              {t("因子权重")} · {t("拖动调节")}
+            </div>
+            <div className="flex flex-col gap-5">
+              {MOBILE_FACTORS.map((factor) => {
+                const val = mFactorWeights[factor.id] ?? 50;
+                const beta = (val / 100 * 1.2).toFixed(2);
+                const tStatNum = parseFloat(factor.tStat);
+                return (
+                  <div key={factor.id}>
+                    {/* Label row */}
+                    <div className="flex items-baseline justify-between mb-2">
+                      <span className="flex items-center gap-2">
+                        <span style={{ width: 8, height: 8, borderRadius: 2, background: factor.color, display: "inline-block", flexShrink: 0 }} />
+                        <span className="text-[14px] font-semibold" style={{ color: "var(--fg-0)" }}>{t(factor.label)}</span>
+                        <span className="text-[10px]" style={{ color: "var(--fg-3)" }}>{factor.desc}</span>
+                      </span>
+                      <span className="flex items-baseline gap-2">
+                        <span className="font-mono text-[9px]" style={{ color: "var(--fg-3)" }}>t {factor.tStat}</span>
+                        <span className="font-mono text-[15px] font-bold" style={{ color: factor.color }}>{val}</span>
+                      </span>
+                    </div>
+                    {/* 44px touch-target slider */}
+                    <div
+                      className="relative flex items-center"
+                      style={{ height: 44 }}
+                    >
+                      {/* Track fill */}
+                      <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 rounded-full" style={{ height: 6, background: "rgba(255,255,255,.06)" }}>
+                        <div
+                          className="absolute left-0 top-0 bottom-0 rounded-full"
+                          style={{
+                            width: `${val}%`,
+                            background: `linear-gradient(90deg, ${factor.color}55, ${factor.color})`,
+                            boxShadow: `0 0 8px ${factor.color}55`,
+                          }}
+                        />
+                      </div>
+                      {/* Native range input — transparent, full hit area */}
+                      <input
+                        type="range"
+                        min={0}
+                        max={100}
+                        value={val}
+                        onChange={(e) => {
+                          const next = Number(e.target.value);
+                          setMFactorWeights((prev) => ({ ...prev, [factor.id]: next }));
+                          setMActivePreset(null); // custom — deselect preset
+                        }}
+                        className="absolute inset-0 w-full opacity-0 cursor-pointer"
+                        style={{ height: 44, margin: 0, padding: 0 }}
+                        aria-label={`${factor.label} ${t("权重")}`}
+                      />
+                      {/* Visible thumb */}
+                      <div
+                        className="absolute pointer-events-none"
+                        style={{
+                          left: `calc(${val}% - 11px)`,
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          width: 22,
+                          height: 22,
+                          borderRadius: "50%",
+                          background: "#fff",
+                          boxShadow: `0 0 0 2px ${factor.color}, 0 2px 8px rgba(0,0,0,.45)`,
+                        }}
+                      />
+                    </div>
+                    {/* Beta label under track */}
+                    <div className="flex justify-between mt-1">
+                      <span className="font-mono text-[9px]" style={{ color: "var(--fg-4)" }}>β {beta}</span>
+                      <span className="font-mono text-[9px]" style={{ color: tStatNum > 2 ? "var(--up)" : "var(--fg-3)" }}>
+                        {tStatNum > 2 ? "✓ 显著" : "—"}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* §3 Exposure summary card */}
+          <div className="px-4 pt-5 pb-2">
+            <div
+              className="rounded-xl px-4 py-4"
+              style={{ background: "rgba(255,255,255,.025)", border: "1px solid var(--line)" }}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[12px] font-semibold" style={{ color: "var(--fg-0)" }}>{t("组合暴露结果")}</span>
+                <span
+                  className="font-mono text-[9.5px] px-2 py-0.5 rounded-full"
+                  style={{ background: "rgba(99,102,241,.15)", color: "var(--indigo-2)", border: "1px solid rgba(99,102,241,.25)" }}
+                >
+                  IR {irScore}
+                </span>
+              </div>
+              <div className="flex">
+                {[
+                  { label: t("年化 α"), value: `+${annualAlpha}%`, color: "var(--up)" },
+                  { label: t("跟踪误差"), value: `${trackingErr}%`, color: "var(--fg-0)" },
+                  { label: t("换手"),    value: `${turnover}%`,    color: "var(--warn)" },
+                ].map((item, i) => (
+                  <div
+                    key={item.label}
+                    className="flex-1"
+                    style={{ paddingLeft: i ? 12 : 0, borderLeft: i ? "1px solid var(--line)" : "none" }}
+                  >
+                    <div className="text-[8px] uppercase tracking-wider mb-1" style={{ color: "var(--fg-3)" }}>{item.label}</div>
+                    <div className="font-mono text-[16px] font-bold" style={{ color: item.color, lineHeight: 1 }}>{item.value}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Radar + β table trigger */}
+              <button
+                onClick={() => setMChartOpen(true)}
+                className="mt-3 w-full flex items-center justify-center gap-2 rounded-lg py-2 active:scale-[0.98] transition text-[12px] font-medium"
+                style={{ background: "rgba(255,255,255,.04)", border: "1px solid var(--line-2)", color: "var(--fg-2)" }}
+              >
+                <Eye size={14} style={{ color: "var(--indigo-2)" }} />
+                {t("查看暴露雷达 + β/t 表")}
+              </button>
+            </div>
+          </div>
+
+        </div>{/* end scrollable */}
+
+        {/* §4 Bottom CTA */}
+        <ThumbActionBar
+          primary={{
+            icon: <Eye size={18} />,
+            label: t("查看匹配标的"),
+            onClick: fetchSnapshot,
+            disabled: loading,
+          }}
+        />
+
+        {/* §5 Fullscreen chart — radar + β/t table (landscape) */}
+        <FullscreenChart
+          open={mChartOpen}
+          onClose={() => setMChartOpen(false)}
+          title={t("因子暴露雷达")}
+          meta={
+            <span
+              className="font-mono text-[9px] px-2 py-0.5 rounded-full"
+              style={{ background: "rgba(99,102,241,.15)", color: "var(--indigo-2)", border: "1px solid rgba(99,102,241,.25)" }}
+            >
+              {t("当前 vs 基准")}
+            </span>
+          }
+        >
+          {/* Landscape layout: radar left + β/t table right */}
+          <div className="w-full h-full flex gap-6 items-center">
+            {/* Radar SVG */}
+            <div className="flex items-center justify-center" style={{ flex: "0 0 auto" }}>
+              <svg viewBox="0 0 160 160" width={200} height={200}>
+                {/* Grid rings */}
+                {gridLevels.map((lvl, gi) => {
+                  const gPts = radarPoints(radarFactors.map(() => lvl * 100), CX, CY, R);
+                  return (
+                    <polygon
+                      key={gi}
+                      points={ptStr(gPts)}
+                      fill="none"
+                      stroke="rgba(255,255,255,.07)"
+                      strokeWidth={1}
+                    />
+                  );
+                })}
+                {/* Axis lines */}
+                {radarFactors.map((_, ai) => {
+                  const angle = (Math.PI * 2 * ai) / radarFactors.length - Math.PI / 2;
+                  const tx = CX + R * Math.cos(angle);
+                  const ty = CY + R * Math.sin(angle);
+                  return <line key={ai} x1={CX} y1={CY} x2={tx} y2={ty} stroke="rgba(255,255,255,.06)" strokeWidth={1} />;
+                })}
+                {/* Baseline polygon */}
+                <polygon points={ptStr(basePts)} fill="rgba(90,94,118,.12)" stroke="#5A5E76" strokeWidth={1} />
+                {/* Current polygon */}
+                <polygon points={ptStr(curPts)} fill="rgba(99,102,241,.18)" stroke="#818CF8" strokeWidth={1.8} />
+                {/* Vertex dots */}
+                {curPts.map((p, pi) => (
+                  <circle key={pi} cx={p[0]} cy={p[1]} r={3} fill="#5EE6E6" />
+                ))}
+                {/* Axis labels */}
+                {radarFactors.map((f, fi) => {
+                  const angle = (Math.PI * 2 * fi) / radarFactors.length - Math.PI / 2;
+                  const lx = CX + (R + 14) * Math.cos(angle);
+                  const ly = CY + (R + 14) * Math.sin(angle);
+                  return (
+                    <text key={fi} x={lx} y={ly} textAnchor="middle" dominantBaseline="middle"
+                      fill="var(--fg-3)" fontSize={8} fontFamily="ui-monospace,monospace">
+                      {f.label.split(" ")[0]}
+                    </text>
+                  );
+                })}
+              </svg>
+            </div>
+
+            {/* β/t table */}
+            <div className="flex-1 flex flex-col gap-2 justify-center overflow-y-auto">
+              <div className="text-[10px] uppercase tracking-wider mb-1" style={{ color: "var(--fg-3)" }}>
+                β / t {t("值")} · {MOBILE_FACTORS.length} {t("因子")}
+              </div>
+              {MOBILE_FACTORS.map((f) => {
+                const w = mFactorWeights[f.id] ?? 50;
+                const beta = (w / 100 * 1.2).toFixed(2);
+                const tNum = parseFloat(f.tStat);
+                return (
+                  <div
+                    key={f.id}
+                    className="flex items-center gap-3 rounded-lg px-3 py-2"
+                    style={{ background: "rgba(255,255,255,.022)", border: "1px solid var(--line)" }}
+                  >
+                    <span style={{ width: 7, height: 7, borderRadius: 2, background: f.color, flexShrink: 0, display: "inline-block" }} />
+                    <span className="flex-1 text-[11.5px]" style={{ color: "var(--fg-1)" }}>{t(f.label)}</span>
+                    <span className="font-mono text-[11px] font-semibold" style={{ color: "var(--fg-0)" }}>β {beta}</span>
+                    <span className="font-mono text-[10px]" style={{ color: tNum > 2 ? "var(--up)" : "var(--fg-3)" }}>t {f.tStat}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </FullscreenChart>
+      </div>
+    );
+  } // end if (isMobile)
 
   return (
     // v5 对齐：移除 bg-[#0d1117] 硬编码，让父 shell 的 theme bg 透出来

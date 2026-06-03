@@ -3,9 +3,11 @@
 // 组件已拆到 ../components/macro/*；本文件只负责数据加载 + 组合 + 路由级 state
 // ─────────────────────────────────────────────────────────────
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { Globe, RefreshCw, AlertCircle, Loader, ArrowUp, Maximize2, Minimize2, Share2, Check, FileText } from "lucide-react";
+import { Globe, RefreshCw, AlertCircle, Loader, ArrowUp, Maximize2, Minimize2, Share2, Check, FileText, ChevronRight, ChevronLeft, Thermometer } from "lucide-react";
 import { apiFetch } from "../quant-platform.jsx";
 import { useLang } from "../i18n.jsx";
+import useIsMobile from "../hooks/useIsMobile";
+import { BottomSheet, MobileAppBar, FullscreenChart } from "../components/mobile";
 
 // 线上快照（production 只能读它，因为 Vercel 上没跑 backend；本地 dev 走实时 API）
 // 主动刷新：本地 `cd backend && python export_macro_snapshot.py` → commit → push
@@ -33,6 +35,7 @@ const USE_SNAPSHOT = import.meta.env.PROD;
 
 export default function MacroDashboard() {
   const { t } = useLang();
+  const isMobile = useIsMobile();
   const [factors, setFactors] = useState(null);
   const [composite, setComposite] = useState(null);
   const [history, setHistory] = useState(null);
@@ -367,6 +370,449 @@ export default function MacroDashboard() {
     if (pct > hi) return { side: 'high', thresh: hi, over: +(pct - hi).toFixed(1) };
     return null;
   };
+
+  // ── 移动端专用 state（无条件 hook，必须在 if (isMobile) 外）────
+  const [mobileSel, setMobileSel] = useState(null);
+  const [showHeatmap, setShowHeatmap] = useState(false);
+  // Top Movers：|percentile − 50| 最大的前 6 个因子
+  const topMovers = useMemo(() => {
+    if (!factors) return [];
+    return [...factors]
+      .filter(f => f.latest?.percentile != null)
+      .sort((a, b) => Math.abs((b.latest.percentile ?? 50) - 50) - Math.abs((a.latest.percentile ?? 50) - 50))
+      .slice(0, 6);
+  }, [factors]);
+
+  // ─────────────────────────────────────────────────────────────
+  // v6 移动端：晨报式竖向叙事
+  // 市场温度头条 → AI 导读 → Top Movers 横滑 → 因子按警示分层 → 因子详情 BottomSheet
+  // → 全部因子热力图（FullscreenChart 横屏）
+  // ─────────────────────────────────────────────────────────────
+  if (isMobile) {
+    const temp = composite?.market_temperature;
+    const tempLabel = temp == null ? "—"
+      : temp < 15 ? t("极熊") : temp < 35 ? t("偏熊")
+      : temp < 50 ? t("中性偏熊") : temp < 65 ? t("中性偏牛")
+      : temp < 85 ? t("偏牛") : t("极牛");
+    const tempColor = temp == null ? "var(--fg-3)"
+      : temp < 20 ? "var(--down)" : temp < 40 ? "var(--warn)"
+      : temp < 60 ? "var(--fg-1)" : temp < 80 ? "#a3e635"
+      : "var(--up)";
+
+    // 因子行渲染：警示在前，常规随后
+    const mobileFactors = [
+      ...alertedFactors.map(f => ({ f, isAlert: true })),
+      ...normalFactors.slice(0, 12).map(f => ({ f, isAlert: false })),
+    ];
+
+    const getTone = (f, isAlert) => {
+      if (isAlert) return "down";
+      const pct = f.latest?.percentile;
+      if (pct == null) return "neutral";
+      if (pct < 20 || pct > 80) return "warn";
+      return "up";
+    };
+
+    const getToneColor = (tone) =>
+      tone === "down" ? "var(--down)" : tone === "warn" ? "var(--warn)" : "var(--up)";
+
+    const getToneBorder = (tone) =>
+      tone === "down" ? "rgba(255,107,107,.25)" : "var(--line)";
+
+    const fmtVal = (f) => {
+      const v = f.latest?.raw_value;
+      if (v == null) return "—";
+      return typeof v === "number"
+        ? v > 1000 ? v.toLocaleString() : v.toFixed(v % 1 === 0 ? 0 : 2)
+        : String(v);
+    };
+
+    const getPctStatus = (f) => {
+      const pct = f.latest?.percentile;
+      if (pct == null) return t("数据不足");
+      if (pct < 10) return t("极低分位 · 历史底部区");
+      if (pct < 25) return t("低分位 · 历史偏低");
+      if (pct < 75) return t("正常波动区间");
+      if (pct < 90) return t("高分位 · 历史偏高");
+      return t("极高分位 · 历史顶部区");
+    };
+
+    // Top Movers + heatmap state are hoisted above if (isMobile) — see below
+    const heatmapFactors = factors || [];
+    const heatColor = (f) => {
+      const pct = f.latest?.percentile;
+      const tone = (() => {
+        const isAlert = alertedFactors.includes(f);
+        if (isAlert) return "down";
+        if (pct == null) return "neutral";
+        if (pct < 20 || pct > 80) return "warn";
+        return "up";
+      })();
+      return {
+        bg: tone === "down" ? "rgba(255,107,107,.16)" : tone === "warn" ? "rgba(245,181,60,.14)" : "rgba(30,211,149,.10)",
+        border: tone === "down" ? "rgba(255,107,107,.4)" : tone === "warn" ? "rgba(245,181,60,.35)" : "rgba(30,211,149,.28)",
+        text: tone === "down" ? "var(--down)" : tone === "warn" ? "var(--warn)" : "var(--up)",
+        topBar: tone === "down",
+      };
+    };
+
+    return (
+      <div className="h-full flex flex-col" style={{ background: "var(--bg-0)" }}>
+        <div className="flex-1 overflow-y-auto overscroll-contain">
+
+          {/* ── 页头 ── */}
+          <div className="px-4 pt-3 pb-1 flex items-center justify-between">
+            <h1 className="text-[22px] font-bold" style={{ color: "var(--fg-0)" }}>{t("宏观看板")}</h1>
+            <button
+              onClick={load}
+              disabled={loading}
+              className="w-9 h-9 rounded-[10px] border flex items-center justify-center active:scale-95"
+              style={{ borderColor: "var(--line)", background: "rgba(255,255,255,.03)" }}
+            >
+              <RefreshCw size={16} className={loading ? "animate-spin" : ""} style={{ color: "var(--fg-2)" }} />
+            </button>
+          </div>
+
+          {/* ── 市场温度英雄区 ── */}
+          <div className="px-4 pb-4 pt-1">
+            <div className="text-[9px] font-semibold tracking-widest uppercase mb-1" style={{ color: "var(--fg-3)" }}>
+              {t("今日市场温度")}
+            </div>
+            {loading && !composite ? (
+              <div className="flex items-center gap-2 py-4" style={{ color: "var(--fg-3)" }}>
+                <Loader size={18} className="animate-spin" /><span className="text-sm">{t("加载中…")}</span>
+              </div>
+            ) : (
+              <div className="flex items-end gap-4">
+                <span
+                  className="font-serif leading-none"
+                  style={{
+                    fontSize: 80, fontWeight: 600, letterSpacing: "-0.02em", lineHeight: 0.85,
+                    background: `linear-gradient(180deg, ${tempColor}, color-mix(in srgb, ${tempColor} 70%, #000))`,
+                    WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+                    fontFamily: "Fraunces, Georgia, serif",
+                  }}
+                >
+                  {temp != null ? Math.round(temp) : "—"}
+                </span>
+                <div style={{ paddingBottom: 8 }}>
+                  <span
+                    className="text-[11px] font-semibold px-2 py-0.5 rounded-full border"
+                    style={{ color: tempColor, borderColor: "color-mix(in srgb, " + tempColor + " 40%, transparent)", background: "color-mix(in srgb, " + tempColor + " 12%, transparent)" }}
+                  >
+                    {tempLabel}
+                  </span>
+                  {composite?.wow_delta != null && (
+                    <div className="font-mono text-[10px] mt-1.5" style={{ color: "var(--fg-3)" }}>
+                      {t("较上周")}{" "}
+                      <span style={{ color: composite.wow_delta > 0 ? "var(--up)" : "var(--down)" }}>
+                        {composite.wow_delta > 0 ? "+" : ""}{composite.wow_delta.toFixed(1)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* AI 导读段落 */}
+            {narrative && (
+              <p
+                className="mt-3 text-[14px] leading-relaxed"
+                style={{ color: "var(--fg-1)", fontFamily: "Fraunces, Georgia, serif" }}
+              >
+                {typeof narrative === "string"
+                  ? narrative.slice(0, 160) + (narrative.length > 160 ? "…" : "")
+                  : narrative.summary?.slice(0, 160) || ""}
+              </p>
+            )}
+            {narrativeLoading && !narrative && (
+              <div className="flex items-center gap-1.5 mt-3 text-[12px]" style={{ color: "var(--fg-3)" }}>
+                <Loader size={13} className="animate-spin" />{t("AI 解读生成中…")}
+              </div>
+            )}
+          </div>
+
+          {/* ── Top Movers 横向滑动卡 ── */}
+          {topMovers.length > 0 && (
+            <div className="mb-5">
+              <div
+                className="text-[9px] font-semibold tracking-widest uppercase mb-2 px-4"
+                style={{ color: "var(--fg-3)" }}
+              >
+                {t("今日最大偏移 · Top Movers")}
+              </div>
+              <div className="flex gap-3 overflow-x-auto px-4" style={{ scrollbarWidth: "none" }}>
+                {topMovers.map((f) => {
+                  const pct = f.latest?.percentile ?? 50;
+                  const isHigh = pct > 50;
+                  const accent = pct < 20 || pct > 80
+                    ? (pct < 20 ? "var(--down)" : "var(--down)")
+                    : pct < 35 || pct > 65 ? "var(--warn)" : "var(--up)";
+                  const isAlert = alertedFactors.some(af => af.factor_id === f.factor_id);
+                  const cardAccent = isAlert ? "var(--down)" : pct < 35 || pct > 65 ? "var(--warn)" : "var(--up)";
+                  return (
+                    <button
+                      key={f.factor_id}
+                      onClick={() => setMobileSel(f)}
+                      className="shrink-0 rounded-[13px] border active:scale-95 transition text-left"
+                      style={{
+                        width: 104, padding: "12px 13px",
+                        background: "rgba(255,255,255,.022)",
+                        borderColor: "var(--line)",
+                      }}
+                    >
+                      <div className="text-[11px] mb-2 truncate" style={{ color: "var(--fg-2)" }}>
+                        {t(f.name || f.factor_id)}
+                      </div>
+                      <div
+                        className="font-mono text-[17px] font-bold leading-none"
+                        style={{ color: cardAccent }}
+                      >
+                        {fmtVal(f)}
+                      </div>
+                      <div className="mt-2 text-[9px] font-mono" style={{ color: "var(--fg-4)" }}>
+                        p{Math.round(pct)}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* ── 关键因子 · 按警示分层 ── */}
+          <div className="px-4 mb-4">
+            <div className="flex items-baseline justify-between mb-3">
+              <span
+                className="text-[9px] font-semibold tracking-widest uppercase"
+                style={{ color: "var(--fg-3)" }}
+              >
+                {t("关键因子 · 按警示分层")}
+              </span>
+              {factors && (
+                <button
+                  onClick={() => setShowHeatmap(true)}
+                  className="flex items-center gap-1 text-[11px] font-semibold active:scale-95"
+                  style={{ color: "var(--indigo-2)" }}
+                >
+                  {t("全部")} {factors.length} {t("项")}
+                  <ChevronRight size={13} />
+                </button>
+              )}
+            </div>
+
+            {error && (
+              <div className="flex items-center gap-2 p-3 rounded-xl text-sm mb-3" style={{ background: "rgba(239,68,68,.1)", border: "1px solid rgba(239,68,68,.3)", color: "#fca5a5" }}>
+                <AlertCircle size={15} className="shrink-0" />{error}
+              </div>
+            )}
+
+            {loading && !factors && (
+              <div className="flex items-center justify-center py-10" style={{ color: "var(--fg-3)" }}>
+                <Loader size={18} className="animate-spin mr-2" />{t("加载中…")}
+              </div>
+            )}
+
+            {mobileFactors.map(({ f, isAlert }) => {
+              const tone = getTone(f, isAlert);
+              const c = getToneColor(tone);
+              return (
+                <button
+                  key={f.factor_id + (f.market || "")}
+                  onClick={() => setMobileSel(f)}
+                  className="w-full flex items-center gap-3 rounded-xl mb-2 active:scale-[0.99] transition text-left"
+                  style={{
+                    padding: "13px 14px",
+                    background: "rgba(255,255,255,.022)",
+                    border: "1px solid " + getToneBorder(tone),
+                  }}
+                >
+                  <span
+                    className="shrink-0 rounded-full"
+                    style={{ width: 8, height: 8, background: c, boxShadow: `0 0 8px ${c}` }}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[13px] font-semibold truncate" style={{ color: "var(--fg-0)" }}>
+                      {t(f.name || f.factor_id)}
+                    </div>
+                    <div className="text-[11px] mt-0.5" style={{ color: "var(--fg-3)" }}>
+                      {getPctStatus(f)}
+                    </div>
+                  </div>
+                  <span className="font-mono text-[15px] font-bold shrink-0" style={{ color: c }}>
+                    {fmtVal(f)}
+                  </span>
+                  <ChevronRight size={15} style={{ color: "var(--fg-4)", flexShrink: 0 }} />
+                </button>
+              );
+            })}
+
+            {factors && mobileFactors.length === 0 && (
+              <div className="text-center py-10 text-sm" style={{ color: "var(--fg-3)" }}>
+                {t("暂无因子数据")}
+              </div>
+            )}
+          </div>
+
+          {/* bottom safe-area spacer */}
+          <div style={{ height: "calc(16px + env(safe-area-inset-bottom))" }} />
+        </div>
+
+        {/* ── 因子详情 BottomSheet ── */}
+        <BottomSheet
+          open={mobileSel != null}
+          onClose={() => setMobileSel(null)}
+          title={mobileSel ? t(mobileSel.name || mobileSel.factor_id) : ""}
+          maxHeight="82vh"
+        >
+          {mobileSel && (() => {
+            const f = mobileSel;
+            const pct = f.latest?.percentile;
+            const tone = (() => {
+              const isAlert = alertedFactors.some(af => af.factor_id === f.factor_id);
+              if (isAlert) return "down";
+              if (pct == null) return "neutral";
+              if (pct < 20 || pct > 80) return "warn";
+              return "up";
+            })();
+            const c = getToneColor(tone);
+            const dist = alertDistance(f);
+            return (
+              <div className="pb-4">
+                {/* 状态行 */}
+                <div className="flex items-center gap-3 mb-4">
+                  <span
+                    className="rounded-full shrink-0"
+                    style={{ width: 10, height: 10, background: c, boxShadow: `0 0 10px ${c}` }}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[11px]" style={{ color: "var(--fg-3)" }}>
+                      {f.category ? t(CATEGORY_LABEL[f.category] || f.category) : ""}{f.market ? ` · ${f.market}` : ""}
+                    </div>
+                  </div>
+                  <span
+                    className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full border"
+                    style={{ color: c, borderColor: "color-mix(in srgb, " + c + " 40%, transparent)", background: "color-mix(in srgb, " + c + " 12%, transparent)" }}
+                  >
+                    {getPctStatus(f)}
+                  </span>
+                </div>
+
+                {/* 当前值 + 分位 */}
+                <div
+                  className="rounded-xl p-4 mb-4"
+                  style={{ background: "rgba(255,255,255,.022)", border: "1px solid var(--line)" }}
+                >
+                  <div className="flex items-baseline gap-4 mb-3">
+                    <span className="font-mono text-[32px] font-bold leading-none" style={{ color: "var(--fg-0)" }}>
+                      {fmtVal(f)}
+                    </span>
+                    {pct != null && (
+                      <span className="font-mono text-[13px]" style={{ color: c }}>
+                        p{Math.round(pct)}
+                      </span>
+                    )}
+                  </div>
+                  {/* 分位条 */}
+                  {pct != null && (
+                    <div className="relative h-2 rounded-full overflow-hidden mb-1" style={{ background: "rgba(255,255,255,.06)" }}>
+                      <div
+                        className="absolute left-0 top-0 h-full rounded-full"
+                        style={{ width: `${pct}%`, background: c, opacity: 0.75 }}
+                      />
+                    </div>
+                  )}
+                  {dist && (
+                    <div className="text-[10px] font-mono mt-1.5" style={{ color: "var(--warn)" }}>
+                      {t("距警戒阈值")} {dist.thresh}% · {t("越界")} {dist.over.toFixed(1)} pts
+                    </div>
+                  )}
+                </div>
+
+                {/* 描述 */}
+                {f.description && (
+                  <p className="text-[13px] leading-relaxed mb-4" style={{ color: "var(--fg-1)" }}>
+                    {f.description}
+                  </p>
+                )}
+
+                {/* 更新时间 */}
+                {f.latest?.value_date && (
+                  <div className="text-[10px] font-mono mb-4" style={{ color: "var(--fg-4)" }}>
+                    {t("数据日期")} {f.latest.value_date}
+                  </div>
+                )}
+
+                {/* 操作按钮 */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      const idx = filtered.findIndex(x => x.factor_id === f.factor_id && x.market === f.market);
+                      if (idx > 0) setMobileSel(filtered[idx - 1]);
+                    }}
+                    disabled={(() => { const i = filtered.findIndex(x => x.factor_id === f.factor_id && x.market === f.market); return i <= 0; })()}
+                    className="flex-1 h-11 rounded-xl border text-[13px] font-semibold flex items-center justify-center gap-1 active:scale-95 disabled:opacity-30"
+                    style={{ borderColor: "var(--line-2)", background: "rgba(255,255,255,.04)", color: "var(--fg-1)" }}
+                  >
+                    <ChevronLeft size={15} />{t("上一个")}
+                  </button>
+                  <button
+                    onClick={() => {
+                      const idx = filtered.findIndex(x => x.factor_id === f.factor_id && x.market === f.market);
+                      if (idx >= 0 && idx < filtered.length - 1) setMobileSel(filtered[idx + 1]);
+                    }}
+                    disabled={(() => { const i = filtered.findIndex(x => x.factor_id === f.factor_id && x.market === f.market); return i < 0 || i >= filtered.length - 1; })()}
+                    className="flex-1 h-11 rounded-xl border text-[13px] font-semibold flex items-center justify-center gap-1 active:scale-95 disabled:opacity-30"
+                    style={{ borderColor: "rgba(99,102,241,.3)", background: "rgba(99,102,241,.15)", color: "var(--indigo-2)" }}
+                  >
+                    {t("下一个")}<ChevronRight size={15} />
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
+        </BottomSheet>
+
+        {/* ── 全部因子热力图（横屏 FullscreenChart）── */}
+        <FullscreenChart
+          open={showHeatmap}
+          onClose={() => setShowHeatmap(false)}
+          title={t("宏观因子热力") + " · " + heatmapFactors.length + " " + t("项")}
+          meta={
+            composite?.market_temperature != null
+              ? <span className="font-mono text-[13px] font-bold" style={{ color: tempColor }}>{Math.round(composite.market_temperature)}</span>
+              : null
+          }
+        >
+          <div
+            className="w-full h-full overflow-auto"
+            style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(72px, 1fr))", gap: 6, alignContent: "start" }}
+          >
+            {heatmapFactors.map((f) => {
+              const { bg, border, text, topBar } = heatColor(f);
+              return (
+                <button
+                  key={f.factor_id + (f.market || "")}
+                  onClick={() => { setShowHeatmap(false); setTimeout(() => setMobileSel(f), 120); }}
+                  className="rounded-[9px] flex flex-col justify-between active:scale-95 transition relative overflow-hidden text-left"
+                  style={{ background: bg, border: `1px solid ${border}`, padding: "8px 9px", minHeight: 60 }}
+                >
+                  {topBar && <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: "var(--down)" }} />}
+                  <div className="text-[10px] font-semibold leading-tight" style={{ color: "var(--fg-2)" }}>
+                    {t(f.name || f.factor_id)}
+                  </div>
+                  <div className="font-mono text-[13px] font-bold leading-none mt-1" style={{ color: text }}>
+                    {fmtVal(f)}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </FullscreenChart>
+      </div>
+    );
+  }
+  // ─── END mobile branch ───────────────────────────────────────
 
   return (
     <div ref={scrollRef} className="space-y-4 flex-1 min-h-0 overflow-y-auto pr-1 -mr-1 relative">

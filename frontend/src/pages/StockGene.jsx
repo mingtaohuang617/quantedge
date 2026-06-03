@@ -22,6 +22,7 @@ import {
   Activity, Plus, Trash2, RefreshCw, Loader, AlertCircle, Check, X,
   Sparkles, BarChart3, TrendingUp, Layers, Search,
   ArrowUpDown, Download, Upload, Sliders, Briefcase, Bell, Clock,
+  Maximize2,
 } from "lucide-react";
 import { apiFetch, DataContext } from "../quant-platform.jsx";
 import {
@@ -33,14 +34,31 @@ import {
 import { ConfirmDialog, ShortcutsHelp, WeightsPanel, ListDialog, AlertsPanel, SchedulerPanel } from "../components/stock-gene/dialogs.jsx";
 import { VerdictFilterChips, TagFilterChips, TagsInput } from "../components/stock-gene/filters.jsx";
 import { PeersTable } from "../components/stock-gene/cards.jsx";
-import CharacterProfile from "../components/stock-gene/CharacterProfile.jsx";
+import CharacterProfile, { deriveCharacter } from "../components/stock-gene/CharacterProfile.jsx";
 import { ListsTabBar } from "../components/stock-gene/ListsTabBar.jsx";
 import { ScoreDetail } from "../components/stock-gene/ScoreDetail.jsx";
 import { TickerSearchBox } from "../components/stock-gene/TickerSearchBox.jsx";
 import EmptyState from "../components/EmptyState.jsx";
+import { MobileAppBar, BottomSheet, FullscreenChart, useIsMobile } from "../components/mobile/index.js";
 
+
+// ── 模块级辅助：移动端性格派生（包装 deriveCharacter，stock 可为 null）──
+function driveCharacterForMobile(stock) {
+  if (!stock) return null;
+  try { return deriveCharacter(stock); } catch { return null; }
+}
 
 export default function StockGene() {
+  // ── 移动端检测（hooks 必须在任何 early return 前声明）──────
+  const isMobile = useIsMobile();
+  // 移动端专用 state
+  const [mDrillStock, setMDrillStock] = useState(null);   // 下钻的 ticker（null = 列表页）
+  const [mRadarFs, setMRadarFs] = useState(false);         // 全屏雷达
+  const [mAddOpen, setMAddOpen] = useState(false);         // 添加 BottomSheet
+  const [mNewTicker, setMNewTicker] = useState("");
+  const [mAddErr, setMAddErr] = useState(null);
+  const [mAddLoading, setMAddLoading] = useState(false);
+
   // 观察列表
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -843,6 +861,598 @@ export default function StockGene() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [sortedItems, selectedTicker, filterText, filterVerdicts, filterTags, showShortcuts, confirmDialog, reload]);
+
+  // ── v6 移动端渲染 ─────────────────────────────────────────
+  // 所有 hooks 已在上方声明，early return 安全
+  if (isMobile) {
+    // 当前下钻的股票对象（来自 items + selStock 市场数据）
+    const drillItem = mDrillStock ? items.find(it => it.ticker === mDrillStock) : null;
+    const drillSelStock = mDrillStock && Array.isArray(mktStocks)
+      ? mktStocks.find(s => s.ticker === mDrillStock)
+      : null;
+    const drillChar = driveCharacterForMobile(drillSelStock);
+
+    // 快速添加 ticker（仅 ticker 字段，后台评分）
+    const handleMAdd = async () => {
+      const ticker = mNewTicker.trim().toUpperCase();
+      if (!ticker) { setMAddErr("请输入 ticker"); return; }
+      setMAddLoading(true);
+      setMAddErr(null);
+      try {
+        const res = await apiFetch("/stock-gene", {
+          method: "POST",
+          body: JSON.stringify({ ticker, market: "US", list_id: activeListId }),
+        });
+        if (!res?.ok) { setMAddErr(res?.detail || "添加失败"); return; }
+        setMNewTicker("");
+        setMAddOpen(false);
+        await reload();
+        setMDrillStock(ticker);
+        setScoringTicker(ticker);
+        Promise.allSettled(
+          ENGINE_IDS.map(id => apiFetch(
+            `/stock-gene/${encodeURIComponent(ticker)}/${eng(id).scoreRoute}`,
+            { method: "POST" },
+          ))
+        ).then(() => { reload(); setScoringTicker(null); });
+      } finally {
+        setMAddLoading(false);
+      }
+    };
+
+    // 雷达 SVG — 与 stockchar.jsx After 一致，130×130，6 维
+    const RadarInline = ({ traits, tone = "var(--indigo)" }) => {
+      if (!traits || traits.length === 0) return null;
+      const cx = 60, cy = 60, R = 46;
+      const pt = (i, r) => {
+        const a = -Math.PI / 2 + (i * 2 * Math.PI) / traits.length;
+        return [cx + Math.cos(a) * R * r, cy + Math.sin(a) * R * r];
+      };
+      const poly = (rs) => rs.map((r, i) => pt(i, r).join(",")).join(" ");
+      const vals = traits.map(t => (t.v == null ? 0 : t.v));
+      return (
+        <svg viewBox="0 0 120 120" width="130" height="130" style={{ flexShrink: 0 }}>
+          {[1, 0.66, 0.33].map((r, i) => (
+            <polygon key={i} points={poly(traits.map(() => r))}
+              fill="none" stroke="rgba(255,255,255,.06)" strokeWidth="1" />
+          ))}
+          {traits.map((_, i) => {
+            const [x, y] = pt(i, 1);
+            return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="rgba(255,255,255,.05)" />;
+          })}
+          <polygon points={poly(vals)}
+            fill="rgba(99,102,241,.22)" stroke="var(--indigo-2)" strokeWidth="2" />
+          {traits.map((t, i) => {
+            const [x, y] = pt(i, t.v == null ? 0 : t.v);
+            return <circle key={i} cx={x} cy={y} r="2.4" fill="var(--cyan)" />;
+          })}
+        </svg>
+      );
+    };
+
+    // 全屏横屏雷达
+    const RadarFullscreen = ({ traits, tone, label }) => {
+      if (!traits || traits.length === 0) return null;
+      const cx = 50, cy = 50, R = 42;
+      const pt = (i, r) => {
+        const a = -Math.PI / 2 + (i * 2 * Math.PI) / traits.length;
+        return [cx + Math.cos(a) * R * r, cy + Math.sin(a) * R * r];
+      };
+      const poly = (rs) => rs.map((r, i) => pt(i, r).join(",")).join(" ");
+      const vals = traits.map(t => (t.v == null ? 0 : t.v));
+      return (
+        <div style={{ width: "100%", height: "100%", display: "flex", gap: 24, alignItems: "center" }}>
+          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <svg viewBox="0 0 100 100" width="210" height="210">
+              {[1, 0.75, 0.5, 0.25].map((r, i) => (
+                <polygon key={i} points={poly(traits.map(() => r))}
+                  fill="none" stroke="rgba(255,255,255,.06)" strokeWidth="0.8" />
+              ))}
+              {traits.map((_, i) => {
+                const [x, y] = pt(i, 1);
+                return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="rgba(255,255,255,.05)" strokeWidth="0.6" />;
+              })}
+              <polygon points={poly(vals)} fill="rgba(99,102,241,.22)" stroke="var(--indigo-2)" strokeWidth="1.6" />
+              {traits.map((t, i) => {
+                const [x, y] = pt(i, t.v == null ? 0 : t.v);
+                return <circle key={i} cx={x} cy={y} r="1.8" fill="var(--cyan)" />;
+              })}
+            </svg>
+          </div>
+          <div style={{ width: 220, display: "flex", flexDirection: "column", gap: 9 }}>
+            <div style={{ fontSize: 9, color: "var(--fg-3)", marginBottom: 2 }}>维度明细</div>
+            {traits.map(t => (
+              <div key={t.k} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 11, color: "var(--fg-1)", width: 56, flexShrink: 0 }}>{t.n}</span>
+                <div style={{ flex: 1, height: 6, background: "rgba(255,255,255,.05)", borderRadius: 3, position: "relative" }}>
+                  <div style={{ width: `${(t.v ?? 0) * 100}%`, height: "100%", background: "linear-gradient(90deg,var(--indigo),var(--cyan))", borderRadius: 3 }} />
+                  <div style={{ position: "absolute", left: "50%", top: -2, bottom: -2, width: 1, background: "var(--fg-3)" }} />
+                </div>
+                <span style={{ fontSize: 11, color: (t.v ?? 0) > 0.5 ? "var(--up)" : "var(--fg-3)", width: 22, textAlign: "right", fontWeight: 600 }}>
+                  {t.v == null ? "—" : Math.round(t.v * 100)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    };
+
+    // ── 下钻：个股档案 ─────────────────────────────────────
+    if (mDrillStock && drillChar) {
+      const char = drillChar;
+      const chips = (
+        <>
+          {char.label && (
+            <span style={{
+              fontSize: 11, padding: "2px 8px", borderRadius: 6,
+              background: `${char.tone}20`, color: char.tone,
+              border: `1px solid ${char.tone}44`,
+            }}>{char.label}</span>
+          )}
+        </>
+      );
+      return (
+        <div className="h-full flex flex-col" style={{ background: "var(--bg-0)" }}>
+          <MobileAppBar
+            onBack={() => setMDrillStock(null)}
+            title="股性档案"
+            chips={chips}
+            actions={
+              <button
+                onClick={() => setMRadarFs(true)}
+                style={{ color: "var(--fg-2)", padding: 4 }}
+                aria-label="全屏雷达"
+              >
+                <Maximize2 size={18} />
+              </button>
+            }
+          />
+
+          {/* 全屏横屏雷达 */}
+          <FullscreenChart
+            open={mRadarFs}
+            onClose={() => setMRadarFs(false)}
+            title={mDrillStock}
+            meta={
+              <span style={{
+                fontSize: 11, padding: "2px 8px", borderRadius: 6,
+                background: `${char.tone}20`, color: char.tone,
+                border: `1px solid ${char.tone}44`,
+              }}>{char.label}</span>
+            }
+          >
+            <RadarFullscreen traits={char.traits} tone={char.tone} label={char.label} />
+          </FullscreenChart>
+
+          <div className="flex-1 overflow-y-auto overscroll-contain" style={{ paddingBottom: 24 }}>
+
+            {/* 性格档案 Hero */}
+            <div style={{
+              padding: "18px 16px 16px",
+              textAlign: "center",
+              background: `radial-gradient(ellipse 300px 200px at 50% 0%, ${char.tone}18, transparent)`,
+            }}>
+              <span style={{ fontSize: 13, color: "var(--fg-3)", fontFamily: "var(--font-mono, monospace)" }}>
+                {mDrillStock}{drillItem?.name ? ` · ${drillItem.name}` : ""}
+              </span>
+              <div style={{
+                fontSize: 30, fontWeight: 600, margin: "10px 0 8px",
+                letterSpacing: "-0.01em", color: "var(--fg-0)",
+                fontFamily: "Georgia, 'Noto Serif SC', serif",
+              }}>
+                {char.label}
+              </div>
+              <div style={{ display: "flex", gap: 6, justifyContent: "center", flexWrap: "wrap", marginBottom: 14 }}>
+                {char.fit && (
+                  <span style={{
+                    fontSize: 10, padding: "3px 9px", borderRadius: 20,
+                    background: `${char.tone}18`, color: char.tone,
+                    border: `1px solid ${char.tone}33`,
+                  }}>{char.fit}</span>
+                )}
+                {drillItem?.sector && (
+                  <span style={{
+                    fontSize: 10, padding: "3px 9px", borderRadius: 20,
+                    background: "rgba(99,102,241,.12)", color: "var(--indigo-2)",
+                    border: "1px solid rgba(99,102,241,.25)",
+                  }}>{drillItem.sector}</span>
+                )}
+              </div>
+              {char.paragraph && (
+                <p style={{
+                  margin: "0 auto", maxWidth: 300,
+                  fontSize: 13, lineHeight: 1.65, color: "var(--fg-2)",
+                }}>
+                  {char.paragraph}
+                </p>
+              )}
+            </div>
+
+            {/* 雷达图 + 维度条并置 */}
+            <div style={{ padding: "0 16px 14px" }}>
+              <div style={{
+                padding: "14px 14px 12px",
+                borderRadius: 14,
+                background: "rgba(255,255,255,.022)",
+                border: "1px solid var(--line)",
+              }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: "var(--fg-1)" }}>六维性格雷达</span>
+                  <button
+                    onClick={() => setMRadarFs(true)}
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: 5,
+                      padding: "4px 9px",
+                      background: "rgba(99,102,241,.12)",
+                      border: "1px solid rgba(99,102,241,.3)",
+                      borderRadius: 7, fontSize: 10, color: "var(--indigo-2)", fontWeight: 600,
+                    }}
+                  >
+                    <Maximize2 size={11} />全屏
+                  </button>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <RadarInline traits={char.traits} tone={char.tone} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    {char.traits.map(t => (
+                      <div key={t.k} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                        <span style={{ fontSize: 10.5, color: "var(--fg-2)", width: 52, flexShrink: 0 }}>{t.n}</span>
+                        <div style={{ flex: 1, height: 4, background: "rgba(255,255,255,.05)", borderRadius: 2, overflow: "hidden" }}>
+                          <div style={{
+                            width: `${(t.v ?? 0) * 100}%`, height: "100%",
+                            background: "linear-gradient(90deg,var(--indigo),var(--cyan))",
+                            borderRadius: 2,
+                          }} />
+                        </div>
+                        <span style={{ fontSize: 10, color: "var(--fg-1)", width: 22, textAlign: "right", fontFamily: "var(--font-mono, monospace)" }}>
+                          {t.v == null ? "—" : Math.round(t.v * 100)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 行为统计大卡 */}
+            {char.behavioral && char.behavioral.length > 0 && (
+              <div style={{ padding: "0 16px 14px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  {char.behavioral.map(b => (
+                    <div key={b.l} style={{
+                      padding: "13px 15px", borderRadius: 12,
+                      background: "rgba(255,255,255,.022)",
+                      border: "1px solid var(--line)",
+                    }}>
+                      <div style={{ fontSize: 8.5, color: "var(--fg-3)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>{b.l}</div>
+                      <div style={{ fontSize: 22, fontWeight: 700, color: b.c || "var(--fg-0)", lineHeight: 1, fontFamily: "var(--font-mono, monospace)" }}>{b.v}</div>
+                      <div style={{ fontSize: 10, color: "var(--fg-3)", marginTop: 4 }}>{b.sub}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 量化评分详情（如有） */}
+            {drillItem && (
+              <div style={{ padding: "0 16px 14px" }}>
+                <div style={{
+                  padding: "14px 14px 12px",
+                  borderRadius: 14,
+                  background: "rgba(255,255,255,.022)",
+                  border: "1px solid var(--line)",
+                }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: "var(--fg-1)", marginBottom: 10 }}>引擎评分</div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    {ENGINE_IDS.map(id => {
+                      const cfg = eng(id);
+                      const r = engResult(drillItem, id);
+                      const s = verdictStyle(r?.verdict);
+                      return (
+                        <div key={id} style={{
+                          flex: "1 1 calc(50% - 4px)", minWidth: 0,
+                          padding: "10px 12px", borderRadius: 10,
+                          background: "rgba(255,255,255,.018)",
+                          border: "1px solid var(--line)",
+                        }}>
+                          <div style={{ fontSize: 9, color: "var(--fg-3)", marginBottom: 4 }}>{cfg.framework}</div>
+                          {r ? (
+                            <>
+                              <div style={{ fontSize: 19, fontWeight: 700, color: "var(--fg-0)", fontFamily: "var(--font-mono, monospace)", lineHeight: 1 }}>
+                                {r.score}<span style={{ fontSize: 11, color: "var(--fg-3)" }}>/{r.max_score}</span>
+                              </div>
+                              {r.verdict && (
+                                <div style={{ fontSize: 9, marginTop: 3, color: "var(--fg-2)" }}>{r.verdict.label}</div>
+                              )}
+                            </>
+                          ) : (
+                            <div style={{ fontSize: 13, color: "var(--fg-4)" }}>未评分</div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {scoringTicker === mDrillStock && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 10, fontSize: 11, color: "var(--indigo-2)" }}>
+                      <Loader size={12} className="animate-spin" />评分中…
+                    </div>
+                  )}
+                  {!isDemoMode && (
+                    <button
+                      onClick={() => handleScore(mDrillStock)}
+                      disabled={scoringTicker === mDrillStock}
+                      style={{
+                        marginTop: 10, width: "100%", padding: "8px 0",
+                        borderRadius: 8, fontSize: 12, fontWeight: 600,
+                        background: "rgba(30,211,149,.14)",
+                        border: "1px solid rgba(30,211,149,.35)",
+                        color: "var(--up)", cursor: "pointer",
+                        display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                      }}
+                    >
+                      <Sparkles size={13} />重新评分
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* 相似性格横滑卡 */}
+            {(() => {
+              if (!drillSelStock || !Array.isArray(mktStocks)) return null;
+              const base = { beta: Math.min(1, (drillSelStock.beta ?? 1) / 2.2), trend: 0.5, vol: 0.5 };
+              const peers = mktStocks
+                .filter(s => s.ticker !== mDrillStock && !s.isETF)
+                .map(s => {
+                  const bv = Math.min(1, (s.beta ?? 1) / 2.2);
+                  const tv = Math.min(1, Math.max(0, 0.5 + (s.momentum ?? 0) / 60));
+                  const d = Math.sqrt((bv - base.beta) ** 2 + (tv - base.trend) ** 2);
+                  return { s, sim: Math.max(0, 1 - d / 1.2) };
+                })
+                .sort((a, b) => b.sim - a.sim)
+                .slice(0, 6);
+              if (peers.length === 0) return null;
+              return (
+                <div style={{ paddingBottom: 8 }}>
+                  <div style={{ fontSize: 9, color: "var(--fg-3)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10, padding: "0 16px" }}>
+                    性格相似的标的 · 横滑
+                  </div>
+                  <div style={{ display: "flex", gap: 10, overflowX: "auto", padding: "0 16px", WebkitOverflowScrolling: "touch" }}>
+                    {peers.map(({ s, sim }) => (
+                      <button
+                        key={s.ticker}
+                        onClick={() => { setSelectedTicker(s.ticker); setMDrillStock(s.ticker); }}
+                        style={{
+                          flexShrink: 0, width: 118, padding: "12px 14px",
+                          borderRadius: 12, background: "rgba(255,255,255,.022)",
+                          border: "1px solid var(--line)", textAlign: "left",
+                        }}
+                      >
+                        <div style={{ fontSize: 14, fontWeight: 700, color: "var(--fg-0)", fontFamily: "var(--font-mono, monospace)" }}>{s.ticker}</div>
+                        <div style={{ fontSize: 10.5, color: "var(--fg-3)", margin: "5px 0 8px" }}>{s.nameCN || s.name || ""}</div>
+                        <span style={{
+                          fontSize: 9, padding: "2px 7px", borderRadius: 20,
+                          background: "rgba(99,102,241,.12)",
+                          border: "1px solid rgba(99,102,241,.25)",
+                          color: "var(--indigo-2)",
+                        }}>
+                          匹配 {Math.round(sim * 100)}%
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
+          </div>
+        </div>
+      );
+    }
+
+    // ── 下钻但无行情数据：仅展示评分详情 ──────────────────
+    if (mDrillStock && !drillChar) {
+      return (
+        <div className="h-full flex flex-col" style={{ background: "var(--bg-0)" }}>
+          <MobileAppBar onBack={() => setMDrillStock(null)} title={mDrillStock} />
+          <div className="flex-1 overflow-y-auto overscroll-contain" style={{ paddingBottom: 24 }}>
+            {drillItem ? (
+              <div style={{ padding: "16px" }}>
+                <div style={{ marginBottom: 14 }}>
+                  <CharacterProfile stock={drillSelStock} allStocks={mktStocks} onPick={(t) => { setMDrillStock(t); setSelectedTicker(t); }} />
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+                  {ENGINE_IDS.map(id => {
+                    const cfg = eng(id);
+                    const r = engResult(drillItem, id);
+                    const s = verdictStyle(r?.verdict);
+                    return (
+                      <div key={id} style={{ padding: "12px 14px", borderRadius: 12, background: "rgba(255,255,255,.022)", border: "1px solid var(--line)" }}>
+                        <div style={{ fontSize: 9, color: "var(--fg-3)", marginBottom: 4 }}>{cfg.framework}</div>
+                        {r ? (
+                          <>
+                            <div style={{ fontSize: 20, fontWeight: 700, color: "var(--fg-0)", fontFamily: "monospace", lineHeight: 1 }}>
+                              {r.score}<span style={{ fontSize: 11, color: "var(--fg-3)" }}>/{r.max_score}</span>
+                            </div>
+                            {r.verdict && <div style={{ fontSize: 9, marginTop: 3, color: "var(--fg-2)" }}>{r.verdict.label}</div>}
+                          </>
+                        ) : (
+                          <div style={{ fontSize: 13, color: "var(--fg-4)" }}>未评分</div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                {!isDemoMode && (
+                  <button
+                    onClick={() => handleScore(mDrillStock)}
+                    disabled={scoringTicker === mDrillStock}
+                    style={{
+                      width: "100%", padding: "10px 0", borderRadius: 10, fontSize: 13, fontWeight: 600,
+                      background: "rgba(30,211,149,.14)", border: "1px solid rgba(30,211,149,.35)",
+                      color: "var(--up)", cursor: "pointer",
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                    }}
+                  >
+                    {scoringTicker === mDrillStock ? <Loader size={13} className="animate-spin" /> : <Sparkles size={13} />}
+                    重新评分
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div style={{ padding: 32, textAlign: "center", color: "var(--fg-3)", fontSize: 13 }}>
+                未找到该标的
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // ── 列表页（主屏）─────────────────────────────────────
+    return (
+      <div className="h-full flex flex-col" style={{ background: "var(--bg-0)" }}>
+        {/* 顶部标题行 */}
+        <div style={{
+          flexShrink: 0, height: 52, display: "flex", alignItems: "center",
+          padding: "0 16px", gap: 10,
+          borderBottom: "1px solid var(--line)",
+          background: "color-mix(in srgb, var(--bg-1) 78%, transparent)",
+        }}>
+          <Activity size={18} style={{ color: "var(--up)" }} />
+          <span style={{ flex: 1, fontSize: 18, fontWeight: 700, color: "var(--fg-0)" }}>股性检测</span>
+          {isDemoMode && (
+            <span style={{ fontSize: 9, padding: "2px 7px", borderRadius: 6, background: "rgba(245,181,60,.14)", color: "var(--warn)", border: "1px solid rgba(245,181,60,.3)" }}>
+              DEMO
+            </span>
+          )}
+          {!isDemoMode && (
+            <button
+              onClick={() => setMAddOpen(true)}
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "center",
+                width: 32, height: 32, borderRadius: 9,
+                background: "rgba(30,211,149,.14)", border: "1px solid rgba(30,211,149,.35)",
+                color: "var(--up)",
+              }}
+              aria-label="添加观察"
+            >
+              <Plus size={17} />
+            </button>
+          )}
+        </div>
+
+        {/* 观察列表 */}
+        <div className="flex-1 overflow-y-auto overscroll-contain" style={{ paddingBottom: 16 }}>
+          {loading && items.length === 0 && (
+            <div style={{ padding: 40, textAlign: "center", color: "var(--fg-3)", fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+              <Loader size={14} className="animate-spin" />加载中…
+            </div>
+          )}
+          {!loading && items.length === 0 && (
+            <div style={{ padding: "40px 24px", textAlign: "center" }}>
+              <Activity size={36} style={{ color: "var(--fg-4)", margin: "0 auto 12px" }} />
+              <div style={{ fontSize: 14, color: "var(--fg-2)", marginBottom: 8 }}>还没有观察项</div>
+              <div style={{ fontSize: 12, color: "var(--fg-3)" }}>点右上角 + 添加第一只</div>
+            </div>
+          )}
+          {sortedItems.map(it => {
+            const activeR = engResult(it, engine);
+            const aStyle = verdictStyle(activeR?.verdict);
+            const { composite } = compositeScore(it, weights);
+            return (
+              <button
+                key={it.ticker}
+                onClick={() => { setSelectedTicker(it.ticker); setMDrillStock(it.ticker); }}
+                style={{
+                  width: "100%", display: "flex", alignItems: "center", gap: 12,
+                  padding: "13px 16px",
+                  borderBottom: "1px solid var(--line)",
+                  background: "transparent",
+                  textAlign: "left",
+                }}
+              >
+                {/* 左：ticker + name + verdict */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 3 }}>
+                    <span style={{ fontSize: 15, fontWeight: 700, color: "var(--fg-0)", fontFamily: "var(--font-mono, monospace)" }}>{it.ticker}</span>
+                    <span style={{ fontSize: 11, color: "var(--fg-3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 140 }}>
+                      {it.name || it.sector || it.market}
+                    </span>
+                  </div>
+                  {activeR?.verdict && (
+                    <div style={{ fontSize: 10, color: "var(--fg-3)" }}>{activeR.verdict.label}</div>
+                  )}
+                </div>
+                {/* 右：综合分 + 当前引擎徽章 */}
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
+                  {composite != null && (
+                    <span style={{ fontSize: 18, fontWeight: 700, color: composite >= 75 ? "var(--up)" : composite >= 50 ? "var(--indigo-2)" : "var(--fg-2)", fontFamily: "var(--font-mono, monospace)", lineHeight: 1 }}>
+                      {composite}
+                    </span>
+                  )}
+                  {activeR && (
+                    <span style={{ fontSize: 9, padding: "1px 6px", borderRadius: 4, background: "rgba(255,255,255,.06)", color: "var(--fg-2)", fontFamily: "var(--font-mono, monospace)" }}>
+                      {eng(engine).short} {activeR.score}/{activeR.max_score}
+                    </span>
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* 添加观察 BottomSheet */}
+        <BottomSheet
+          open={mAddOpen}
+          onClose={() => { setMAddOpen(false); setMNewTicker(""); setMAddErr(null); }}
+          title="添加观察"
+          footer={
+            <button
+              onClick={handleMAdd}
+              disabled={mAddLoading || !mNewTicker.trim()}
+              style={{
+                width: "100%", padding: "13px 0", borderRadius: 12, fontSize: 15, fontWeight: 600,
+                background: mAddLoading || !mNewTicker.trim() ? "rgba(30,211,149,.06)" : "rgba(30,211,149,.18)",
+                border: "1px solid rgba(30,211,149,.35)",
+                color: mAddLoading || !mNewTicker.trim() ? "var(--fg-4)" : "var(--up)",
+                cursor: mAddLoading || !mNewTicker.trim() ? "not-allowed" : "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              }}
+            >
+              {mAddLoading ? <Loader size={15} className="animate-spin" /> : <Check size={15} />}
+              加入 + 评分
+            </button>
+          }
+        >
+          <div style={{ paddingBottom: 8 }}>
+            <div style={{ fontSize: 12, color: "var(--fg-3)", marginBottom: 12 }}>
+              输入 ticker（如 NVDA / 00700.HK / 600519.SH）
+            </div>
+            <input
+              value={mNewTicker}
+              onChange={e => { setMNewTicker(e.target.value.toUpperCase()); setMAddErr(null); }}
+              placeholder="NVDA"
+              autoFocus
+              style={{
+                width: "100%", padding: "12px 14px", borderRadius: 10, fontSize: 16,
+                background: "rgba(255,255,255,.05)", border: "1px solid var(--line)",
+                color: "var(--fg-0)", outline: "none", boxSizing: "border-box",
+                fontFamily: "var(--font-mono, monospace)",
+              }}
+              onKeyDown={e => { if (e.key === "Enter") handleMAdd(); }}
+            />
+            {mAddErr && (
+              <div style={{ marginTop: 8, fontSize: 12, color: "var(--down)", display: "flex", alignItems: "center", gap: 6 }}>
+                <AlertCircle size={12} />{mAddErr}
+              </div>
+            )}
+          </div>
+        </BottomSheet>
+      </div>
+    );
+  }
 
   // ── 渲染 ────────────────────────────────────────────────
   return (

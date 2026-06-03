@@ -9,14 +9,14 @@ export default {
   theme: {
     extend: {
       colors: {
-        up: '#00E5A0',
+        up: '#1ED395',
         down: '#FF6B6B',
-        'deep-base': '#0B0B15',
-        'deep-card': '#161625',
+        'deep-base': '#08090E',
+        'deep-card': '#13151E',
       },
       boxShadow: {
         'glow-indigo': '0 0 20px rgba(99,102,241,0.3)',
-        'glow-up': '0 0 15px rgba(0,229,160,0.2)',
+        'glow-up': '0 0 15px rgba(30,211,149,0.2)',
         'glow-down': '0 0 15px rgba(255,107,107,0.2)',
         'deep': '0 8px 32px rgba(0,0,0,0.4)',
         'card-hover': 'inset 0 0 0 0.5px rgba(255,255,255,0.08), 0 8px 32px rgba(0,0,0,0.3)',
