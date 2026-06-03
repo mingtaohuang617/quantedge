@@ -19,8 +19,6 @@ import {
 import { apiFetch } from "../quant-platform.jsx";
 import { useLang } from "../i18n.jsx";
 import useIsMobile from "../hooks/useIsMobile.js";
-import MobileAppBar from "../components/mobile/MobileAppBar.jsx";
-import ThumbActionBar from "../components/mobile/ThumbActionBar.jsx";
 import FullscreenChart from "../components/mobile/FullscreenChart.jsx";
 
 // ─── 工具 ────────────────────────────────────────────────
@@ -490,41 +488,50 @@ export default function SmartBeta() {
 
     return (
       <div className="h-full flex flex-col" style={{ background: "var(--bg-0)" }}>
-        {/* ── App bar ── */}
-        <MobileAppBar
-          title={t("Smart Beta 调音台")}
-          actions={
-            <button
-              onClick={fetchSnapshot}
-              disabled={loading}
-              className="px-2.5 py-1 rounded-lg text-[11px] font-medium active:scale-95 transition"
-              style={{ background: "rgba(99,102,241,.12)", color: "var(--indigo-2)", border: "1px solid rgba(99,102,241,.25)" }}
-            >
-              {loading ? <Loader size={11} className="animate-spin inline" /> : t("重置")}
-            </button>
-          }
-        />
+        {/* ── App bar — matches design: h-[46px] px-[14px] rgba(13,15,22,.6) border-bottom ── */}
+        <div
+          className="shrink-0 flex items-center gap-2.5 border-b"
+          style={{
+            height: 46,
+            padding: "0 14px",
+            borderColor: "var(--line)",
+            background: "rgba(13,15,22,.6)",
+          }}
+        >
+          <span className="flex-1 font-bold truncate" style={{ fontSize: 16, color: "var(--fg-0)" }}>
+            {t("Smart Beta 调音台")}
+          </span>
+          <button
+            onClick={fetchSnapshot}
+            disabled={loading}
+            className="active:scale-95 transition disabled:opacity-50"
+            style={{ fontSize: 11, fontWeight: 600, color: "var(--indigo-2)", background: "none", border: "none", padding: 0, cursor: "pointer" }}
+          >
+            {loading ? <Loader size={11} className="animate-spin inline" /> : t("重置")}
+          </button>
+        </div>
 
         {/* ── Scrollable body ── */}
-        <div className="flex-1 overflow-y-auto overscroll-contain" style={{ paddingBottom: "calc(76px + env(safe-area-inset-bottom))" }}>
+        <div className="flex-1 overflow-y-auto overscroll-contain" style={{ paddingBottom: "calc(80px + env(safe-area-inset-bottom))" }}>
 
           {/* §1 Preset cards — horizontal scroll */}
-          <div className="pt-4 pb-1">
-            <div className="px-4 mb-2.5 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--fg-3)" }}>
-              {t("预设方案")}
+          <div style={{ padding: "12px 0 14px" }}>
+            <div className="px-4 font-semibold uppercase tracking-wider" style={{ fontSize: 9, color: "var(--fg-3)", marginBottom: 10 }}>
+              {t("预设方案")} · {t("横滑切换")}
             </div>
-            <div className="flex gap-3 overflow-x-auto px-4" style={{ scrollbarWidth: "none" }}>
+            <div className="flex overflow-x-auto px-4" style={{ gap: 10, scrollbarWidth: "none" }}>
               {MOBILE_PRESETS.map((preset) => {
                 const on = mActivePreset === preset.id;
                 return (
                   <button
                     key={preset.id}
                     onClick={() => applyPreset(preset)}
-                    className="shrink-0 text-left rounded-xl px-4 py-3 active:scale-[0.97] transition"
+                    className="shrink-0 text-left active:scale-[0.97] transition"
                     style={{
                       background: on ? "linear-gradient(135deg,rgba(99,102,241,.18),rgba(94,230,230,.05))" : "rgba(255,255,255,.022)",
                       border: `1px solid ${on ? "rgba(99,102,241,.35)" : "var(--line)"}`,
-                      minWidth: 112,
+                      padding: "12px 16px",
+                      borderRadius: 12,
                     }}
                   >
                     <div className="text-[13px] font-semibold whitespace-nowrap" style={{ color: on ? "var(--fg-0)" : "var(--fg-2)" }}>
@@ -541,10 +548,10 @@ export default function SmartBeta() {
 
           {/* §2 Factor weight sliders — 44px hit-area list */}
           <div className="px-4 pt-4">
-            <div className="mb-3 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--fg-3)" }}>
+            <div className="font-semibold uppercase tracking-wider" style={{ fontSize: 9, color: "var(--fg-3)", marginBottom: 12 }}>
               {t("因子权重")} · {t("拖动调节")}
             </div>
-            <div className="flex flex-col gap-5">
+            <div className="flex flex-col" style={{ gap: 16 }}>
               {MOBILE_FACTORS.map((factor) => {
                 const val = mFactorWeights[factor.id] ?? 50;
                 const beta = (val / 100 * 1.2).toFixed(2);
@@ -555,7 +562,7 @@ export default function SmartBeta() {
                     <div className="flex items-baseline justify-between mb-2">
                       <span className="flex items-center gap-2">
                         <span style={{ width: 8, height: 8, borderRadius: 2, background: factor.color, display: "inline-block", flexShrink: 0 }} />
-                        <span className="text-[14px] font-semibold" style={{ color: "var(--fg-0)" }}>{t(factor.label)}</span>
+                        <span className="font-semibold" style={{ fontSize: 13.5, color: "var(--fg-0)" }}>{t(factor.label)}</span>
                         <span className="text-[10px]" style={{ color: "var(--fg-3)" }}>{factor.desc}</span>
                       </span>
                       <span className="flex items-baseline gap-2">
@@ -598,14 +605,15 @@ export default function SmartBeta() {
                       <div
                         className="absolute pointer-events-none"
                         style={{
-                          left: `calc(${val}% - 11px)`,
+                          left: `${val}%`,
+                          marginLeft: -10,
                           top: "50%",
                           transform: "translateY(-50%)",
-                          width: 22,
-                          height: 22,
+                          width: 20,
+                          height: 20,
                           borderRadius: "50%",
                           background: "#fff",
-                          boxShadow: `0 0 0 2px ${factor.color}, 0 2px 8px rgba(0,0,0,.45)`,
+                          boxShadow: `0 0 0 2px ${factor.color}, 0 2px 8px rgba(0,0,0,.4)`,
                         }}
                       />
                     </div>
@@ -623,13 +631,13 @@ export default function SmartBeta() {
           </div>
 
           {/* §3 Exposure summary card */}
-          <div className="px-4 pt-5 pb-2">
+          <div style={{ padding: "4px 16px 0" }}>
             <div
-              className="rounded-xl px-4 py-4"
-              style={{ background: "rgba(255,255,255,.025)", border: "1px solid var(--line)" }}
+              className="rounded-xl"
+              style={{ padding: "14px 16px", background: "rgba(255,255,255,.025)", border: "1px solid var(--line)" }}
             >
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-[12px] font-semibold" style={{ color: "var(--fg-0)" }}>{t("组合暴露结果")}</span>
+              <div className="flex items-center justify-between" style={{ marginBottom: 10 }}>
+                <span className="font-semibold" style={{ fontSize: 12, color: "var(--fg-0)" }}>{t("组合暴露结果")}</span>
                 <span
                   className="font-mono text-[9.5px] px-2 py-0.5 rounded-full"
                   style={{ background: "rgba(99,102,241,.15)", color: "var(--indigo-2)", border: "1px solid rgba(99,102,241,.25)" }}
@@ -648,8 +656,8 @@ export default function SmartBeta() {
                     className="flex-1"
                     style={{ paddingLeft: i ? 12 : 0, borderLeft: i ? "1px solid var(--line)" : "none" }}
                   >
-                    <div className="text-[8px] uppercase tracking-wider mb-1" style={{ color: "var(--fg-3)" }}>{item.label}</div>
-                    <div className="font-mono text-[16px] font-bold" style={{ color: item.color, lineHeight: 1 }}>{item.value}</div>
+                    <div className="uppercase tracking-wider" style={{ fontSize: 8, color: "var(--fg-3)", marginBottom: 4 }}>{item.label}</div>
+                    <div className="font-mono font-bold" style={{ fontSize: 15, color: item.color, lineHeight: 1 }}>{item.value}</div>
                   </div>
                 ))}
               </div>
@@ -668,15 +676,42 @@ export default function SmartBeta() {
 
         </div>{/* end scrollable */}
 
-        {/* §4 Bottom CTA */}
-        <ThumbActionBar
-          primary={{
-            icon: <Eye size={18} />,
-            label: t("查看匹配标的"),
-            onClick: fetchSnapshot,
-            disabled: loading,
+        {/* §4 Bottom CTA — matches design: blur bar + h-48 gradient button */}
+        <div
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            bottom: 0,
+            padding: "10px 14px calc(10px + env(safe-area-inset-bottom))",
+            background: "linear-gradient(180deg, rgba(8,9,14,.4), rgba(8,9,14,.96) 40%)",
+            backdropFilter: "blur(14px)",
+            borderTop: "1px solid var(--line)",
           }}
-        />
+        >
+          <button
+            onClick={fetchSnapshot}
+            disabled={loading}
+            className="flex items-center justify-center active:scale-[0.98] transition disabled:opacity-50"
+            style={{
+              width: "100%",
+              height: 48,
+              borderRadius: 13,
+              border: "none",
+              background: "linear-gradient(180deg, var(--indigo-2), var(--indigo))",
+              color: "#fff",
+              fontSize: 14.5,
+              fontWeight: 700,
+              fontFamily: "inherit",
+              boxShadow: "0 8px 22px -6px rgba(99,102,241,.6)",
+              gap: 7,
+              cursor: "pointer",
+            }}
+          >
+            <Eye size={18} color="#fff" />
+            {t("查看匹配标的")}
+          </button>
+        </div>
 
         {/* §5 Fullscreen chart — radar + β/t table (landscape) */}
         <FullscreenChart
