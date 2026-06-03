@@ -557,6 +557,19 @@ const ScoringDashboard = () => {
     return () => window.removeEventListener("quantedge:navStock", handler);
   }, []);
 
+  // v7 工作站：W / C 键盘动作 — 对当前选中标的 加自选 / 加对比
+  // （由全局键盘 handler 派发事件；非评分页无监听器 → 无副作用）
+  useEffect(() => {
+    const onAction = (e) => {
+      const cur = navRefs.current.sel;
+      if (!cur) return;
+      if (e.detail === "fav") toggleFav(cur.ticker);
+      else if (e.detail === "compare") toggleCompare(cur.ticker);
+    };
+    window.addEventListener("quantedge:stockAction", onAction);
+    return () => window.removeEventListener("quantedge:stockAction", onAction);
+  }, [toggleFav, toggleCompare]);
+
   // 详情区 scroll-spy：IntersectionObserver 跟踪 #detail-* sections，更新 activeSection
   useEffect(() => {
     if (!sel) return;

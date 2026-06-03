@@ -2433,6 +2433,16 @@ function QuantPlatformInner() {
       if (e.key === "j" || e.key === "k") {
         // 由 ScoringDashboard 决定是否响应（在自己监听器里 check tab）
         window.dispatchEvent(new CustomEvent("quantedge:navStock", { detail: e.key === "j" ? "next" : "prev" }));
+        return;
+      }
+      // v7 工作站：W 加/移出自选 · C 加/移出对比（评分页当前选中标的；非评分页无监听器，无副作用）
+      if (e.key === "w" || e.key === "W") {
+        window.dispatchEvent(new CustomEvent("quantedge:stockAction", { detail: "fav" }));
+        return;
+      }
+      if (e.key === "c" || e.key === "C") {
+        window.dispatchEvent(new CustomEvent("quantedge:stockAction", { detail: "compare" }));
+        return;
       }
     };
     window.addEventListener("keydown", handler);
@@ -2839,6 +2849,9 @@ function QuantPlatformInner() {
             <span>{t('搜索')}</span>
             <kbd className="px-1 py-[1px] rounded bg-white/5 border border-white/10 font-mono text-[9px] ml-1">Tab</kbd>
             <span>{t('切换')}</span>
+            <kbd className="px-1 py-[1px] rounded bg-white/5 border border-white/10 font-mono text-[9px] ml-1">J</kbd>
+            <kbd className="px-1 py-[1px] rounded bg-white/5 border border-white/10 font-mono text-[9px]">K</kbd>
+            <span>{t('选股')}</span>
           </span>
           <span className="text-[9px] md:text-[10px] text-[#778] font-mono">v0.8.0 · <span className="text-indigo-400/80">PWA</span></span>
         </div>
