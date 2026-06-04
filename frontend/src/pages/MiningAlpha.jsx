@@ -118,7 +118,13 @@ const ICTable = ({ rows, onPickAlpha }) => {
               className="border-b border-white/5 hover:bg-cyan-500/10 cursor-pointer"
               title="点击查看因子公式 + 历史 IC"
             >
-              <td className="px-3 py-1.5 text-left text-cyan-300 underline-offset-2 hover:underline">α{r.alpha}</td>
+              <td className="px-3 py-1.5 text-left">
+                <span className="inline-flex items-center gap-1.5">
+                  {/* v7 信号质量色标 — 真实 ICIR 阈值（对齐设计稿 SECTION 07 在用/测试/衰减绿黄红）*/}
+                  <span className="w-1.5 h-1.5 rounded-full shrink-0" title={Math.abs(r.ic_ir) >= 0.5 ? "强信号" : Math.abs(r.ic_ir) >= 0.3 ? "中等" : "弱/衰减"} style={{ background: Math.abs(r.ic_ir) >= 0.5 ? "#1ED395" : Math.abs(r.ic_ir) >= 0.3 ? "#f59e0b" : "#FF6B6B" }} />
+                  <span className="text-cyan-300 underline-offset-2 hover:underline">α{r.alpha}</span>
+                </span>
+              </td>
               <td className={`px-3 py-1.5 text-right ${r.ic_mean >= 0 ? "text-emerald-300" : "text-rose-300"}`}>{fmtPct(r.ic_mean, 2)}</td>
               <td className={`px-3 py-1.5 text-right font-semibold ${Math.abs(r.ic_ir) >= 0.5 ? "text-amber-300" : "text-white/70"}`}>{fmtNum(r.ic_ir, 2)}</td>
               <td className="px-3 py-1.5 text-right text-white/60">{fmtNum(r.ic_t, 2)}</td>

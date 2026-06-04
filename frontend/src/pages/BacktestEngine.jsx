@@ -183,7 +183,9 @@ const RotaryKnob = ({ value, onChange, size = 76, color = "#6366f1" }) => {
 
 const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) => {
   const { t, lang } = useLang();
-  const { stocks: ctxStocks2, setStocks: ctxSetStocks2, standalone, addTicker: addTickerToPlatform } = useContext(DataContext);
+  // useContext 可能为 null：DataContext = createContext(null)，若组件在无 Provider 祖先时渲染会拿到默认 null。
+  // 与 Monitor/Journal/StockGene/AddTransactionModal 一致用 `|| {}` 兜底，避免解构 null 抛错冲到 ErrorBoundary。
+  const { stocks: ctxStocks2, setStocks: ctxSetStocks2, standalone, addTicker: addTickerToPlatform } = useContext(DataContext) || {};
   const liveStocks = ctxStocks2 || STOCKS;
   // C16: 工作区 namespace
   const ws = useWorkspace();
@@ -2867,9 +2869,15 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
                             const v = Number(raw);
                             const isWinner = winners[r.key] === idx && all.length > 1;
                             const goodColor = r.good(v) ? 'text-up' : 'text-down';
+                            // v7: 对齐设计稿「方案队列 diff」— 关键指标(年化/夏普/回撤)显示 vs 首列(基准)Δ
+                            const baseRaw = (idx > 0 && ['annReturn', 'sharpe', 'maxDD'].includes(r.key)) ? all[0].metrics[r.key] : null;
+                            const delta = (baseRaw != null && isFinite(Number(baseRaw))) ? v - Number(baseRaw) : null;
                             return (
-                              <td key={run.id} className={`text-right font-mono py-1 px-1.5 ${isWinner ? 'bg-indigo-500/10 font-bold' : ''} ${goodColor}`}>
-                                {r.fmt(v)}
+                              <td key={run.id} className={`text-right font-mono py-1 px-1.5 align-top ${isWinner ? 'bg-indigo-500/10 font-bold' : ''}`}>
+                                <span className={goodColor}>{r.fmt(v)}</span>
+                                {delta != null && (
+                                  <span className="block text-[8px] leading-tight text-[#667] font-normal mt-0.5">{delta >= 0 ? '+' : ''}{delta.toFixed(2)} vs {all[0].label}</span>
+                                )}
                               </td>
                             );
                           })}

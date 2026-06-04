@@ -887,6 +887,44 @@ export default function MacroDashboard() {
 
       <DataStatusBanner composite={composite} factors={factors} />
 
+      {/* v7 regime 仪表组 — 真实 composite/因子分布做成圆环仪表（对齐设计稿 SECTION 04「仪表组替代大数字头条」；
+          设计稿的板块×因子热力 / 资产相关矩阵用的是 Math.sin 假数据，本平台无对应真实数据源，按「不编造」未复刻）*/}
+      {composite && factorDist.total > 0 && (
+        <div className="hidden md:grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {(() => {
+            const temp = composite.market_temperature;
+            const tempC = temp == null ? '#64748b' : temp >= 60 ? '#1ED395' : temp >= 40 ? '#f59e0b' : '#FF6B6B';
+            const pct = (n) => factorDist.total ? Math.round(n / factorDist.total * 100) : 0;
+            const gauges = [
+              { v: temp != null ? Math.round(temp) : '—', label: t('宏观温度'), sub: composite.wow_delta != null ? `${t('较昨')} ${composite.wow_delta > 0 ? '+' : ''}${composite.wow_delta.toFixed(1)}` : t('市场温度'), color: tempC, ring: temp ?? 0 },
+              { v: pct(factorDist.bull), label: t('因子偏多'), sub: `${factorDist.bull}/${factorDist.total}`, color: '#1ED395', ring: pct(factorDist.bull) },
+              { v: pct(factorDist.neutral), label: t('因子中性'), sub: `${factorDist.neutral}/${factorDist.total}`, color: '#94a3b8', ring: pct(factorDist.neutral) },
+              { v: factorDist.warn, label: t('因子预警'), sub: factorDist.warn > 0 ? t('需关注') : t('暂无'), color: factorDist.warn > 0 ? '#FF6B6B' : '#94a3b8', ring: factorDist.total ? factorDist.warn / factorDist.total * 100 : 0 },
+            ];
+            return gauges.map((g, i) => {
+              const off = 163 - (Math.max(0, Math.min(100, g.ring)) / 100 * 163);
+              return (
+                <div key={i} className="flex items-center gap-3 rounded-xl bg-white/[0.02] border border-white/[0.06] p-3">
+                  <div className="relative w-14 h-14 shrink-0">
+                    <svg viewBox="0 0 64 64" style={{ transform: 'rotate(-90deg)' }}>
+                      <circle cx="32" cy="32" r="26" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="5" />
+                      <circle cx="32" cy="32" r="26" fill="none" stroke={g.color} strokeWidth="5" strokeDasharray="163" strokeDashoffset={off} strokeLinecap="round" />
+                    </svg>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-[15px] font-mono font-bold text-white">{g.v}</span>
+                    </div>
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-[12px] font-semibold text-white truncate">{g.label}</div>
+                    <div className="text-[10px] font-mono mt-0.5" style={{ color: g.color }}>{g.sub}</div>
+                  </div>
+                </div>
+              );
+            });
+          })()}
+        </div>
+      )}
+
       <NarrativePanel
         narrative={narrative}
         loading={narrativeLoading}

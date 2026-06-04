@@ -900,10 +900,13 @@ export default function CompoundPower({ onOneClickBacktest = null }) {
                 {story.scenarios.map((s) => {
                   const c = s.r === 0.06 ? "#a0aec0" : s.r === 0.14 ? "#5EE6E6" : "#1ED395";
                   const label = s.r === 0.06 ? "保守 6%" : s.r === 0.14 ? "进取 14%" : "基准 10%";
+                  // v7: vs 基准(10%) diff — 对齐设计稿 SECTION 10「情景队列 diff」
+                  const baseFv = story.scenarios.find(x => x.r === 0.10)?.fv;
+                  const diffPct = (baseFv && s.r !== 0.10) ? (s.fv / baseFv - 1) * 100 : null;
                   return (
                     <div key={s.r} className="mb-2.5">
-                      <div className="flex justify-between mb-1">
-                        <span className="text-[11px] text-[#a0aec0]">{label}</span>
+                      <div className="flex justify-between mb-1 items-baseline">
+                        <span className="text-[11px] text-[#a0aec0]">{label}{diffPct != null && <span className="ml-1.5 font-mono text-[9px]" style={{ color: c }}>{diffPct >= 0 ? "+" : ""}{diffPct.toFixed(0)}% vs 基准</span>}</span>
                         <span className="font-mono font-serif text-[15px] font-semibold" style={{ color: c }}>{fmtMoney(s.fv)}</span>
                       </div>
                       <div className="h-1.5 rounded-full bg-white/[0.05] overflow-hidden">

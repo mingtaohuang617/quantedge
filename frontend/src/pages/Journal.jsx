@@ -260,6 +260,8 @@ const Journal = () => {
   const [positionsRefreshKey, setPositionsRefreshKey] = useState(0);
   // B7: 月度复盘弹窗
   const [showMonthlyReview, setShowMonthlyReview] = useState(false);
+  // v7: 决策时间线按情绪/类型标签过滤（对齐设计稿 SECTION 08「按标的/标签过滤时间线」）
+  const [journalTagFilter, setJournalTagFilter] = useState("all");
 
   useEffect(() => { if (!sel && entries.length > 0) setSel(entries[0]); }, [entries]);
 
@@ -1385,6 +1387,23 @@ ${angleQuestion}
             </button>
           </div>
         )}
+        {/* v7 时间线标签过滤条 — 真实 entry.tags（对齐设计稿 SECTION 08）*/}
+        {entries.length > 0 && (() => {
+          const tags = [...new Set(entries.flatMap(e => e.tags || []))].filter(Boolean).slice(0, 6);
+          if (tags.length === 0) return null;
+          const opts = [["all", t("全部")], ...tags.map(tg => [tg, tg])];
+          return (
+            <div className="flex items-center gap-1 flex-wrap mb-2 shrink-0">
+              <span className="text-[9px] text-[#778] mr-0.5">{t('过滤')}</span>
+              {opts.map(([val, label]) => (
+                <button key={val} onClick={() => setJournalTagFilter(val)}
+                  className={`px-2 py-0.5 rounded text-[10px] border transition-colors ${journalTagFilter === val ? "bg-indigo-500/15 border-indigo-400/40 text-indigo-200" : "bg-white/[0.02] border-white/[0.06] text-[#a0aec0] hover:bg-white/[0.06]"}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          );
+        })()}
         <div className="flex-1 overflow-auto space-y-2">
           {entries.length === 0 && !showAdd && (
             <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">
@@ -1401,7 +1420,7 @@ ${angleQuestion}
               </button>
             </div>
           )}
-          {entries.map(e => {
+          {entries.filter(e => journalTagFilter === "all" || (e.tags || []).includes(journalTagFilter)).map(e => {
             const ret = calcRet(e.anchorPrice, e.currentPrice);
             const stk = liveStocks.find(s => s.ticker === e.ticker);
             const currency = currencySymbol(stk?.currency);
