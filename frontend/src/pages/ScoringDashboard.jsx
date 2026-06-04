@@ -1373,7 +1373,7 @@ const ScoringDashboard = () => {
           </button>
         </div>
       )}
-      <div className={`md:col-span-5 flex flex-col gap-2 md:min-h-0 ${mobileShowDetail ? "hidden md:flex" : "flex"}`}>
+      <div className={`md:col-span-5 xl:col-span-4 flex flex-col gap-2 md:min-h-0 ${mobileShowDetail ? "hidden md:flex" : "flex"}`}>
         {/* 移动端置顶区：搜索 + 筛选 + 排序 一起粘在顶部 */}
         <div className="sticky top-0 z-10 flex flex-col gap-2 -mx-1 px-1 py-1 bg-[#0b0b14]/85 backdrop-blur-md md:static md:mx-0 md:p-0 md:bg-transparent md:backdrop-blur-none">
         {/* 搜索栏 + 新增标的 */}
@@ -1797,7 +1797,7 @@ const ScoringDashboard = () => {
         </div>
       </div>
 
-      <div className={`detail-ambient md:col-span-7 md:min-h-0 md:overflow-auto pr-0 md:pr-1 pb-16 md:pb-0 ${mobileShowDetail ? "flex flex-col" : "hidden md:block"}`}>
+      <div className={`detail-ambient md:col-span-7 xl:col-span-5 md:min-h-0 md:overflow-auto pr-0 md:pr-1 pb-16 md:pb-0 ${mobileShowDetail ? "flex flex-col" : "hidden md:block"}`}>
         {/* Mobile back button */}
         <button onClick={() => setMobileShowDetail(false)} className="md:hidden flex items-center gap-1.5 text-xs text-indigo-400 mb-2 py-2 px-3 rounded-lg bg-indigo-500/[0.06] border border-indigo-500/15 w-fit active:scale-95 transition-all">
           <ChevronRight size={14} className="rotate-180" /> {t('返回列表')}
@@ -2731,6 +2731,90 @@ const ScoringDashboard = () => {
           </div>
         )}
       </div>
+      {/* xl 桌面 · 常驻对比盘第三栏 — 研究即并排比较（复用真实对比数据，不另起模态）*/}
+      <aside className="hidden xl:flex xl:col-span-3 flex-col min-h-0 rounded-lg border border-white/8 bg-white/[0.015] overflow-hidden">
+        {(() => {
+          const cmp = [...compareSet].map(tk => liveStocks.find(s => s.ticker === tk)).filter(Boolean);
+          const primaryTk = compareSet.has(sel?.ticker) ? sel.ticker : cmp[0]?.ticker;
+          const subCls = v => v == null ? "text-[#667]" : v >= 80 ? "text-up" : v >= 60 ? "text-[#c9cdda]" : "text-amber-400";
+          const ROWS = [
+            [t("评分"), s => ({ txt: s.score != null ? s.score.toFixed(0) : "—", cls: s.score >= 75 ? "text-up" : "text-indigo-300" }), "score"],
+            [t("基本面"), s => ({ txt: s.subScores?.fundamental != null ? Math.round(s.subScores.fundamental) : "—", cls: subCls(s.subScores?.fundamental) })],
+            [t("技术面"), s => ({ txt: s.subScores?.technical != null ? Math.round(s.subScores.technical) : "—", cls: subCls(s.subScores?.technical) })],
+            [t("成长性"), s => ({ txt: s.subScores?.growth != null ? Math.round(s.subScores.growth) : "—", cls: subCls(s.subScores?.growth) })],
+            ["PE", s => ({ txt: s.pe ? s.pe.toFixed(1) : "—", cls: "text-[#c9cdda]" })],
+            ["ROE", s => ({ txt: s.roe ? `${s.roe.toFixed(0)}%` : "—", cls: "text-[#c9cdda]" })],
+            [t("营收YoY"), s => ({ txt: s.revenueGrowth != null ? `${s.revenueGrowth >= 0 ? "+" : ""}${s.revenueGrowth.toFixed(0)}%` : "—", cls: s.revenueGrowth >= 0 ? "text-up" : "text-down" })],
+            ["RSI", s => ({ txt: s.rsi != null ? s.rsi.toFixed(0) : "—", cls: "text-[#c9cdda]" })],
+            [t("52W位"), s => { const lo = s.week52Low, hi = s.week52High, p = s.price; if (lo == null || hi == null || p == null || hi <= lo) return { txt: "—", cls: "text-[#667]" }; const pos = Math.max(0, Math.min(100, Math.round((p - lo) / (hi - lo) * 100))); return { txt: `P${pos}`, cls: "text-[#c9cdda]" }; }],
+          ];
+          const exportCSV = () => {
+            const lines = [["指标", ...cmp.map(s => s.ticker)].join(",")];
+            ROWS.forEach(([label, get]) => lines.push([label, ...cmp.map(s => String(get(s).txt).replace(/,/g, ""))].join(",")));
+            const blob = new Blob(["﻿" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url; a.download = `compare_${cmp.map(s => s.ticker).join("_")}.csv`; a.click();
+            URL.revokeObjectURL(url);
+          };
+          return (
+            <>
+              <div className="flex items-center gap-2 px-3 h-11 border-b border-white/8 shrink-0">
+                <Layers size={14} className="text-indigo-400" />
+                <span className="text-[13px] font-semibold text-white">{t('对比盘')}</span>
+                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-indigo-500/15 text-indigo-300 border border-indigo-500/25">{cmp.length}</span>
+                <span className="flex-1" />
+                {cmp.length > 0 && (
+                  <button onClick={() => setCompareSet(new Set())} title={t('清空对比')} className="text-[#778] hover:text-white transition-colors"><X size={14} /></button>
+                )}
+              </div>
+              {cmp.length === 0 ? (
+                <div className="flex-1 flex flex-col items-center justify-center gap-2 p-6 text-center">
+                  <div className="w-11 h-11 rounded-xl bg-white/[0.03] border border-white/8 flex items-center justify-center"><Layers size={18} className="text-[#556]" /></div>
+                  <div className="text-[11px] text-[#a0aec0]">{t('勾选标的 · 或右键「加入对比」')}</div>
+                  <div className="text-[10px] text-[#667] leading-relaxed px-2">{t('多只标的 9 项因子逐行并排 — 桌面才做得到的并排决策')}</div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex-1 min-h-0 overflow-auto">
+                    <div className="flex border-b border-white/8">
+                      <div className="w-16 shrink-0 h-14" />
+                      {cmp.map(s => {
+                        const isPri = s.ticker === primaryTk;
+                        return (
+                          <div key={s.ticker} className={`flex-1 min-w-0 h-14 flex flex-col items-center justify-center gap-0.5 relative group ${isPri ? "bg-indigo-500/[0.06]" : ""}`}>
+                            <span className="text-[12px] font-mono font-bold text-white">{s.ticker}</span>
+                            {isPri
+                              ? <span className="text-[8.5px] font-mono px-1.5 py-px rounded bg-indigo-500/15 text-indigo-300 border border-indigo-500/25">{t('主')}</span>
+                              : <span className="text-[8px] uppercase tracking-wider text-[#667] font-mono">PIN</span>}
+                            <button onClick={() => toggleCompare(s.ticker)} title={t('移出对比')} className="absolute top-1 right-1 text-[#556] opacity-0 group-hover:opacity-100 hover:text-white transition-all"><X size={10} /></button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {ROWS.map(([label, get, kind]) => (
+                      <div key={label} className="flex border-b border-white/5 last:border-0">
+                        <div className="w-16 shrink-0 h-9 flex items-center px-3 text-[11px] text-[#a0aec0]">{label}</div>
+                        {cmp.map(s => {
+                          const { txt, cls } = get(s);
+                          const isPri = s.ticker === primaryTk;
+                          return (
+                            <div key={s.ticker} className={`flex-1 min-w-0 h-9 flex items-center justify-center font-mono tabular-nums ${kind === "score" ? "text-[14px] font-bold" : "text-[11.5px]"} ${cls} ${isPri ? "bg-indigo-500/[0.04]" : ""}`}>{txt}</div>
+                          );
+                        })}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2 px-3 py-2.5 border-t border-white/8 shrink-0">
+                    <button onClick={exportCSV} className="flex-1 text-center py-1.5 rounded-md text-[11px] font-medium bg-indigo-500/12 text-indigo-300 border border-indigo-500/25 hover:bg-indigo-500/20 active:scale-[0.98] transition-all">{t('导出对比 CSV')}</button>
+                    <span className="text-[9px] text-[#667] shrink-0">{t('右键加入')}</span>
+                  </div>
+                </>
+              )}
+            </>
+          );
+        })()}
+      </aside>
     </div>
     {/* 底部工具行：近期财报（可折叠） + 快速添加标的 */}
     {(() => {
