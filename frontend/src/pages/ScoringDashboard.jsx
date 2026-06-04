@@ -369,6 +369,11 @@ const ScoringDashboard = () => {
   // 对比列表 — Set<ticker>，最多 4 只
   const [compareSet, setCompareSet] = useState(new Set());
   const [showCompare, setShowCompare] = useState(false);
+  // v7: 评分页左右栏可折叠（桌面工作站，让中间详情让出更多空间；记忆到 localStorage）
+  const [leftCollapsed, setLeftCollapsed] = useState(() => { try { return localStorage.getItem("quantedge_scoring_left_collapsed") === "1"; } catch { return false; } });
+  const [rightCollapsed, setRightCollapsed] = useState(() => { try { return localStorage.getItem("quantedge_scoring_right_collapsed") === "1"; } catch { return false; } });
+  const setLeftPane = (v) => { setLeftCollapsed(v); try { localStorage.setItem("quantedge_scoring_left_collapsed", v ? "1" : "0"); } catch {} };
+  const setRightPane = (v) => { setRightCollapsed(v); try { localStorage.setItem("quantedge_scoring_right_collapsed", v ? "1" : "0"); } catch {} };
   const toggleCompare = useCallback((ticker) => {
     setCompareSet(prev => {
       const next = new Set(prev);
@@ -1373,11 +1378,13 @@ const ScoringDashboard = () => {
           </button>
         </div>
       )}
-      <div className={`md:col-span-5 xl:col-span-4 flex flex-col gap-2 md:min-h-0 ${mobileShowDetail ? "hidden md:flex" : "flex"}`}>
+      <div className={leftCollapsed ? `${mobileShowDetail ? "hidden" : "flex"} md:hidden flex-col gap-2` : `md:col-span-5 xl:col-span-4 flex flex-col gap-2 md:min-h-0 ${mobileShowDetail ? "hidden md:flex" : "flex"}`}>
         {/* 移动端置顶区：搜索 + 筛选 + 排序 一起粘在顶部 */}
         <div className="sticky top-0 z-10 flex flex-col gap-2 -mx-1 px-1 py-1 bg-[#0b0b14]/85 backdrop-blur-md md:static md:mx-0 md:p-0 md:bg-transparent md:backdrop-blur-none">
         {/* 搜索栏 + 新增标的 */}
         <div className="flex items-center gap-1.5">
+          {/* v7 折叠自选列表（桌面） */}
+          <button onClick={() => setLeftPane(true)} title={t('折叠自选列表')} className="hidden md:flex shrink-0 items-center justify-center w-7 h-7 rounded-md text-[#778] hover:text-white hover:bg-white/10 border border-white/8 transition-colors"><ChevronRight size={14} className="rotate-180" /></button>
           <div className="relative flex-1">
             <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#a0aec0]" />
             <input
@@ -1797,11 +1804,23 @@ const ScoringDashboard = () => {
         </div>
       </div>
 
-      <div className={`detail-ambient md:col-span-7 xl:col-span-5 md:min-h-0 md:overflow-auto pr-0 md:pr-1 pb-16 md:pb-0 ${mobileShowDetail ? "flex flex-col" : "hidden md:block"}`}>
+      <div className={`detail-ambient ${leftCollapsed ? "md:col-span-12" : "md:col-span-7"} ${leftCollapsed && rightCollapsed ? "xl:col-span-12" : leftCollapsed ? "xl:col-span-9" : rightCollapsed ? "xl:col-span-8" : "xl:col-span-5"} md:min-h-0 md:overflow-auto pr-0 md:pr-1 pb-16 md:pb-0 ${mobileShowDetail ? "flex flex-col" : "hidden md:block"}`}>
         {/* Mobile back button */}
         <button onClick={() => setMobileShowDetail(false)} className="md:hidden flex items-center gap-1.5 text-xs text-indigo-400 mb-2 py-2 px-3 rounded-lg bg-indigo-500/[0.06] border border-indigo-500/15 w-fit active:scale-95 transition-all">
           <ChevronRight size={14} className="rotate-180" /> {t('返回列表')}
         </button>
+        {/* v7 桌面：折叠态展开条（sticky，不随详情滚动；左/右栏各自折叠时出现对应展开按钮）*/}
+        {(leftCollapsed || rightCollapsed) && (
+          <div className="hidden md:flex sticky top-0 z-20 items-center gap-2 mb-2 py-1.5 bg-[#0b0b14]/85 backdrop-blur-sm">
+            {leftCollapsed && (
+              <button onClick={() => setLeftPane(false)} title={t('展开自选列表')} className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium bg-white/5 border border-white/10 text-[#a0aec0] hover:text-white hover:bg-white/10 transition-colors"><ChevronRight size={12} /> {t('自选列表')}</button>
+            )}
+            <span className="flex-1" />
+            {rightCollapsed && (
+              <button onClick={() => setRightPane(false)} title={t('展开对比盘')} className="hidden xl:flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium bg-white/5 border border-white/10 text-[#a0aec0] hover:text-white hover:bg-white/10 transition-colors">{t('对比盘')} <ChevronRight size={12} className="rotate-180" /></button>
+            )}
+          </div>
+        )}
         {sel && loading ? (
           <div className="flex flex-col gap-3 animate-slide-up">
             <div className="glass-card p-4">
@@ -2732,7 +2751,7 @@ const ScoringDashboard = () => {
         )}
       </div>
       {/* xl 桌面 · 常驻对比盘第三栏 — 研究即并排比较（复用真实对比数据，不另起模态）*/}
-      <aside className="hidden xl:flex xl:col-span-3 flex-col min-h-0 rounded-lg border border-white/8 bg-white/[0.015] overflow-hidden">
+      <aside className={rightCollapsed ? "hidden" : "hidden xl:flex xl:col-span-3 flex-col min-h-0 rounded-lg border border-white/8 bg-white/[0.015] overflow-hidden"}>
         {(() => {
           const cmp = [...compareSet].map(tk => liveStocks.find(s => s.ticker === tk)).filter(Boolean);
           const primaryTk = compareSet.has(sel?.ticker) ? sel.ticker : cmp[0]?.ticker;
@@ -2767,6 +2786,7 @@ const ScoringDashboard = () => {
                 {cmp.length > 0 && (
                   <button onClick={() => setCompareSet(new Set())} title={t('清空对比')} className="text-[#778] hover:text-white transition-colors"><X size={14} /></button>
                 )}
+                <button onClick={() => setRightPane(true)} title={t('折叠对比盘')} className="text-[#778] hover:text-white transition-colors"><ChevronRight size={14} /></button>
               </div>
               {cmp.length === 0 ? (
                 <div className="flex-1 flex flex-col items-center justify-center gap-2 p-6 text-center">
