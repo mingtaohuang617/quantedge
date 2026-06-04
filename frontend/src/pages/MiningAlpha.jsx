@@ -197,6 +197,110 @@ const ICHeatmap = ({ data, onPickAlpha }) => {
   );
 };
 
+// ─── 信号合成预估 (等权两因子：IC/ICIR + 真实月度 IC 序列派生的配对相关性与合成估计) ───
+// 数据全部来自 ic-report(ic_mean/ic_ir) + ic-heatmap(月度 IC 序列)，重叠月 < 6 时诚实标注数据不足，不编造。
+const SignalBlendEstimate = ({ ic, heatmap }) => {
+  const rows = ic || [];
+  const alphas = useMemo(() => rows.filter(r => r.alpha != null).map(r => r.alpha), [rows]);
+  const [aA, setAA] = useState(null);
+  const [aB, setAB] = useState(null);
+  useEffect(() => {
+    if (alphas.length < 2) return;
+    setAA(prev => (prev != null && alphas.some(a => a === prev)) ? prev : alphas[0]);
+    setAB(prev => (prev != null && prev !== alphas[0] && alphas.some(a => a === prev)) ? prev : alphas[1]);
+  }, [alphas]);
+
+  const result = useMemo(() => {
+    if (aA == null || aB == null || aA === aB) return null;
+    const rowA = rows.find(r => r.alpha === aA);
+    const rowB = rows.find(r => r.alpha === aB);
+    if (!rowA || !rowB) return null;
+    const months = heatmap?.months || [];
+    const cells = heatmap?.cells || [];
+    const mapA = new Map(cells.filter(c => c.alpha === aA).map(c => [c.month, c.ic]));
+    const mapB = new Map(cells.filter(c => c.alpha === aB).map(c => [c.month, c.ic]));
+    const pairs = months.map(m => [mapA.get(m), mapB.get(m)])
+      .filter(([x, y]) => x != null && y != null && isFinite(x) && isFinite(y));
+    const n = pairs.length;
+    let corr = null, blendIC = null, blendICIR = null;
+    if (n >= 6) {
+      const xs = pairs.map(p => p[0]), ys = pairs.map(p => p[1]);
+      const mean = arr => arr.reduce((s, v) => s + v, 0) / arr.length;
+      const mx = mean(xs), my = mean(ys);
+      let cov = 0, vx = 0, vy = 0;
+      for (let i = 0; i < n; i++) { const dx = xs[i] - mx, dy = ys[i] - my; cov += dx * dy; vx += dx * dx; vy += dy * dy; }
+      const sdx = Math.sqrt(vx / n), sdy = Math.sqrt(vy / n);
+      corr = (sdx > 0 && sdy > 0) ? (cov / n) / (sdx * sdy) : 0;
+      const blend = pairs.map(([x, y]) => (x + y) / 2);
+      const bMean = mean(blend);
+      const bSd = Math.sqrt(blend.reduce((s, v) => s + (v - bMean) * (v - bMean), 0) / n);
+      blendIC = bMean;
+      blendICIR = bSd > 0 ? bMean / bSd : null;
+    }
+    const bestSingle = Math.max(Math.abs(rowA.ic_ir ?? 0), Math.abs(rowB.ic_ir ?? 0));
+    const improved = blendICIR != null && Math.abs(blendICIR) > bestSingle;
+    return { rowA, rowB, corr, blendIC, blendICIR, n, bestSingle, improved };
+  }, [aA, aB, rows, heatmap]);
+
+  if (alphas.length < 2) return null;
+  const fmt = (v, d = 3) => (v == null || !isFinite(v)) ? "—" : v.toFixed(d);
+
+  return (
+    <div className="bg-white/[0.02] border border-white/5 rounded-lg p-3">
+      <div className="text-[11px] font-semibold text-white/80 mb-2">信号合成预估 · 等权两因子（真实月度 IC 序列派生）</div>
+      <div className="flex items-center gap-2 mb-3 text-[11px] text-[#a0aec0]">
+        <span>因子 A</span>
+        <select value={aA == null ? "" : String(aA)} onChange={e => setAA(alphas.find(a => String(a) === e.target.value))}
+          className="bg-white/5 border border-white/10 rounded px-1.5 py-0.5 text-[11px] text-white focus:outline-none focus:border-cyan-500/50">
+          {alphas.map(a => <option key={String(a)} value={String(a)} disabled={a === aB} className="bg-[#0d1117]">α{a}</option>)}
+        </select>
+        <span className="text-[#5a6477]">+</span>
+        <span>因子 B</span>
+        <select value={aB == null ? "" : String(aB)} onChange={e => setAB(alphas.find(a => String(a) === e.target.value))}
+          className="bg-white/5 border border-white/10 rounded px-1.5 py-0.5 text-[11px] text-white focus:outline-none focus:border-cyan-500/50">
+          {alphas.map(a => <option key={String(a)} value={String(a)} disabled={a === aA} className="bg-[#0d1117]">α{a}</option>)}
+        </select>
+      </div>
+      {!result ? (
+        <div className="text-[10px] text-[#778]">请选择两个不同的因子</div>
+      ) : (<>
+        <table className="w-full text-[11px] font-mono tabular-nums mb-3">
+          <thead><tr className="text-[9px] text-[#778] border-b border-white/8">
+            <th className="text-left py-1 font-medium">指标</th>
+            <th className="text-right py-1 font-medium text-cyan-300">α{aA}</th>
+            <th className="text-right py-1 font-medium text-violet-300">α{aB}</th>
+          </tr></thead>
+          <tbody>
+            <tr className="border-b border-white/5"><td className="py-1 text-[#a0aec0]">IC mean</td><td className="text-right text-white/90">{fmt(result.rowA.ic_mean)}</td><td className="text-right text-white/90">{fmt(result.rowB.ic_mean)}</td></tr>
+            <tr><td className="py-1 text-[#a0aec0]">ICIR</td><td className="text-right text-white/90">{fmt(result.rowA.ic_ir, 2)}</td><td className="text-right text-white/90">{fmt(result.rowB.ic_ir, 2)}</td></tr>
+          </tbody>
+        </table>
+        {result.corr == null ? (
+          <div className="text-[10px] text-[#778]">两因子重叠月份不足（&lt; 6），无法稳健估计相关性与合成</div>
+        ) : (
+          <div className="rounded-lg p-3 bg-cyan-500/[0.06] border border-cyan-500/20">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] text-[#a0aec0]">月度 IC 相关性 ρ · n={result.n}</span>
+              <span className={`font-mono text-[13px] font-bold ${Math.abs(result.corr) < 0.3 ? "text-emerald-300" : Math.abs(result.corr) < 0.6 ? "text-amber-300" : "text-rose-300"}`}>{result.corr >= 0 ? "+" : ""}{result.corr.toFixed(2)}</span>
+            </div>
+            <div className="flex items-baseline gap-2 mb-1.5">
+              <span className="font-mono text-[20px] font-bold text-emerald-300">{fmt(result.blendIC)}</span>
+              <span className="text-[10px] text-[#778]">合成 IC</span>
+              <span className="font-mono text-[12px] text-white/90 ml-1">ICIR {fmt(result.blendICIR, 2)}</span>
+            </div>
+            <div className="text-[10px] text-[#a0aec0] leading-relaxed">
+              {Math.abs(result.corr) < 0.3 ? "低相关，分散收益显著" : Math.abs(result.corr) < 0.6 ? "中等相关，部分互补" : "高相关，合成增益有限"}
+              {result.improved
+                ? <> · 合成 ICIR 超过单因子最佳 {fmt(result.bestSingle, 2)} <span className="text-emerald-300">↑</span></>
+                : <> · 未超过单因子最佳 {fmt(result.bestSingle, 2)}</>}
+            </div>
+          </div>
+        )}
+      </>)}
+    </div>
+  );
+};
+
 // ─── 因子详情 modal (点击 alpha 弹) ─────────────────────────
 const FactorDetailModal = ({ alphaNum, runId, onClose, isDemoMode = false }) => {
   const [data, setData] = useState(null);
@@ -1374,6 +1478,9 @@ export default function MiningAlpha() {
           <ICHeatmap data={heatmap} onPickAlpha={setPickedAlpha} />
         </div>
       )}
+
+      {/* v7 信号合成预估 — 等权两因子，真实月度 IC 相关性派生（对齐设计稿 SECTION 07 信号对比/合成）*/}
+      <SignalBlendEstimate ic={ic} heatmap={heatmap} />
 
       </>)}
 
