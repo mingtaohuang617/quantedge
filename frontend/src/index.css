@@ -24,9 +24,17 @@
 /* ── Theme CSS Custom Properties ── */
 :root {
   /* Dark theme (default) */
-  --bg-base: #0B0B15;
-  --bg-gradient: radial-gradient(ellipse at 20% 0%, #1A1A2E 0%, #0B0B15 50%, #0B0B15 100%);
-  --bg-card: rgba(22, 22, 37, 0.7);
+  /* ── v6 mobile palette · canonical tokens (2026-06) ──
+     中性色给 v6 hex；强调色别名指向 --accent-*（含 OKLCH 感知均匀），单一来源、深浅主题自动切换 */
+  --bg-0: #08090E; --bg-1: #0D0F16; --bg-2: #13151E; --bg-3: #1A1D29;
+  --line: #1F2230; --line-2: #2C3043;
+  --fg-0: #F5F6FA; --fg-1: #C9CDDA; --fg-2: #878BA0; --fg-3: #5A5E76; --fg-4: #3A3E54;
+  --indigo-2: #818CF8; --rose: #F472B6;
+  --up: var(--accent-up); --down: var(--accent-down); --warn: var(--accent-amber);
+  --cyan: var(--accent-cyan); --indigo: var(--accent-indigo); --violet: var(--accent-violet);
+  --bg-base: #08090E;
+  --bg-gradient: radial-gradient(ellipse 1400px 900px at 30% -10%, #15172B 0%, #08090E 50%, #08090E 100%);
+  --bg-card: rgba(20, 22, 33, 0.72);
   --bg-card-border: rgba(255, 255, 255, 0.10);
   --bg-card-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 0 0 0.5px rgba(255,255,255,0.06);
   --bg-card-hover-border: rgba(255, 255, 255, 0.15);
@@ -39,13 +47,13 @@
   --border-subtle: rgba(255, 255, 255, 0.05);
   --border-default: rgba(255, 255, 255, 0.08);
   --border-strong: rgba(255, 255, 255, 0.15);
-  --text-primary: #e2e8f0;
-  --text-heading: #ffffff;
-  --text-secondary: #a0aec0;
-  --text-muted: #778899;
-  --text-dim: #667788;
-  --text-ticker: #c8cdd3;
-  --text-subtle: #b0b8c4;
+  --text-primary: var(--fg-1);
+  --text-heading: var(--fg-0);
+  --text-secondary: var(--fg-2);
+  --text-muted: var(--fg-3);
+  --text-dim: var(--fg-4);
+  --text-ticker: var(--fg-1);
+  --text-subtle: var(--fg-2);
   --scrollbar-thumb: rgba(255, 255, 255, 0.06);
   --scrollbar-hover: rgba(255, 255, 255, 0.12);
   --chart-grid: rgba(255, 255, 255, 0.03);
@@ -65,19 +73,27 @@
   --slider-glow: 0 0 10px rgba(138, 43, 226, 0.5), 0 0 4px rgba(99, 102, 241, 0.8);
   --chart-glow-color: rgba(138, 43, 226, 0.3);
   --ripple-color: rgba(255, 255, 255, 0.15);
-  /* Accent palette (used in inline styles like ScoreBar) */
-  --accent-up: #00E5A0;
-  --accent-up-soft: #00E5A088;
+  /* Accent palette (used in inline styles like ScoreBar) · v6 hex fallbacks（现代浏览器走下方 OKLCH） */
+  --accent-up: #1ED395;
+  --accent-up-soft: #1ED39588;
   --accent-down: #FF6B6B;
   --accent-down-soft: #FF6B6B88;
-  --accent-amber: #f59e0b;
-  --accent-amber-soft: #f59e0b88;
+  --accent-amber: #F5B53C;
+  --accent-amber-soft: #F5B53C88;
   --accent-indigo: #6366f1;
   --accent-indigo-soft: #6366f188;
   --accent-violet: #8b5cf6;
   --accent-violet-soft: #8b5cf688;
-  --accent-cyan: #06b6d4;
-  --accent-cyan-soft: #06b6d488;
+  --accent-cyan: #5EE6E6;
+  --accent-cyan-soft: #5EE6E688;
+  /* v7：indigo 主品牌色的 Tailwind shade 三元组（rgb，供 <alpha-value>）。
+     默认 = Tailwind 原 indigo（bg-indigo-500 等零回归）。[data-theme] 覆盖见文件下方。 */
+  --tw-indigo-100: 224 231 255;
+  --tw-indigo-200: 199 210 254;
+  --tw-indigo-300: 165 180 252;
+  --tw-indigo-400: 129 140 248;
+  --tw-indigo-500: 99 102 241;
+  --tw-indigo-600: 79 70 229;
   /* Semantic role aliases — 见文件顶部说明，jsx 应优先用 var(--sem-*) */
   --sem-brand:    var(--accent-indigo);
   --sem-up:       var(--accent-up);
@@ -90,6 +106,11 @@
 
 /* Light theme */
 .light {
+  /* v6 canonical tokens · light equivalents（强调色 --up/--cyan… 经 --accent-* 自动跟随）*/
+  --bg-0: #f0f2f8; --bg-1: #e8ecf4; --bg-2: #ffffff; --bg-3: #f5f6fa;
+  --line: rgba(0,0,0,.08); --line-2: rgba(0,0,0,.12);
+  --fg-0: #0f172a; --fg-1: #1e293b; --fg-2: #475569; --fg-3: #64748b; --fg-4: #94a3b8;
+  --indigo-2: var(--accent-indigo); --rose: #db2777;
   --bg-base: #f0f2f8;
   --bg-gradient: linear-gradient(135deg, #f0f2f8 0%, #e8ecf4 50%, #f5f6fa 100%);
   --bg-card: rgba(255, 255, 255, 0.82);
@@ -159,18 +180,18 @@
    旧浏览器自动回退到上面的 hex */
 @supports (color: oklch(0% 0 0)) {
   :root {
-    --accent-up:        oklch(74% 0.16 158);    /* 暗模式：清晰但不刺眼的青绿 */
-    --accent-up-soft:   oklch(74% 0.16 158 / 0.55);
+    --accent-up:        oklch(77% 0.155 165);   /* v6 #1ED395 · 青绿 */
+    --accent-up-soft:   oklch(77% 0.155 165 / 0.55);
     --accent-down:      oklch(70% 0.18 25);     /* 暗模式：温暖但醒目的红 */
     --accent-down-soft: oklch(70% 0.18 25 / 0.55);
-    --accent-amber:     oklch(78% 0.15 75);
-    --accent-amber-soft:oklch(78% 0.15 75 / 0.55);
+    --accent-amber:     oklch(80% 0.135 80);    /* v6 #F5B53C · 金 */
+    --accent-amber-soft:oklch(80% 0.135 80 / 0.55);
     --accent-indigo:    oklch(68% 0.18 270);
     --accent-indigo-soft:oklch(68% 0.18 270 / 0.55);
     --accent-violet:    oklch(70% 0.19 295);
     --accent-violet-soft:oklch(70% 0.19 295 / 0.55);
-    --accent-cyan:      oklch(75% 0.13 200);
-    --accent-cyan-soft: oklch(75% 0.13 200 / 0.55);
+    --accent-cyan:      oklch(85% 0.105 192);   /* v6 #5EE6E6 · 亮青 */
+    --accent-cyan-soft: oklch(85% 0.105 192 / 0.55);
   }
   .light {
     --accent-up:        oklch(60% 0.18 158);    /* 亮模式：稍暗以保证 AA 对比度 */
@@ -186,6 +207,36 @@
     --accent-cyan:      oklch(60% 0.15 200);
     --accent-cyan-soft: oklch(60% 0.15 200 / 0.55);
   }
+}
+
+/* ── v7 工作站：6 色强调主题切换 ([data-theme] on <html>) ──
+   只换 indigo 主品牌色（Tailwind indigo-* 类 + var(--accent-indigo) 内联消费者）。
+   语义 up/down/amber 与 violet/cyan 次强调色保持固定。默认 indigo = 无 data-theme（不需块）。
+   放在 @supports oklch 之后，确保覆盖 oklch 的 --accent-indigo 默认；与 .light 同特异度但靠后→生效。 */
+[data-theme="violet"] {
+  --tw-indigo-100: 237 233 254; --tw-indigo-200: 221 214 254; --tw-indigo-300: 196 181 253;
+  --tw-indigo-400: 167 139 250; --tw-indigo-500: 139 92 246;  --tw-indigo-600: 124 58 237;
+  --accent-indigo: #8b5cf6; --accent-indigo-soft: #8b5cf688;
+}
+[data-theme="cyan"] {
+  --tw-indigo-100: 207 250 254; --tw-indigo-200: 165 243 252; --tw-indigo-300: 103 232 249;
+  --tw-indigo-400: 34 211 238;  --tw-indigo-500: 6 182 212;   --tw-indigo-600: 8 145 178;
+  --accent-indigo: #06b6d4; --accent-indigo-soft: #06b6d488;
+}
+[data-theme="emerald"] {
+  --tw-indigo-100: 209 250 229; --tw-indigo-200: 167 243 208; --tw-indigo-300: 110 231 183;
+  --tw-indigo-400: 52 211 153;  --tw-indigo-500: 16 185 129;  --tw-indigo-600: 5 150 105;
+  --accent-indigo: #10b981; --accent-indigo-soft: #10b98188;
+}
+[data-theme="amber"] {
+  --tw-indigo-100: 254 243 199; --tw-indigo-200: 253 230 138; --tw-indigo-300: 252 211 77;
+  --tw-indigo-400: 251 191 36;  --tw-indigo-500: 245 158 11;  --tw-indigo-600: 217 119 6;
+  --accent-indigo: #f59e0b; --accent-indigo-soft: #f59e0b88;
+}
+[data-theme="rose"] {
+  --tw-indigo-100: 252 231 243; --tw-indigo-200: 251 207 232; --tw-indigo-300: 249 168 212;
+  --tw-indigo-400: 244 114 182; --tw-indigo-500: 236 72 153;  --tw-indigo-600: 219 39 119;
+  --accent-indigo: #ec4899; --accent-indigo-soft: #ec489988;
 }
 
 /* ── Theme-aware color overrides ──
@@ -1079,6 +1130,10 @@ select:focus-visible {
 }
 .t-hero-lg { font-size: 44px; }
 .t-hero-sm { font-size: 28px; }
+/* v5 还原评审稿「报纸头版」尺度的大字号 hero —— 编辑式叙事的视觉锚。
+   clamp 让窄屏自动收缩、不挤爆密集布局（沿用复利页已验证的 clamp 模式）。 */
+.t-hero-xl { font-size: clamp(48px, 9vw, 96px); line-height: 0.94; letter-spacing: -0.035em; }
+.t-hero-display { font-size: clamp(40px, 6.5vw, 72px); line-height: 0.98; letter-spacing: -0.03em; }
 
 /* hero 数字渐变文字（白→浅灰），让大字号有"金属感"立体感而不是扁平贴底 */
 .t-hero-gradient {

@@ -32,6 +32,10 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- v7: 无闪烁应用强调色主题（在 React 挂载前设置 data-theme） -->
+    <script>
+      (function () { try { var a = localStorage.getItem('quantedge_accent'); if (a && a !== 'indigo') document.documentElement.dataset.theme = a; } catch (e) {} })();
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

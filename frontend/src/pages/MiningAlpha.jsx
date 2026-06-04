@@ -24,6 +24,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Zap, TrendingUp, Activity, Database, AlertCircle, Loader, RefreshCw, Target,
   Plus, Minus, ArrowRight, GitBranch, X, Play, Terminal, Grid3x3, Info, Sparkles,
+  ChevronRight, Star, SlidersHorizontal, Expand,
 } from "lucide-react";
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar,
@@ -31,6 +32,10 @@ import {
 } from "recharts";
 import { apiFetch } from "../quant-platform.jsx";
 import { useMiningAlphaData } from "../hooks/useMiningAlphaData.js";
+import { useLang } from "../i18n.jsx";
+import useIsMobile from "../hooks/useIsMobile.js";
+import MobileAppBar from "../components/mobile/MobileAppBar";
+import FullscreenChart from "../components/mobile/FullscreenChart";
 
 const fmtPct = (v, digits = 2) => (v === null || v === undefined || isNaN(v))
   ? "—" : `${(v * 100).toFixed(digits)}%`;
@@ -113,7 +118,13 @@ const ICTable = ({ rows, onPickAlpha }) => {
               className="border-b border-white/5 hover:bg-cyan-500/10 cursor-pointer"
               title="点击查看因子公式 + 历史 IC"
             >
-              <td className="px-3 py-1.5 text-left text-cyan-300 underline-offset-2 hover:underline">α{r.alpha}</td>
+              <td className="px-3 py-1.5 text-left">
+                <span className="inline-flex items-center gap-1.5">
+                  {/* v7 信号质量色标 — 真实 ICIR 阈值（对齐设计稿 SECTION 07 在用/测试/衰减绿黄红）*/}
+                  <span className="w-1.5 h-1.5 rounded-full shrink-0" title={Math.abs(r.ic_ir) >= 0.5 ? "强信号" : Math.abs(r.ic_ir) >= 0.3 ? "中等" : "弱/衰减"} style={{ background: Math.abs(r.ic_ir) >= 0.5 ? "#1ED395" : Math.abs(r.ic_ir) >= 0.3 ? "#f59e0b" : "#FF6B6B" }} />
+                  <span className="text-cyan-300 underline-offset-2 hover:underline">α{r.alpha}</span>
+                </span>
+              </td>
               <td className={`px-3 py-1.5 text-right ${r.ic_mean >= 0 ? "text-emerald-300" : "text-rose-300"}`}>{fmtPct(r.ic_mean, 2)}</td>
               <td className={`px-3 py-1.5 text-right font-semibold ${Math.abs(r.ic_ir) >= 0.5 ? "text-amber-300" : "text-white/70"}`}>{fmtNum(r.ic_ir, 2)}</td>
               <td className="px-3 py-1.5 text-right text-white/60">{fmtNum(r.ic_t, 2)}</td>
@@ -789,11 +800,19 @@ const FoldICTable = ({ rows }) => {
 
 // ─── 主组件 ────────────────────────────────────────────────
 export default function MiningAlpha() {
+  const { t } = useLang();
+  const isMobile = useIsMobile();
+
   const {
     status, ic, importance, backtest, topHoldings, regime, foldIC, heatmap, alerts,
     loading, error, isDemoMode, refetch: fetchAll, switchRun: onSwitchRun,
   } = useMiningAlphaData();
   const [pickedAlpha, setPickedAlpha] = useState(null);
+
+  // ── mobile-only state (hooks must be unconditional) ──────
+  const [mSel, setMSel] = useState(null);          // selected signal row (IC report row)
+  const [mCatFilter, setMCatFilter] = useState("all"); // category filter chip
+  const [mFsChart, setMFsChart] = useState(false); // fullscreen layered backtest chart
 
   const regimeSegments = useMemo(() => mergeRegimeSegments(regime), [regime]);
   const allDone = status && status.files && Object.values(status.files).every(Boolean);
@@ -804,6 +823,354 @@ export default function MiningAlpha() {
   // 正常 Vercel 部署会走 demo fallback（hook 里 dynamic import）。
   const backendUnreachable = !loading && status === null && !error && !isDemoMode;
 
+  // ── v6 移动端：IC 大数字卡片流 → 全屏研究报告 + 分层回测横屏 ──────────
+  if (isMobile) {
+    // Build signal rows from ic report data; fall back to empty array
+    const icRows = Array.isArray(ic) && ic.length > 0 ? ic : [];
+
+    // Collect unique categories from rows for filter chips
+    const cats = ["all", ...Array.from(new Set(icRows.map((r) => r.category || r.cat || "其他").filter(Boolean)))];
+    const filtered = mCatFilter === "all"
+      ? icRows
+      : icRows.filter((r) => (r.category || r.cat || "其他") === mCatFilter);
+
+    // Layered backtest chart data: Q1-Q5 bar groups built from backtest.multi_topn or equity_curve
+    // We'll render the equity curve as a simple line in fullscreen; multi_topn as bars if available
+    const layeredData = backtest?.multi_topn?.map((r) => ({
+      name: `Top${r.top_n}`,
+      annual: r.annual_return != null ? +(r.annual_return * 100).toFixed(2) : 0,
+      sharpe: r.sharpe != null ? +r.sharpe.toFixed(2) : 0,
+    })) || [];
+
+    // Selected signal full-screen report
+    const sel = mSel;
+
+    // Color helper matching design: ic >= 0.05 → up, >= 0.03 → warn, else subdued
+    const icColor = (v) => {
+      if (v == null) return "var(--fg-3)";
+      if (v >= 0.05) return "var(--up)";
+      if (v >= 0.03) return "var(--warn)";
+      return "var(--fg-2)";
+    };
+
+    return (
+      <div className="h-full flex flex-col" style={{ background: "var(--bg-0)" }}>
+        {/* ── 信号卡流（列表层）──────────────────────────── */}
+        <div className="flex-1 overflow-y-auto overscroll-contain">
+          {/* 页头 */}
+          <div className="px-4 pt-4 pb-2 flex items-center justify-between">
+            <div>
+              <div className="text-[10px] font-semibold tracking-widest mb-0.5" style={{ color: "var(--fg-3)" }}>
+                {t("MINING ALPHA")}
+              </div>
+              <h1 className="text-[22px] font-bold leading-tight" style={{ color: "var(--fg-0)" }}>
+                {t("信号实验室")}
+              </h1>
+            </div>
+            <button
+              onClick={fetchAll}
+              disabled={loading}
+              className="w-9 h-9 rounded-[10px] border flex items-center justify-center active:scale-95 transition"
+              style={{ borderColor: "var(--line)", background: "rgba(255,255,255,.03)" }}
+              aria-label={t("刷新")}
+            >
+              {loading
+                ? <Loader size={16} style={{ color: "var(--fg-2)" }} className="animate-spin" />
+                : <RefreshCw size={16} style={{ color: "var(--fg-2)" }} />}
+            </button>
+          </div>
+
+          {/* 分类筛选 chips 横滑 */}
+          {cats.length > 1 && (
+            <div className="px-4 mb-3 flex gap-2 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+              {cats.map((c) => {
+                const on = c === mCatFilter;
+                return (
+                  <button
+                    key={c}
+                    onClick={() => setMCatFilter(c)}
+                    className="flex-shrink-0 px-3.5 py-1.5 rounded-full text-[12px] font-medium border transition active:scale-95"
+                    style={on
+                      ? { color: "var(--indigo-2)", borderColor: "rgba(99,102,241,.3)", background: "rgba(99,102,241,.15)", fontWeight: 600 }
+                      : { color: "var(--fg-2)", borderColor: "var(--line)", background: "rgba(255,255,255,.03)" }}
+                  >
+                    {c === "all" ? t("IC 排序") : c}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* 加载/错误/后端不可达状态 */}
+          {loading && icRows.length === 0 && (
+            <div className="px-4 py-8 flex justify-center">
+              <Loader size={22} style={{ color: "var(--fg-3)" }} className="animate-spin" />
+            </div>
+          )}
+          {backendUnreachable && (
+            <div className="px-4 py-6">
+              <div className="rounded-xl border p-4 text-center" style={{ borderColor: "var(--line)", background: "rgba(255,255,255,.02)" }}>
+                <Database size={28} className="mx-auto mb-2" style={{ color: "var(--indigo-2)" }} />
+                <p className="text-[13px] font-semibold mb-1" style={{ color: "var(--fg-0)" }}>{t("需要 self-hosted 后端")}</p>
+                <p className="text-[11px] leading-relaxed" style={{ color: "var(--fg-3)" }}>
+                  {t("Mining Alpha 读取 /api/mining-alpha/* 数据，需本地跑 FastAPI 后端。")}
+                </p>
+                <button onClick={fetchAll} className="mt-3 px-4 py-1.5 rounded-lg text-[12px] border active:scale-95 transition"
+                  style={{ borderColor: "rgba(99,102,241,.3)", background: "rgba(99,102,241,.12)", color: "var(--indigo-2)" }}>
+                  {t("重试")}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* IC 大数字卡片流 */}
+          <div className="px-4 pb-6 space-y-2.5">
+            {filtered.map((row, i) => {
+              const icVal = row.ic_mean ?? row.ic ?? 0;
+              const irVal = row.ic_ir ?? row.ir ?? null;
+              const winVal = row.ic_pos_rate != null
+                ? `${(row.ic_pos_rate * 100).toFixed(0)}%`
+                : (row.win ?? null);
+              const cat = row.category || row.cat || null;
+              const isTop = i === 0 && mCatFilter === "all";
+              const color = icColor(icVal);
+              return (
+                <button
+                  key={row.alpha ?? row.name ?? i}
+                  onClick={() => setMSel(row)}
+                  className="w-full flex items-center gap-3.5 px-4 py-4 rounded-2xl border text-left active:scale-[0.99] transition"
+                  style={{
+                    background: isTop
+                      ? "linear-gradient(135deg,rgba(30,211,149,.08),transparent 70%)"
+                      : "rgba(255,255,255,.022)",
+                    borderColor: isTop ? "rgba(30,211,149,.25)" : "var(--line)",
+                  }}
+                >
+                  {/* IC 大数字 */}
+                  <div className="text-center w-14 flex-shrink-0">
+                    <div className="font-mono text-[22px] font-bold leading-none" style={{ color }}>
+                      {icVal != null ? icVal.toFixed(3) : "—"}
+                    </div>
+                    <div className="text-[9px] mt-1 tracking-wider font-semibold" style={{ color: "var(--fg-3)" }}>IC</div>
+                  </div>
+                  {/* 竖分隔线 */}
+                  <div className="w-px self-stretch" style={{ background: "var(--line)" }} />
+                  {/* 名称 + 指标行 */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className="text-[15px] font-semibold truncate" style={{ color: "var(--fg-0)" }}>
+                        {row.alpha != null ? `α${row.alpha}` : (row.name ?? row.factor ?? row.feature ?? `${t("信号")} #${i + 1}`)}
+                      </span>
+                      {isTop && (
+                        <span className="flex-shrink-0 px-1.5 py-0.5 rounded-md text-[9px] font-bold"
+                          style={{ background: "rgba(30,211,149,.15)", color: "var(--up)" }}>
+                          {t("最优")}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex gap-3 font-mono text-[11px]" style={{ color: "var(--fg-3)" }}>
+                      {irVal != null && <span>IR {typeof irVal === "number" ? irVal.toFixed(2) : irVal}</span>}
+                      {winVal && <span>{t("胜率")} {winVal}</span>}
+                      {cat && <span style={{ color: "var(--fg-2)" }}>{cat}</span>}
+                    </div>
+                  </div>
+                  <ChevronRight size={16} style={{ color: "var(--fg-4)", flexShrink: 0 }} />
+                </button>
+              );
+            })}
+
+            {/* 空状态 */}
+            {!loading && !backendUnreachable && filtered.length === 0 && (
+              <div className="py-12 text-center text-[12px]" style={{ color: "var(--fg-3)" }}>
+                {t("无 IC 报告数据")}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── 全屏研究报告（单信号下钻）──────────────────── */}
+        {sel && (
+          <div className="fixed inset-0 z-40 flex flex-col" style={{ background: "var(--bg-0)" }}>
+            <MobileAppBar
+              onBack={() => setMSel(null)}
+              title={t("研究报告")}
+              actions={
+                <button
+                  className="p-1 active:scale-90 transition"
+                  style={{ color: "var(--fg-3)" }}
+                  aria-label={t("分享")}
+                >
+                  <Sparkles size={18} />
+                </button>
+              }
+            />
+            {/* 可滚动正文 */}
+            <div className="flex-1 overflow-y-auto overscroll-contain pb-24">
+              {/* IC 大头 */}
+              <div className="px-4 pt-5 pb-4">
+                {(sel.category || sel.cat) && (
+                  <span className="inline-block px-2 py-0.5 rounded-md text-[10px] font-bold mb-3"
+                    style={{ background: "rgba(30,211,149,.12)", color: "var(--up)" }}>
+                    {sel.category || sel.cat} · {t("已验证")}
+                  </span>
+                )}
+                <h2 className="font-bold text-[22px] leading-tight mb-4" style={{ color: "var(--fg-0)", letterSpacing: "-0.01em" }}>
+                  {sel.name ?? `α${sel.alpha}`}
+                </h2>
+                <div className="flex items-flex-end gap-4">
+                  <div>
+                    <div className="text-[9px] tracking-wider mb-1 font-semibold" style={{ color: "var(--fg-3)" }}>{t("信息系数 IC")}</div>
+                    <span className="font-serif font-semibold leading-none" style={{ fontSize: 48, color: icColor(sel.ic_mean ?? sel.ic ?? 0) }}>
+                      {sel.ic_mean != null ? sel.ic_mean.toFixed(3) : sel.ic != null ? sel.ic.toFixed(3) : "—"}
+                    </span>
+                  </div>
+                  {(sel.ic_ir ?? sel.ir) != null && (
+                    <div className="pb-1.5">
+                      <span className="px-2 py-1 rounded-lg text-[11px] font-bold"
+                        style={{ background: "rgba(30,211,149,.12)", color: "var(--up)" }}>
+                        IR {typeof (sel.ic_ir ?? sel.ir) === "number" ? (sel.ic_ir ?? sel.ir).toFixed(2) : (sel.ic_ir ?? sel.ir)} · {t("显著")}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* AI 信号解读（如有 narration 或 description） */}
+              {(sel.description || sel.desc) && (
+                <div className="mx-4 mb-4 rounded-xl px-4 py-3.5"
+                  style={{ background: "linear-gradient(135deg,rgba(139,92,246,.10),rgba(99,102,241,.02))", borderLeft: "3px solid var(--violet)" }}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Sparkles size={12} style={{ color: "#A78BFA" }} />
+                    <span className="text-[10px] font-semibold tracking-wider" style={{ color: "#C4B5FD" }}>{t("AI 信号解读")}</span>
+                  </div>
+                  <p className="text-[13.5px] leading-relaxed m-0" style={{ color: "var(--fg-1)" }}>
+                    {sel.description || sel.desc}
+                  </p>
+                </div>
+              )}
+
+              {/* 分层回测柱图 (multi_topn) */}
+              {layeredData.length > 0 && (
+                <div className="mx-4 mb-4 rounded-xl border p-4" style={{ borderColor: "var(--line)", background: "rgba(255,255,255,.02)" }}>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-[13px] font-semibold" style={{ color: "var(--fg-0)" }}>{t("分层回测 Top-N 对比")}</span>
+                    <button
+                      onClick={() => setMFsChart(true)}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border active:scale-95 transition"
+                      style={{ borderColor: "rgba(99,102,241,.3)", background: "rgba(99,102,241,.12)", color: "var(--indigo-2)" }}
+                    >
+                      <Expand size={11} />{t("全屏")}
+                    </button>
+                  </div>
+                  <ResponsiveContainer width="100%" height={110}>
+                    <BarChart data={layeredData} margin={{ left: 0, right: 0, top: 4, bottom: 0 }}>
+                      <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
+                      <XAxis dataKey="name" tick={{ fill: "var(--fg-3)", fontSize: 10 }} />
+                      <YAxis tick={{ fill: "var(--fg-3)", fontSize: 9 }} unit="%" width={32} />
+                      <Tooltip
+                        contentStyle={{ background: "var(--bg-1)", border: "1px solid var(--line)", fontSize: 11 }}
+                        formatter={(v) => [`${v}%`, t("年化")]}
+                      />
+                      <Bar dataKey="annual" radius={[4, 4, 0, 0]}
+                        fill="var(--indigo)"
+                        label={false}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+
+              {/* 关键指标行 */}
+              <div className="mx-4 mb-4 grid grid-cols-3 gap-2.5">
+                {[
+                  { l: t("胜率"), v: sel.ic_pos_rate != null ? `${(sel.ic_pos_rate * 100).toFixed(0)}%` : (sel.win ?? "—") },
+                  { l: t("ICIR"), v: sel.ic_ir != null ? sel.ic_ir.toFixed(2) : (sel.ir != null ? sel.ir.toFixed(2) : "—") },
+                  { l: t("Top 超额"), v: sel.top_excess_mean != null ? `${(sel.top_excess_mean * 100).toFixed(2)}%` : "—" },
+                  { l: t("IC t 统计"), v: sel.ic_t != null ? sel.ic_t.toFixed(2) : "—" },
+                  { l: t("换手率"), v: sel.turnover != null ? `${(sel.turnover * 100).toFixed(0)}%` : "—" },
+                  { l: t("分类"), v: sel.category || sel.cat || "—" },
+                ].map(({ l, v }) => (
+                  <div key={l} className="rounded-xl border px-3 py-2.5" style={{ borderColor: "var(--line)", background: "rgba(255,255,255,.02)" }}>
+                    <div className="text-[9px] tracking-wider font-semibold mb-1" style={{ color: "var(--fg-3)" }}>{l}</div>
+                    <div className="font-mono text-[14px] font-bold" style={{ color: "var(--fg-0)" }}>{v}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* 月度 IC 时序 (如有) */}
+              {sel.monthly_ic?.length > 0 && (
+                <div className="mx-4 mb-4 rounded-xl border p-4" style={{ borderColor: "var(--line)", background: "rgba(255,255,255,.02)" }}>
+                  <div className="text-[13px] font-semibold mb-3" style={{ color: "var(--fg-0)" }}>{t("月度 IC 时序")}</div>
+                  <ResponsiveContainer width="100%" height={100}>
+                    <LineChart data={sel.monthly_ic} margin={{ left: 0, right: 0, top: 4, bottom: 0 }}>
+                      <CartesianGrid stroke="rgba(255,255,255,0.05)" />
+                      <XAxis dataKey="month" tick={{ fill: "var(--fg-3)", fontSize: 9 }} interval="preserveStartEnd" />
+                      <YAxis tick={{ fill: "var(--fg-3)", fontSize: 9 }} width={30} />
+                      <Tooltip contentStyle={{ background: "var(--bg-1)", border: "1px solid var(--line)", fontSize: 11 }}
+                        formatter={(v) => `${(v * 100).toFixed(2)}%`} />
+                      <Line type="monotone" dataKey="ic" stroke="var(--up)" dot={false} strokeWidth={1.5} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
+
+            {/* 底部 CTA 栏 */}
+            <div className="absolute left-0 right-0 bottom-0 px-4 py-3"
+              style={{
+                background: "linear-gradient(180deg,rgba(8,9,14,.0),rgba(8,9,14,.96) 40%)",
+                backdropFilter: "blur(14px)",
+                borderTop: "1px solid var(--line)",
+                paddingBottom: "calc(12px + env(safe-area-inset-bottom))",
+              }}>
+              <div className="flex gap-2.5">
+                <button className="w-11 h-11 rounded-xl border flex items-center justify-center active:scale-90 transition flex-shrink-0"
+                  style={{ borderColor: "var(--line-2)", background: "rgba(255,255,255,.04)" }}
+                  aria-label={t("收藏")}>
+                  <Star size={19} style={{ color: "var(--fg-1)" }} />
+                </button>
+                <button className="flex-1 h-11 rounded-xl border-none font-bold text-[14px] flex items-center justify-center gap-2 text-white active:scale-[0.98] transition"
+                  style={{ background: "linear-gradient(180deg,var(--indigo-2),var(--indigo))", boxShadow: "0 8px 22px -6px rgba(99,102,241,.6)" }}>
+                  <Plus size={16} />{t("加入策略组合")}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── 分层回测横屏全屏 ─────────────────────────────── */}
+        <FullscreenChart
+          open={mFsChart}
+          onClose={() => setMFsChart(false)}
+          title={t("分层回测")}
+          footerNote={t("年化收益率 · 按 Top-N 持仓切片")}
+        >
+          {layeredData.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={layeredData} margin={{ left: 8, right: 16, top: 12, bottom: 8 }}>
+                <CartesianGrid stroke="rgba(255,255,255,0.07)" vertical={false} />
+                <XAxis dataKey="name" tick={{ fill: "var(--fg-2)", fontSize: 12 }} />
+                <YAxis tick={{ fill: "var(--fg-2)", fontSize: 11 }} unit="%" width={40} />
+                <Tooltip
+                  contentStyle={{ background: "var(--bg-1)", border: "1px solid var(--line)", fontSize: 12 }}
+                  formatter={(v, name) => [`${v}%`, name === "annual" ? t("年化收益") : t("Sharpe")]}
+                />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Bar dataKey="annual" name={t("年化收益%")} radius={[4, 4, 0, 0]} fill="var(--indigo)" />
+                <Bar dataKey="sharpe" name="Sharpe" radius={[4, 4, 0, 0]} fill="var(--cyan)" />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-full flex items-center justify-center text-[13px]" style={{ color: "var(--fg-3)" }}>
+              {t("暂无回测数据")}
+            </div>
+          )}
+        </FullscreenChart>
+      </div>
+    );
+  }
+  // ── end mobile branch ──────────────────────────────────────
+
   return (
     // 外层 h-full overflow-y-auto：父 <main> 是 overflow-hidden flex-col 容器，
     // 单页面要自己声明垂直滚动；其他长页面（SmartBeta / CompoundPower）也用这个模式。
@@ -811,18 +1178,21 @@ export default function MiningAlpha() {
     <div className="p-3 md:p-4 space-y-3 max-w-[1400px] mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <div className="flex items-center gap-2">
-          <Zap size={18} className="text-violet-400" />
-          <h2 className="text-base md:text-lg font-bold text-white">Mining Alpha</h2>
-          <span className="text-[10px] text-[#a0aec0]">因子挖掘 · ML 合成 · 回测</span>
-          {isDemoMode && (
-            <span
-              className="text-[10px] font-semibold px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 cursor-help"
-              title="后端无数据 — 显示静态示例。要看真实结果需 self-hosted backend 跑过 pipeline。"
-            >
-              DEMO 模式
-            </span>
-          )}
+        <div>
+          {/* v5 编辑式：eyebrow + serif 版头（与 Smart Beta 一致的视觉语言）*/}
+          <div className="t-eyebrow mb-0.5">MINING ALPHA · 信号实验室</div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Zap size={18} className="text-violet-400" />
+            <h2 className="font-serif text-base md:text-lg font-semibold text-white" style={{ letterSpacing: "-0.02em" }}>因子挖掘 · ML 合成 · 回测</h2>
+            {isDemoMode && (
+              <span
+                className="text-[10px] font-semibold px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 cursor-help"
+                title="后端无数据 — 显示静态示例。要看真实结果需 self-hosted backend 跑过 pipeline。"
+              >
+                DEMO 模式
+              </span>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-2">
           {status && <RunSwitcher status={status} onSwitch={onSwitchRun} />}

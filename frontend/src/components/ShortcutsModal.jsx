@@ -20,6 +20,8 @@ export function buildShortcuts(tabs) {
     ...tabRows,
     { keys: ["J"], desc: "下一只标的（评分页）" },
     { keys: ["K"], desc: "上一只标的（评分页）" },
+    { keys: ["W"], desc: "加入 / 移出自选（评分页当前标的）" },
+    { keys: ["C"], desc: "加入 / 移出对比（评分页当前标的）" },
     { keys: ["R"], desc: "刷新所有标的行情" },
     { keys: ["/"], desc: "聚焦主搜索框" },
     { keys: ["?"], desc: "打开本面板" },

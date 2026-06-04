@@ -10,7 +10,7 @@
  */
 import React, { useMemo, useState } from "react";
 import {
-  TrendingUp, Sparkles, AlertTriangle, Info, Shield, Flame,
+  TrendingUp, Sparkles, AlertTriangle, Info, Shield, Flame, Maximize2,
 } from "lucide-react";
 import {
   ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis,
@@ -20,6 +20,8 @@ import {
   compoundFinalValue, compoundSeries, inflationAdjusted,
   monteCarloAnnual, formatBigNumber,
 } from "../math/compound.ts";
+import useIsMobile from "../hooks/useIsMobile";
+import { FullscreenChart, ThumbActionBar } from "../components/mobile";
 
 // ─── 常量 ────────────────────────────────────────────────
 
@@ -339,11 +341,13 @@ function GrowthChart({ data, showSpy = true, useLogScale = false }) {
 //  主组件
 // ═════════════════════════════════════════════════════════
 export default function CompoundPower({ onOneClickBacktest = null }) {
+  const isMobile = useIsMobile();
   const [selectedRate, setSelectedRate] = useState(0.10);
   const [years, setYears] = useState(20);
   const [principalStr, setPrincipalStr] = useState("100000");
   const [monthlyStr, setMonthlyStr] = useState("2000");   // v5：每月定投
   const [tierOverride, setTierOverride] = useState(null);
+  const [fsChart, setFsChart] = useState(false);
 
   const principal = useMemo(() => {
     const n = parseFloat(principalStr);
@@ -446,6 +450,361 @@ export default function CompoundPower({ onOneClickBacktest = null }) {
 
   // 当前展示的策略
   const strategies = STRATEGY_LIBRARY[currentTier] || [];
+
+  // ─────────────────────────────────────────────────────────────
+  // v6 移动端：60px serif 终值头条 + 本金/复利占比条 + 大滑块 + 里程碑时间线 + 横屏曲线
+  // 复用全部桌面端 state / 计算值（story.*、selectedRate、years、principal、monthly 等）
+  // ─────────────────────────────────────────────────────────────
+  if (isMobile) {
+    // 里程碑：从 story.chart 推导出首次到达各阈值的年份
+    const MILESTONES = [
+      { label: "第一个 $100K", target: 100_000 },
+      { label: "突破 $500K",  target: 500_000 },
+      { label: "达成 $1M",    target: 1_000_000 },
+    ];
+    const milestones = MILESTONES.map(({ label, target }) => {
+      const yr = story.chart.findIndex((d) => d.total >= target);
+      return { label, target, year: yr > 0 ? yr : null };
+    }).filter((m) => m.year !== null && m.target <= story.finalTotal);
+    // 加上终值里程碑
+    milestones.push({ label: `${years} 年终值`, target: story.finalTotal, year: years, isFinal: true });
+
+    // 72 法则翻倍年数
+    const doublingYrs = story.doublingYears ? story.doublingYears.toFixed(1) : "—";
+
+    // 滑块行：label / displayValue / value / min / max / step / onChange / loLabel / hiLabel
+    const sliderRows = [
+      {
+        label: "初始本金", displayValue: fmtMoney(principal),
+        value: Math.min(500_000, principal), min: 0, max: 500_000, step: 5_000,
+        onChange: (v) => setPrincipalStr(String(v)),
+        lo: "$0", hi: "$500K",
+      },
+      {
+        label: "每月定投", displayValue: fmtMoney(monthly),
+        value: Math.min(10_000, monthly), min: 0, max: 10_000, step: 250,
+        onChange: (v) => setMonthlyStr(String(v)),
+        lo: "$0", hi: "$10K",
+      },
+      {
+        label: "年化收益", displayValue: fmtPct(selectedRate, 0),
+        value: Math.max(0, RETURN_OPTIONS.findIndex((o) => o.rate === selectedRate)),
+        min: 0, max: RETURN_OPTIONS.length - 1, step: 1,
+        onChange: (i) => { setSelectedRate(RETURN_OPTIONS[i].rate); setTierOverride(null); },
+        lo: RETURN_OPTIONS[0].label, hi: RETURN_OPTIONS[RETURN_OPTIONS.length - 1].label,
+      },
+      {
+        label: "投资年限", displayValue: `${years} 年`,
+        value: Math.max(0, YEAR_OPTIONS.indexOf(years)),
+        min: 0, max: YEAR_OPTIONS.length - 1, step: 1,
+        onChange: (i) => setYears(YEAR_OPTIONS[i]),
+        lo: `${YEAR_OPTIONS[0]}年`, hi: `${YEAR_OPTIONS[YEAR_OPTIONS.length - 1]}年`,
+      },
+    ];
+
+    const principalPct = Math.round((1 - story.growthPct) * 100);
+    const growthPct    = Math.round(story.growthPct * 100);
+
+    // 全屏图表：复用 story.chart（total / principal 两线）
+    const fsIndicators = (
+      <>
+        <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10.5, color: "var(--fg-2)" }}>
+          <span style={{ width: 14, height: 2, background: "#1ED395", display: "inline-block" }} />账户总值
+        </span>
+        <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10.5, color: "var(--fg-3)" }}>
+          <span style={{ width: 14, height: 2, background: "#5A5E76", borderStyle: "dashed", display: "inline-block" }} />累计本金
+        </span>
+        <span style={{ marginLeft: "auto", fontSize: 10, padding: "4px 10px", borderRadius: 7, background: "rgba(30,211,149,.12)", border: "1px solid rgba(30,211,149,.3)", color: "var(--up)", fontWeight: 600 }}>
+          后 {Math.round(years / 3)} 年贡献多数增长
+        </span>
+      </>
+    );
+
+    return (
+      <div className="h-full flex flex-col" style={{ background: "var(--bg-0)" }}>
+        <div
+          className="flex-1 overflow-y-auto overscroll-contain"
+          style={{ paddingBottom: "calc(74px + env(safe-area-inset-bottom))" }}
+        >
+          {/* ── Hero: 终值大字 ── */}
+          <div
+            style={{
+              padding: "20px 16px 18px",
+              textAlign: "center",
+              background: "radial-gradient(ellipse 400px 280px at 50% 0%, rgba(30,211,149,.13), var(--bg-0) 65%)",
+            }}
+          >
+            <div style={{ fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--fg-3)", marginBottom: 10 }}>
+              {years} 年后，你将拥有
+            </div>
+            <div
+              className="font-serif"
+              style={{
+                fontSize: 60,
+                fontWeight: 600,
+                letterSpacing: "-0.03em",
+                lineHeight: 0.92,
+                background: "linear-gradient(180deg, #6EE7B7 0%, #1ED395 100%)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                fontFamily: "Georgia, 'Times New Roman', serif",
+              }}
+            >
+              {fmtMoney(story.finalTotal)}
+            </div>
+            {/* chips */}
+            <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 14, flexWrap: "wrap" }}>
+              <span style={{ padding: "4px 10px", borderRadius: 20, fontSize: 11, background: "rgba(90,94,118,.25)", border: "1px solid rgba(90,94,118,.4)", color: "var(--fg-1)" }}>
+                本金 {fmtMoney(story.finalPrincipal)}
+              </span>
+              <span style={{ padding: "4px 10px", borderRadius: 20, fontSize: 11, background: "rgba(30,211,149,.12)", border: "1px solid rgba(30,211,149,.3)", color: "var(--up)", fontWeight: 600 }}>
+                复利贡献 {fmtMoney(story.finalGrowth)}
+              </span>
+            </div>
+            {/* 本金/复利占比条 */}
+            <div style={{ display: "flex", height: 8, borderRadius: 4, overflow: "hidden", margin: "16px 8px 0", gap: 2 }}>
+              <div style={{ width: `${principalPct}%`, background: "#5A5E76", borderRadius: "4px 0 0 4px", transition: "width .35s" }} />
+              <div style={{
+                flex: 1,
+                background: "linear-gradient(90deg, var(--up), var(--cyan))",
+                boxShadow: "0 0 10px rgba(30,211,149,.45)",
+                borderRadius: "0 4px 4px 0",
+                transition: "flex .35s",
+              }} />
+            </div>
+            <div
+              className="font-mono"
+              style={{ display: "flex", justifyContent: "space-between", margin: "6px 8px 0", fontSize: 9, color: "var(--fg-3)" }}
+            >
+              <span>本金 {principalPct}%</span>
+              <span style={{ color: "var(--up)" }}>复利 {growthPct}%</span>
+            </div>
+            {/* 72 法则小提示 */}
+            <div style={{ marginTop: 14, fontSize: 11, color: "var(--fg-3)" }}>
+              年化 <span className="font-mono" style={{ color: "var(--up)" }}>{fmtPct(selectedRate, 0)}</span> → 约{" "}
+              <span className="font-mono" style={{ color: "var(--cyan)", fontWeight: 600 }}>{doublingYrs} 年</span>翻倍
+              {story.crossoverYear && (
+                <span>，第 <span className="font-mono" style={{ color: "var(--warn, #F5B53C)" }}>{story.crossoverYear}</span> 年复利超本金</span>
+              )}
+            </div>
+          </div>
+
+          {/* ── 滑块：调整你的计划 ── */}
+          <div style={{ padding: "4px 16px 2px" }}>
+            <div style={{ fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--fg-3)", marginBottom: 16 }}>
+              调整你的计划
+            </div>
+            {sliderRows.map(({ label, displayValue, value, min, max, step, onChange, lo, hi }) => {
+              const pct = max > min ? ((value - min) / (max - min)) * 100 : 0;
+              return (
+                <div key={label} style={{ marginBottom: 22 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
+                    <span style={{ fontSize: 13, color: "var(--fg-1)" }}>{label}</span>
+                    <span className="font-mono" style={{ fontSize: 17, fontWeight: 700, color: "var(--fg-0)" }}>{displayValue}</span>
+                  </div>
+                  {/* 44px hit-area slider */}
+                  <div style={{ position: "relative", height: 44, display: "flex", alignItems: "center" }}>
+                    {/* track bg */}
+                    <div style={{ position: "absolute", left: 0, right: 0, height: 6, borderRadius: 3, background: "rgba(255,255,255,.06)" }} />
+                    {/* fill */}
+                    <div style={{
+                      position: "absolute", left: 0, height: 6, borderRadius: 3,
+                      width: `${pct}%`,
+                      background: "linear-gradient(90deg, var(--up), var(--cyan))",
+                      boxShadow: "0 0 8px rgba(30,211,149,.35)",
+                      transition: "width .1s",
+                    }} />
+                    <input
+                      type="range"
+                      min={min} max={max} step={step} value={value}
+                      onChange={(e) => onChange(parseFloat(e.target.value))}
+                      aria-label={label}
+                      style={{
+                        position: "absolute", left: 0, right: 0, width: "100%",
+                        height: 44, margin: 0, appearance: "none", WebkitAppearance: "none",
+                        background: "transparent", cursor: "pointer",
+                      }}
+                      className="cp-slider"
+                    />
+                  </div>
+                  <div className="font-mono" style={{ display: "flex", justifyContent: "space-between", marginTop: 2, fontSize: 9, color: "var(--fg-4, #5a6477)" }}>
+                    <span>{lo}</span><span>{hi}</span>
+                  </div>
+                </div>
+              );
+            })}
+            {rateOpt.warning && (
+              <div style={{ borderRadius: 8, background: "rgba(245,158,11,.1)", border: "1px solid rgba(245,158,11,.3)", padding: "8px 12px", fontSize: 11, color: "#FCD34D", display: "flex", gap: 8, alignItems: "flex-start", marginBottom: 8 }}>
+                <AlertTriangle size={12} style={{ flexShrink: 0, marginTop: 1 }} />
+                <span>{rateOpt.warning}</span>
+              </div>
+            )}
+          </div>
+
+          {/* ── 增长曲线卡片 + 全屏入口 ── */}
+          <div style={{ padding: "8px 16px 14px" }}>
+            <div style={{ borderRadius: 14, border: "1px solid var(--line)", background: "rgba(255,255,255,.022)", padding: "14px 14px 10px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--fg-0)" }}>增长曲线</span>
+                <button
+                  onClick={() => setFsChart(true)}
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: 5,
+                    padding: "4px 9px", background: "rgba(30,211,149,.12)",
+                    border: "1px solid rgba(30,211,149,.3)", borderRadius: 7,
+                    fontSize: 10.5, color: "var(--up)", fontWeight: 600,
+                  }}
+                >
+                  <Maximize2 size={11} />全屏
+                </button>
+              </div>
+              {/* 迷你预览曲线 */}
+              <ResponsiveContainer width="100%" height={80}>
+                <ComposedChart data={story.chart} margin={{ left: 0, right: 0, top: 4, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="mobCpTot" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#1ED395" stopOpacity={0.28} />
+                      <stop offset="100%" stopColor="#1ED395" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <Area type="monotone" dataKey="total" stroke="#1ED395" strokeWidth={2} fill="url(#mobCpTot)" dot={false} isAnimationActive={false} />
+                  <Line type="monotone" dataKey="principal" stroke="#5A5E76" strokeWidth={1.2} strokeDasharray="4 3" dot={false} isAnimationActive={false} />
+                </ComposedChart>
+              </ResponsiveContainer>
+              <div style={{ fontSize: 9, textAlign: "center", marginTop: 4, color: "var(--fg-3)" }}>
+                注意后段的陡峭加速 — 这就是复利
+              </div>
+            </div>
+          </div>
+
+          {/* ── 里程碑时间线 ── */}
+          {milestones.length > 0 && (
+            <div style={{ padding: "0 16px 8px" }}>
+              <div style={{ fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--fg-3)", marginBottom: 14 }}>
+                里程碑
+              </div>
+              {milestones.map((m, i) => {
+                const isFirst = i === 0;
+                const isLast  = m.isFinal;
+                const desc = isFirst
+                  ? "第一个十万最难，坚持是关键"
+                  : isLast
+                  ? `${years} 年复利旅程终值`
+                  : m.target >= 1_000_000
+                  ? "百万达成，加速度显现"
+                  : "加速度显现，见证复利力量";
+                return (
+                  <div key={m.label} style={{ display: "flex", gap: 14, marginBottom: 4 }}>
+                    {/* 年份标签 */}
+                    <div style={{ width: 46, textAlign: "right", paddingTop: 12, flexShrink: 0 }}>
+                      <span className="font-mono" style={{ fontSize: 11, color: "var(--fg-2)", fontWeight: 600 }}>
+                        第 {m.year} 年
+                      </span>
+                    </div>
+                    {/* 时间线竖轨 */}
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 }}>
+                      <div style={{
+                        width: 11, height: 11, borderRadius: 6, marginTop: 13,
+                        background: isLast ? "var(--up)" : "var(--bg-2)",
+                        border: isLast ? "none" : "2px solid var(--line-2)",
+                        boxShadow: isLast ? "0 0 10px rgba(30,211,149,.6)" : "none",
+                      }} />
+                      {i < milestones.length - 1 && (
+                        <div style={{ flex: 1, width: 2, background: "var(--line)", marginTop: 4, minHeight: 16 }} />
+                      )}
+                    </div>
+                    {/* 内容卡 */}
+                    <div style={{
+                      flex: 1, padding: "10px 14px", borderRadius: 12,
+                      background: "rgba(255,255,255,.022)", border: "1px solid var(--line)",
+                      marginBottom: 10,
+                    }}>
+                      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
+                        <span className="font-mono" style={{ fontSize: 17, fontWeight: 700, color: isLast ? "var(--up)" : "var(--fg-0)" }}>
+                          {fmtMoney(m.target)}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: 11.5, color: "var(--fg-3)", marginTop: 3 }}>{desc}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* ── 早开始 5 年 卡片 ── */}
+          <div style={{ margin: "0 16px 16px", borderRadius: 14, border: "1px solid rgba(245,158,11,.25)", padding: "14px", background: "linear-gradient(135deg, rgba(245,181,60,.08), transparent 70%)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+              <Flame size={14} style={{ color: "#F59E0B" }} />
+              <span style={{ fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(252,211,77,.9)" }}>早开始 5 年</span>
+            </div>
+            <div className="font-serif" style={{ fontSize: 30, fontWeight: 700, color: "#FCD34D", letterSpacing: "-0.02em", lineHeight: 1, marginBottom: 8, fontFamily: "Georgia, 'Times New Roman', serif" }}>
+              +{fmtMoney(story.earlyDelta)}
+            </div>
+            <p style={{ fontSize: 11, color: "var(--fg-3)", lineHeight: 1.6, margin: 0 }}>
+              同样定投，早 5 年开始，{years + 5} 年终值达 <span className="font-mono" style={{ color: "#FCD34D" }}>{fmtMoney(story.fvEarly)}</span>。时间是复利唯一无法补救的变量。
+            </p>
+          </div>
+        </div>
+
+        {/* ── 底部操作条 ── */}
+        <ThumbActionBar
+          primary={
+            typeof onOneClickBacktest === "function"
+              ? {
+                  label: "一键回测当前档位 →",
+                  onClick: () => {
+                    const strats = STRATEGY_LIBRARY[currentTier] || [];
+                    const best = strats.find((s) => !s.warning && Object.keys(s.weights || {}).length > 0);
+                    if (best) onOneClickBacktest(best.weights);
+                  },
+                }
+              : undefined
+          }
+        />
+
+        {/* ── 全屏横屏图表 ── */}
+        <FullscreenChart
+          open={fsChart}
+          onClose={() => setFsChart(false)}
+          title={`复利增长曲线 · ${years} 年`}
+          meta={
+            <span className="font-mono" style={{ fontSize: 16, fontWeight: 600, color: "var(--up)" }}>
+              {fmtMoney(story.finalTotal)}
+            </span>
+          }
+          indicators={fsIndicators}
+          footerNote={`初始 ${fmtMoney(principal)}${monthly > 0 ? ` · 月供 ${fmtMoney(monthly)}` : ""} · 年化 ${fmtPct(selectedRate, 0)} · ${years} 年`}
+        >
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart data={story.chart} margin={{ left: 12, right: 20, top: 10, bottom: 4 }}>
+              <defs>
+                <linearGradient id="fsCpTot" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#1ED395" stopOpacity={0.25} />
+                  <stop offset="100%" stopColor="#1ED395" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,.05)" />
+              <XAxis dataKey="year" stroke="#667" fontSize={10} tickFormatter={(y) => `${y}年`} tickLine={false} axisLine={false} />
+              <YAxis stroke="#667" fontSize={10} width={52} tickFormatter={(v) => formatBigNumber(v, 0)} tickLine={false} axisLine={false} />
+              <Tooltip
+                contentStyle={{ background: "#0d1117", border: "1px solid rgba(255,255,255,.1)", borderRadius: 6, fontSize: 11 }}
+                labelStyle={{ color: "#a0aec0", fontSize: 10 }}
+                formatter={(v, n) => [fmtMoney(v), n]}
+                labelFormatter={(y) => `第 ${y} 年`}
+              />
+              <Area type="monotone" dataKey="total" name="账户总值" stroke="#1ED395" strokeWidth={2.4} fill="url(#fsCpTot)" dot={false} isAnimationActive={false} />
+              <Line type="monotone" dataKey="principal" name="累计本金" stroke="#5A5E76" strokeWidth={1.4} strokeDasharray="4 3" dot={false} isAnimationActive={false} />
+              {story.crossoverYear != null && (
+                <ReferenceLine x={story.crossoverYear} stroke="rgba(245,181,60,.5)" strokeDasharray="3 3"
+                  label={{ value: `第 ${story.crossoverYear} 年·复利超本金`, position: "insideTopLeft", fontSize: 9, fill: "#F5B53C" }} />
+              )}
+            </ComposedChart>
+          </ResponsiveContainer>
+        </FullscreenChart>
+      </div>
+    );
+  }
 
   return (
     // v5 对齐：移除 bg-[#0d1117] 硬编码，让父 shell 的 theme bg 透出来（同 PR #195 SmartBeta 模式）
@@ -556,10 +915,13 @@ export default function CompoundPower({ onOneClickBacktest = null }) {
                 {story.scenarios.map((s) => {
                   const c = s.r === 0.06 ? "#a0aec0" : s.r === 0.14 ? "#5EE6E6" : "#1ED395";
                   const label = s.r === 0.06 ? "保守 6%" : s.r === 0.14 ? "进取 14%" : "基准 10%";
+                  // v7: vs 基准(10%) diff — 对齐设计稿 SECTION 10「情景队列 diff」
+                  const baseFv = story.scenarios.find(x => x.r === 0.10)?.fv;
+                  const diffPct = (baseFv && s.r !== 0.10) ? (s.fv / baseFv - 1) * 100 : null;
                   return (
                     <div key={s.r} className="mb-2.5">
-                      <div className="flex justify-between mb-1">
-                        <span className="text-[11px] text-[#a0aec0]">{label}</span>
+                      <div className="flex justify-between mb-1 items-baseline">
+                        <span className="text-[11px] text-[#a0aec0]">{label}{diffPct != null && <span className="ml-1.5 font-mono text-[9px]" style={{ color: c }}>{diffPct >= 0 ? "+" : ""}{diffPct.toFixed(0)}% vs 基准</span>}</span>
                         <span className="font-mono font-serif text-[15px] font-semibold" style={{ color: c }}>{fmtMoney(s.fv)}</span>
                       </div>
                       <div className="h-1.5 rounded-full bg-white/[0.05] overflow-hidden">

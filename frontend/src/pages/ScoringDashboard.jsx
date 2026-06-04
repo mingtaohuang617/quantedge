@@ -4,7 +4,7 @@
 // ─────────────────────────────────────────────────────────────
 import React, { useState, useEffect, useMemo, useCallback, useRef, useContext } from "react";
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ComposedChart, ReferenceLine } from "recharts";
-import { Activity, ArrowDownRight, ArrowUpRight, Briefcase, Calendar, Check, ChevronDown, ChevronRight, Clock, Database, Eye, Filter, GripVertical, Info, Layers, Loader, Maximize2, Minus, Plus, RefreshCw, Search, Settings, Star, Trash2, TrendingUp, X, Zap } from "lucide-react";
+import { Activity, ArrowDownRight, ArrowUpRight, Briefcase, Calendar, Check, ChevronDown, ChevronRight, Clock, Database, Eye, Filter, GripVertical, Info, Layers, Loader, Maximize2, Minus, Plus, RefreshCw, Search, Settings, Star, Trash2, TrendingUp, X, Zap, ArrowLeftRight } from "lucide-react";
 import { searchTickers as standaloneSearch, fetchRangePrices, STOCK_CN_NAMES, STOCK_CN_DESCS } from "../standalone.js";
 import { Z_ELEVATED } from "../lib/zIndex.js";
 import { useLang } from "../i18n.jsx";
@@ -36,6 +36,8 @@ import {
   currencySymbol,
   fmtPrice,
 } from "../quant-platform.jsx";
+import useIsMobile from "../hooks/useIsMobile";
+import { BottomSheet, ThumbActionBar, MobileAppBar, FullscreenChart, Segmented } from "../components/mobile";
 
 // C16: 按工作区读取评分权重（localStorage key: quantedge_weights_<wsId>）
 const DEFAULT_WEIGHTS = { fundamental: 40, technical: 30, growth: 30 };
@@ -50,6 +52,42 @@ function loadWeights(wsId) {
     }
   } catch { /* 静默回退 */ }
   return { ...DEFAULT_WEIGHTS };
+}
+
+// ─── 移动端：评分环 + 要素条（v6 全屏个股卡用）──────────────
+function ScoreRing({ score = 0, size = 76 }) {
+  const r = 42, C = 2 * Math.PI * r;
+  const pct = Math.max(0, Math.min(100, score)) / 100;
+  const col = score >= 75 ? "var(--up)" : score >= 50 ? "var(--indigo-2)" : "var(--warn)";
+  return (
+    <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
+      <svg viewBox="0 0 100 100" style={{ transform: "rotate(-90deg)" }}>
+        <circle cx="50" cy="50" r={r} fill="none" stroke="rgba(255,255,255,.06)" strokeWidth="7" />
+        <circle cx="50" cy="50" r={r} fill="none" stroke={col} strokeWidth="7" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C * (1 - pct)} />
+      </svg>
+      <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <span className="font-mono" style={{ fontSize: size * 0.31, fontWeight: 700, color: "var(--fg-0)", lineHeight: 1 }}>{Number.isFinite(score) ? Math.round(score) : "—"}</span>
+      </div>
+    </div>
+  );
+}
+
+function MPillar({ name, v, w, c, hl }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 0", borderBottom: "1px solid var(--line)" }}>
+      <div style={{ width: 3, height: 34, borderRadius: 2, background: c, boxShadow: `0 0 8px ${c}66` }} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 5 }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--fg-0)" }}>{name}<span style={{ fontSize: 10, color: "var(--fg-3)", fontWeight: 400, marginLeft: 6 }}>权重 {w}%</span></span>
+          <span className="font-mono" style={{ fontSize: 18, fontWeight: 700, color: c, lineHeight: 1 }}>{v != null ? Math.round(v) : "—"}</span>
+        </div>
+        <div style={{ height: 4, background: "rgba(255,255,255,.05)", borderRadius: 2, overflow: "hidden" }}>
+          <div style={{ width: `${Math.max(0, Math.min(100, v || 0))}%`, height: "100%", background: `linear-gradient(90deg,${c}55,${c})`, borderRadius: 2 }} />
+        </div>
+        {hl && <div style={{ fontSize: 10.5, color: "var(--fg-3)", marginTop: 5 }}>{hl}</div>}
+      </div>
+    </div>
+  );
 }
 
 // MA20 趋势均线只在「日线级别」区间有效（interval=1d）。其余区间画 20 点均线
@@ -271,6 +309,8 @@ const ScoringDashboard = () => {
   const [chartRange, setChartRange] = useState("YTD"); // 1D|5D|1M|6M|YTD|1Y|5Y|ALL
   const [loading, setLoading] = useState(false);
   const [mobileShowDetail, setMobileShowDetail] = useState(false); // mobile: toggle list vs detail
+  const isMobile = useIsMobile();
+  const [mFilterOpen, setMFilterOpen] = useState(false); // v6 移动端筛选 sheet
   // 关注列表 — 持久化到 localStorage
   const [favorites, setFavorites] = useState(() => {
     try { return new Set(JSON.parse(localStorage.getItem('quantedge_favorites') || '[]')); } catch { return new Set(); }
@@ -557,6 +597,19 @@ const ScoringDashboard = () => {
     return () => window.removeEventListener("quantedge:navStock", handler);
   }, []);
 
+  // v7 工作站：W / C 键盘动作 — 对当前选中标的 加自选 / 加对比
+  // （由全局键盘 handler 派发事件；非评分页无监听器 → 无副作用）
+  useEffect(() => {
+    const onAction = (e) => {
+      const cur = navRefs.current.sel;
+      if (!cur) return;
+      if (e.detail === "fav") toggleFav(cur.ticker);
+      else if (e.detail === "compare") toggleCompare(cur.ticker);
+    };
+    window.addEventListener("quantedge:stockAction", onAction);
+    return () => window.removeEventListener("quantedge:stockAction", onAction);
+  }, [toggleFav, toggleCompare]);
+
   // 详情区 scroll-spy：IntersectionObserver 跟踪 #detail-* sections，更新 activeSection
   useEffect(() => {
     if (!sel) return;
@@ -591,6 +644,29 @@ const ScoringDashboard = () => {
     e.preventDefault();
     setCtxMenu({ x: e.clientX, y: e.clientY, ticker: stk.ticker, name: stk.name });
   };
+
+  // v7 工作站：hover peek — 停留 ~280ms 浮出迷你卡（分项评分 + 走势 + W/C 提示）
+  // 仅支持 hover 的设备（桌面）；选中行不浮（与详情区重复）。
+  const [peek, setPeek] = useState(null); // { ticker, x, y }
+  const peekTimerRef = useRef(null);
+  const canHover = useMemo(() => typeof window !== "undefined" && window.matchMedia?.("(hover: hover)").matches, []);
+  const schedulePeek = useCallback((e, stk) => {
+    if (!canHover) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    clearTimeout(peekTimerRef.current);
+    peekTimerRef.current = setTimeout(() => {
+      const W = 248, H = 210, pad = 8;
+      let x = rect.right + pad;
+      if (x + W > window.innerWidth) x = rect.left - W - pad; // 右侧放不下→放左侧
+      if (x < pad) x = pad;
+      let y = rect.top;
+      if (y + H > window.innerHeight) y = window.innerHeight - H - pad;
+      if (y < pad) y = pad;
+      setPeek({ ticker: stk.ticker, x, y });
+    }, 280);
+  }, [canHover]);
+  const cancelPeek = useCallback(() => { clearTimeout(peekTimerRef.current); setPeek(null); }, []);
+  useEffect(() => () => clearTimeout(peekTimerRef.current), []);
   const handleDeleteTicker = async () => {
     if (!ctxMenu) return;
     const key = ctxMenu.ticker;
@@ -886,6 +962,207 @@ const ScoringDashboard = () => {
     setQuickAdding(null);
   };
 
+  // ─────────────────────────────────────────────────────────────
+  // v6 移动端：列表 → 全屏个股卡（左右滑切换）→ 筛选 Sheet → 横屏图表
+  // 复用桌面端全部数据/状态（filtered / sel / weights / chartData…）
+  // ─────────────────────────────────────────────────────────────
+  if (isMobile) {
+    const rows = filtered;
+    const idx = sel ? rows.findIndex((s) => s.ticker === sel.ticker) : -1;
+    const goRel = (d) => { const n = rows[idx + d]; if (n) setSel(n); };
+    const cur = (s) => currencySymbol(s?.currency);
+    const px = (s) => (s?.price != null ? fmtPrice(s.price, s.currency) : "—"); // fmtPrice 已含币种符号
+    const seg = typeFilter === "ETF" ? "ETF" : mkt === "US" ? "US" : mkt === "HK" ? "HK" : "ALL";
+    const setSeg = (v) => { if (v === "ETF") { setTypeFilter("ETF"); setMkt("ALL"); } else { setTypeFilter("ALL"); setMkt(v); } };
+    const nFilters = (mkt !== "ALL" ? 1 : 0) + (typeFilter !== "ALL" ? 1 : 0) + (showFavOnly ? 1 : 0) + (sortBy !== "score" ? 1 : 0);
+    const isFav = sel ? favorites.has(sel.ticker) : false;
+    const pillars = sel?.subScores ? [
+      { name: t("基本面"), v: sel.subScores.fundamental, w: weights.fundamental, c: "#818CF8", hl: "PE / ROE / 利润率" },
+      { name: t("技术面"), v: sel.subScores.technical, w: weights.technical, c: "#F5B53C", hl: "RSI / 均线 / 动量" },
+      { name: t("成长性"), v: sel.subScores.growth, w: weights.growth, c: "#1ED395", hl: "营收 / 盈利增速" },
+    ] : [];
+    let tStart = null;
+    const onTS = (e) => { const p = e.touches[0]; tStart = { x: p.clientX, y: p.clientY }; };
+    const onTE = (e) => { if (!tStart) return; const p = e.changedTouches[0]; const dx = p.clientX - tStart.x, dy = p.clientY - tStart.y; if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) goRel(dx < 0 ? 1 : -1); tStart = null; };
+    const segBtn = (on) => on
+      ? { color: "var(--indigo-2)", borderColor: "rgba(99,102,241,.3)", background: "rgba(99,102,241,.15)" }
+      : { color: "var(--fg-2)", borderColor: "var(--line)", background: "rgba(255,255,255,.03)" };
+
+    return (
+      <div className="h-full flex flex-col" style={{ background: "var(--bg-0)" }}>
+        {/* ── 列表 ── */}
+        <div className="flex-1 overflow-y-auto overscroll-contain">
+          <div className="px-4 pt-3 pb-1.5 flex items-center justify-between">
+            <h1 className="text-[22px] font-bold" style={{ color: "var(--fg-0)" }}>{t("量化评分")}</h1>
+            <button onClick={() => setMFilterOpen(true)} className="relative w-9 h-9 rounded-[10px] border flex items-center justify-center active:scale-95"
+              style={{ borderColor: nFilters ? "rgba(99,102,241,.3)" : "var(--line)", background: nFilters ? "rgba(99,102,241,.12)" : "rgba(255,255,255,.03)" }}>
+              <Filter size={17} style={{ color: nFilters ? "var(--indigo-2)" : "var(--fg-1)" }} />
+              {nFilters > 0 && <span className="absolute -top-1 -right-1 w-[15px] h-[15px] rounded-full text-[9px] font-bold text-white flex items-center justify-center" style={{ background: "var(--indigo)" }}>{nFilters}</span>}
+            </button>
+          </div>
+          <div className="px-4 mb-2 relative">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "var(--fg-3)" }} />
+            <input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder={t("搜索代码 / 名称")}
+              className="w-full rounded-[10px] pl-9 pr-3 py-2.5 text-[13px] outline-none border"
+              style={{ background: "rgba(255,255,255,.04)", borderColor: "var(--line)", color: "var(--fg-0)" }} />
+          </div>
+          <div className="px-4 mb-2">
+            <Segmented value={seg} onChange={setSeg} options={[{ value: "ALL", label: t("全部") }, { value: "US", label: t("美股") }, { value: "HK", label: t("港股") }, { value: "ETF", label: "ETF" }]} />
+          </div>
+          <div className="px-4 mb-1 text-[11px]" style={{ color: "var(--fg-3)" }}>{rows.length} {t("只标的")}</div>
+          <div className="px-2.5 pb-6">
+            {rows.map((stk) => {
+              const up = safeChange(stk.change) >= 0;
+              return (
+                <button key={stk.ticker} onClick={() => setSel(stk)} className="w-full flex items-center gap-3 px-2.5 py-3 rounded-xl active:scale-[0.99] transition text-left">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline gap-2">
+                      <span className="font-mono text-[14px] font-semibold" style={{ color: "var(--fg-0)" }}>{stk.ticker}</span>
+                      <span className="text-[11px] truncate" style={{ color: "var(--fg-3)" }}>{lang === "zh" ? (stk.nameCN || STOCK_CN_NAMES[stk.ticker] || stk.name) : stk.name}</span>
+                    </div>
+                    <div className="font-mono text-[11px] mt-1" style={{ color: up ? "var(--up)" : "var(--down)" }}>
+                      {stk.price != null ? `${px(stk)} · ` : ""}{up ? "+" : ""}{fmtChange(stk.change)}%
+                    </div>
+                  </div>
+                  <div className="w-[54px] shrink-0"><MiniSparkline data={get5DSparkData(stk)} w={54} h={20} /></div>
+                  <span className="font-mono text-[19px] font-bold w-8 text-right" style={{ color: (stk.score ?? 0) >= 75 ? "var(--up)" : "var(--indigo-2)", lineHeight: 1 }}>{stk.score?.toFixed?.(0)}</span>
+                  <ChevronRight size={16} style={{ color: "var(--fg-4)" }} />
+                </button>
+              );
+            })}
+            {rows.length === 0 && <div className="text-center py-12 text-[12px]" style={{ color: "var(--fg-3)" }}>{t("无匹配标的")}</div>}
+          </div>
+        </div>
+
+        {/* ── 全屏个股卡 ── */}
+        {sel && (
+          <div className="fixed inset-0 z-40 flex flex-col" style={{ background: "var(--bg-0)" }}>
+            <MobileAppBar onBack={() => setSel(null)}
+              title={<span className="flex items-center gap-2">
+                <span className="font-mono text-[15px] font-bold" style={{ color: "var(--fg-0)" }}>{sel.ticker}</span>
+                <span className="font-mono text-[10px] px-1.5 py-0.5 rounded" style={{ background: "rgba(30,211,149,.12)", color: "var(--up)" }}>{(sel.score ?? 0).toFixed(0)}</span>
+              </span>}
+              actions={<button onClick={() => toggleFav(sel.ticker)} aria-label={t("自选")} className="p-0.5 active:scale-90"><Star size={19} style={{ color: isFav ? "var(--warn)" : "var(--fg-3)" }} fill={isFav ? "var(--warn)" : "none"} /></button>}
+            />
+            <div className="flex-1 overflow-y-auto overscroll-contain" onTouchStart={onTS} onTouchEnd={onTE} style={{ paddingBottom: "calc(74px + env(safe-area-inset-bottom))" }}>
+              <div className="px-4 pt-3">
+                {idx >= 0 && rows.length > 1 && (
+                  <div className="flex items-center justify-center gap-2 mb-3 text-[10px]" style={{ color: "var(--fg-3)" }}>
+                    <ArrowLeftRight size={11} /> {t("左右滑动切换")} · {idx + 1}/{rows.length}
+                  </div>
+                )}
+                <div className="flex justify-between items-start mb-4">
+                  <div className="min-w-0">
+                    <div className="text-[13px] mb-1 truncate" style={{ color: "var(--fg-2)" }}>{lang === "zh" ? (sel.nameCN || STOCK_CN_NAMES[sel.ticker] || sel.name) : sel.name}</div>
+                    <div className="font-mono" style={{ fontSize: 36, fontWeight: 600, color: "var(--fg-0)", lineHeight: 1 }}>{px(sel)}</div>
+                    <div className="mt-2">
+                      <span className="font-mono text-[12px] px-2 py-1 rounded" style={{ background: safeChange(sel.change) >= 0 ? "rgba(30,211,149,.12)" : "rgba(255,107,107,.12)", color: safeChange(sel.change) >= 0 ? "var(--up)" : "var(--down)" }}>
+                        {safeChange(sel.change) >= 0 ? "▲" : "▼"} {fmtChange(sel.change)}%
+                      </span>
+                    </div>
+                  </div>
+                  <ScoreRing score={sel.score ?? 0} />
+                </div>
+                {sel.week52Low != null && sel.week52High != null && sel.price != null && (() => {
+                  const lo = sel.week52Low, hi = sel.week52High, pct = Math.max(0, Math.min(100, ((sel.price - lo) / ((hi - lo) || 1)) * 100));
+                  return (
+                    <div className="mb-4">
+                      <div className="flex justify-between font-mono text-[9px] mb-1.5" style={{ color: "var(--fg-3)" }}>
+                        <span>52W {cur(sel)}{lo}</span><span style={{ color: "var(--up)" }}>P{pct.toFixed(0)}</span><span>{cur(sel)}{hi}</span>
+                      </div>
+                      <div className="relative h-1 rounded-full" style={{ background: "rgba(255,255,255,.06)" }}>
+                        <div className="absolute top-0 bottom-0 left-0 rounded-full" style={{ width: `${pct}%`, background: "linear-gradient(90deg,rgba(255,107,107,.3),rgba(245,181,60,.4) 50%,rgba(30,211,149,.5))" }} />
+                        <div className="absolute w-2.5 h-2.5 rounded-full" style={{ left: `calc(${pct}% - 5px)`, top: -3, background: "#fff", boxShadow: "0 0 0 1.5px var(--up)" }} />
+                      </div>
+                    </div>
+                  );
+                })()}
+                <div className="mb-4"><AIStockSummaryCard stock={sel} /></div>
+                {pillars.length > 0 && (
+                  <div className="mb-4">
+                    <div className="text-[12px] font-semibold mb-1" style={{ color: "var(--fg-0)" }}>{t("评分由三大要素构成")}</div>
+                    {pillars.map((p) => <MPillar key={p.name} {...p} />)}
+                  </div>
+                )}
+                <div className="mb-4"><ScoreExplainCard stock={sel} weights={weights} /></div>
+                <div className="rounded-[14px] border p-3.5 mb-2" style={{ borderColor: "var(--line)", background: "var(--bg-2)" }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[12px] font-semibold" style={{ color: "var(--fg-0)" }}>{t("价格走势")} · {chartRange}</span>
+                    <button onClick={() => setChartFullscreen(true)} className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold active:scale-95" style={{ background: "rgba(99,102,241,.12)", border: "1px solid rgba(99,102,241,.3)", color: "var(--indigo-2)" }}><Maximize2 size={11} />{t("全屏")}</button>
+                  </div>
+                  <div style={{ height: 92 }}>
+                    {chartData.length >= 2 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={chartData} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
+                          <defs><linearGradient id="mScoreArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#5EE6E6" stopOpacity="0.25" /><stop offset="100%" stopColor="#5EE6E6" stopOpacity="0" /></linearGradient></defs>
+                          <Area type="monotone" dataKey="p" stroke="#5EE6E6" strokeWidth={2} fill="url(#mScoreArea)" dot={false} isAnimationActive={false} />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    ) : <div className="h-full flex items-center justify-center text-[11px]" style={{ color: "var(--fg-3)" }}>{t("暂无价格数据")}</div>}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <ThumbActionBar
+              secondary={[
+                { icon: <Layers size={20} />, label: t("对比"), onClick: () => setCompareSet((s) => { const n = new Set(s); n.has(sel.ticker) ? n.delete(sel.ticker) : n.add(sel.ticker); return n; }) },
+                { icon: <ArrowLeftRight size={20} />, label: t("下一只"), onClick: () => goRel(1) },
+              ]}
+              primary={{ icon: <Star size={18} fill={isFav ? "#fff" : "none"} />, label: isFav ? t("已自选") : t("加自选"), onClick: () => toggleFav(sel.ticker) }}
+            />
+          </div>
+        )}
+
+        {/* ── 筛选 Sheet ── */}
+        <BottomSheet open={mFilterOpen} onClose={() => setMFilterOpen(false)} title={t("筛选标的")}
+          footer={<button onClick={() => setMFilterOpen(false)} className="w-full h-12 rounded-[13px] text-white text-[15px] font-bold" style={{ background: "linear-gradient(180deg,var(--indigo-2),var(--indigo))", boxShadow: "0 8px 22px -6px rgba(99,102,241,.6)" }}>{t("显示")} {rows.length} {t("只标的")}</button>}>
+          <div className="text-[11px] font-mono uppercase tracking-wider mb-2.5" style={{ color: "var(--fg-3)" }}>{t("类型")}</div>
+          <div className="flex gap-2 mb-5">
+            {[["ALL", t("全部")], ["STOCK", t("个股")], ["ETF", "ETF"], ["LEV", t("杠杆")]].map(([v, l]) => (
+              <button key={v} onClick={() => setTypeFilter(v)} className="flex-1 py-2.5 rounded-[10px] text-[12px] font-medium border" style={segBtn(typeFilter === v)}>{l}</button>
+            ))}
+          </div>
+          <div className="text-[11px] font-mono uppercase tracking-wider mb-2.5" style={{ color: "var(--fg-3)" }}>{t("排序")}</div>
+          <div className="flex flex-wrap gap-2 mb-5">
+            {[["score", t("评分")], ["change", t("涨跌")], ["name", t("代码")], ["macroAdj", t("宏观调整")]].map(([v, l]) => (
+              <button key={v} onClick={() => setSortBy(v)} className="px-3.5 py-2 rounded-full text-[12px] font-medium border" style={segBtn(sortBy === v)}>{l}</button>
+            ))}
+          </div>
+          <button onClick={() => setShowFavOnly((v) => !v)} className="w-full flex items-center justify-between py-3 mb-2">
+            <span className="text-[13.5px]" style={{ color: "var(--fg-1)" }}>{t("只看关注")}</span>
+            <span className="w-11 h-6 rounded-full relative transition-colors" style={{ background: showFavOnly ? "var(--indigo)" : "var(--line-2)" }}><span className="absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all" style={{ left: showFavOnly ? 22 : 2 }} /></span>
+          </button>
+        </BottomSheet>
+
+        {/* ── 横屏全屏图表 ── */}
+        <FullscreenChart open={chartFullscreen} onClose={() => setChartFullscreen(false)} title={sel?.ticker}
+          meta={sel && <span className="font-mono text-[13px]" style={{ color: safeChange(sel.change) >= 0 ? "var(--up)" : "var(--down)" }}>{px(sel)} {safeChange(sel.change) >= 0 ? "+" : ""}{fmtChange(sel.change)}%</span>}
+          indicators={maSignal && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border text-warn bg-warn/10 border-warn/30">
+              <span className="inline-block w-3" style={{ borderTop: "2px dashed #F5B53C" }} />
+              MA20 {maSignal.above ? `↗ 站上 +${maSignal.gap.toFixed(1)}%` : `↘ 跌破 ${maSignal.gap.toFixed(1)}%`}
+            </span>
+          )}
+          ranges={["1D", "5D", "1M", "6M", "YTD", "1Y", "5Y", "ALL"]} activeRange={chartRange} onRangeChange={setChartRange}>
+          {chartData.length >= 2 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={chartDataWithBench} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
+                <defs><linearGradient id="mScoreAreaLand" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#1ED395" stopOpacity="0.22" /><stop offset="100%" stopColor="#1ED395" stopOpacity="0" /></linearGradient></defs>
+                <CartesianGrid stroke="rgba(255,255,255,.05)" vertical={false} />
+                <XAxis dataKey="m" tick={{ fontSize: 9, fill: "var(--fg-3)" }} axisLine={false} tickLine={false} minTickGap={50} interval="preserveStartEnd" />
+                <YAxis domain={["auto", "auto"]} width={42} tick={{ fontSize: 10, fill: "var(--fg-3)" }} axisLine={false} tickLine={false} />
+                {/* v6 移动端横屏图表补齐设计稿丰富度：十字光标 + MA20 虚线（数据已算，与桌面一致） */}
+                <Tooltip contentStyle={TOOLTIP_STYLE} cursor={{ stroke: "rgba(99,102,241,0.6)", strokeWidth: 1.5, strokeDasharray: "4 3" }} />
+                <Area type="monotone" dataKey="p" stroke="#1ED395" strokeWidth={2.2} fill="url(#mScoreAreaLand)" dot={false} isAnimationActive={false} />
+                {maSignal && <Line type="monotone" dataKey="ma20" stroke="#F5B53C" strokeWidth={1.6} strokeDasharray="5 4" dot={false} connectNulls activeDot={false} isAnimationActive={false} />}
+              </ComposedChart>
+            </ResponsiveContainer>
+          ) : <div className="h-full flex items-center justify-center text-[12px]" style={{ color: "var(--fg-3)" }}>{t("暂无价格数据")}</div>}
+        </FullscreenChart>
+      </div>
+    );
+  }
+
   return (<div className="flex flex-col h-full min-h-0">
     {/* ── 来自 macro alert 的上下文横幅（可关闭） ── */}
     {macroSignal && (
@@ -1017,6 +1294,49 @@ const ScoringDashboard = () => {
     </div>
     <div className="flex-1 flex flex-col md:grid md:grid-cols-12 gap-2 md:gap-4 min-h-0 overflow-auto md:overflow-hidden">
       {/* Right-click context menu */}
+      {/* v7 工作站：hover peek 迷你卡 — 分项评分（行内没有）+ 走势 + W/C 提示。pointer-events-none 避免 hover 抖动 */}
+      {peek && (() => {
+        const pk = liveStocks.find(s => s.ticker === peek.ticker);
+        if (!pk || pk.ticker === sel?.ticker) return null;
+        const ch = safeChange(pk.change);
+        const ss = pk.subScores;
+        return (
+          <div className="hidden md:block fixed glass-card border border-white/15 shadow-2xl shadow-black/60 p-3 animate-stagger pointer-events-none" style={{ left: peek.x, top: peek.y, width: 248, zIndex: 45 }}>
+            <div className="flex items-baseline justify-between gap-2 mb-1">
+              <div className="min-w-0 flex items-baseline gap-1.5">
+                <span className="font-mono font-bold text-sm text-white shrink-0">{pk.ticker}</span>
+                <span className="text-[10px] text-[#778] truncate">{lang === 'zh' ? (pk.nameCN || STOCK_CN_NAMES[pk.ticker] || pk.name) : pk.name}</span>
+              </div>
+              <span className={`font-mono text-sm font-bold shrink-0 ${pk.score >= 75 ? 'text-up' : 'text-indigo-300'}`}>{pk.score != null ? pk.score.toFixed(0) : '—'}</span>
+            </div>
+            <div className="flex items-baseline gap-2 mb-2">
+              <span className="font-mono text-base font-semibold text-white">{currencySymbol(pk.currency)}{pk.price}</span>
+              <span className={`text-[11px] font-mono ${ch >= 0 ? 'text-up' : 'text-down'}`}>{ch >= 0 ? '▲' : '▼'} {Math.abs(ch).toFixed(2)}%</span>
+            </div>
+            <div className="mb-2"><MiniSparkline data={get5DSparkData(pk)} w={224} h={34} /></div>
+            {ss ? (
+              <div className="space-y-1">
+                {[['基本面', ss.fundamental], ['技术面', ss.technical], ['成长性', ss.growth]].map(([lbl, v]) => (
+                  <div key={lbl} className="flex items-center gap-2">
+                    <span className="text-[9px] text-[#a0aec0] w-10 shrink-0">{t(lbl)}</span>
+                    <div className="flex-1 h-1 rounded-full bg-white/5 overflow-hidden">
+                      <div className="h-full rounded-full" style={{ width: `${Math.max(0, Math.min(100, v || 0))}%`, background: 'var(--brand-gradient)' }} />
+                    </div>
+                    <span className="text-[9px] font-mono text-white w-6 text-right">{v != null ? Math.round(v) : '—'}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-[10px] text-[#667]">{t('ETF · 无分项评分')}</div>
+            )}
+            <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-white/8 text-[9px] text-[#778]">
+              <kbd className="px-1 rounded bg-white/5 border border-white/10 font-mono">W</kbd><span>{t('自选')}</span>
+              <kbd className="px-1 rounded bg-white/5 border border-white/10 font-mono ml-1">C</kbd><span>{t('对比')}</span>
+              <span className="ml-auto font-mono uppercase">{pk.market}</span>
+            </div>
+          </div>
+        );
+      })()}
       {ctxMenu && (
         <div id="ctx-menu" className="fixed z-50 glass-card border border-white/15 shadow-2xl shadow-black/50 py-1 min-w-[160px] animate-slide-up" style={{ left: ctxMenu.x, top: ctxMenu.y }}>
           <div className="px-3 py-1.5 text-[10px] text-[#778] border-b border-white/8 truncate max-w-[200px]">{ctxMenu.ticker} · {ctxMenu.name}</div>
@@ -1053,7 +1373,7 @@ const ScoringDashboard = () => {
           </button>
         </div>
       )}
-      <div className={`md:col-span-5 flex flex-col gap-2 md:min-h-0 ${mobileShowDetail ? "hidden md:flex" : "flex"}`}>
+      <div className={`md:col-span-5 xl:col-span-4 flex flex-col gap-2 md:min-h-0 ${mobileShowDetail ? "hidden md:flex" : "flex"}`}>
         {/* 移动端置顶区：搜索 + 筛选 + 排序 一起粘在顶部 */}
         <div className="sticky top-0 z-10 flex flex-col gap-2 -mx-1 px-1 py-1 bg-[#0b0b14]/85 backdrop-blur-md md:static md:mx-0 md:p-0 md:bg-transparent md:backdrop-blur-none">
         {/* 搜索栏 + 新增标的 */}
@@ -1259,7 +1579,7 @@ const ScoringDashboard = () => {
             {[
               ["fundamental", t("基本面"), "#6366f1", t("PE⁻¹ + ROE + EPS质量")],
               ["technical", t("技术面"), "#06b6d4", t("RSI均值回归 + 动量 + β风险")],
-              ["growth", t("成长性"), "#00E5A0", t("营收增速 + 利润率扩张")],
+              ["growth", t("成长性"), "#1ED395", t("营收增速 + 利润率扩张")],
             ].map(([k, label, color, desc]) => {
               const v = weights[k];
               return (
@@ -1413,7 +1733,7 @@ const ScoringDashboard = () => {
               ))}
             </div>
           ) : filtered.map((stk, i) => (
-            <button key={stk.ticker} onClick={() => { setSel(stk); setMobileShowDetail(true); }} onContextMenu={(e) => handleContextMenu(e, stk)} className={`virt-row w-full text-left px-2.5 ${density === "compact" ? "py-1" : "py-2.5 md:py-2"} rounded-lg transition-all duration-200 border ${i < 30 ? 'animate-stagger' : ''} active:scale-[0.98] group relative overflow-hidden ${sel?.ticker === stk.ticker ? "bg-gradient-to-r from-indigo-500/35 via-indigo-500/15 to-transparent border-indigo-500/30 shadow-lg shadow-indigo-500/5" : "bg-white/[0.02] border-transparent hover:bg-white/[0.04] hover:border-white/10"}`} style={{ animationDelay: i < 30 ? `${i * 0.03}s` : undefined }}>
+            <button key={stk.ticker} onClick={() => { cancelPeek(); setSel(stk); setMobileShowDetail(true); }} onContextMenu={(e) => handleContextMenu(e, stk)} onMouseEnter={(e) => schedulePeek(e, stk)} onMouseLeave={cancelPeek} className={`virt-row w-full text-left px-2.5 ${density === "compact" ? "py-1" : "py-2.5 md:py-2"} rounded-lg transition-all duration-200 border ${i < 30 ? 'animate-stagger' : ''} active:scale-[0.98] group relative overflow-hidden ${sel?.ticker === stk.ticker ? "bg-gradient-to-r from-indigo-500/35 via-indigo-500/15 to-transparent border-indigo-500/30 shadow-lg shadow-indigo-500/5" : "bg-white/[0.02] border-transparent hover:bg-white/[0.04] hover:border-white/10"}`} style={{ animationDelay: i < 30 ? `${i * 0.03}s` : undefined }}>
               {/* PDF2 抛光 Phase 1.1：选中态 2px 渐变光条 indigo→cyan（无入场动画，直接显示） */}
               {sel?.ticker === stk.ticker && (
                 <span aria-hidden="true" className="absolute left-0 top-1 bottom-1 w-[2px] rounded-r" style={{ background: 'var(--brand-gradient)' }} />
@@ -1477,7 +1797,7 @@ const ScoringDashboard = () => {
         </div>
       </div>
 
-      <div className={`detail-ambient md:col-span-7 md:min-h-0 md:overflow-auto pr-0 md:pr-1 pb-16 md:pb-0 ${mobileShowDetail ? "flex flex-col" : "hidden md:block"}`}>
+      <div className={`detail-ambient md:col-span-7 xl:col-span-5 md:min-h-0 md:overflow-auto pr-0 md:pr-1 pb-16 md:pb-0 ${mobileShowDetail ? "flex flex-col" : "hidden md:block"}`}>
         {/* Mobile back button */}
         <button onClick={() => setMobileShowDetail(false)} className="md:hidden flex items-center gap-1.5 text-xs text-indigo-400 mb-2 py-2 px-3 rounded-lg bg-indigo-500/[0.06] border border-indigo-500/15 w-fit active:scale-95 transition-all">
           <ChevronRight size={14} className="rotate-180" /> {t('返回列表')}
@@ -1504,7 +1824,7 @@ const ScoringDashboard = () => {
                 <div>
                   {/* v5 编辑式 hero：ticker 抬到 28/36px + Fraunces serif — 让单只标的成为主角 */}
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <h3 className="text-[28px] sm:text-[36px] font-serif font-semibold text-white leading-none tracking-tight" style={{ letterSpacing: '-0.02em' }}>{sel.ticker}</h3>
+                    <h3 className="text-[34px] sm:text-[42px] font-serif font-semibold text-white leading-none tracking-tight" style={{ letterSpacing: '-0.02em' }}>{sel.ticker}</h3>
                     {/* PDF1 收敛：sector 从 accent Badge 改 neutral 文字（信息性，无需视觉权重） */}
                     <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>{sel.market} · {sel.sector}</span>
                     {/* v5.2：下次财报倒计时 chip — 提前把加/减仓窗口与财报日对齐 */}
@@ -1573,7 +1893,7 @@ const ScoringDashboard = () => {
                 <div className="sm:text-right flex sm:block items-center gap-2">
                   {/* PDF2 抛光 4.2：主价格抬到 24/28px + 渐变文字（白→slate-300）让数字有金属感 */}
                   <div
-                    className="text-2xl sm:text-[28px] font-bold font-mono tabular-nums leading-none"
+                    className="text-[32px] sm:text-[40px] font-bold font-mono tabular-nums leading-none"
                     style={{
                       background: 'linear-gradient(180deg, #ffffff 0%, #cbd5e1 100%)',
                       WebkitBackgroundClip: 'text',
@@ -2411,6 +2731,90 @@ const ScoringDashboard = () => {
           </div>
         )}
       </div>
+      {/* xl 桌面 · 常驻对比盘第三栏 — 研究即并排比较（复用真实对比数据，不另起模态）*/}
+      <aside className="hidden xl:flex xl:col-span-3 flex-col min-h-0 rounded-lg border border-white/8 bg-white/[0.015] overflow-hidden">
+        {(() => {
+          const cmp = [...compareSet].map(tk => liveStocks.find(s => s.ticker === tk)).filter(Boolean);
+          const primaryTk = compareSet.has(sel?.ticker) ? sel.ticker : cmp[0]?.ticker;
+          const subCls = v => v == null ? "text-[#667]" : v >= 80 ? "text-up" : v >= 60 ? "text-[#c9cdda]" : "text-amber-400";
+          const ROWS = [
+            [t("评分"), s => ({ txt: s.score != null ? s.score.toFixed(0) : "—", cls: s.score >= 75 ? "text-up" : "text-indigo-300" }), "score"],
+            [t("基本面"), s => ({ txt: s.subScores?.fundamental != null ? Math.round(s.subScores.fundamental) : "—", cls: subCls(s.subScores?.fundamental) })],
+            [t("技术面"), s => ({ txt: s.subScores?.technical != null ? Math.round(s.subScores.technical) : "—", cls: subCls(s.subScores?.technical) })],
+            [t("成长性"), s => ({ txt: s.subScores?.growth != null ? Math.round(s.subScores.growth) : "—", cls: subCls(s.subScores?.growth) })],
+            ["PE", s => ({ txt: s.pe ? s.pe.toFixed(1) : "—", cls: "text-[#c9cdda]" })],
+            ["ROE", s => ({ txt: s.roe ? `${s.roe.toFixed(0)}%` : "—", cls: "text-[#c9cdda]" })],
+            [t("营收YoY"), s => ({ txt: s.revenueGrowth != null ? `${s.revenueGrowth >= 0 ? "+" : ""}${s.revenueGrowth.toFixed(0)}%` : "—", cls: s.revenueGrowth >= 0 ? "text-up" : "text-down" })],
+            ["RSI", s => ({ txt: s.rsi != null ? s.rsi.toFixed(0) : "—", cls: "text-[#c9cdda]" })],
+            [t("52W位"), s => { const lo = s.week52Low, hi = s.week52High, p = s.price; if (lo == null || hi == null || p == null || hi <= lo) return { txt: "—", cls: "text-[#667]" }; const pos = Math.max(0, Math.min(100, Math.round((p - lo) / (hi - lo) * 100))); return { txt: `P${pos}`, cls: "text-[#c9cdda]" }; }],
+          ];
+          const exportCSV = () => {
+            const lines = [["指标", ...cmp.map(s => s.ticker)].join(",")];
+            ROWS.forEach(([label, get]) => lines.push([label, ...cmp.map(s => String(get(s).txt).replace(/,/g, ""))].join(",")));
+            const blob = new Blob(["﻿" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url; a.download = `compare_${cmp.map(s => s.ticker).join("_")}.csv`; a.click();
+            URL.revokeObjectURL(url);
+          };
+          return (
+            <>
+              <div className="flex items-center gap-2 px-3 h-11 border-b border-white/8 shrink-0">
+                <Layers size={14} className="text-indigo-400" />
+                <span className="text-[13px] font-semibold text-white">{t('对比盘')}</span>
+                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-indigo-500/15 text-indigo-300 border border-indigo-500/25">{cmp.length}</span>
+                <span className="flex-1" />
+                {cmp.length > 0 && (
+                  <button onClick={() => setCompareSet(new Set())} title={t('清空对比')} className="text-[#778] hover:text-white transition-colors"><X size={14} /></button>
+                )}
+              </div>
+              {cmp.length === 0 ? (
+                <div className="flex-1 flex flex-col items-center justify-center gap-2 p-6 text-center">
+                  <div className="w-11 h-11 rounded-xl bg-white/[0.03] border border-white/8 flex items-center justify-center"><Layers size={18} className="text-[#556]" /></div>
+                  <div className="text-[11px] text-[#a0aec0]">{t('勾选标的 · 或右键「加入对比」')}</div>
+                  <div className="text-[10px] text-[#667] leading-relaxed px-2">{t('多只标的 9 项因子逐行并排 — 桌面才做得到的并排决策')}</div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex-1 min-h-0 overflow-auto">
+                    <div className="flex border-b border-white/8">
+                      <div className="w-16 shrink-0 h-14" />
+                      {cmp.map(s => {
+                        const isPri = s.ticker === primaryTk;
+                        return (
+                          <div key={s.ticker} className={`flex-1 min-w-0 h-14 flex flex-col items-center justify-center gap-0.5 relative group ${isPri ? "bg-indigo-500/[0.06]" : ""}`}>
+                            <span className="text-[12px] font-mono font-bold text-white">{s.ticker}</span>
+                            {isPri
+                              ? <span className="text-[8.5px] font-mono px-1.5 py-px rounded bg-indigo-500/15 text-indigo-300 border border-indigo-500/25">{t('主')}</span>
+                              : <span className="text-[8px] uppercase tracking-wider text-[#667] font-mono">PIN</span>}
+                            <button onClick={() => toggleCompare(s.ticker)} title={t('移出对比')} className="absolute top-1 right-1 text-[#556] opacity-0 group-hover:opacity-100 hover:text-white transition-all"><X size={10} /></button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {ROWS.map(([label, get, kind]) => (
+                      <div key={label} className="flex border-b border-white/5 last:border-0">
+                        <div className="w-16 shrink-0 h-9 flex items-center px-3 text-[11px] text-[#a0aec0]">{label}</div>
+                        {cmp.map(s => {
+                          const { txt, cls } = get(s);
+                          const isPri = s.ticker === primaryTk;
+                          return (
+                            <div key={s.ticker} className={`flex-1 min-w-0 h-9 flex items-center justify-center font-mono tabular-nums ${kind === "score" ? "text-[14px] font-bold" : "text-[11.5px]"} ${cls} ${isPri ? "bg-indigo-500/[0.04]" : ""}`}>{txt}</div>
+                          );
+                        })}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2 px-3 py-2.5 border-t border-white/8 shrink-0">
+                    <button onClick={exportCSV} className="flex-1 text-center py-1.5 rounded-md text-[11px] font-medium bg-indigo-500/12 text-indigo-300 border border-indigo-500/25 hover:bg-indigo-500/20 active:scale-[0.98] transition-all">{t('导出对比 CSV')}</button>
+                    <span className="text-[9px] text-[#667] shrink-0">{t('右键加入')}</span>
+                  </div>
+                </>
+              )}
+            </>
+          );
+        })()}
+      </aside>
     </div>
     {/* 底部工具行：近期财报（可折叠） + 快速添加标的 */}
     {(() => {

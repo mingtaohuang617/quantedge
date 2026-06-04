@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, createContext, useContext, lazy, Suspense } from "react";
 // C1/C2: Recharts 已下沉到各 lazy page chunk（CompareModal 已迁至 ScoringDashboard），主文件不再直接依赖
-import { TrendingUp, TrendingDown, Search, Bell, BookOpen, BarChart3, Activity, Settings, ChevronRight, ChevronDown, ChevronLeft, Star, AlertTriangle, Clock, Target, Zap, Filter, ArrowUpRight, ArrowDownRight, Minus, RefreshCw, Plus, X, Check, Eye, EyeOff, Layers, Globe, Briefcase, Info, Database, Trash2, Loader, ExternalLink, Sun, Moon, Calendar, User, LogOut, Mail, Lock, Shield, KeyRound, UserCircle, Share2, GripVertical, Maximize2, AlertCircle, GraduationCap } from "lucide-react";
+import { TrendingUp, TrendingDown, Search, Bell, BookOpen, BarChart3, Activity, Settings, ChevronRight, ChevronDown, ChevronLeft, Star, AlertTriangle, Clock, Target, Zap, Filter, ArrowUpRight, ArrowDownRight, Minus, RefreshCw, Plus, X, Check, Eye, EyeOff, Layers, Globe, Briefcase, Info, Database, Trash2, Loader, ExternalLink, Sun, Moon, Calendar, User, LogOut, Mail, Lock, Shield, KeyRound, UserCircle, Share2, GripVertical, Maximize2, AlertCircle, GraduationCap, Palette } from "lucide-react";
 import { searchTickers as standaloneSearch, fetchStockData, fetchBenchmarkPrices, fetchRangePrices, validateStockData, validateAllStocks, loadStandaloneStocks, saveStandaloneStocks, checkStandaloneMode, resolveSector, STOCK_CN_NAMES, STOCK_CN_DESCS } from "./standalone.js";
 import { LangProvider, useLang } from "./i18n.jsx";
 import { monteCarlo as mcSimulate, navToReturns as mcNavToReturns, hhi as hhiCalc, effectiveN as effN } from "./math/stats.ts";
@@ -941,7 +941,18 @@ const ToggleSwitch = ({ checked, onChange }) => (
   </button>
 );
 
-const UserProfilePanel = ({ open, onClose, theme, toggleTheme }) => {
+// ─── v7: 强调色主题（6 色 · 驱动 <html data-theme> + Tailwind indigo CSS 变量）──
+// indigo = 默认（不写 data-theme）。语义 up/down/amber 与 violet/cyan 次色不随主题变。
+const ACCENTS = [
+  { id: "indigo",  label: "靛蓝",   swatch: "#6366f1" },
+  { id: "violet",  label: "紫罗兰", swatch: "#8b5cf6" },
+  { id: "cyan",    label: "青蓝",   swatch: "#06b6d4" },
+  { id: "emerald", label: "翡翠",   swatch: "#10b981" },
+  { id: "amber",   label: "琥珀",   swatch: "#f59e0b" },
+  { id: "rose",    label: "玫瑰",   swatch: "#ec4899" },
+];
+
+const UserProfilePanel = ({ open, onClose, theme, toggleTheme, accent, setAccent }) => {
   const { user, logout, updateProfile } = useAuth();
   const { stocks, apiOnline, priceUpdatedAt } = useData();
   const { t, lang, setLang } = useLang();
@@ -1061,6 +1072,26 @@ const UserProfilePanel = ({ open, onClose, theme, toggleTheme }) => {
                 <div className="text-xs font-medium text-white">{t('深色模式')}</div>
               </div>
               <ToggleSwitch checked={theme === "dark"} onChange={toggleTheme} />
+            </div>
+
+            {/* v7: 强调色主题（6 色） */}
+            <div className="px-3 py-2.5 rounded-lg hover:bg-white/5 transition-all">
+              <div className="flex items-center gap-3">
+                <div className="w-7 h-7 rounded-lg bg-white/[0.03] border border-white/5 flex items-center justify-center text-[#a0aec0]">
+                  <Palette size={13} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-medium text-white">{t('强调色')}</div>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {ACCENTS.map(a => (
+                    <button key={a.id} type="button" onClick={() => setAccent?.(a.id)}
+                      title={t(a.label)} aria-label={t(a.label)} aria-pressed={accent === a.id}
+                      className={`w-5 h-5 rounded-full transition-transform hover:scale-110 ${accent === a.id ? "ring-2 ring-white/70 ring-offset-2 ring-offset-[#0f1019]" : "opacity-60 hover:opacity-100"}`}
+                      style={{ background: a.swatch }} />
+                  ))}
+                </div>
+              </div>
             </div>
 
             {/* 语言 / Language */}
@@ -1281,6 +1312,16 @@ const TAB_CFG = [
   { id: "compound",    label: "复利的力量",   short: ["复利", "之力"],     icon: TrendingUp },
 ];
 
+// 移动端底栏 5 个主目的地（v6 原则①：5 个常驻目的地）；其余 6 个功能页收进「我的」hub
+const MOBILE_PRIMARY_TABS = [
+  { id: "scoring", label: "量化评分", short: "评分", icon: BarChart3 },
+  { id: "monitor", label: "实时监控", short: "监控", icon: Bell },
+  { id: "journal", label: "投资日志", short: "日志", icon: BookOpen },
+  { id: "macro",   label: "宏观看板", short: "宏观", icon: Globe },
+  { id: "me",      label: "我的",     short: "我的", icon: UserCircle },
+];
+const MOBILE_HUB_IDS = ["backtest", "smartBeta", "miningAlpha", "screener10x", "stockgene", "compound"];
+
 // ─── Scoring ──────────────────────────────────────────────
 export const SkeletonBlock = ({ className = "" }) => <div className={`skeleton ${className}`} />;
 
@@ -1293,7 +1334,7 @@ export const MiniSparkline = ({ data, w = 56, h = 16 }) => {
   for (const v of data) { if (v < min) min = v; if (v > max) max = v; }
   const range = max - min || 1;
   const lastUp = data[data.length - 1] >= data[0];
-  const color = lastUp ? "#00E5A0" : "#FF6B6B";
+  const color = lastUp ? "#1ED395" : "#FF6B6B";
   let pts = "";
   for (let i = 0; i < data.length; i++) {
     const x = (i / (data.length - 1)) * w;
@@ -1741,22 +1782,21 @@ const LiveClock = React.memo(() => {
   return <span className="font-mono tabular-nums text-xs text-[#a0aec0]">{time.toLocaleTimeString("en-GB", { hour12: false, hour: "2-digit", minute: "2-digit" })}</span>;
 });
 
-// ─── MobileBottomNav — 移动端底部 Tab Bar（iOS / Material 通用模式） ─
-// fixed bottom，icon + 微标签 + 渐变指示器；保留 safe-area-inset-bottom
+// ─── MobileBottomNav — 移动端底部 5-Tab（v6：评分/监控/日志/宏观/我的）─
+// 其余 6 个功能页收进「我的」hub；非主 tab 时高亮「我的」。保留 safe-area-inset-bottom。
 const MobileBottomNav = React.memo(({ tab, setTab }) => {
-  const { t } = useLang();
+  const { t, lang } = useLang();
+  const PRIMARY = ["scoring", "monitor", "journal", "macro"];
   return (
     <nav
       role="tablist"
       aria-label={t('主导航')}
-      className="md:hidden fixed bottom-0 left-0 right-0 z-30 flex items-stretch bg-[#0b0b14]/95 backdrop-blur-md border-t border-white/8"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      className="md:hidden fixed bottom-0 left-0 right-0 z-30 flex items-stretch border-t border-white/8 backdrop-blur-md"
+      style={{ background: 'color-mix(in srgb, var(--bg-1) 94%, transparent)', paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
-      {TAB_CFG.map((c) => {
+      {MOBILE_PRIMARY_TABS.map((c) => {
         const I = c.icon;
-        const active = tab === c.id;
-        // 移动端 8 个 tab，375px 屏每个 ~46px。短标签 2 行避免「Mining Alpha」/「10x 猎手」横向溢出
-        const useShort = Array.isArray(c.short) && c.short.length === 2;
+        const active = c.id === "me" ? !PRIMARY.includes(tab) : tab === c.id;
         return (
           <button
             key={c.id}
@@ -1764,32 +1804,97 @@ const MobileBottomNav = React.memo(({ tab, setTab }) => {
             role="tab"
             aria-selected={active}
             aria-label={t(c.label)}
-            className={`relative flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 text-[9px] font-medium transition-colors active:scale-[0.96] ${
-              active ? 'text-white' : 'text-[#a0aec0]'
-            }`}
+            className="relative flex-1 flex flex-col items-center justify-center gap-1 py-2 text-[10px] font-medium transition-colors active:scale-[0.94]"
+            style={{ color: active ? 'var(--indigo-2)' : 'var(--fg-3)' }}
           >
-            <I size={16} className={active ? 'drop-shadow-[0_0_4px_rgba(99,102,241,0.5)]' : ''} />
-            {useShort ? (
-              <span className="flex flex-col items-center leading-[1.05] tracking-tight">
-                <span>{c.short[0]}</span>
-                <span>{c.short[1]}</span>
-              </span>
-            ) : (
-              <span className="tracking-tight">{t(c.label)}</span>
-            )}
             {active && (
               <span
                 aria-hidden="true"
-                className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-b-full"
-                style={{ background: 'var(--brand-gradient)' }}
+                className="absolute top-0 left-1/2 -translate-x-1/2 w-7 h-[2.5px] rounded-b-full"
+                style={{ background: 'var(--brand-gradient)', boxShadow: '0 0 8px rgba(99,102,241,.6)' }}
               />
             )}
+            <I size={21} strokeWidth={active ? 2.1 : 1.8} className={active ? 'drop-shadow-[0_0_5px_rgba(99,102,241,0.5)]' : ''} />
+            <span className="tracking-tight">{lang === 'zh' ? c.short : t(c.label)}</span>
           </button>
         );
       })}
     </nav>
   );
 });
+
+// ─── MobileMeHub — 移动端「我的」hub（5-tab 的第 5 个目的地）──────
+// 账户卡 + 其余 6 个功能页入口网格 + 设置项。仅移动端渲染（tab==='me'）。
+const HubRow = ({ icon, label, value, onClick, last }) => (
+  <button
+    onClick={onClick}
+    className="w-full flex items-center gap-3 px-3.5 py-3 text-left active:bg-white/[0.03] transition"
+    style={last ? undefined : { borderBottom: '1px solid var(--line)' }}
+  >
+    <span style={{ color: 'var(--fg-2)' }}>{icon}</span>
+    <span className="flex-1 text-[13.5px]" style={{ color: 'var(--fg-1)' }}>{label}</span>
+    {value != null && <span className="text-[12px] font-mono" style={{ color: 'var(--fg-3)' }}>{value}</span>}
+    <ChevronRight size={16} style={{ color: 'var(--fg-4)' }} />
+  </button>
+);
+
+const MobileMeHub = ({ setTab, user, stocks, theme, toggleTheme, density, cycleDensity, onManage, onGuide, onProfile, onRefresh }) => {
+  const { t } = useLang();
+  const features = MOBILE_HUB_IDS.map((id) => TAB_CFG.find((c) => c.id === id)).filter(Boolean);
+  const densityLabel = density === "cozy" ? t("舒适") : density === "compact" ? t("紧凑") : t("密集");
+  return (
+    <div className="md:hidden h-full overflow-y-auto" style={{ background: 'var(--bg-0)' }}>
+      <div className="px-4 pt-3 pb-2">
+        <h1 className="text-[22px] font-bold" style={{ color: 'var(--fg-0)' }}>{t("我的")}</h1>
+      </div>
+      {/* 账户卡 */}
+      <button
+        onClick={onProfile}
+        className="mx-4 mb-5 flex items-center gap-3 p-3.5 rounded-2xl border text-left active:scale-[0.99] transition"
+        style={{ width: 'calc(100% - 2rem)', borderColor: 'var(--line)', background: 'var(--bg-2)' }}
+      >
+        <div className="w-12 h-12 rounded-full flex items-center justify-center text-white text-[18px] font-bold shrink-0" style={{ background: 'var(--brand-gradient)' }}>
+          {(user?.name || "U").charAt(0).toUpperCase()}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-[15px] font-semibold truncate" style={{ color: 'var(--fg-0)' }}>{user?.name || t("访客")}</div>
+          <div className="text-[11px] truncate" style={{ color: 'var(--fg-3)' }}>{user?.email || t("点击管理账户")}</div>
+        </div>
+        <ChevronRight size={18} style={{ color: 'var(--fg-3)' }} />
+      </button>
+      {/* 更多功能 */}
+      <div className="px-4 mb-2.5 text-[11px] font-mono uppercase tracking-wider" style={{ color: 'var(--fg-3)' }}>{t("更多功能")}</div>
+      <div className="px-4 mb-5 grid grid-cols-3 gap-2.5">
+        {features.map((c) => {
+          const I = c.icon;
+          return (
+            <button
+              key={c.id}
+              onClick={() => setTab(c.id)}
+              className="flex flex-col items-center gap-2 py-3.5 rounded-xl border active:scale-95 transition"
+              style={{ borderColor: 'var(--line)', background: 'var(--bg-2)' }}
+            >
+              <span className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, rgba(99,102,241,.16), rgba(94,230,230,.06))', border: '1px solid rgba(99,102,241,.25)' }}>
+                <I size={18} style={{ color: 'var(--indigo-2)' }} />
+              </span>
+              <span className="text-[11px] font-medium text-center leading-tight" style={{ color: 'var(--fg-1)' }}>{t(c.label)}</span>
+            </button>
+          );
+        })}
+      </div>
+      {/* 设置 */}
+      <div className="px-4 mb-2.5 text-[11px] font-mono uppercase tracking-wider" style={{ color: 'var(--fg-3)' }}>{t("设置")}</div>
+      <div className="mx-4 rounded-2xl border overflow-hidden" style={{ borderColor: 'var(--line)', background: 'var(--bg-2)' }}>
+        <HubRow icon={theme === "dark" ? <Moon size={17} /> : <Sun size={17} />} label={t("主题")} value={theme === "dark" ? t("深色") : t("浅色")} onClick={toggleTheme} />
+        <HubRow icon={<Layers size={17} />} label={t("表格密度")} value={densityLabel} onClick={cycleDensity} />
+        <HubRow icon={<Database size={17} />} label={t("标的管理")} value={String(stocks?.length ?? 0)} onClick={onManage} />
+        <HubRow icon={<GraduationCap size={17} />} label={t("功能教程")} onClick={onGuide} />
+        <HubRow icon={<RefreshCw size={17} />} label={t("刷新行情")} onClick={onRefresh} last />
+      </div>
+      <div className="px-4 pt-5 pb-2 text-center text-[10px] font-mono" style={{ color: 'var(--fg-4)' }}>QuantEdge · v6 · 2026.06</div>
+    </div>
+  );
+};
 
 // ─── DataFreshnessPill — 持久数据状态条 ──────────────────────
 // 三态显示 + 一键刷新；title 显示完整状态文本
@@ -1867,6 +1972,7 @@ const CommandPalette = ({ open, onClose, stocks, onPickStock, onSwitchTab, curre
     // C4: 快捷动作
     const actionItems = [
       { type: "action", id: "act_theme", label: t("切换深色 / 浅色"), sub: t("Theme toggle"), action: () => onQuickAction?.('theme') },
+      { type: "action", id: "act_accent", label: t("切换强调色主题"), sub: t("靛蓝 → 紫 → 青 → 翡翠 → 琥珀 → 玫瑰"), action: () => onQuickAction?.('accent') },
       { type: "action", id: "act_density", label: t("切换表格密度"), sub: t("Density: cozy / compact / dense"), action: () => onQuickAction?.('density') },
       { type: "action", id: "act_layout", label: t("切换 Bloomberg 侧栏 / 顶部导航"), sub: t("Layout: topbar / sidebar"), action: () => onQuickAction?.('layout') },
       { type: "action", id: "act_refresh", label: t("刷新行情"), sub: t("Yahoo Finance"), action: () => onQuickAction?.('refresh') },
@@ -2333,6 +2439,17 @@ function QuantPlatformInner() {
     document.documentElement.classList.toggle("light", theme === "light");
   }, [theme]);
   const toggleTheme = () => setTheme(v => v === "dark" ? "light" : "dark");
+  // v7: 强调色主题（6 色，驱动 <html data-theme>；indigo=默认不写属性，零回归）
+  const [accent, setAccent] = useState(() => localStorage.getItem("quantedge_accent") || "indigo");
+  useEffect(() => {
+    localStorage.setItem("quantedge_accent", accent);
+    if (accent && accent !== "indigo") document.documentElement.dataset.theme = accent;
+    else delete document.documentElement.dataset.theme;
+  }, [accent]);
+  const cycleAccent = () => setAccent(a => {
+    const i = ACCENTS.findIndex(x => x.id === a);
+    return ACCENTS[(i + 1) % ACCENTS.length].id;
+  });
   // S2: 表格密度切换（cozy / compact / dense）— 默认 compact，活跃量化玩家更喜欢密集
   const [density, setDensity] = useState(() => localStorage.getItem("quantedge_density") || "compact");
   useEffect(() => {
@@ -2390,6 +2507,16 @@ function QuantPlatformInner() {
       if (e.key === "j" || e.key === "k") {
         // 由 ScoringDashboard 决定是否响应（在自己监听器里 check tab）
         window.dispatchEvent(new CustomEvent("quantedge:navStock", { detail: e.key === "j" ? "next" : "prev" }));
+        return;
+      }
+      // v7 工作站：W 加/移出自选 · C 加/移出对比（评分页当前选中标的；非评分页无监听器，无副作用）
+      if (e.key === "w" || e.key === "W") {
+        window.dispatchEvent(new CustomEvent("quantedge:stockAction", { detail: "fav" }));
+        return;
+      }
+      if (e.key === "c" || e.key === "C") {
+        window.dispatchEvent(new CustomEvent("quantedge:stockAction", { detail: "compare" }));
+        return;
       }
     };
     window.addEventListener("keydown", handler);
@@ -2605,7 +2732,7 @@ function QuantPlatformInner() {
         </div>
       </header>
 
-      <main id="main-content" role="main" className="flex-1 p-2 md:p-4 pb-14 md:pb-4 min-h-0 overflow-hidden flex flex-col">
+      <main id="main-content" role="main" className="flex-1 px-0 pt-0 pb-14 md:p-4 min-h-0 overflow-hidden flex flex-col">
         <Suspense fallback={
           <div className="flex items-center justify-center h-full text-[#778] text-xs">
             <div className="flex items-center gap-2">
@@ -2630,6 +2757,21 @@ function QuantPlatformInner() {
           {tab === "smartBeta" && <SmartBeta />}
           {tab === "compound" && (
             <CompoundPower onOneClickBacktest={handleOneClickBacktest} />
+          )}
+          {tab === "me" && (
+            <MobileMeHub
+              setTab={setTab}
+              user={user}
+              stocks={stocks}
+              theme={theme}
+              toggleTheme={toggleTheme}
+              density={density}
+              cycleDensity={cycleDensity}
+              onManage={() => setShowManager(true)}
+              onGuide={openGuide}
+              onProfile={() => setShowProfile(true)}
+              onRefresh={quickPriceRefresh}
+            />
           )}
         </Suspense>
       </main>
@@ -2796,13 +2938,16 @@ function QuantPlatformInner() {
             <span>{t('搜索')}</span>
             <kbd className="px-1 py-[1px] rounded bg-white/5 border border-white/10 font-mono text-[9px] ml-1">Tab</kbd>
             <span>{t('切换')}</span>
+            <kbd className="px-1 py-[1px] rounded bg-white/5 border border-white/10 font-mono text-[9px] ml-1">J</kbd>
+            <kbd className="px-1 py-[1px] rounded bg-white/5 border border-white/10 font-mono text-[9px]">K</kbd>
+            <span>{t('选股')}</span>
           </span>
           <span className="text-[9px] md:text-[10px] text-[#778] font-mono">v0.8.0 · <span className="text-indigo-400/80">PWA</span></span>
         </div>
       </footer>
 
       <TickerManager open={showManager} onClose={() => setShowManager(false)} />
-      <UserProfilePanel open={showProfile} onClose={() => setShowProfile(false)} theme={theme} toggleTheme={toggleTheme} />
+      <UserProfilePanel open={showProfile} onClose={() => setShowProfile(false)} theme={theme} toggleTheme={toggleTheme} accent={accent} setAccent={setAccent} />
       <CommandPalette
         open={cmdOpen}
         onClose={() => setCmdOpen(false)}
@@ -2817,6 +2962,7 @@ function QuantPlatformInner() {
           else if (act === 'refresh') quickPriceRefresh?.();
           else if (act === 'onboarding') setOnboardOpen(true);
           else if (act === 'layout') toggleLayout();
+          else if (act === 'accent') cycleAccent();
         }}
         onLoadTemplate={(tpl) => {
           // C4: 加载策略模板 → 跳转回测引擎并触发加载

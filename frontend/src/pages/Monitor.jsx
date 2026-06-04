@@ -3,8 +3,10 @@
 // 从 quant-platform.jsx 抽出（C1 重构第二步），通过 React.lazy 懒加载
 // ─────────────────────────────────────────────────────────────
 import React, { useState, useEffect, useMemo, useContext, useCallback, useRef } from "react";
-import { Activity, Bell, BellOff, Check, Globe } from "lucide-react";
+import { Activity, Bell, BellOff, Check, Globe, ChevronLeft, BellRing, RefreshCw } from "lucide-react";
 import { useLang } from "../i18n.jsx";
+import useIsMobile from "../hooks/useIsMobile";
+import { BottomSheet, MobileAppBar, ThumbActionBar } from "../components/mobile";
 import {
   DataContext,
   displayTicker,
@@ -80,8 +82,104 @@ const AlertRulesPanel = ({ liveStocks, t, lang }) => {
   );
 };
 
+// ─── v6 移动端：告警 Hero 大卡 + 行滑动操作 ───────────────────
+// 轻量 swipe-reveal 行，只暴露「已读 / 静音」两个操作
+function MAlertRow({ alert: a, onAck, onMute, t, lang, liveStocks, onTap }) {
+  const [dx, setDx] = useState(0);
+  const startX = useRef(null);
+  const trackingRef = useRef(false);
+  const REVEAL = 128; // 两个 64px 按钮
+
+  const sev = a.severity;
+  const dotColor = sev === "high" ? "var(--down)" : sev === "warning" ? "var(--warn)" : "var(--indigo-2)";
+  const boxShadow = `0 0 8px ${dotColor}`;
+
+  const onTouchStart = (e) => {
+    startX.current = e.touches[0].clientX;
+    trackingRef.current = true;
+  };
+  const onTouchMove = (e) => {
+    if (!trackingRef.current || startX.current == null) return;
+    const d = e.touches[0].clientX - startX.current;
+    if (d < 0) setDx(Math.max(-REVEAL, d));
+  };
+  const onTouchEnd = () => {
+    trackingRef.current = false;
+    // snap: if dragged past half, stay open; else snap back
+    setDx((prev) => (prev < -REVEAL / 2 ? -REVEAL : 0));
+    startX.current = null;
+  };
+
+  const stkLabel = a.type === "macro" ? t("宏观") :
+    (() => {
+      const s = liveStocks.find((x) => x.ticker === a.ticker);
+      return s ? (lang === "zh" ? (s.nameCN || s.name) : s.name) : a.ticker;
+    })();
+
+  return (
+    <div style={{ position: "relative", marginBottom: 8, borderRadius: 12, overflow: "hidden" }}>
+      {/* swipe-revealed actions */}
+      <div style={{ position: "absolute", inset: 0, display: "flex", justifyContent: "flex-end" }}>
+        <button
+          onClick={() => { onAck(a.id); setDx(0); }}
+          style={{ width: 64, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, background: "rgba(30,211,149,.18)", border: "none", cursor: "pointer" }}
+        >
+          <Check size={18} style={{ color: "var(--up)" }} />
+          <span style={{ fontSize: 9, color: "var(--up)" }}>{t("已读")}</span>
+        </button>
+        {a.type !== "macro" && (
+          <button
+            onClick={() => { onMute(a.ticker); setDx(0); }}
+            style={{ width: 64, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, background: "rgba(255,255,255,.07)", border: "none", cursor: "pointer" }}
+          >
+            <BellOff size={18} style={{ color: "var(--fg-2)" }} />
+            <span style={{ fontSize: 9, color: "var(--fg-2)" }}>{t("静音")}</span>
+          </button>
+        )}
+      </div>
+      {/* row content */}
+      <div
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        onClick={() => { if (dx === 0) onTap(a); else setDx(0); }}
+        style={{
+          position: "relative",
+          transform: `translateX(${dx}px)`,
+          transition: trackingRef.current ? "none" : "transform 0.22s ease",
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          padding: "13px 12px",
+          borderRadius: 12,
+          background: "var(--bg-1)",
+          border: "1px solid var(--line)",
+          cursor: "pointer",
+          touchAction: "pan-y",
+        }}
+      >
+        <div style={{ width: 8, height: 8, borderRadius: 4, background: dotColor, boxShadow, flexShrink: 0 }} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+            <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 13, fontWeight: 600, color: "var(--fg-0)" }}>{a.ticker}</span>
+            <span style={{ fontSize: 8, color: "var(--fg-3)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+              {a.type === "macro" ? t("宏观") : a.type === "price" ? t("价格") : a.type === "technical" ? t("技术") : a.type === "score" ? t("评级") : a.type}
+            </span>
+          </div>
+          <div style={{ fontSize: 12, color: "var(--fg-1)", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.message}</div>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
+          <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 10, color: "var(--fg-3)" }}>{a.time}</span>
+          <ChevronLeft size={13} style={{ color: "var(--fg-4)", transform: "rotate(180deg)" }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const Monitor = () => {
   const { t, lang } = useLang();
+  const isMobile = useIsMobile();
   const { stocks: ctxStocks3, alerts: ctxAlerts3 } = useContext(DataContext) || {};
   const liveStocks = ctxStocks3 || [];
   const allAlerts = ctxAlerts3 || [];
@@ -325,6 +423,10 @@ const Monitor = () => {
     return Math.round((avgScore * 0.6 + breadthScore * 0.4));
   }, [liveStocks]);
 
+  // v6 移动端：下钻详情弹层 + 筛选类型 chip state
+  const [mDetailAlert, setMDetailAlert] = useState(null); // 当前下钻的 alert
+  const [mFilterType, setMFilterType] = useState("all");  // mobile 独立类型 chip
+
   // v5 编辑式：SPY 作为板块超额收益基准（若 SPY 在 watchlist 内）
   const spyChange = useMemo(() => {
     const spy = liveStocks.find(s => s.ticker === "SPY");
@@ -346,6 +448,343 @@ const Monitor = () => {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [featuredAlert]);
+
+  // ─── v6 移动端分支 ─────────────────────────────────────────────
+  if (isMobile) {
+    // 移动端独立类型过滤（复用 mergedAlerts / ackedIds / isMuted）
+    const mLiveAlerts = mergedAlerts.filter((a) => {
+      if (isMuted(a.ticker)) return false;
+      if (ackedIds.has(a.id)) return false;
+      if (mFilterType !== "all" && a.type !== mFilterType) return false;
+      return true;
+    });
+
+    const mFeatured = mLiveAlerts.find((a) => a.severity === "high") || null;
+    const mRest = mFeatured ? mLiveAlerts.filter((a) => a.id !== mFeatured.id) : mLiveAlerts;
+
+    // chip counts
+    const mTypeCounts = { all: 0, macro: 0, price: 0, technical: 0, score: 0 };
+    mergedAlerts.forEach((a) => {
+      if (isMuted(a.ticker) || ackedIds.has(a.id)) return;
+      mTypeCounts.all += 1;
+      if (mTypeCounts[a.type] != null) mTypeCounts[a.type] += 1;
+    });
+
+    const unreadCount = mTypeCounts.all;
+
+    // 告警类型的显示颜色
+    const sevColor = (sev) =>
+      sev === "high" ? "var(--down)" : sev === "warning" ? "var(--warn)" : "var(--indigo-2)";
+
+    // detail overlay: 当前选中告警的完整信息
+    const DetailOverlay = mDetailAlert ? (() => {
+      const a = mDetailAlert;
+      const stk = liveStocks.find((s) => s.ticker === a.ticker);
+      const dc = sevColor(a.severity);
+      const isAcked = ackedIds.has(a.id);
+      return (
+        <div className="fixed inset-0 z-40 flex flex-col" style={{ background: "var(--bg-0)" }}>
+          <MobileAppBar
+            onBack={() => setMDetailAlert(null)}
+            title={
+              <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 15, fontWeight: 700, color: "var(--fg-0)" }}>{a.ticker}</span>
+                <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 6, background: `color-mix(in srgb, ${dc} 18%, transparent)`, color: dc, border: `1px solid color-mix(in srgb, ${dc} 35%, transparent)` }}>
+                  {a.severity === "high" ? t("严重") : a.severity === "warning" ? t("警示") : t("提示")}
+                </span>
+              </span>
+            }
+          />
+          <div className="flex-1 overflow-y-auto overscroll-contain px-4 pt-4" style={{ paddingBottom: "calc(80px + env(safe-area-inset-bottom))" }}>
+            {/* severity stripe */}
+            <div style={{ height: 3, borderRadius: 2, background: `linear-gradient(90deg, ${dc}, transparent)`, marginBottom: 16 }} />
+
+            {/* time + type */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+              <span style={{ fontSize: 10, color: "var(--fg-3)", fontFamily: "JetBrains Mono, monospace" }}>{a.time}</span>
+              <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 10, background: "rgba(255,255,255,.05)", border: "1px solid var(--line)", color: "var(--fg-2)" }}>
+                {a.type === "macro" ? t("宏观") : a.type === "price" ? t("价格") : a.type === "technical" ? t("技术") : a.type === "score" ? t("评级") : a.type}
+              </span>
+            </div>
+
+            {/* message */}
+            <p style={{ fontSize: 15, lineHeight: 1.65, color: "var(--fg-1)", marginBottom: 20 }}>{a.message}</p>
+
+            {/* action recommendation */}
+            {a.action && (
+              <div style={{ padding: "12px 14px", borderRadius: 12, background: "rgba(139,92,246,.08)", border: "1px solid rgba(139,92,246,.2)", marginBottom: 20 }}>
+                <div style={{ fontSize: 10, color: "var(--violet)", marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.06em" }}>{t("建议")}</div>
+                <p style={{ fontSize: 13, color: "rgba(221,214,254,.85)", lineHeight: 1.55, margin: 0 }}>{a.action}</p>
+              </div>
+            )}
+
+            {/* 52-week price bar (if we have stk data) */}
+            {a.type !== "macro" && stk && stk.week52Low != null && stk.week52High != null && stk.price > 0 && (() => {
+              const lo = stk.week52Low, hi = stk.week52High;
+              const range = hi - lo || 1;
+              const pct = Math.max(0, Math.min(100, ((stk.price - lo) / range) * 100));
+              const distHigh = ((stk.price - hi) / hi) * 100;
+              const distLow = ((stk.price - lo) / lo) * 100;
+              return (
+                <div style={{ marginBottom: 20, padding: "14px", borderRadius: 12, background: "rgba(255,255,255,.025)", border: "1px solid var(--line)" }}>
+                  <div style={{ fontSize: 10, color: "var(--fg-3)", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.06em" }}>{t("52周价格位置")}</div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "var(--fg-3)", marginBottom: 6, fontFamily: "JetBrains Mono, monospace" }}>
+                    <span>{lo}</span><span>{hi}</span>
+                  </div>
+                  <div style={{ position: "relative", height: 6, borderRadius: 3, background: "linear-gradient(90deg, rgba(239,68,68,.3), rgba(245,158,11,.2), rgba(30,211,149,.3))" }}>
+                    <div style={{ position: "absolute", top: "50%", left: `${pct}%`, transform: "translate(-50%,-50%)", width: 12, height: 12, borderRadius: "50%", background: "white", border: "2px solid var(--indigo-2)", boxShadow: "0 0 6px rgba(99,102,241,.6)" }} />
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, marginTop: 6, fontFamily: "JetBrains Mono, monospace" }}>
+                    <span style={{ color: "var(--up)" }}>{t("距低")} +{distLow.toFixed(0)}%</span>
+                    <span style={{ color: "var(--fg-0)", fontWeight: 600 }}>{stk.price} · {pct.toFixed(0)}%</span>
+                    <span style={{ color: "var(--down)" }}>{t("距高")} {distHigh.toFixed(0)}%</span>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* macro nav link */}
+            {a.type === "macro" && (
+              <button
+                onClick={() => { window.dispatchEvent(new CustomEvent("quantedge:nav", { detail: "macro" })); setMDetailAlert(null); }}
+                style={{ width: "100%", padding: "12px 0", borderRadius: 12, border: "1px solid var(--line-2)", background: "rgba(139,92,246,.08)", color: "var(--violet)", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
+              >
+                → {t("打开宏观看板")}
+              </button>
+            )}
+          </div>
+
+          {/* thumb actions */}
+          <ThumbActionBar
+            secondary={a.type !== "macro" ? [{ icon: <BellOff size={20} />, label: t("静音 24h"), onClick: () => { muteTicker(a.ticker); setMDetailAlert(null); } }] : []}
+            primary={isAcked
+              ? { icon: <RefreshCw size={18} />, label: t("撤销已读"), onClick: () => { unackAlert(a.id); setMDetailAlert(null); } }
+              : { icon: <Check size={18} />, label: t("标记已处理"), onClick: () => { ackAlert(a.id); setMDetailAlert(null); } }
+            }
+          />
+        </div>
+      );
+    })() : null;
+
+    return (
+      <div className="h-full flex flex-col" style={{ background: "var(--bg-0)" }}>
+        {/* detail overlay mounts on top */}
+        {DetailOverlay}
+
+        <div className="flex-1 overflow-y-auto overscroll-contain">
+          {/* ── 顶部 pull-to-refresh 提示 ── */}
+          <div style={{ textAlign: "center", padding: "8px 0 4px", fontSize: 10, color: "var(--fg-3)", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+            <RefreshCw size={11} style={{ color: "var(--fg-3)" }} />
+            {t("下拉刷新")} · {t("刚刚更新")}
+          </div>
+
+          <div className="px-4 pt-1 pb-2">
+            {/* ── 标题行 ── */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, color: "var(--fg-0)" }}>{t("实时监控")}</h1>
+                {/* live pulse dot */}
+                <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--up)", boxShadow: "0 0 0 0 rgba(30,211,149,.4)", animation: "breathe 1.8s infinite", flexShrink: 0 }} />
+              </div>
+              {/* 全部已读 */}
+              {unreadCount > 0 ? (
+                <button
+                  onClick={ackAllRest}
+                  style={{ fontSize: 12, color: "var(--indigo-2)", fontWeight: 600, display: "flex", alignItems: "center", gap: 5, background: "none", border: "none", cursor: "pointer", padding: 0 }}
+                >
+                  <Check size={14} style={{ color: "var(--indigo-2)" }} />
+                  {t("全部已读")}
+                </button>
+              ) : (
+                <span style={{ fontSize: 12, color: "var(--up)", fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
+                  <Check size={14} style={{ color: "var(--up)" }} />
+                  {t("暂无预警")}
+                </span>
+              )}
+            </div>
+
+            {/* ── 类型过滤 chips ── */}
+            <div style={{ display: "flex", gap: 7, overflowX: "auto", marginBottom: 16, paddingBottom: 2 }}>
+              {[
+                ["all", t("全部"), mTypeCounts.all],
+                ["price", t("价格"), mTypeCounts.price],
+                ["macro", t("宏观"), mTypeCounts.macro],
+                ["technical", t("技术"), mTypeCounts.technical],
+                ["score", t("评级"), mTypeCounts.score],
+              ].map(([key, label, count]) => {
+                const on = mFilterType === key;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => setMFilterType(key)}
+                    style={{
+                      flexShrink: 0,
+                      padding: "6px 12px",
+                      borderRadius: 18,
+                      fontSize: 12,
+                      fontWeight: on ? 600 : 500,
+                      background: on ? "rgba(99,102,241,.15)" : "rgba(255,255,255,.03)",
+                      color: on ? "var(--indigo-2)" : "var(--fg-2)",
+                      border: `1px solid ${on ? "rgba(99,102,241,.3)" : "var(--line)"}`,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {label} <span style={{ fontFamily: "JetBrains Mono, monospace", opacity: 0.7 }}>{count}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* ── HERO: 最严重告警 ── */}
+            {mFeatured ? (
+              <div
+                style={{
+                  padding: "16px 16px 14px",
+                  borderRadius: 16,
+                  background: "linear-gradient(160deg, rgba(239,68,68,.13), rgba(239,68,68,.03))",
+                  border: "1px solid rgba(239,68,68,.3)",
+                  position: "relative",
+                  overflow: "hidden",
+                  marginBottom: 18,
+                }}
+              >
+                {/* top highlight line */}
+                <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: "linear-gradient(90deg, transparent, var(--down), transparent)" }} />
+
+                {/* header row */}
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                  <span style={{ padding: "3px 8px", borderRadius: 10, background: "rgba(239,68,68,.18)", border: "1px solid rgba(239,68,68,.35)", fontSize: 10, color: "var(--down)", fontWeight: 600 }}>
+                    ● {t("严重")} · {mFeatured.type === "macro" ? t("宏观") : mFeatured.type === "price" ? t("止损") : mFeatured.type === "technical" ? t("技术") : t("评级")}
+                  </span>
+                  <span style={{ fontSize: 9, color: "var(--down)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                    {t("严重度")} #1 / {mLiveAlerts.length}
+                  </span>
+                  <span style={{ flex: 1 }} />
+                  <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 10, color: "var(--fg-3)" }}>{mFeatured.time}</span>
+                </div>
+
+                {/* ticker + price */}
+                <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 8, flexWrap: "wrap" }}>
+                  <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 22, fontWeight: 700, color: "var(--fg-0)" }}>
+                    {mFeatured.ticker}
+                  </span>
+                  {(() => {
+                    const stk = liveStocks.find((s) => s.ticker === mFeatured.ticker);
+                    if (!stk || stk.price == null) return null;
+                    const chg = typeof stk.change === "number" ? stk.change : parseFloat(stk.change);
+                    return (
+                      <>
+                        <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 17, fontWeight: 600, color: "var(--down)" }}>{stk.price}</span>
+                        {isFinite(chg) && (
+                          <span style={{ padding: "2px 7px", borderRadius: 6, background: "rgba(239,68,68,.18)", color: "var(--down)", fontSize: 11, fontWeight: 600 }}>
+                            {chg >= 0 ? "+" : ""}{chg.toFixed(2)}%
+                          </span>
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
+
+                {/* message */}
+                <p style={{ margin: "0 0 14px", fontSize: 13.5, lineHeight: 1.6, color: "var(--fg-1)" }}>{mFeatured.message}</p>
+
+                {/* CTA buttons */}
+                <div style={{ display: "flex", gap: 9 }}>
+                  <button
+                    onClick={() => setMDetailAlert(mFeatured)}
+                    style={{ flex: 1, height: 44, borderRadius: 12, border: "1px solid var(--line-2)", background: "rgba(255,255,255,.05)", color: "var(--fg-1)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+                  >
+                    {t("查看详情")}
+                  </button>
+                  <button
+                    onClick={() => { ackAlert(mFeatured.id); }}
+                    style={{ flex: 1.4, height: 44, borderRadius: 12, border: "none", background: "linear-gradient(180deg,#FF8585,#EF4444)", color: "#fff", fontSize: 13.5, fontWeight: 700, cursor: "pointer", boxShadow: "0 8px 20px -6px rgba(239,68,68,.55)", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+                  >
+                    <Check size={16} style={{ color: "#fff" }} />
+                    {t("标记已处理")}
+                  </button>
+                  {mFeatured.type !== "macro" && (
+                    <button
+                      onClick={() => muteTicker(mFeatured.ticker)}
+                      style={{ width: 44, height: 44, borderRadius: 12, border: "1px solid var(--line-2)", background: "rgba(255,255,255,.05)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, cursor: "pointer" }}
+                      aria-label={t("静音 24h")}
+                    >
+                      <BellOff size={18} style={{ color: "var(--fg-2)" }} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : (
+              /* 空状态 */
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "32px 0 24px", gap: 10 }}>
+                <div style={{ width: 44, height: 44, borderRadius: "50%", background: "rgba(30,211,149,.1)", border: "1px solid rgba(30,211,149,.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Check size={20} style={{ color: "var(--up)" }} />
+                </div>
+                <span style={{ fontSize: 13, color: "var(--fg-2)", fontWeight: 500 }}>{t("暂无严重预警")}</span>
+                <span style={{ fontSize: 11, color: "var(--fg-3)" }}>{t("所有标的运行正常")}</span>
+              </div>
+            )}
+
+            {/* ── 其余告警列表 ── */}
+            {mRest.length > 0 && (
+              <>
+                <div style={{ fontSize: 9, color: "var(--fg-3)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10, paddingLeft: 2 }}>
+                  {t("其余告警")} · {t("今天")} · {t("左滑可操作")}
+                </div>
+                {mRest.map((a) => (
+                  <MAlertRow
+                    key={a.id}
+                    alert={a}
+                    onAck={ackAlert}
+                    onMute={muteTicker}
+                    onTap={setMDetailAlert}
+                    t={t}
+                    lang={lang}
+                    liveStocks={liveStocks}
+                  />
+                ))}
+              </>
+            )}
+
+            {/* undo bulk ack */}
+            {lastBulkAck?.length > 0 && (
+              <div style={{ textAlign: "center", marginTop: 8 }}>
+                <button
+                  onClick={undoBulkAck}
+                  style={{ fontSize: 12, color: "var(--indigo-2)", background: "none", border: "none", cursor: "pointer" }}
+                >
+                  ↶ {t("撤销")}
+                </button>
+              </div>
+            )}
+
+            {/* muted tickers */}
+            {Object.entries(mutedTickers).filter(([, u]) => u > now).length > 0 && (
+              <div style={{ marginTop: 16, padding: "12px 14px", borderRadius: 12, background: "rgba(255,255,255,.025)", border: "1px solid var(--line)" }}>
+                <div style={{ fontSize: 10, color: "var(--fg-3)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.06em" }}>{t("静音中")}</div>
+                {Object.entries(mutedTickers).filter(([, u]) => u > now).map(([tk, until]) => {
+                  const remain = Math.ceil((until - now) / 3600000);
+                  return (
+                    <div key={tk} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                      <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 12, color: "var(--fg-0)" }}>{tk}</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontSize: 10, color: "var(--fg-3)", fontFamily: "JetBrains Mono, monospace" }}>⏱ {remain}h</span>
+                        <button onClick={() => unmuteTicker(tk)} style={{ fontSize: 10, color: "var(--fg-3)", background: "none", border: "none", cursor: "pointer" }}>✕</button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* bottom spacer for nav bar */}
+            <div style={{ height: 24 }} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+  // ─── END 移动端分支 ─────────────────────────────────────────────
 
   return (
     <div className="flex flex-col md:grid md:grid-cols-12 gap-4 h-full min-h-0 overflow-auto md:overflow-hidden">
@@ -525,6 +964,43 @@ const Monitor = () => {
           flex
           className="md:flex-1 flex flex-col md:min-h-0"
         >
+          {/* v7 盯盘墙 — 实时 tile 网格（桌面常驻；告警标的红/黄框高亮，对齐设计稿 SECTION 03 盯盘墙）*/}
+          {(() => {
+            const alertTickers = new Set(liveAlerts.filter(a => a.ticker).map(a => a.ticker));
+            const highTickers = new Set(liveAlerts.filter(a => a.ticker && a.severity === 'high').map(a => a.ticker));
+            const ordered = [
+              ...liveStocks.filter(s => alertTickers.has(s.ticker)),
+              ...liveStocks.filter(s => !alertTickers.has(s.ticker)),
+            ].slice(0, 12);
+            if (ordered.length === 0) return null;
+            return (
+              <div className="hidden md:block mb-3">
+                <div className="flex items-center gap-2 mb-2 px-1">
+                  <span className="text-[11px] font-semibold text-white">{t('盯盘墙')}</span>
+                  <span className="text-[9px] text-[#778] font-mono">{ordered.length} {t('标的')} · {t('实时')}</span>
+                </div>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {ordered.map(s => {
+                    const chg = Number(s.change) || 0;
+                    const up = chg >= 0;
+                    const hasAlert = alertTickers.has(s.ticker);
+                    const isHigh = highTickers.has(s.ticker);
+                    return (
+                      <div key={s.ticker}
+                        className={`relative px-2 py-1.5 rounded-lg border ${isHigh ? 'bg-down/[0.07] border-down/30' : hasAlert ? 'bg-amber-500/[0.06] border-amber-500/25' : 'bg-white/[0.02] border-white/8'}`}>
+                        {hasAlert && <span className={`absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full ${isHigh ? 'bg-down shadow-[0_0_6px_rgba(255,107,107,0.8)] animate-breathe' : 'bg-amber-400'}`} />}
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-[11px] font-mono font-bold text-white truncate">{s.ticker}</span>
+                          <span className={`text-[10px] font-mono ${up ? 'text-up' : 'text-down'}`}>{up ? '+' : ''}{chg.toFixed(1)}%</span>
+                        </div>
+                        <div className="text-[11px] font-mono text-[#cdd5e0] mt-0.5">{s.price}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
           {/* Severity + type filter chips */}
           {mergedAlerts.length > 0 && (
             <div className="flex flex-wrap items-center gap-1 mb-2 px-1">

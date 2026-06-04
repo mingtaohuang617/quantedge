@@ -9,14 +9,25 @@ export default {
   theme: {
     extend: {
       colors: {
-        up: '#00E5A0',
+        up: '#1ED395',
         down: '#FF6B6B',
-        'deep-base': '#0B0B15',
-        'deep-card': '#161625',
+        'deep-base': '#08090E',
+        'deep-card': '#13151E',
+        // v7 工作站：indigo = 可切换主品牌色。100-600 shade 接到 CSS 变量，
+        // 默认值 = Tailwind 原 indigo（零回归），[data-theme] 一键换 6 色（见 index.css）。
+        // 语义 up/down/amber 与 violet/cyan 次强调色保持固定，不随主题切换。
+        indigo: {
+          100: 'rgb(var(--tw-indigo-100) / <alpha-value>)',
+          200: 'rgb(var(--tw-indigo-200) / <alpha-value>)',
+          300: 'rgb(var(--tw-indigo-300) / <alpha-value>)',
+          400: 'rgb(var(--tw-indigo-400) / <alpha-value>)',
+          500: 'rgb(var(--tw-indigo-500) / <alpha-value>)',
+          600: 'rgb(var(--tw-indigo-600) / <alpha-value>)',
+        },
       },
       boxShadow: {
         'glow-indigo': '0 0 20px rgba(99,102,241,0.3)',
-        'glow-up': '0 0 15px rgba(0,229,160,0.2)',
+        'glow-up': '0 0 15px rgba(30,211,149,0.2)',
         'glow-down': '0 0 15px rgba(255,107,107,0.2)',
         'deep': '0 8px 32px rgba(0,0,0,0.4)',
         'card-hover': 'inset 0 0 0 0.5px rgba(255,255,255,0.08), 0 8px 32px rgba(0,0,0,0.3)',
