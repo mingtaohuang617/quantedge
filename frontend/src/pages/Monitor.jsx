@@ -964,6 +964,43 @@ const Monitor = () => {
           flex
           className="md:flex-1 flex flex-col md:min-h-0"
         >
+          {/* v7 盯盘墙 — 实时 tile 网格（桌面常驻；告警标的红/黄框高亮，对齐设计稿 SECTION 03 盯盘墙）*/}
+          {(() => {
+            const alertTickers = new Set(liveAlerts.filter(a => a.ticker).map(a => a.ticker));
+            const highTickers = new Set(liveAlerts.filter(a => a.ticker && a.severity === 'high').map(a => a.ticker));
+            const ordered = [
+              ...liveStocks.filter(s => alertTickers.has(s.ticker)),
+              ...liveStocks.filter(s => !alertTickers.has(s.ticker)),
+            ].slice(0, 12);
+            if (ordered.length === 0) return null;
+            return (
+              <div className="hidden md:block mb-3">
+                <div className="flex items-center gap-2 mb-2 px-1">
+                  <span className="text-[11px] font-semibold text-white">{t('盯盘墙')}</span>
+                  <span className="text-[9px] text-[#778] font-mono">{ordered.length} {t('标的')} · {t('实时')}</span>
+                </div>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {ordered.map(s => {
+                    const chg = Number(s.change) || 0;
+                    const up = chg >= 0;
+                    const hasAlert = alertTickers.has(s.ticker);
+                    const isHigh = highTickers.has(s.ticker);
+                    return (
+                      <div key={s.ticker}
+                        className={`relative px-2 py-1.5 rounded-lg border ${isHigh ? 'bg-down/[0.07] border-down/30' : hasAlert ? 'bg-amber-500/[0.06] border-amber-500/25' : 'bg-white/[0.02] border-white/8'}`}>
+                        {hasAlert && <span className={`absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full ${isHigh ? 'bg-down shadow-[0_0_6px_rgba(255,107,107,0.8)] animate-breathe' : 'bg-amber-400'}`} />}
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-[11px] font-mono font-bold text-white truncate">{s.ticker}</span>
+                          <span className={`text-[10px] font-mono ${up ? 'text-up' : 'text-down'}`}>{up ? '+' : ''}{chg.toFixed(1)}%</span>
+                        </div>
+                        <div className="text-[11px] font-mono text-[#cdd5e0] mt-0.5">{s.price}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
           {/* Severity + type filter chips */}
           {mergedAlerts.length > 0 && (
             <div className="flex flex-wrap items-center gap-1 mb-2 px-1">
