@@ -8,7 +8,6 @@ import { Activity, AlertCircle, AlertTriangle, BarChart3, BookOpen, Briefcase, C
 import useIsMobile from "../hooks/useIsMobile.js";
 import BottomSheet from "../components/mobile/BottomSheet.jsx";
 import MobileAppBar from "../components/mobile/MobileAppBar.jsx";
-import Segmented from "../components/mobile/Segmented.jsx";
 import FullscreenChart from "../components/mobile/FullscreenChart.jsx";
 import { searchTickers as standaloneSearch, fetchStockData, fetchBenchmarkPrices, fetchRangePrices, fetchRangePricesEx, STOCK_CN_NAMES } from "../standalone.js";
 import { Z_ELEVATED } from "../lib/zIndex.js";
@@ -1483,12 +1482,14 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
         >
           {/* ── KPI Hero ── */}
           <div className="px-4 pt-4 pb-3">
-            <div className="text-[10px] font-medium mb-2" style={{ color: "var(--fg-3)" }}>
+            {/* caption: 9px, fg-3, marginBottom:8 */}
+            <div style={{ fontSize: 9, fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--fg-3)", marginBottom: 8 }}>
               {t("组合年化收益")} · {btRange} {t("回测")}
             </div>
             {headlineStr ? (
               <>
-                <div className="flex items-end gap-3 mb-3">
+                {/* Headline row: serif 52px + alpha chip marginBottom:14 */}
+                <div className="flex items-end gap-3" style={{ marginBottom: 14 }}>
                   <span
                     style={{
                       fontSize: 52,
@@ -1503,8 +1504,9 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
                   </span>
                   {alphaStr && (
                     <span
-                      className="text-[11px] font-medium px-2 py-1 rounded-full border mb-1"
+                      className="text-[11px] font-medium px-2 py-1 rounded-full border"
                       style={{
+                        marginBottom: 6,
                         background: m.alpha >= 0 ? "rgba(30,211,149,.1)" : "rgba(239,68,68,.1)",
                         borderColor: m.alpha >= 0 ? "rgba(30,211,149,.3)" : "rgba(239,68,68,.3)",
                         color: m.alpha >= 0 ? "var(--up)" : "var(--down)",
@@ -1514,7 +1516,7 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
                     </span>
                   )}
                 </div>
-                {/* Secondary KPI row */}
+                {/* Secondary KPI row: paddingLeft:12, label 8px mb:4, value 15px */}
                 <div className="flex gap-0">
                   {[
                     { label: "Sharpe", value: fmtNum(m?.sharpe), color: "var(--fg-0)" },
@@ -1525,10 +1527,10 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
                     <div
                       key={label}
                       className="flex-1"
-                      style={{ paddingLeft: i ? 10 : 0, borderLeft: i ? "1px solid var(--line)" : "none" }}
+                      style={{ paddingLeft: i ? 12 : 0, borderLeft: i ? "1px solid var(--line)" : "none" }}
                     >
-                      <div className="text-[9px] mb-1" style={{ color: "var(--fg-3)" }}>{label}</div>
-                      <div className="font-mono text-[14px] font-bold" style={{ color, lineHeight: 1 }}>{value}</div>
+                      <div style={{ fontSize: 8, marginBottom: 4, color: "var(--fg-3)" }}>{label}</div>
+                      <div className="font-mono font-bold" style={{ fontSize: 15, color, lineHeight: 1 }}>{value}</div>
                     </div>
                   ))}
                 </div>
@@ -1547,17 +1549,44 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
             )}
           </div>
 
-          {/* ── Segmented Tab ── */}
-          <div className="px-4 mb-3">
-            <Segmented
-              value={mSegTab}
-              onChange={setMSegTab}
-              options={[
-                { value: "perf", label: t("表现") },
-                { value: "risk", label: t("风险") },
-                { value: "resilience", label: t("韧性") },
-              ]}
-            />
+          {/* ── Segmented Tab ── spec: padding 4px 16px 12px, pill 8px 18px, borderRadius:10, fontSize:13, alert pip on 风险 */}
+          <div style={{ padding: "4px 16px 12px", display: "flex", gap: 7 }}>
+            {[
+              { value: "perf", label: t("表现"), pip: false },
+              { value: "risk", label: t("风险"), pip: !!(m && (m.maxDD != null || m.vol != null)) },
+              { value: "resilience", label: t("韧性"), pip: false },
+            ].map(({ value: v, label, pip }) => {
+              const on = mSegTab === v;
+              return (
+                <button
+                  key={v}
+                  onClick={() => setMSegTab(v)}
+                  style={{
+                    position: "relative",
+                    padding: "8px 18px",
+                    borderRadius: 10,
+                    fontSize: 13,
+                    fontWeight: on ? 600 : 500,
+                    background: on ? "rgba(99,102,241,.15)" : "rgba(255,255,255,.03)",
+                    color: on ? "var(--indigo-2)" : "var(--fg-2)",
+                    border: "1px solid " + (on ? "rgba(99,102,241,.3)" : "var(--line)"),
+                    cursor: "pointer",
+                    transition: "all 0.15s",
+                  }}
+                >
+                  {label}
+                  {pip && !on && (
+                    <span style={{
+                      position: "absolute", top: -4, right: -4,
+                      width: 15, height: 15, borderRadius: 8,
+                      background: "rgba(255,107,107,.9)", color: "#fff",
+                      fontSize: 8, fontWeight: 700,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>!</span>
+                  )}
+                </button>
+              );
+            })}
           </div>
 
           {/* ── KPI grid for current tab ── */}
@@ -1584,19 +1613,22 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
             <BacktestNarrationCard btResult={btResult} running={running} />
           </div>
 
-          {/* ── NAV / 资产净值 ── */}
+          {/* ── NAV / 资产净值 ── spec: padding 14px 14px 10px, title 12px semibold, alpha chip 9px, fullscreen btn indigo */}
           {navData.length >= 2 && (
             <div
-              className="mx-4 mb-4 rounded-xl p-3"
-              style={{ background: "var(--bg-1)", border: "1px solid var(--line)" }}
+              className="mx-4 mb-4 rounded-xl"
+              style={{ background: "var(--bg-1)", border: "1px solid var(--line)", padding: "14px 14px 10px" }}
             >
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between" style={{ marginBottom: 8 }}>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-[12px] font-semibold" style={{ color: "var(--fg-0)" }}>{t("资产净值")}</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: "var(--fg-0)" }}>{t("资产净值")}</span>
                   {m?.alpha != null && (
                     <span
-                      className="text-[9px] px-1.5 py-0.5 rounded-full border"
-                      style={{ background: "rgba(30,211,149,.1)", borderColor: "rgba(30,211,149,.3)", color: "var(--up)" }}
+                      style={{
+                        fontSize: 9, padding: "2px 6px", borderRadius: 999,
+                        border: "1px solid rgba(30,211,149,.3)",
+                        background: "rgba(30,211,149,.1)", color: "var(--up)",
+                      }}
                     >
                       α {m.alpha >= 0 ? "+" : ""}{m.alpha.toFixed(1)}pp
                     </span>
@@ -1604,8 +1636,12 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
                 </div>
                 <button
                   onClick={() => setMNavFs(true)}
-                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] active:scale-95 transition"
-                  style={{ background: "rgba(99,102,241,.12)", border: "1px solid rgba(99,102,241,.3)", color: "var(--indigo-2)" }}
+                  className="flex items-center gap-1 active:scale-95 transition"
+                  style={{
+                    padding: "4px 9px", borderRadius: 7, fontSize: 10,
+                    background: "rgba(99,102,241,.12)", border: "1px solid rgba(99,102,241,.3)",
+                    color: "var(--indigo-2)", fontWeight: 600,
+                  }}
                 >
                   <Maximize2 size={11} />{t("全屏")}
                 </button>
@@ -1644,26 +1680,29 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
             </div>
           )}
 
-          {/* ── 板块分布 (from riskAttribution) ── */}
+          {/* ── 板块分布 (from riskAttribution) ── spec: mb-2 panel, mb:10px per bar row, label fontSize:12, mb:5 between label+bar */}
           {sectorBreakdown.length > 0 && (
             <div
-              className="mx-4 mb-4 rounded-xl p-3"
-              style={{ background: "var(--bg-1)", border: "1px solid var(--line)" }}
+              className="mx-4 rounded-xl"
+              style={{ background: "var(--bg-1)", border: "1px solid var(--line)", padding: "14px 16px", marginBottom: 8 }}
             >
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-[12px] font-semibold" style={{ color: "var(--fg-0)" }}>{t("板块分布")}</span>
+              <div className="flex items-center justify-between" style={{ marginBottom: 12 }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--fg-0)" }}>{t("板块分布")}</span>
                 {btResult?.riskAttribution?.hhi > 0.35 && (
                   <span
-                    className="text-[9px] px-1.5 py-0.5 rounded-full border"
-                    style={{ background: "rgba(245,181,60,.1)", borderColor: "rgba(245,181,60,.3)", color: "var(--warn)" }}
+                    style={{
+                      fontSize: 9, padding: "2px 6px", borderRadius: 999,
+                      border: "1px solid rgba(245,181,60,.3)",
+                      background: "rgba(245,181,60,.1)", color: "var(--warn)",
+                    }}
                   >
                     {t("集中度偏高")}
                   </span>
                 )}
               </div>
               {sectorBreakdown.slice(0, 4).map(({ sector, weight }, idx) => (
-                <div key={sector} className="mb-2.5">
-                  <div className="flex justify-between text-[11px] mb-1">
+                <div key={sector} style={{ marginBottom: 10 }}>
+                  <div className="flex justify-between" style={{ fontSize: 12, marginBottom: 5 }}>
                     <span className="flex items-center gap-1.5" style={{ color: "var(--fg-1)" }}>
                       <span style={{ width: 8, height: 8, borderRadius: 2, background: SECTOR_COLORS[idx % SECTOR_COLORS.length], display: "inline-block" }} />
                       {sector}
@@ -1708,11 +1747,13 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
           )}
         </div>
 
-        {/* ── Bottom Action Bar ── */}
+        {/* ── Bottom Action Bar ── spec: padding 10px 14px + safe-area, gap:9, blur backdrop */}
         <div
-          className="shrink-0 flex gap-2.5 px-4 pt-2.5"
+          className="shrink-0 flex"
           style={{
-            paddingBottom: "calc(12px + env(safe-area-inset-bottom))",
+            gap: 9,
+            padding: "10px 14px",
+            paddingBottom: "calc(10px + env(safe-area-inset-bottom))",
             background: "linear-gradient(180deg, rgba(8,9,14,.4), rgba(8,9,14,.96) 40%)",
             backdropFilter: "blur(14px)",
             borderTop: "1px solid var(--line)",

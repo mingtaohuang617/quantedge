@@ -574,7 +574,7 @@ const Monitor = () => {
         <div className="flex-1 overflow-y-auto overscroll-contain">
           {/* ── 顶部 pull-to-refresh 提示 ── */}
           <div style={{ textAlign: "center", padding: "8px 0 4px", fontSize: 10, color: "var(--fg-3)", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-            <RefreshCw size={11} style={{ color: "var(--fg-3)" }} />
+            <RefreshCw size={11} className="animate-pulse" style={{ color: "var(--fg-3)" }} />
             {t("下拉刷新")} · {t("刚刚更新")}
           </div>
 
