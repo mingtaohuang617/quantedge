@@ -1518,6 +1518,20 @@ export default function Screener10x() {
               </button>
             )}
 
+            {/* v7 紧凑漏斗 — 真实计数（对齐设计稿 SECTION 05 漏斗头条：赛道 → 条件后 → AI 审）*/}
+            <div className="hidden lg:flex items-center gap-1.5 text-[9px] font-mono">
+              {[
+                ['赛道', candidates.length, 'text-[#a0aec0]'],
+                ['条件后', filteredCandidates.length, 'text-indigo-300'],
+                Object.keys(aiRanking).length > 0 ? ['AI审', Object.keys(aiRanking).length, 'text-violet-300'] : null,
+              ].filter(Boolean).map(([label, n, c], i, arr) => (
+                <span key={label} className="flex items-center gap-1.5">
+                  <span className={c}><span className="font-bold">{n}</span> <span className="text-[#7a8497]">{label}</span></span>
+                  {i < arr.length - 1 && <span className="text-[#5a6477]">›</span>}
+                </span>
+              ))}
+            </div>
+
             <div className="flex-1" />
 
             {/* 搜索 */}
