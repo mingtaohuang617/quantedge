@@ -839,22 +839,22 @@ export default function Screener10x() {
               </div>
             )}
             {/* 锚→当→目标轨迹 */}
-            <div className="rounded-2xl p-4 mb-4" style={{ background: "rgba(255,255,255,.022)", border: "1px solid var(--line)" }}>
-              <div className="text-[11px] mb-3 font-medium" style={{ color: "var(--fg-3)" }}>锚 → 当 → 目标 轨迹</div>
+            <div style={{ borderRadius: 14, padding: 16, marginBottom: 16, background: "rgba(255,255,255,.022)", border: "1px solid var(--line)" }}>
+              <div style={{ fontSize: 11, marginBottom: 12, fontWeight: 500, color: "var(--fg-3)" }}>锚 → 当 → 目标 轨迹</div>
               {hasTrack ? (
                 <>
-                  <div className="relative h-[6px] rounded-full mb-2" style={{ background: "rgba(255,255,255,.06)" }}>
-                    <div className="absolute left-0 top-0 bottom-0 rounded-full" style={{ width: `${pct}%`, background: "linear-gradient(90deg, var(--indigo), var(--up))" }} />
-                    <div className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full" style={{ left: `${pct}%`, marginLeft: -7, background: "#fff", boxShadow: "0 0 0 2.5px var(--up)" }} />
+                  <div className="relative" style={{ height: 5, borderRadius: 3, background: "rgba(255,255,255,.06)", marginBottom: 8 }}>
+                    <div className="absolute left-0 top-0 bottom-0" style={{ width: `${pct}%`, borderRadius: 3, background: "linear-gradient(90deg, var(--indigo), var(--up))" }} />
+                    <div className="absolute" style={{ left: `${pct}%`, top: -4, width: 13, height: 13, borderRadius: 7, background: "#fff", marginLeft: -6, boxShadow: "0 0 0 2px var(--up)" }} />
                   </div>
-                  <div className="flex justify-between text-[11px] font-mono">
+                  <div className="flex justify-between font-mono" style={{ fontSize: 10 }}>
                     <span style={{ color: "var(--fg-3)" }}>锚 ${anchor.toFixed(2)}</span>
                     <span style={{ color: "var(--up)", fontWeight: 600 }}>当 ${now.toFixed(2)}</span>
                     <span style={{ color: "var(--indigo-2)" }}>目标 ${target.toFixed(2)}{upside ? ` · ${upside}x` : ""}</span>
                   </div>
                 </>
               ) : (
-                <div className="text-[12px]" style={{ color: "var(--fg-3)" }}>
+                <div style={{ fontSize: 12, color: "var(--fg-3)" }}>
                   {anchor != null ? `锚点 $${anchor}` : "无锚点"}
                   {target != null ? ` · 目标 $${target}` : " · 无目标价"}
                   {now == null && " · 价格加载中"}
@@ -899,8 +899,8 @@ export default function Screener10x() {
         <div className="flex-1 overflow-y-auto overscroll-contain">
 
           {/* 顶栏：标题 + AI 狩猎 + 筛选按钮 */}
-          <div className="px-4 pt-3 pb-2 flex items-center gap-2">
-            <h1 className="text-[22px] font-bold flex-1" style={{ color: "var(--fg-0)" }}>
+          <div className="flex items-center gap-[10px] shrink-0" style={{ height: 46, padding: "0 14px", borderBottom: "1px solid var(--line)", background: "rgba(13,15,22,.6)" }}>
+            <h1 className="flex-1 text-[16px] font-bold" style={{ color: "var(--fg-0)" }}>
               {t("10x 猎手")}
             </h1>
             {isDemoMode && (
@@ -909,12 +909,12 @@ export default function Screener10x() {
             <button
               onClick={handleAiPipeline}
               disabled={aiPipelineState.loading || isDemoMode || selectedTrends.length === 0 || candidates.length === 0}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-semibold active:scale-95 transition disabled:opacity-40"
-              style={{ background: "rgba(139,92,246,.14)", color: "#C4B5FD", border: "1px solid rgba(139,92,246,.3)" }}
+              className="inline-flex items-center gap-[5px] active:scale-95 transition disabled:opacity-40"
+              style={{ padding: "6px 11px", borderRadius: 9, background: "rgba(139,92,246,.14)", color: "#C4B5FD", border: "1px solid rgba(139,92,246,.3)", fontSize: 11, fontWeight: 600 }}
             >
               {aiPipelineState.loading
-                ? <><Loader size={12} className="animate-spin" />{aiPipelineState.matched}/{aiPipelineState.total}</>
-                : <><Sparkles size={12} />{t("AI 狩猎")}</>}
+                ? <><Loader size={13} className="animate-spin" />{aiPipelineState.matched}/{aiPipelineState.total}</>
+                : <><Sparkles size={13} />{t("AI 狩猎")}</>}
             </button>
             <button
               onClick={() => setMFilterOpen(true)}
@@ -934,18 +934,16 @@ export default function Screener10x() {
           </div>
 
           {/* 成长型 / 价值型 大开关 */}
-          <div className="px-4 mb-3">
-            <div className="flex gap-1.5 p-1 rounded-xl" style={{ background: "rgba(255,255,255,.04)", border: "1px solid var(--line)" }}>
+          <div style={{ padding: "12px 16px 6px" }}>
+            <div className="flex" style={{ gap: 6, background: "rgba(255,255,255,.04)", padding: 3, borderRadius: 11 }}>
               {[["growth", t("成长猎手")], ["value", t("价值猎手")]].map(([key, label]) => {
                 const on = activeStrategy === key;
                 return (
                   <button
                     key={key}
                     onClick={() => handleStrategySwitch(key)}
-                    className="flex-1 py-2.5 rounded-[9px] text-[13px] font-semibold transition active:scale-[0.98]"
-                    style={on
-                      ? { background: "linear-gradient(180deg, var(--indigo-2), var(--indigo))", color: "#fff" }
-                      : { color: "var(--fg-2)" }}
+                    className="flex-1 text-center transition active:scale-[0.98]"
+                    style={{ padding: "9px 0", borderRadius: 9, fontSize: 13, fontWeight: on ? 600 : 500, background: on ? "linear-gradient(180deg, var(--indigo-2), var(--indigo))" : "transparent", color: on ? "#fff" : "var(--fg-2)" }}
                   >
                     {label}
                   </button>
@@ -955,43 +953,41 @@ export default function Screener10x() {
           </div>
 
           {/* ── 漏斗可视化 ── */}
-          <div className="px-4 mb-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--fg-3)" }}>{t("狩猎漏斗")}</span>
+          <div style={{ padding: "10px 16px 6px" }}>
+            <div className="flex items-center justify-between" style={{ marginBottom: 10 }}>
+              <span className="t-cap" style={{ fontSize: 9 }}>{t("狩猎漏斗")}</span>
               <button
                 onClick={() => setMFunnelFs(true)}
-                className="flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg active:scale-95 transition"
-                style={{ color: "var(--fg-3)", background: "rgba(255,255,255,.04)", border: "1px solid var(--line)" }}
+                className="flex items-center gap-1 active:scale-95 transition"
+                style={{ fontSize: 11, padding: "4px 8px", borderRadius: 7, color: "var(--fg-3)", background: "rgba(255,255,255,.04)", border: "1px solid var(--line)" }}
               >
                 <Maximize2 size={11} />{t("全景")}
               </button>
             </div>
-            <div className="space-y-2">
-              {funnelStages.map((stage, i) => (
-                <div key={stage.label} className="flex items-center gap-3">
-                  <span className="text-[10px] w-14 text-right shrink-0" style={{ color: "var(--fg-3)" }}>{stage.label}</span>
-                  <div className="flex-1 h-7 rounded-lg relative overflow-hidden" style={{ background: "rgba(255,255,255,.03)" }}>
-                    <div
-                      className="absolute left-0 top-0 bottom-0 rounded-lg flex items-center justify-end pr-2.5"
-                      style={{ width: `${stage.widthPct}%`, background: `linear-gradient(90deg, ${stage.color}33, ${stage.color}cc)` }}
-                    >
-                      <span className="font-mono text-[12px] font-bold text-white">
-                        {typeof stage.value === "number" && stage.value > 0 ? stage.value.toLocaleString() : (i === 0 ? "—" : stage.value)}
-                      </span>
-                    </div>
+            {funnelStages.map((stage, i) => (
+              <div key={stage.label} className="flex items-center" style={{ gap: 12, marginBottom: 7 }}>
+                <span className="t-cap text-right shrink-0" style={{ fontSize: 8.5, width: 54 }}>{stage.label}</span>
+                <div className="flex-1 relative overflow-hidden" style={{ height: 26, borderRadius: 6, background: "rgba(255,255,255,.03)" }}>
+                  <div
+                    className="absolute left-0 top-0 bottom-0 flex items-center justify-end"
+                    style={{ width: `${stage.widthPct}%`, borderRadius: 6, paddingRight: 9, background: `linear-gradient(90deg, ${stage.color}33, ${stage.color}cc)` }}
+                  >
+                    <span className="font-mono font-bold text-white" style={{ fontSize: 11 }}>
+                      {typeof stage.value === "number" && stage.value > 0 ? stage.value.toLocaleString() : (i === 0 ? "—" : stage.value)}
+                    </span>
                   </div>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
 
           {/* ── 观察名单·轨迹卡 ── */}
-          <div className="px-4 mb-2">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--fg-3)" }}>
+          <div style={{ padding: "10px 16px" }}>
+            <div className="flex items-center justify-between" style={{ marginBottom: 10 }}>
+              <span className="t-cap" style={{ fontSize: 9 }}>
                 {t("观察名单")} · {t("锚→当→目标")}
               </span>
-              <span className="text-[11px]" style={{ color: "var(--fg-3)" }}>{items.length} {t("只")}</span>
+              <span className="t-cap" style={{ fontSize: 9 }}>{items.length} {t("只")}</span>
             </div>
 
             {items.length === 0 && (
@@ -1012,43 +1008,43 @@ export default function Screener10x() {
                 <button
                   key={it.ticker}
                   onClick={() => setMDetailItem(it)}
-                  className="w-full text-left rounded-2xl p-4 mb-3 active:scale-[0.99] transition"
-                  style={{ background: "rgba(255,255,255,.022)", border: "1px solid var(--line)" }}
+                  className="w-full text-left active:scale-[0.99] transition"
+                  style={{ padding: "14px 16px", borderRadius: 14, background: "rgba(255,255,255,.022)", border: "1px solid var(--line)", marginBottom: 10, display: "block" }}
                 >
                   {/* header */}
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-mono text-[15px] font-bold" style={{ color: "var(--fg-0)" }}>{it.ticker}</span>
-                    <span className="text-[12px] truncate flex-1" style={{ color: "var(--fg-3)" }}>{it.name || ""}</span>
+                  <div className="flex items-center" style={{ gap: 8, marginBottom: 4 }}>
+                    <span className="font-mono font-bold" style={{ fontSize: 15, color: "var(--fg-0)" }}>{it.ticker}</span>
+                    <span className="truncate flex-1" style={{ fontSize: 11, color: "var(--fg-3)" }}>{it.name || ""}</span>
                     {aiConf != null && (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold shrink-0" style={{ background: "rgba(139,92,246,.18)", color: "#C4B5FD", border: "1px solid rgba(139,92,246,.25)" }}>
+                      <span className="font-semibold shrink-0" style={{ fontSize: 9.5, padding: "2px 8px", borderRadius: 999, background: "rgba(139,92,246,.18)", color: "#C4B5FD", border: "1px solid rgba(139,92,246,.25)" }}>
                         {t("信心")} {Math.round(aiConf * 100)}
                       </span>
                     )}
                     {aiConf == null && aiPipelineState.matched > 0 && (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold shrink-0" style={{ background: "rgba(255,255,255,.05)", color: "var(--fg-3)", border: "1px solid var(--line)" }}>
+                      <span className="font-semibold shrink-0" style={{ fontSize: 9.5, padding: "2px 8px", borderRadius: 999, background: "rgba(255,255,255,.05)", color: "var(--fg-3)", border: "1px solid var(--line)" }}>
                         {t("信心")} —
                       </span>
                     )}
                   </div>
                   {/* catalyst */}
                   {it.thesis && (
-                    <p className="text-[12px] mb-3 line-clamp-2" style={{ color: "var(--fg-2)" }}>{it.thesis}</p>
+                    <p className="line-clamp-2" style={{ fontSize: 12, color: "var(--fg-2)", marginBottom: 12 }}>{it.thesis}</p>
                   )}
                   {/* track */}
                   {hasTrack ? (
                     <>
-                      <div className="relative h-[5px] rounded-full mb-2" style={{ background: "rgba(255,255,255,.06)" }}>
-                        <div className="absolute left-0 top-0 bottom-0 rounded-full" style={{ width: `${pct}%`, background: "linear-gradient(90deg, var(--indigo), var(--up))" }} />
-                        <div className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full" style={{ left: `${pct}%`, marginLeft: -6, background: "#fff", boxShadow: "0 0 0 2px var(--up)" }} />
+                      <div className="relative" style={{ height: 5, borderRadius: 3, background: "rgba(255,255,255,.06)", marginBottom: 8 }}>
+                        <div className="absolute left-0 top-0 bottom-0" style={{ width: `${pct}%`, borderRadius: 3, background: "linear-gradient(90deg, var(--indigo), var(--up))" }} />
+                        <div className="absolute" style={{ left: `${pct}%`, top: -4, width: 13, height: 13, borderRadius: 7, background: "#fff", marginLeft: -6, boxShadow: "0 0 0 2px var(--up)" }} />
                       </div>
-                      <div className="flex justify-between text-[10px] font-mono">
+                      <div className="flex justify-between font-mono" style={{ fontSize: 10 }}>
                         <span style={{ color: "var(--fg-3)" }}>锚 ${anchor.toFixed(2)}</span>
                         <span style={{ color: "var(--up)", fontWeight: 600 }}>当 ${now.toFixed(2)}</span>
                         <span style={{ color: "var(--indigo-2)" }}>目标 ${target.toFixed(2)}{upside ? ` · ${upside}x` : ""}</span>
                       </div>
                     </>
                   ) : (
-                    <div className="text-[11px]" style={{ color: "var(--fg-3)" }}>
+                    <div style={{ fontSize: 11, color: "var(--fg-3)" }}>
                       {anchor != null ? `锚 $${anchor}` : "无锚点"}
                       {target != null ? ` → 目标 $${target}` : ""}
                     </div>
@@ -1060,7 +1056,7 @@ export default function Screener10x() {
             {/* 候选快速加观察入口（漏斗"匹配赛道"层有结果时展示 top 5） */}
             {filteredCandidates.length > 0 && (
               <div className="mt-2 mb-4">
-                <div className="text-[11px] mb-2 font-semibold uppercase tracking-wider" style={{ color: "var(--fg-3)" }}>
+                <div className="t-cap" style={{ fontSize: 9, marginBottom: 8 }}>
                   {t("候选快速加入")} · {t("匹配赛道")} {filteredCandidates.length}
                 </div>
                 {filteredCandidates.slice(0, 5).map((c) => (
@@ -1097,6 +1093,7 @@ export default function Screener10x() {
               </div>
             )}
           </div>
+          <div className="homebar" />
         </div>{/* end scroll */}
 
         {/* ── 筛选 BottomSheet ── */}
@@ -1215,7 +1212,7 @@ export default function Screener10x() {
         <FullscreenChart
           open={mFunnelFs}
           onClose={() => setMFunnelFs(false)}
-          title={t("成长猎手 · 狩猎漏斗")}
+          title={`${STRATEGY_LABEL[activeStrategy] || t("成长猎手")} · ${t("狩猎漏斗")}`}
           meta={<span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: "rgba(139,92,246,.18)", color: "#C4B5FD", border: "1px solid rgba(139,92,246,.3)" }}>AI Pipeline</span>}
           footerNote={items.length > 0 ? `观察名单：${items.map(it => it.ticker).join(" · ")}` : undefined}
         >
@@ -1229,22 +1226,21 @@ export default function Screener10x() {
                     <div
                       className="w-full rounded-xl flex flex-col items-center justify-center"
                       style={{
-                        height: `${stage.widthPct * 1.5}%`,
-                        minHeight: 40,
-                        maxHeight: "90%",
+                        height: `${stage.widthPct * 1.6}px`,
+                        minHeight: 30,
                         background: `linear-gradient(180deg, ${stage.color}cc, ${stage.color}44)`,
                         boxShadow: `0 8px 24px -8px ${stage.color}`,
                       }}
                     >
-                      <span className="font-mono text-[16px] font-bold text-white">
+                      <span className="font-mono font-bold text-white" style={{ fontSize: 18 }}>
                         {typeof stage.value === "number" && stage.value > 0 ? stage.value.toLocaleString() : "—"}
                       </span>
-                      <span className="text-[9px] text-white/80 mt-0.5">{stage.label}</span>
+                      <span className="text-white/80" style={{ fontSize: 9 }}>{stage.label}</span>
                     </div>
-                    <span className="text-[9px] mt-1.5 text-center" style={{ color: "var(--fg-3)" }}>{stage.sub}</span>
+                    <span className="t-cap text-center" style={{ fontSize: 8, marginTop: 8 }}>{stage.sub}</span>
                   </div>
                   {i < funnelStages.length - 1 && (
-                    <ArrowRight size={14} style={{ color: "var(--fg-4)", marginBottom: "20%" }} />
+                    <ChevronRight size={20} style={{ color: "var(--fg-4)", marginBottom: "20%", flexShrink: 0 }} />
                   )}
                 </React.Fragment>
               ))}

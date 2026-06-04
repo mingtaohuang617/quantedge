@@ -638,12 +638,20 @@ ${angleQuestion}
       <div className="h-full flex flex-col" style={{ background: "var(--bg-0)" }}>
 
         {/* ── 主列表滚动区 ── */}
-        <div className="flex-1 overflow-y-auto overscroll-contain" style={{ paddingBottom: "calc(74px + env(safe-area-inset-bottom))" }}>
+        <div className="flex-1 overflow-y-auto overscroll-contain" style={{ paddingBottom: 10 }}>
 
           {/* 顶部 AppBar */}
           <div className="px-4 pt-3 pb-1 flex items-center justify-between">
             <h1 className="text-[22px] font-bold" style={{ color: "var(--fg-0)" }}>{t("投资日志")}</h1>
             <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowAddTx(true)}
+                aria-label={t("录入交易")}
+                className="w-9 h-9 rounded-xl border flex items-center justify-center active:scale-95 transition"
+                style={{ borderColor: "var(--line)", background: "rgba(255,255,255,.03)", color: "var(--fg-1)" }}
+              >
+                <Briefcase size={15} />
+              </button>
               <button
                 onClick={() => setShowMonthlyReview(true)}
                 className="flex items-center gap-1.5 px-3 h-9 rounded-xl border text-[12px] font-medium active:scale-95 transition"
@@ -767,30 +775,33 @@ ${angleQuestion}
           </div>
         </div>
 
-        {/* ── 底部「记一笔」ThumbActionBar ── */}
-        <ThumbActionBar
-          sticky={false}
-          secondary={[
-            {
-              icon: <Bot size={19} />,
-              label: t("AI 复盘"),
-              onClick: () => { if (sel) setMAiOpen(true); },
-              disabled: !sel,
-            },
-            {
-              icon: <Briefcase size={19} />,
-              label: t("录入交易"),
-              onClick: () => setShowAddTx(true),
-            },
-            {
-              icon: <Mic size={19} style={{ color: "var(--indigo-2)" }} />,
-              label: t("语音"),
-              // 语音转文字暂无后端 — 打开「记一笔」sheet（UI 入口保留，与设计稿对齐）
-              onClick: () => setMAddOpen(true),
-            },
-          ]}
-          primary={{ icon: <PenLine size={17} />, label: t("记一笔"), onClick: () => setMAddOpen(true) }}
-        />
+        {/* ── 底部常驻「记一笔」速记条 ──
+            设计稿 signature：拇指热区输入 pill + 语音。作为 flex 子元素位于底栏之上
+            （不能用 fixed bottom-0，否则会被 MobileBottomNav 盖住）。AI 复盘走条目详情卡，
+            组合级复盘走顶栏「复盘」，录入交易走顶栏图标。 */}
+        <div
+          className="shrink-0 flex items-center gap-2.5 px-3.5 pt-2.5 border-t"
+          style={{ borderColor: "var(--line)", background: "linear-gradient(180deg, transparent, var(--bg-0) 45%)", backdropFilter: "blur(14px)", paddingBottom: 10 }}
+        >
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: "linear-gradient(135deg,rgba(139,92,246,.3),rgba(99,102,241,.15))", border: "1px solid rgba(139,92,246,.3)" }}>
+            <PenLine size={14} style={{ color: "#C4B5FD" }} />
+          </div>
+          <button
+            onClick={() => setMAddOpen(true)}
+            className="flex-1 h-[42px] rounded-full text-left px-4 text-[13px] active:scale-[0.99] transition"
+            style={{ background: "rgba(255,255,255,.05)", border: "1px solid var(--line-2)", color: "var(--fg-3)" }}
+          >
+            {t("记一笔想法…")}
+          </button>
+          <button
+            onClick={() => setMAddOpen(true)}
+            aria-label={t("语音速记")}
+            className="w-[42px] h-[42px] rounded-full flex items-center justify-center shrink-0 active:scale-95 transition"
+            style={{ background: "rgba(255,255,255,.05)", border: "1px solid var(--line-2)" }}
+          >
+            <Mic size={18} style={{ color: "var(--indigo-2)" }} />
+          </button>
+        </div>
 
         {/* ── 「记一笔」BottomSheet（复用桌面端 addEntry 表单字段 + handlers）── */}
         <BottomSheet
