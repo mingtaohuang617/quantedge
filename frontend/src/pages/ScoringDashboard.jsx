@@ -3280,7 +3280,7 @@ const ScoringDashboard = () => {
             </div>
             {/* K 线周期切换（每根 K 的跨度） —— 放大后直接改周期 */}
             <div className="flex items-center gap-0.5 bg-white/5 rounded-lg p-0.5 border border-white/8 overflow-x-auto max-w-full">
-              {[["5D", t("五日")], ["MONK", t("月线")], ["QUARK", t("季线")], ["YEARK", t("年线")]].map(([r, label]) => (
+              {[["5D", t("五日")], ["1Y", t("日线")], ["5Y", t("周线")], ["MONK", t("月线")], ["QUARK", t("季线")], ["YEARK", t("年线")]].map(([r, label]) => (
                 <button key={r} onClick={() => setChartRange(r)}
                   className={`px-2.5 py-0.5 rounded text-[11px] font-medium transition-all active:scale-95 shrink-0 ${chartRange === r ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20" : "text-[#a0aec0] hover:text-white"}`}
                 >{label}</button>
