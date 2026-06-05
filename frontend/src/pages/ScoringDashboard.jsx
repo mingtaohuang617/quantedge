@@ -3,7 +3,7 @@
 // 从 quant-platform.jsx 抽出（C1 重构第四步），通过 React.lazy 懒加载
 // ─────────────────────────────────────────────────────────────
 import React, { useState, useEffect, useMemo, useCallback, useRef, useContext } from "react";
-import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ComposedChart, ReferenceLine } from "recharts";
+import { LineChart, Line, AreaChart, Area, Bar, Brush, Customized, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ComposedChart, ReferenceLine } from "recharts";
 import { Activity, ArrowDownRight, ArrowUpRight, Briefcase, Calendar, Check, ChevronDown, ChevronRight, Clock, Database, Eye, Filter, GripVertical, Info, Layers, Loader, Maximize2, Minus, Plus, RefreshCw, Search, Settings, Star, Trash2, TrendingUp, X, Zap, ArrowLeftRight } from "lucide-react";
 import { searchTickers as standaloneSearch, fetchRangePrices, STOCK_CN_NAMES, STOCK_CN_DESCS } from "../standalone.js";
 import { Z_ELEVATED } from "../lib/zIndex.js";
@@ -93,6 +93,119 @@ function MPillar({ name, v, w, c, hl }) {
 // MA20 趋势均线只在「日线级别」区间有效（interval=1d）。其余区间画 20 点均线
 // 会偷换单位（分时/周/月），所以只在这几个区间显示，标注才诚实。
 const MA_RANGES = new Set(["1M", "6M", "YTD", "1Y"]);
+
+// ─── 图表技术指标注册表 ────────────────────────────────────
+// 周期均以「K 线根数」为单位（与 TradingView 等一致）：在不同区间下
+// 一根 K 的跨度不同（分时=5m、5Y=周、ALL=月），但 MA(N)=最近 N 根均值
+// 这一定义在任何区间都成立，所以 chip 标注直接用 MA20/EMA12 即可，诚实。
+// color 同时充当 chip 高亮色与折线色（chip 即图例）。
+const INDICATORS = [
+  { key: "ma5",   type: "sma", period: 5,  color: "#22d3ee", label: "MA5" },
+  { key: "ma10",  type: "sma", period: 10, color: "#a78bfa", label: "MA10" },
+  { key: "ma20",  type: "sma", period: 20, color: "#F5B53C", label: "MA20", dash: "5 4" },
+  { key: "ma60",  type: "sma", period: 60, color: "#fb7185", label: "MA60" },
+  { key: "ema12", type: "ema", period: 12, color: "#34d399", label: "EMA12" },
+  { key: "ema26", type: "ema", period: 26, color: "#f472b6", label: "EMA26" },
+];
+
+// 简单移动平均：把 key 写到对应数据点上（前 period-1 根无值，连线自动跳过）
+function withSMA(data, period, key) {
+  if (!Array.isArray(data) || data.length < period) return data;
+  const out = data.slice();
+  for (let i = period - 1; i < out.length; i++) {
+    let sum = 0, ok = true;
+    for (let k = i - period + 1; k <= i; k++) {
+      const v = out[k].p;
+      if (!(v > 0)) { ok = false; break; }
+      sum += v;
+    }
+    if (ok) out[i] = { ...out[i], [key]: +(sum / period).toFixed(2) };
+  }
+  return out;
+}
+
+// 指数移动平均：用前 period 根的 SMA 作种子，再按 k=2/(period+1) 递推
+function withEMA(data, period, key) {
+  if (!Array.isArray(data) || data.length < period) return data;
+  const out = data.slice();
+  let seed = 0;
+  for (let i = 0; i < period; i++) {
+    const v = out[i].p;
+    if (!(v > 0)) return out; // 头部含异常价 → 放弃该指标，避免污染递推
+    seed += v;
+  }
+  let ema = seed / period;
+  out[period - 1] = { ...out[period - 1], [key]: +ema.toFixed(2) };
+  const k = 2 / (period + 1);
+  for (let i = period; i < out.length; i++) {
+    ema = out[i].p * k + ema * (1 - k);
+    out[i] = { ...out[i], [key]: +ema.toFixed(2) };
+  }
+  return out;
+}
+
+// 蜡烛图自定义 shape：Bar 的 dataKey 取 [low, high] → recharts 给出 y(=high 像素)
+// 与 height(=high→low 像素跨度)，据此把开/收实体、上下影线画在价格坐标系里。
+function CandleShape(props) {
+  const { x, width, y, height, payload } = props;
+  if (!payload) return null;
+  const o = payload.o, h = payload.h, l = payload.l, c = payload.p;
+  if (![o, h, l, c].every(Number.isFinite)) return null;
+  const up = c >= o;
+  const color = up ? "#1ED395" : "#FF6B6B";
+  const cx = x + width / 2;
+  // 实体宽度：留 30% 间隙，最细 1px
+  const bw = Math.max(1, Math.min(width - 1, width * 0.7));
+  const bx = cx - bw / 2;
+  if (!(h > l)) {
+    // 高=低（单点/异常）→ 退化成一条收盘横线
+    return <line x1={bx} y1={y} x2={bx + bw} y2={y} stroke={color} strokeWidth={1} />;
+  }
+  const ratio = height / (h - l);          // 每价格单位对应的像素
+  const yOpen = y + (h - o) * ratio;
+  const yClose = y + (h - c) * ratio;
+  const bodyTop = Math.min(yOpen, yClose);
+  const bodyH = Math.max(1, Math.abs(yClose - yOpen));
+  return (
+    <g>
+      {/* 上下影线（high → low） */}
+      <line x1={cx} y1={y} x2={cx} y2={y + height} stroke={color} strokeWidth={1} />
+      {/* 实体：涨实心、跌实心（同色填充，简洁） */}
+      <rect x={bx} y={bodyTop} width={bw} height={bodyH} fill={color} stroke={color} strokeWidth={0.5} rx={0.5} />
+    </g>
+  );
+}
+
+// 成交量副图：用 <Customized> 直接画，绕开 recharts「次坐标轴 Bar 不渲染」的坑。
+// 借用主图的 x 轴 scale + plot offset，把量柱画在 plot 底部 ~26%，并跟随 Brush 缩放
+// （缩放后 scale 只映射可见区间，区间外的点 scale 返回 undefined → 自动跳过）。
+function VolumeLayer(props) {
+  const { xAxisMap, offset, clipPathId, data, volMax } = props;
+  if (!offset || !xAxisMap || !(volMax > 0) || !Array.isArray(data)) return null;
+  const xAxis = xAxisMap[Object.keys(xAxisMap)[0]];
+  const scale = xAxis && xAxis.scale;
+  if (!scale) return null;
+  const hasBand = typeof scale.bandwidth === "function";
+  const band = hasBand ? scale.bandwidth() : 0;
+  const baseY = offset.top + offset.height;
+  const volH = offset.height * 0.26;                 // 量柱占 plot 底部 26%
+  const bw = Math.max(1, (band || offset.width / Math.max(1, data.length)) * 0.6);
+  const bars = [];
+  for (let i = 0; i < data.length; i++) {
+    const d = data[i];
+    if (!(d.v > 0)) continue;
+    const xv = scale(d.m);
+    if (xv == null || isNaN(xv)) continue;            // 缩放区间外 → 跳过
+    const cx = xv + (hasBand ? band / 2 : 0);
+    const h = Math.max(0.5, (d.v / volMax) * volH);
+    const up = d.o != null ? d.p >= d.o : true;
+    bars.push(
+      <rect key={i} x={cx - bw / 2} y={baseY - h} width={bw} height={h}
+        fill={up ? "rgba(30,211,149,0.42)" : "rgba(255,107,107,0.42)"} />
+    );
+  }
+  return <g clipPath={clipPathId ? `url(#${clipPathId})` : undefined}>{bars}</g>;
+}
 
 // ─── 市场交易时段判定 ───────────────────────────────────
 // 返回 { usOpen, usPre, usPost, hkOpen, cnOpen, krOpen }，仅判断时段（不含节假日）
@@ -307,6 +420,15 @@ const ScoringDashboard = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [weights]);
   const [chartRange, setChartRange] = useState("YTD"); // 1D|5D|1M|6M|YTD|1Y|5Y|ALL
+  // 放大后的 K 线大图默认就是蜡烛；收起态的内联总览图永远只画面积线（见下方内联图）
+  const [chartType, setChartType] = useState("candle"); // 'area' | 'candle'（仅作用于放大弹窗）
+  // 默认点亮 MA20，复刻改造前桌面图的金色均线观感
+  const [activeInd, setActiveInd] = useState(() => new Set(["ma20"]));
+  const toggleInd = (key) => setActiveInd((prev) => {
+    const n = new Set(prev);
+    n.has(key) ? n.delete(key) : n.add(key);
+    return n;
+  });
   const [loading, setLoading] = useState(false);
   const [mobileShowDetail, setMobileShowDetail] = useState(false); // mobile: toggle list vs detail
   const isMobile = useIsMobile();
@@ -516,8 +638,12 @@ const ScoringDashboard = () => {
   // 按需加载图表数据：选中股票或切换 chartRange 时，缺失对应维度则拉取
   useEffect(() => {
     if (!sel || !sel.ticker) return;
-    const hasCurRange = sel.priceRanges && sel.priceRanges[chartRange] && sel.priceRanges[chartRange].length >= 2;
-    if (hasCurRange) return;
+    const cur = sel.priceRanges && sel.priceRanges[chartRange];
+    const hasCurRange = cur && cur.length >= 2;
+    // 候选股初始 bundled 数据只含收盘价；放大弹窗（仅桌面）开 K 线时才重拉一次带 OHLC+成交量的数据
+    const rangeHasOHLC = hasCurRange && cur.some(d => d.h != null && d.l != null && d.h > d.l);
+    const needOHLCUpgrade = !isMobile && chartFullscreen && chartType === "candle" && hasCurRange && !rangeHasOHLC;
+    if (hasCurRange && !needOHLCUpgrade) return;
     let cancelled = false;
     (async () => {
       try {
@@ -552,7 +678,7 @@ const ScoringDashboard = () => {
       } catch { /* 静默失败 */ }
     })();
     return () => { cancelled = true; };
-  }, [sel?.ticker, chartRange]);
+  }, [sel?.ticker, chartRange, chartType, chartFullscreen, isMobile]);
 
   // Right-click context menu
   const [ctxMenu, setCtxMenu] = useState(null); // { x, y, ticker, name }
@@ -780,6 +906,67 @@ const ScoringDashboard = () => {
     const gap = ((last.p - last.ma20) / last.ma20) * 100;
     return { above, gap, ma: last.ma20, px: last.p };
   }, [chartDataWithBench, chartRange]);
+
+  // 当前点亮的指标（按注册表顺序，稳定）
+  const activeIndList = useMemo(
+    () => INDICATORS.filter((i) => activeInd.has(i.key)),
+    [activeInd]
+  );
+
+  // 桌面图最终数据：在 chartDataWithBench 基础上补 OHLC（hl 供蜡烛 Bar 定位）
+  // 并叠加用户点亮的 MA/EMA 序列。移动端图表仍直接用 chartDataWithBench，互不影响。
+  const chartSeries = useMemo(() => {
+    let base = chartDataWithBench.map((d) => {
+      const o = d.o ?? d.p, h = d.h ?? d.p, l = d.l ?? d.p;
+      // hl 夹住 o/h/l/收，保证影线与实体都落在 Bar 的 y 区间内
+      const lo = Math.min(l, o, h, d.p), hi = Math.max(l, o, h, d.p);
+      return { ...d, o, h, l, hl: [lo, hi] };
+    });
+    for (const ind of activeIndList) {
+      base = ind.type === "ema"
+        ? withEMA(base, ind.period, ind.key)
+        : withSMA(base, ind.period, ind.key);
+    }
+    return base;
+  }, [chartDataWithBench, activeIndList]);
+
+  // 当前区间是否真的拿到了 OHLC（旧缓存可能只有收盘价）→ 没有就别假装画 K 线
+  const hasOHLC = useMemo(
+    () => chartSeries.some((d) => d.h > d.l),
+    [chartSeries]
+  );
+  const showCandle = chartType === "candle" && hasOHLC;
+
+  // 放大弹窗专用：成交量副图 + 价格/百分比轴「上压」到顶部 ~62%，给底部成交量柱腾位置。
+  // 单图实现 K 线平台：价格轴留底、成交量轴压顶，两者在同一 ComposedChart 里叠放不打架。
+  const volMax = useMemo(
+    () => chartSeries.reduce((m, d) => Math.max(m, d.v || 0), 0),
+    [chartSeries]
+  );
+  const hasVolume = volMax > 0;
+  // 价格轴上压域：数据落在顶部 ~62%，底部 ~34% 留给成交量
+  const priceDomainTop = useMemo(() => {
+    const lows = [], highs = [];
+    for (const d of chartSeries) {
+      const l = d.l ?? d.p, h = d.h ?? d.p;
+      if (l > 0) lows.push(l);
+      if (h > 0) highs.push(h);
+    }
+    if (!lows.length) return ["auto", "auto"];
+    const lo = Math.min(...lows), hi = Math.max(...highs), span = hi - lo || hi * 0.1 || 1;
+    return [Math.max(0, lo - span * 0.55), hi + span * 0.05];
+  }, [chartSeries]);
+  // 百分比轴（基准对比线）同样上压，保证与价格在同一顶部区域对齐
+  const pctDomainTop = useMemo(() => {
+    const arr = [];
+    for (const d of chartSeries) {
+      if (d.pct != null) arr.push(d.pct);
+      if (d.bpct != null) arr.push(d.bpct);
+    }
+    if (!arr.length) return ["auto", "auto"];
+    const lo = Math.min(...arr), hi = Math.max(...arr), span = hi - lo || 1;
+    return [lo - span * 0.55, hi + span * 0.05];
+  }, [chartSeries]);
 
   // 自己测量图表容器尺寸，避免 ResponsiveContainer 在 StrictMode 下的初次挂载 bug
   const [chartContainerRef, chartSize] = useContainerSize();
@@ -2068,7 +2255,18 @@ const ScoringDashboard = () => {
                   )}
                 </div>
               )}
-              <div ref={chartContainerRef} className="h-36 chart-glow relative">
+              <div
+                ref={chartContainerRef}
+                onClick={() => { if (chartData.length >= 2) setChartFullscreen(true); }}
+                title={t("点击放大 · K线 / 成交量 / 指标")}
+                className={`h-36 chart-glow relative group ${chartData.length >= 2 ? "cursor-pointer" : ""}`}
+              >
+                {/* 悬停提示：整块可点击放大成 K 线大图 */}
+                {chartData.length >= 2 && (
+                  <div className="absolute top-1 right-1 z-20 flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-black/45 border border-white/10 text-[9px] font-medium text-white/80 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                    <Maximize2 size={9} /> {t("点击看 K 线")}
+                  </div>
+                )}
                 {chartData.length < 2 && (
                   loading ? (
                     /* C13: 加载中显示 skeleton shimmer */
@@ -2159,7 +2357,8 @@ const ScoringDashboard = () => {
                         );
                       }}
                     />
-                    {/* PDF2 抛光 4.4：1100ms 描边 + ease-out 让 K 线"画出来"而不是突然显形 */}
+                    {/* 收起态总览图：永远只画干净面积线（K线/指标在点击放大后的大图里）。
+                        PDF2 抛光 4.4：1100ms 描边 + ease-out 让线"画出来"而不是突然显形 */}
                     <Area yAxisId="price" type="monotone" dataKey="p" stroke={chartData.length >= 2 && chartData[chartData.length-1].p >= chartData[0].p ? "url(#strokeGrad)" : "#FF6B6B"} strokeWidth={2} fill="url(#pg)" dot={false} activeDot={{ r: 4, fill: "#fff", stroke: "#8A2BE2", strokeWidth: 2, filter: "drop-shadow(0 0 4px rgba(138,43,226,0.6))" }} animationDuration={1100} animationEasing="ease-out" />
                     {maSignal && <Line yAxisId="price" type="monotone" dataKey="ma20" stroke="#F5B53C" strokeWidth={1.5} strokeDasharray="5 4" dot={false} connectNulls activeDot={false} isAnimationActive={false} name="MA20" />}
                     <Line yAxisId="pct" type="monotone" dataKey="pct" stroke="transparent" dot={false} activeDot={false} isAnimationActive={false} />
@@ -2996,9 +3195,37 @@ const ScoringDashboard = () => {
               </button>
             </div>
           </div>
+          {/* 全屏图工具栏：与桌面主图同源（面积/K线 + MA/EMA） */}
+          <div className="flex items-center gap-2 mb-2 flex-wrap shrink-0">
+            <div className="flex items-center gap-0.5 bg-white/5 rounded-lg p-0.5 border border-white/8">
+              {[["area", t("面积")], ["candle", t("K线")]].map(([v, l]) => (
+                <button key={v} onClick={() => setChartType(v)}
+                  className={`px-2.5 py-0.5 rounded text-[11px] font-medium transition-all active:scale-95 ${chartType === v ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20" : "text-[#a0aec0] hover:text-white"}`}
+                >{l}</button>
+              ))}
+            </div>
+            <div className="flex items-center gap-1 flex-wrap">
+              <span className="text-[9px] uppercase tracking-wider text-[#667] mr-0.5">{t("指标")}</span>
+              {INDICATORS.map((ind) => {
+                const on = activeInd.has(ind.key);
+                return (
+                  <button key={ind.key} onClick={() => toggleInd(ind.key)} title={`${ind.label}（${ind.period} ${t("根")}）`}
+                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium border transition-all active:scale-95 ${on ? "" : "border-white/10 text-[#a0aec0] bg-white/5 hover:bg-white/10"}`}
+                    style={on ? { color: ind.color, borderColor: `${ind.color}66`, background: `${ind.color}1A` } : undefined}
+                  >
+                    <span className="inline-block w-2 h-[2px] rounded-full" style={{ background: on ? ind.color : "#556" }} />
+                    {ind.label}
+                  </button>
+                );
+              })}
+            </div>
+            {chartType === "candle" && !hasOHLC && (
+              <span className="text-[10px] text-[#778] italic">{t("K线数据加载中，刷新后显示")}</span>
+            )}
+          </div>
           <div className="flex-1 min-h-0">
             <ResponsiveContainer key={`chart-full-${sel.ticker}-${chartRange}-${chartData.length}`} width="100%" height="100%">
-              <ComposedChart data={chartDataWithBench} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
+              <ComposedChart data={chartSeries} margin={{ top: 8, right: 10, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="pgFull" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor={chartData.length >= 2 && chartData[chartData.length-1].p >= chartData[0].p ? "#8A2BE2" : "#FF6B6B"} stopOpacity={0.25} />
@@ -3010,26 +3237,81 @@ const ScoringDashboard = () => {
                   </linearGradient>
                 </defs>
                 <XAxis dataKey="m" tick={{ fontSize: 11, fill: "#a0aec0" }} axisLine={false} tickLine={false} minTickGap={40} interval="preserveStartEnd" />
-                <YAxis yAxisId="price" tick={{ fontSize: 11, fill: "#a0aec0" }} axisLine={false} tickLine={false} domain={["auto", "auto"]} width={(sel.currency === "KRW" || sel.currency === "JPY") ? 80 : 60}
+                <YAxis yAxisId="price" tick={{ fontSize: 11, fill: "#a0aec0" }} axisLine={false} tickLine={false} domain={hasVolume ? priceDomainTop : ["auto", "auto"]} width={(sel.currency === "KRW" || sel.currency === "JPY") ? 80 : 60}
                   tickFormatter={(v) => {
                     if (sel.currency === "KRW" || sel.currency === "JPY") return Math.round(v).toLocaleString();
                     return v;
                   }}
                 />
-                <YAxis yAxisId="pct" orientation="right" tick={{ fontSize: 10, fill: "#a0aec0" }} axisLine={false} tickLine={false} domain={["auto", "auto"]} width={60} tickFormatter={(v) => `${v > 0 ? "+" : ""}${v.toFixed(1)}%`} />
+                <YAxis yAxisId="pct" orientation="right" tick={{ fontSize: 10, fill: "#a0aec0" }} axisLine={false} tickLine={false} domain={hasVolume ? pctDomainTop : ["auto", "auto"]} width={60} tickFormatter={(v) => `${v > 0 ? "+" : ""}${v.toFixed(1)}%`} />
                 <ReferenceLine yAxisId="pct" y={0} stroke="rgba(255,255,255,0.1)" strokeDasharray="4 3" />
-                <Tooltip contentStyle={TOOLTIP_STYLE}
+                <Tooltip
                   cursor={{ stroke: 'rgba(255,255,255,0.25)', strokeWidth: 1, strokeDasharray: '3 3' }}
-                  formatter={(v, name) => {
-                    if (name === "p") return [`${currencySymbol(sel.currency)}${v}`, t("价格")];
-                    if (name === "pct") return [`${v >= 0 ? "+" : ""}${v}%`, t("收益率")];
-                    if (name === "bpct") return [`${v >= 0 ? "+" : ""}${v}%`, `${benchmarkLabel} ${t('基准')}`];
-                    return [v, name];
+                  content={({ active, payload, label }) => {
+                    if (!active || !payload?.length) return null;
+                    const d = payload[0].payload;
+                    const cur = currencySymbol(sel.currency);
+                    const sign = (n) => (n >= 0 ? '+' : '');
+                    const fmtVol = (v) => v == null ? "—" : v >= 1e9 ? `${(v / 1e9).toFixed(2)}B` : v >= 1e6 ? `${(v / 1e6).toFixed(2)}M` : v >= 1e3 ? `${(v / 1e3).toFixed(1)}K` : `${v}`;
+                    const upDay = d.o != null ? d.p >= d.o : d.pct >= 0;
+                    return (
+                      <div className="glass-card border border-indigo-500/40 shadow-2xl px-2.5 py-2 tabular-nums" style={{ minWidth: 190 }}>
+                        <div className="text-[9px] text-[#778] uppercase tracking-wider mb-1 font-mono">{label}</div>
+                        {d.o != null && d.h > d.l && (
+                          <div className="grid grid-cols-4 gap-x-2 mb-1.5 pb-1.5 border-b border-white/10 font-mono">
+                            {[["O", d.o], ["H", d.h], ["L", d.l], ["C", d.p]].map(([k, val]) => (
+                              <div key={k}>
+                                <div className="text-[8px] text-[#778]">{k}</div>
+                                <div className={`text-[10px] font-semibold leading-tight ${upDay ? "text-up" : "text-down"}`}>{Number(val).toFixed(2)}</div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+                          <div>
+                            <div className="text-[9px] text-[#778] uppercase">{t('价格')}</div>
+                            <div className="text-sm font-bold font-mono text-white leading-tight">{cur}{Number(d.p).toFixed(2)}</div>
+                          </div>
+                          <div>
+                            <div className="text-[9px] text-[#778] uppercase">% Δ</div>
+                            <div className={`text-sm font-bold font-mono leading-tight ${d.pct >= 0 ? 'text-up' : 'text-down'}`}>{sign(d.pct)}{Number(d.pct).toFixed(2)}%</div>
+                          </div>
+                          {d.v != null && d.v > 0 && (
+                            <div>
+                              <div className="text-[9px] text-[#778] uppercase">{t('成交量')}</div>
+                              <div className="text-xs font-mono text-white/90 leading-tight">{fmtVol(d.v)}</div>
+                            </div>
+                          )}
+                          {d.bpct != null && (
+                            <div>
+                              <div className="text-[9px] text-[#778] uppercase">{benchmarkLabel}</div>
+                              <div className={`text-xs font-mono leading-tight ${d.bpct >= 0 ? 'text-up' : 'text-down'}`}>{sign(d.bpct)}{Number(d.bpct).toFixed(2)}%</div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
                   }} />
-                <Area yAxisId="price" type="monotone" dataKey="p" stroke={chartData.length >= 2 && chartData[chartData.length-1].p >= chartData[0].p ? "url(#strokeGradFull)" : "#FF6B6B"} strokeWidth={2.5} fill="url(#pgFull)" dot={false} activeDot={{ r: 5, fill: "#fff", stroke: "#8A2BE2", strokeWidth: 2 }} />
-                {maSignal && <Line yAxisId="price" type="monotone" dataKey="ma20" stroke="#F5B53C" strokeWidth={2} strokeDasharray="6 4" dot={false} connectNulls activeDot={false} isAnimationActive={false} name="MA20" />}
+                {/* 成交量副图：Customized 自绘，落在 plot 底部 ~26%，跟随 Brush 缩放 */}
+                {hasVolume && <Customized component={(p) => <VolumeLayer {...p} data={chartSeries} volMax={volMax} />} />}
+                {/* 价格主序列：蜡烛 K线 或 面积线 */}
+                {showCandle ? (
+                  <Bar yAxisId="price" dataKey="hl" shape={<CandleShape />} isAnimationActive={false} />
+                ) : (
+                  <Area yAxisId="price" type="monotone" dataKey="p" stroke={chartData.length >= 2 && chartData[chartData.length-1].p >= chartData[0].p ? "url(#strokeGradFull)" : "#FF6B6B"} strokeWidth={2.5} fill="url(#pgFull)" dot={false} activeDot={{ r: 5, fill: "#fff", stroke: "#8A2BE2", strokeWidth: 2 }} />
+                )}
+                {activeIndList.map((ind) => (
+                  <Line key={ind.key} yAxisId="price" type="monotone" dataKey={ind.key} stroke={ind.color} strokeWidth={2} strokeDasharray={ind.dash} dot={false} connectNulls activeDot={false} isAnimationActive={false} name={ind.label} />
+                ))}
                 <Line yAxisId="pct" type="monotone" dataKey="pct" stroke="transparent" dot={false} activeDot={false} />
                 {showBenchmark && <Line yAxisId="pct" type="monotone" dataKey="bpct" stroke="#94a3b8" strokeWidth={2} strokeDasharray="5 4" dot={false} activeDot={{ r: 4, fill: "#cbd5e1", stroke: "#94a3b8", strokeWidth: 2 }} />}
+                {/* 拖拽缩放/平移：底部 Brush 缩略轴，面板用干净的 p 面积线做 panorama */}
+                <Brush dataKey="m" height={24} stroke="#6366f1" fill="rgba(99,102,241,0.04)" travellerWidth={8} tickFormatter={() => ""}>
+                  <AreaChart>
+                    <YAxis hide domain={["auto", "auto"]} />
+                    <Area dataKey="p" stroke="#6366f1" fill="rgba(99,102,241,0.18)" dot={false} isAnimationActive={false} />
+                  </AreaChart>
+                </Brush>
               </ComposedChart>
             </ResponsiveContainer>
           </div>
