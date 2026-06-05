@@ -587,6 +587,7 @@ async function _fetchOneRange(yfSym, rangeKey) {
   const opens = quote.open || [];
   const highs = quote.high || [];
   const lows = quote.low || [];
+  const vols = quote.volume || [];
   // 单字段防御：缺失/异常时降级到收盘价，保证蜡烛图不会画出 NaN 影线
   const px2 = (v, fallback) => (Number.isFinite(v) && v > 0 ? +v.toFixed(2) : fallback);
   const history = [];
@@ -601,14 +602,16 @@ async function _fetchOneRange(yfSym, rangeKey) {
     const m = formatDateKey(timestamps[i], rangeKey);
     const cl = +(c.toFixed(2));
     const o = px2(opens[i], cl), h = px2(highs[i], cl), l = px2(lows[i], cl);
+    const vol = Number.isFinite(vols[i]) && vols[i] >= 0 ? vols[i] : 0;
     if (history.length > 0 && history[history.length - 1].m === m) {
-      // 同一标签合并（如 5D 把 30m K 合到同一天）：收盘取最新、高/低取极值、开盘保留首个
+      // 同一标签合并（如 5D 把 30m K 合到同一天）：收盘取最新、高/低取极值、开盘保留首个、成交量累加
       const prev = history[history.length - 1];
       prev.p = cl; prev.c = cl;
       prev.h = Math.max(prev.h, h);
       prev.l = Math.min(prev.l, l);
+      prev.v = (prev.v || 0) + vol;
     } else {
-      history.push({ m, p: cl, o, h, l, c: cl });
+      history.push({ m, p: cl, o, h, l, c: cl, v: vol });
     }
   }
   return history;
