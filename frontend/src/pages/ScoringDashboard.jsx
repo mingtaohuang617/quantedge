@@ -100,12 +100,19 @@ const MA_RANGES = new Set(["1M", "6M", "YTD", "1Y"]);
 // 这一定义在任何区间都成立，所以 chip 标注直接用 MA20/EMA12 即可，诚实。
 // color 同时充当 chip 高亮色与折线色（chip 即图例）。
 const INDICATORS = [
-  { key: "ma5",   type: "sma", period: 5,  color: "#22d3ee", label: "MA5" },
-  { key: "ma10",  type: "sma", period: 10, color: "#a78bfa", label: "MA10" },
-  { key: "ma20",  type: "sma", period: 20, color: "#F5B53C", label: "MA20", dash: "5 4" },
-  { key: "ma60",  type: "sma", period: 60, color: "#fb7185", label: "MA60" },
-  { key: "ema12", type: "ema", period: 12, color: "#34d399", label: "EMA12" },
-  { key: "ema26", type: "ema", period: 26, color: "#f472b6", label: "EMA26" },
+  { key: "ma5",   group: "MA",   type: "sma",  period: 5,  color: "#22d3ee", label: "MA5" },
+  { key: "ma10",  group: "MA",   type: "sma",  period: 10, color: "#a78bfa", label: "MA10" },
+  { key: "ma20",  group: "MA",   type: "sma",  period: 20, color: "#F5B53C", label: "MA20", dash: "5 4" },
+  { key: "ma60",  group: "MA",   type: "sma",  period: 60, color: "#fb7185", label: "MA60" },
+  { key: "ema12", group: "EMA",  type: "ema",  period: 12, color: "#34d399", label: "EMA12" },
+  { key: "ema26", group: "EMA",  type: "ema",  period: 26, color: "#f472b6", label: "EMA26" },
+  { key: "boll",  group: "BOLL", type: "boll", period: 20, mult: 2, color: "#60a5fa", label: "BOLL(20,2)" },
+];
+// 指标分组（指标工具栏按 MA / EMA / 布林线 分区展示）
+const INDICATOR_GROUPS = [
+  { name: "MA", label: "MA 均线" },
+  { name: "EMA", label: "EMA 指数均线" },
+  { name: "BOLL", label: "布林线" },
 ];
 
 // 简单移动平均：把 key 写到对应数据点上（前 period-1 根无值，连线自动跳过）
@@ -142,6 +149,42 @@ function withEMA(data, period, key) {
     out[i] = { ...out[i], [key]: +ema.toFixed(2) };
   }
   return out;
+}
+
+// 布林线：中轨 = SMA(period)，上/下轨 = 中轨 ± mult×标准差（同窗口总体标准差）
+function withBOLL(data, period, mult) {
+  if (!Array.isArray(data) || data.length < period) return data;
+  const out = data.slice();
+  for (let i = period - 1; i < out.length; i++) {
+    let sum = 0, ok = true;
+    for (let k = i - period + 1; k <= i; k++) {
+      const v = out[k].p;
+      if (!(v > 0)) { ok = false; break; }
+      sum += v;
+    }
+    if (!ok) continue;
+    const mean = sum / period;
+    let varSum = 0;
+    for (let k = i - period + 1; k <= i; k++) { const d = out[k].p - mean; varSum += d * d; }
+    const sd = Math.sqrt(varSum / period);
+    out[i] = { ...out[i], boll_mid: +mean.toFixed(2), boll_up: +(mean + mult * sd).toFixed(2), boll_low: +(mean - mult * sd).toFixed(2) };
+  }
+  return out;
+}
+
+// 在 [lo, hi] 内生成「漂亮刻度」（1/2/5×10^k 步长）——用于价格/百分比轴，
+// 避免上压域把刻度算成 17.252000…01 这种带浮点尾巴、且超出真实区间的丑数字。
+function niceTicks(lo, hi, count = 5) {
+  if (!(hi > lo)) return undefined;
+  const rawStep = (hi - lo) / Math.max(1, count - 1);
+  const mag = Math.pow(10, Math.floor(Math.log10(rawStep)));
+  const norm = rawStep / mag;
+  const step = (norm >= 5 ? 5 : norm >= 2 ? 2 : norm >= 1 ? 1 : 0.5) * mag;
+  const ticks = [];
+  for (let v = Math.ceil(lo / step) * step; v <= hi + step * 1e-6; v += step) {
+    ticks.push(+v.toFixed(6));
+  }
+  return ticks.length ? ticks : undefined;
 }
 
 // 蜡烛图自定义 shape：Bar 的 dataKey 取 [low, high] → recharts 给出 y(=high 像素)
@@ -429,6 +472,7 @@ const ScoringDashboard = () => {
     n.has(key) ? n.delete(key) : n.add(key);
     return n;
   });
+  const [indMenuOpen, setIndMenuOpen] = useState(false); // 放大弹窗「指标」下拉
   const [loading, setLoading] = useState(false);
   const [mobileShowDetail, setMobileShowDetail] = useState(false); // mobile: toggle list vs detail
   const isMobile = useIsMobile();
@@ -923,9 +967,9 @@ const ScoringDashboard = () => {
       return { ...d, o, h, l, hl: [lo, hi] };
     });
     for (const ind of activeIndList) {
-      base = ind.type === "ema"
-        ? withEMA(base, ind.period, ind.key)
-        : withSMA(base, ind.period, ind.key);
+      if (ind.type === "boll") base = withBOLL(base, ind.period, ind.mult);
+      else if (ind.type === "ema") base = withEMA(base, ind.period, ind.key);
+      else base = withSMA(base, ind.period, ind.key);
     }
     return base;
   }, [chartDataWithBench, activeIndList]);
@@ -967,6 +1011,27 @@ const ScoringDashboard = () => {
     const lo = Math.min(...arr), hi = Math.max(...arr), span = hi - lo || 1;
     return [lo - span * 0.55, hi + span * 0.05];
   }, [chartSeries]);
+  // 上压域会让 recharts 把刻度算到真实区间外（如 $17 而股价没到过）。
+  // 显式只在「真实价格/百分比区间」打漂亮刻度，底部留白区不打刻度。
+  const priceTicks = useMemo(() => {
+    if (!hasVolume) return undefined;
+    let lo = Infinity, hi = -Infinity;
+    for (const d of chartSeries) {
+      const l = d.l ?? d.p, h = d.h ?? d.p;
+      if (l > 0) lo = Math.min(lo, l);
+      if (h > 0) hi = Math.max(hi, h);
+    }
+    return isFinite(lo) && isFinite(hi) ? niceTicks(lo, hi, 5) : undefined;
+  }, [chartSeries, hasVolume]);
+  const pctTicks = useMemo(() => {
+    if (!hasVolume) return undefined;
+    let lo = Infinity, hi = -Infinity;
+    for (const d of chartSeries) {
+      if (d.pct != null) { lo = Math.min(lo, d.pct); hi = Math.max(hi, d.pct); }
+      if (d.bpct != null) { lo = Math.min(lo, d.bpct); hi = Math.max(hi, d.bpct); }
+    }
+    return isFinite(lo) && isFinite(hi) ? niceTicks(lo, hi, 5) : undefined;
+  }, [chartSeries, hasVolume]);
 
   // 自己测量图表容器尺寸，避免 ResponsiveContainer 在 StrictMode 下的初次挂载 bug
   const [chartContainerRef, chartSize] = useContainerSize();
@@ -3195,8 +3260,9 @@ const ScoringDashboard = () => {
               </button>
             </div>
           </div>
-          {/* 全屏图工具栏：与桌面主图同源（面积/K线 + MA/EMA） */}
+          {/* 全屏图工具栏：面积/K线 + 区间(日期)切换 + 指标下拉(MA/EMA/布林线) */}
           <div className="flex items-center gap-2 mb-2 flex-wrap shrink-0">
+            {/* 面积 / K线 */}
             <div className="flex items-center gap-0.5 bg-white/5 rounded-lg p-0.5 border border-white/8">
               {[["area", t("面积")], ["candle", t("K线")]].map(([v, l]) => (
                 <button key={v} onClick={() => setChartType(v)}
@@ -3204,20 +3270,53 @@ const ScoringDashboard = () => {
                 >{l}</button>
               ))}
             </div>
-            <div className="flex items-center gap-1 flex-wrap">
-              <span className="text-[9px] uppercase tracking-wider text-[#667] mr-0.5">{t("指标")}</span>
-              {INDICATORS.map((ind) => {
-                const on = activeInd.has(ind.key);
+            {/* 区间（日期）切换 —— 放大后也能直接改周期 */}
+            <div className="flex items-center gap-0.5 bg-white/5 rounded-lg p-0.5 border border-white/8 overflow-x-auto max-w-full">
+              {["1D", "5D", "1M", "6M", "YTD", "1Y", "5Y", "ALL"].map((r) => {
+                const label = r === "1D" ? t("分时") : r === "5D" ? t("五日") : r === "1M" ? t("月") : r === "6M" ? t("6月") : r === "YTD" ? t("今年") : r === "1Y" ? t("1年") : r === "5Y" ? t("5年") : t("全部");
                 return (
-                  <button key={ind.key} onClick={() => toggleInd(ind.key)} title={`${ind.label}（${ind.period} ${t("根")}）`}
-                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium border transition-all active:scale-95 ${on ? "" : "border-white/10 text-[#a0aec0] bg-white/5 hover:bg-white/10"}`}
-                    style={on ? { color: ind.color, borderColor: `${ind.color}66`, background: `${ind.color}1A` } : undefined}
-                  >
-                    <span className="inline-block w-2 h-[2px] rounded-full" style={{ background: on ? ind.color : "#556" }} />
-                    {ind.label}
-                  </button>
+                  <button key={r} onClick={() => setChartRange(r)}
+                    className={`px-2 py-0.5 rounded text-[11px] font-medium transition-all active:scale-95 shrink-0 ${chartRange === r ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20" : "text-[#a0aec0] hover:text-white"}`}
+                  >{label}</button>
                 );
               })}
+            </div>
+            {/* 指标工具栏（下拉：MA / EMA / 布林线） */}
+            <div className="relative">
+              <button onClick={() => setIndMenuOpen((o) => !o)}
+                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all active:scale-95 ${indMenuOpen ? "bg-indigo-500/20 text-indigo-200 border-indigo-500/50" : activeInd.size ? "bg-indigo-500/10 text-indigo-200 border-indigo-500/30" : "bg-white/5 text-[#a0aec0] border-white/10 hover:bg-white/10"}`}>
+                <Layers size={12} /> {t("指标")}
+                {activeInd.size > 0 && <span className="px-1 rounded-full bg-indigo-500 text-white text-[9px] leading-none py-[2px]">{activeInd.size}</span>}
+                <ChevronDown size={11} className={`transition-transform ${indMenuOpen ? "rotate-180" : ""}`} />
+              </button>
+              {indMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-[55]" onClick={() => setIndMenuOpen(false)} />
+                  <div className="absolute left-0 top-full mt-1 z-[56] w-56 glass-card border border-white/12 shadow-2xl p-2.5 space-y-2.5">
+                    {INDICATOR_GROUPS.map((g) => (
+                      <div key={g.name}>
+                        <div className="text-[9px] uppercase tracking-wider text-[#778] mb-1.5 px-0.5">{g.label}</div>
+                        <div className="flex flex-wrap gap-1">
+                          {INDICATORS.filter((i) => i.group === g.name).map((ind) => {
+                            const on = activeInd.has(ind.key);
+                            return (
+                              <button key={ind.key} onClick={() => toggleInd(ind.key)} title={ind.type === "boll" ? `${ind.label}` : `${ind.label}（${ind.period} ${t("根")}）`}
+                                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium border transition-all active:scale-95 ${on ? "" : "border-white/10 text-[#a0aec0] bg-white/5 hover:bg-white/10"}`}
+                                style={on ? { color: ind.color, borderColor: `${ind.color}66`, background: `${ind.color}1A` } : undefined}>
+                                <span className="inline-block w-2 h-[2px] rounded-full" style={{ background: on ? ind.color : "#556" }} />
+                                {ind.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                    {activeInd.size > 0 && (
+                      <button onClick={() => setActiveInd(new Set())} className="w-full text-[10px] text-[#889] hover:text-white pt-1.5 border-t border-white/8 transition-colors">{t("清除全部指标")}</button>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
             {chartType === "candle" && !hasOHLC && (
               <span className="text-[10px] text-[#778] italic">{t("K线数据加载中，刷新后显示")}</span>
@@ -3237,13 +3336,14 @@ const ScoringDashboard = () => {
                   </linearGradient>
                 </defs>
                 <XAxis dataKey="m" tick={{ fontSize: 11, fill: "#a0aec0" }} axisLine={false} tickLine={false} minTickGap={40} interval="preserveStartEnd" />
-                <YAxis yAxisId="price" tick={{ fontSize: 11, fill: "#a0aec0" }} axisLine={false} tickLine={false} domain={hasVolume ? priceDomainTop : ["auto", "auto"]} width={(sel.currency === "KRW" || sel.currency === "JPY") ? 80 : 60}
+                <YAxis yAxisId="price" tick={{ fontSize: 11, fill: "#a0aec0" }} axisLine={false} tickLine={false} domain={hasVolume ? priceDomainTop : ["auto", "auto"]} ticks={priceTicks} width={(sel.currency === "KRW" || sel.currency === "JPY") ? 80 : 60}
                   tickFormatter={(v) => {
+                    // 取整，避免上压域产生 17.252000…01 这种浮点尾巴
                     if (sel.currency === "KRW" || sel.currency === "JPY") return Math.round(v).toLocaleString();
-                    return v;
+                    return (Math.round(v * 100) / 100).toLocaleString(undefined, { maximumFractionDigits: 2 });
                   }}
                 />
-                <YAxis yAxisId="pct" orientation="right" tick={{ fontSize: 10, fill: "#a0aec0" }} axisLine={false} tickLine={false} domain={hasVolume ? pctDomainTop : ["auto", "auto"]} width={60} tickFormatter={(v) => `${v > 0 ? "+" : ""}${v.toFixed(1)}%`} />
+                <YAxis yAxisId="pct" orientation="right" tick={{ fontSize: 10, fill: "#a0aec0" }} axisLine={false} tickLine={false} domain={hasVolume ? pctDomainTop : ["auto", "auto"]} ticks={pctTicks} width={60} tickFormatter={(v) => `${v > 0 ? "+" : ""}${v.toFixed(1)}%`} />
                 <ReferenceLine yAxisId="pct" y={0} stroke="rgba(255,255,255,0.1)" strokeDasharray="4 3" />
                 <Tooltip
                   cursor={{ stroke: 'rgba(255,255,255,0.25)', strokeWidth: 1, strokeDasharray: '3 3' }}
@@ -3300,9 +3400,14 @@ const ScoringDashboard = () => {
                 ) : (
                   <Area yAxisId="price" type="monotone" dataKey="p" stroke={chartData.length >= 2 && chartData[chartData.length-1].p >= chartData[0].p ? "url(#strokeGradFull)" : "#FF6B6B"} strokeWidth={2.5} fill="url(#pgFull)" dot={false} activeDot={{ r: 5, fill: "#fff", stroke: "#8A2BE2", strokeWidth: 2 }} />
                 )}
-                {activeIndList.map((ind) => (
-                  <Line key={ind.key} yAxisId="price" type="monotone" dataKey={ind.key} stroke={ind.color} strokeWidth={2} strokeDasharray={ind.dash} dot={false} connectNulls activeDot={false} isAnimationActive={false} name={ind.label} />
-                ))}
+                {/* 技术指标叠加：MA/EMA 各一条线；布林线 = 上/中/下三条（中轨虚线） */}
+                {activeIndList.flatMap((ind) => ind.type === "boll" ? [
+                  <Line key="boll_up" yAxisId="price" type="monotone" dataKey="boll_up" stroke={ind.color} strokeOpacity={0.55} strokeWidth={1.2} dot={false} connectNulls activeDot={false} isAnimationActive={false} name="BOLL 上轨" />,
+                  <Line key="boll_mid" yAxisId="price" type="monotone" dataKey="boll_mid" stroke={ind.color} strokeWidth={1.4} strokeDasharray="4 3" dot={false} connectNulls activeDot={false} isAnimationActive={false} name="BOLL 中轨" />,
+                  <Line key="boll_low" yAxisId="price" type="monotone" dataKey="boll_low" stroke={ind.color} strokeOpacity={0.55} strokeWidth={1.2} dot={false} connectNulls activeDot={false} isAnimationActive={false} name="BOLL 下轨" />,
+                ] : [
+                  <Line key={ind.key} yAxisId="price" type="monotone" dataKey={ind.key} stroke={ind.color} strokeWidth={2} strokeDasharray={ind.dash} dot={false} connectNulls activeDot={false} isAnimationActive={false} name={ind.label} />,
+                ])}
                 <Line yAxisId="pct" type="monotone" dataKey="pct" stroke="transparent" dot={false} activeDot={false} />
                 {showBenchmark && <Line yAxisId="pct" type="monotone" dataKey="bpct" stroke="#94a3b8" strokeWidth={2} strokeDasharray="5 4" dot={false} activeDot={{ r: 4, fill: "#cbd5e1", stroke: "#94a3b8", strokeWidth: 2 }} />}
                 {/* 拖拽缩放/平移：底部 Brush 缩略轴，面板用干净的 p 面积线做 panorama */}

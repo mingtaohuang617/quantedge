@@ -136,6 +136,7 @@ const EN = {
   '指标': 'Indicators',
   '根': 'bars',
   '成交量': 'Volume',
+  '清除全部指标': 'Clear all indicators',
   'K线数据加载中，刷新后显示': 'Candle data loading — refresh to view',
   '点击看 K 线': 'Click for K-line',
   '点击放大 · K线 / 成交量 / 指标': 'Click to expand · candles / volume / indicators',
