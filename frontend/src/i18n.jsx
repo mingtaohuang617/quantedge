@@ -131,6 +131,11 @@ const EN = {
 
   // ── Price Chart & Detail ──
   '区间收益': 'Period Return',
+  '面积': 'Area',
+  'K线': 'Candles',
+  '指标': 'Indicators',
+  '根': 'bars',
+  'K线数据加载中，刷新后显示': 'Candle data loading — refresh to view',
   'ETF 评估雷达': 'ETF Assessment Radar',
   '多因子雷达': 'Multi-factor Radar',
   '52周价格区间': '52-Week Price Range',

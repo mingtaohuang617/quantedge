@@ -582,7 +582,13 @@ async function _fetchOneRange(yfSym, rangeKey) {
   const result = data?.chart?.result?.[0];
   if (!result) return [];
   const timestamps = result.timestamp || [];
-  const closes = result.indicators?.quote?.[0]?.close || [];
+  const quote = result.indicators?.quote?.[0] || {};
+  const closes = quote.close || [];
+  const opens = quote.open || [];
+  const highs = quote.high || [];
+  const lows = quote.low || [];
+  // 单字段防御：缺失/异常时降级到收盘价，保证蜡烛图不会画出 NaN 影线
+  const px2 = (v, fallback) => (Number.isFinite(v) && v > 0 ? +v.toFixed(2) : fallback);
   const history = [];
   for (let i = 0; i < timestamps.length; i++) {
     const c = closes[i];
@@ -593,10 +599,16 @@ async function _fetchOneRange(yfSym, rangeKey) {
     //    （已知症状: SK 海力士 ALL 范围 25Y 出现 -45 万韩元）
     if (c == null || !Number.isFinite(c) || c <= 0) continue;
     const m = formatDateKey(timestamps[i], rangeKey);
+    const cl = +(c.toFixed(2));
+    const o = px2(opens[i], cl), h = px2(highs[i], cl), l = px2(lows[i], cl);
     if (history.length > 0 && history[history.length - 1].m === m) {
-      history[history.length - 1].p = +(c.toFixed(2));
+      // 同一标签合并（如 5D 把 30m K 合到同一天）：收盘取最新、高/低取极值、开盘保留首个
+      const prev = history[history.length - 1];
+      prev.p = cl; prev.c = cl;
+      prev.h = Math.max(prev.h, h);
+      prev.l = Math.min(prev.l, l);
     } else {
-      history.push({ m, p: +(c.toFixed(2)) });
+      history.push({ m, p: cl, o, h, l, c: cl });
     }
   }
   return history;
