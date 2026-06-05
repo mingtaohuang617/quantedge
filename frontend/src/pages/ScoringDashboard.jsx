@@ -100,12 +100,21 @@ const MA_RANGES = new Set(["1M", "6M", "YTD", "1Y"]);
 // 这一定义在任何区间都成立，所以 chip 标注直接用 MA20/EMA12 即可，诚实。
 // color 同时充当 chip 高亮色与折线色（chip 即图例）。
 const INDICATORS = [
-  { key: "ma5",   group: "MA",   type: "sma",  period: 5,  color: "#22d3ee", label: "MA5" },
-  { key: "ma10",  group: "MA",   type: "sma",  period: 10, color: "#a78bfa", label: "MA10" },
-  { key: "ma20",  group: "MA",   type: "sma",  period: 20, color: "#F5B53C", label: "MA20", dash: "5 4" },
-  { key: "ma60",  group: "MA",   type: "sma",  period: 60, color: "#fb7185", label: "MA60" },
-  { key: "ema12", group: "EMA",  type: "ema",  period: 12, color: "#34d399", label: "EMA12" },
-  { key: "ema26", group: "EMA",  type: "ema",  period: 26, color: "#f472b6", label: "EMA26" },
+  // MA：周期为 5 的倍数（短→长）
+  { key: "ma5",   group: "MA",   type: "sma",  period: 5,   color: "#22d3ee", label: "MA5" },
+  { key: "ma10",  group: "MA",   type: "sma",  period: 10,  color: "#818cf8", label: "MA10" },
+  { key: "ma20",  group: "MA",   type: "sma",  period: 20,  color: "#F5B53C", label: "MA20", dash: "5 4" },
+  { key: "ma30",  group: "MA",   type: "sma",  period: 30,  color: "#fb7185", label: "MA30" },
+  { key: "ma60",  group: "MA",   type: "sma",  period: 60,  color: "#f97316", label: "MA60" },
+  { key: "ma120", group: "MA",   type: "sma",  period: 120, color: "#e879f9", label: "MA120" },
+  // EMA：周期取斐波那契数列
+  { key: "ema8",  group: "EMA",  type: "ema",  period: 8,   color: "#34d399", label: "EMA8" },
+  { key: "ema13", group: "EMA",  type: "ema",  period: 13,  color: "#a3e635", label: "EMA13" },
+  { key: "ema21", group: "EMA",  type: "ema",  period: 21,  color: "#f472b6", label: "EMA21" },
+  { key: "ema34", group: "EMA",  type: "ema",  period: 34,  color: "#facc15", label: "EMA34" },
+  { key: "ema55", group: "EMA",  type: "ema",  period: 55,  color: "#c084fc", label: "EMA55" },
+  { key: "ema89", group: "EMA",  type: "ema",  period: 89,  color: "#2dd4bf", label: "EMA89" },
+  // 布林线
   { key: "boll",  group: "BOLL", type: "boll", period: 20, mult: 2, color: "#60a5fa", label: "BOLL(20,2)" },
 ];
 // 指标分组（指标工具栏按 MA / EMA / 布林线 分区展示）
