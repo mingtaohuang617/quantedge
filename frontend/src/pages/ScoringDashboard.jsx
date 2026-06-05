@@ -481,7 +481,6 @@ const ScoringDashboard = () => {
     n.has(key) ? n.delete(key) : n.add(key);
     return n;
   });
-  const [indMenuOpen, setIndMenuOpen] = useState(false); // 放大弹窗「指标」下拉
   const [loading, setLoading] = useState(false);
   const [mobileShowDetail, setMobileShowDetail] = useState(false); // mobile: toggle list vs detail
   const isMobile = useIsMobile();
@@ -3269,7 +3268,7 @@ const ScoringDashboard = () => {
               </button>
             </div>
           </div>
-          {/* 全屏图工具栏：面积/K线 + 区间(日期)切换 + 指标下拉(MA/EMA/布林线) */}
+          {/* 全屏图工具栏：面积/K线 + K线周期(五日/月线/季线/年线)。指标移到左侧竖向栏 */}
           <div className="flex items-center gap-2 mb-2 flex-wrap shrink-0">
             {/* 面积 / K线 */}
             <div className="flex items-center gap-0.5 bg-white/5 rounded-lg p-0.5 border border-white/8">
@@ -3279,59 +3278,42 @@ const ScoringDashboard = () => {
                 >{l}</button>
               ))}
             </div>
-            {/* 区间（日期）切换 —— 放大后也能直接改周期 */}
+            {/* K 线周期切换（每根 K 的跨度） —— 放大后直接改周期 */}
             <div className="flex items-center gap-0.5 bg-white/5 rounded-lg p-0.5 border border-white/8 overflow-x-auto max-w-full">
-              {["1D", "5D", "1M", "6M", "YTD", "1Y", "5Y", "ALL"].map((r) => {
-                const label = r === "1D" ? t("分时") : r === "5D" ? t("五日") : r === "1M" ? t("月") : r === "6M" ? t("6月") : r === "YTD" ? t("今年") : r === "1Y" ? t("1年") : r === "5Y" ? t("5年") : t("全部");
-                return (
-                  <button key={r} onClick={() => setChartRange(r)}
-                    className={`px-2 py-0.5 rounded text-[11px] font-medium transition-all active:scale-95 shrink-0 ${chartRange === r ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20" : "text-[#a0aec0] hover:text-white"}`}
-                  >{label}</button>
-                );
-              })}
-            </div>
-            {/* 指标工具栏（下拉：MA / EMA / 布林线） */}
-            <div className="relative">
-              <button onClick={() => setIndMenuOpen((o) => !o)}
-                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all active:scale-95 ${indMenuOpen ? "bg-indigo-500/20 text-indigo-200 border-indigo-500/50" : activeInd.size ? "bg-indigo-500/10 text-indigo-200 border-indigo-500/30" : "bg-white/5 text-[#a0aec0] border-white/10 hover:bg-white/10"}`}>
-                <Layers size={12} /> {t("指标")}
-                {activeInd.size > 0 && <span className="px-1 rounded-full bg-indigo-500 text-white text-[9px] leading-none py-[2px]">{activeInd.size}</span>}
-                <ChevronDown size={11} className={`transition-transform ${indMenuOpen ? "rotate-180" : ""}`} />
-              </button>
-              {indMenuOpen && (
-                <>
-                  <div className="fixed inset-0 z-[55]" onClick={() => setIndMenuOpen(false)} />
-                  <div className="absolute left-0 top-full mt-1 z-[56] w-56 glass-card border border-white/12 shadow-2xl p-2.5 space-y-2.5">
-                    {INDICATOR_GROUPS.map((g) => (
-                      <div key={g.name}>
-                        <div className="text-[9px] uppercase tracking-wider text-[#778] mb-1.5 px-0.5">{g.label}</div>
-                        <div className="flex flex-wrap gap-1">
-                          {INDICATORS.filter((i) => i.group === g.name).map((ind) => {
-                            const on = activeInd.has(ind.key);
-                            return (
-                              <button key={ind.key} onClick={() => toggleInd(ind.key)} title={ind.type === "boll" ? `${ind.label}` : `${ind.label}（${ind.period} ${t("根")}）`}
-                                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium border transition-all active:scale-95 ${on ? "" : "border-white/10 text-[#a0aec0] bg-white/5 hover:bg-white/10"}`}
-                                style={on ? { color: ind.color, borderColor: `${ind.color}66`, background: `${ind.color}1A` } : undefined}>
-                                <span className="inline-block w-2 h-[2px] rounded-full" style={{ background: on ? ind.color : "#556" }} />
-                                {ind.label}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
-                    {activeInd.size > 0 && (
-                      <button onClick={() => setActiveInd(new Set())} className="w-full text-[10px] text-[#889] hover:text-white pt-1.5 border-t border-white/8 transition-colors">{t("清除全部指标")}</button>
-                    )}
-                  </div>
-                </>
-              )}
+              {[["5D", t("五日")], ["MONK", t("月线")], ["QUARK", t("季线")], ["YEARK", t("年线")]].map(([r, label]) => (
+                <button key={r} onClick={() => setChartRange(r)}
+                  className={`px-2.5 py-0.5 rounded text-[11px] font-medium transition-all active:scale-95 shrink-0 ${chartRange === r ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20" : "text-[#a0aec0] hover:text-white"}`}
+                >{label}</button>
+              ))}
             </div>
             {chartType === "candle" && !hasOHLC && (
               <span className="text-[10px] text-[#778] italic">{t("K线数据加载中，刷新后显示")}</span>
             )}
           </div>
-          <div className="flex-1 min-h-0">
+          <div className="flex-1 min-h-0 flex gap-1.5">
+            {/* 左侧竖向指标栏：MA / EMA / 布林线，点击即叠加（颜色即图例） */}
+            <div className="w-[58px] shrink-0 overflow-y-auto flex flex-col gap-0.5 pr-1 border-r border-white/8">
+              {INDICATOR_GROUPS.map((g) => (
+                <div key={g.name} className="flex flex-col gap-0.5 mb-1">
+                  <div className="text-[8px] font-semibold uppercase tracking-wider text-[#667] text-center pt-0.5">{g.name}</div>
+                  {INDICATORS.filter((i) => i.group === g.name).map((ind) => {
+                    const on = activeInd.has(ind.key);
+                    return (
+                      <button key={ind.key} onClick={() => toggleInd(ind.key)} title={ind.type === "boll" ? ind.label : `${ind.label}（${ind.period} ${t("根")}）`}
+                        className={`w-full px-0.5 py-1 rounded text-[10px] font-medium border transition-all active:scale-95 leading-none ${on ? "" : "border-white/10 text-[#a0aec0] bg-white/5 hover:bg-white/10"}`}
+                        style={on ? { color: ind.color, borderColor: `${ind.color}66`, background: `${ind.color}1A` } : undefined}>
+                        {ind.type === "boll" ? "BOLL" : ind.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+              {activeInd.size > 0 && (
+                <button onClick={() => setActiveInd(new Set())} title={t("清除全部指标")} className="w-full px-0.5 py-1 rounded text-[9px] text-[#889] hover:text-white hover:bg-white/5 border-t border-white/8 mt-0.5 transition-colors">{t("清除")}</button>
+              )}
+            </div>
+            {/* 图表 */}
+            <div className="flex-1 min-h-0">
             <ResponsiveContainer key={`chart-full-${sel.ticker}-${chartRange}-${chartData.length}`} width="100%" height="100%">
               <ComposedChart data={chartSeries} margin={{ top: 8, right: 10, left: 0, bottom: 0 }}>
                 <defs>
@@ -3428,6 +3410,7 @@ const ScoringDashboard = () => {
                 </Brush>
               </ComposedChart>
             </ResponsiveContainer>
+            </div>
           </div>
           <div className="flex items-center justify-between mt-2 text-[10px] text-[#778] shrink-0">
             <span>{t('ESC 或点击外部关闭')}</span>
