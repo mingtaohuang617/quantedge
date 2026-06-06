@@ -968,11 +968,14 @@ const ScoringDashboard = () => {
   // 桌面图最终数据：在 chartDataWithBench 基础上补 OHLC（hl 供蜡烛 Bar 定位）
   // 并叠加用户点亮的 MA/EMA 序列。移动端图表仍直接用 chartDataWithBench，互不影响。
   const chartSeries = useMemo(() => {
-    let base = chartDataWithBench.map((d) => {
+    let base = chartDataWithBench.map((d, i, arr) => {
       const o = d.o ?? d.p, h = d.h ?? d.p, l = d.l ?? d.p;
       // hl 夹住 o/h/l/收，保证影线与实体都落在 Bar 的 y 区间内
       const lo = Math.min(l, o, h, d.p), hi = Math.max(l, o, h, d.p);
-      return { ...d, o, h, l, hl: [lo, hi] };
+      // 当根涨跌幅 = 相对上一根收盘（日线即「当日涨跌」）
+      const prevC = i > 0 ? arr[i - 1].p : null;
+      const chg = (prevC > 0 && d.p > 0) ? +(((d.p - prevC) / prevC) * 100).toFixed(2) : null;
+      return { ...d, o, h, l, hl: [lo, hi], chg };
     });
     for (const ind of activeIndList) {
       if (ind.type === "boll") base = withBOLL(base, ind.period, ind.mult);
@@ -3363,8 +3366,14 @@ const ScoringDashboard = () => {
                             <div className="text-[9px] text-[#778] uppercase">{t('价格')}</div>
                             <div className="text-sm font-bold font-mono text-white leading-tight">{cur}{Number(d.p).toFixed(2)}</div>
                           </div>
+                          {d.chg != null && (
+                            <div>
+                              <div className="text-[9px] text-[#778] uppercase">{t('当日')}</div>
+                              <div className={`text-sm font-bold font-mono leading-tight ${d.chg >= 0 ? 'text-up' : 'text-down'}`}>{sign(d.chg)}{Number(d.chg).toFixed(2)}%</div>
+                            </div>
+                          )}
                           <div>
-                            <div className="text-[9px] text-[#778] uppercase">% Δ</div>
+                            <div className="text-[9px] text-[#778] uppercase">{t('区间')}</div>
                             <div className={`text-sm font-bold font-mono leading-tight ${d.pct >= 0 ? 'text-up' : 'text-down'}`}>{sign(d.pct)}{Number(d.pct).toFixed(2)}%</div>
                           </div>
                           {d.v != null && d.v > 0 && (
