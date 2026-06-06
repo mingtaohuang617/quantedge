@@ -2208,6 +2208,38 @@ const ScoringDashboard = () => {
                   <ScoreExplainCard stock={sel} weights={weights} />
                 </div>
               )}
+              {/* v7: ETF 评分归因前置 — 个股有「三大要素」(下方)，ETF 用成本/流动性/动量/风险四维，同样提到首屏，让「为什么是这个分」对 ETF 也可见（桌面；真实 subScores）*/}
+              {sel.subScores && sel.isETF && (
+                <div className="hidden md:block mb-3">
+                  <div className="flex items-baseline justify-between mb-1.5">
+                    <h3 className="text-[11px] font-medium text-white/90">{t('评分构成 · ETF 四维')}</h3>
+                    {sectorMedians?.score != null && (
+                      <span className="text-[9px] text-[#778] font-mono">{t('行业中位')} <span className="text-white/70">{sectorMedians.score.toFixed(0)}</span></span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      ['cost', t('成本效率'), '#818cf8'],
+                      ['liquidity', t('流动性'), '#8b5cf6'],
+                      ['momentum', t('动量趋势'), '#06b6d4'],
+                      ['risk', t('风险分散'), '#f5b53c'],
+                    ].filter(([k]) => Number.isFinite(sel.subScores[k])).map(([k, label, color]) => {
+                      const v = Number(sel.subScores[k]);
+                      return (
+                        <div key={k} className="rounded-lg border border-white/5 bg-white/[0.02] px-2.5 py-2">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-[10px] text-[#a0aec0]">{label}</span>
+                            <span className="text-[13px] font-mono font-bold tabular-nums" style={{ color }}>{Math.round(v)}</span>
+                          </div>
+                          <div className="h-1 rounded-full bg-white/[0.06] overflow-hidden">
+                            <div className="h-full rounded-full" style={{ width: `${Math.max(0, Math.min(100, v))}%`, background: color }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
               {/* v5 编辑式：三大要素 pillar cards — 把评分归因从深埋的 hover tooltip 提升为主视图
                   顶部色条 + 32px 大数字 + 进度条 + 高亮指标 — 一眼 grok "为什么是 X 分"
                   仅非 ETF：ETF 用 cost/liquidity/momentum/risk 四维（已有深处归因卡覆盖） */}
