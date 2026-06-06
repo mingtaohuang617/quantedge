@@ -136,6 +136,8 @@ const EN = {
   '指标': 'Indicators',
   '根': 'bars',
   '成交量': 'Volume',
+  '当日': 'Day',
+  '区间': 'Range',
   '日线': 'Daily',
   '周线': 'Weekly',
   '月线': 'Monthly',
