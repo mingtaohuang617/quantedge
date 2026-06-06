@@ -626,9 +626,18 @@ const ScoringDashboard = () => {
   const [showCompare, setShowCompare] = useState(false);
   // v7: 评分页左右栏可折叠（桌面工作站，让中间详情让出更多空间；记忆到 localStorage）
   const [leftCollapsed, setLeftCollapsed] = useState(() => { try { return localStorage.getItem("quantedge_scoring_left_collapsed") === "1"; } catch { return false; } });
-  const [rightCollapsed, setRightCollapsed] = useState(() => { try { return localStorage.getItem("quantedge_scoring_right_collapsed") === "1"; } catch { return false; } });
+  // v7: 对比盘空态默认折叠（compareSet 挂载时恒为空 → 不浪费横向空间）；加标的时自动展开、清空时自动收起
+  const [rightCollapsed, setRightCollapsed] = useState(true);
   const setLeftPane = (v) => { setLeftCollapsed(v); try { localStorage.setItem("quantedge_scoring_left_collapsed", v ? "1" : "0"); } catch {} };
-  const setRightPane = (v) => { setRightCollapsed(v); try { localStorage.setItem("quantedge_scoring_right_collapsed", v ? "1" : "0"); } catch {} };
+  const setRightPane = (v) => setRightCollapsed(v);
+  // 对比盘随选择自动开合：加首个对比标的 → 展开；清空 → 收起。仅在 0↔≥1 边界触发，期间用户手动开合仍生效。
+  const prevHadCompareRef = useRef(false);
+  useEffect(() => {
+    const has = compareSet.size > 0;
+    if (has && !prevHadCompareRef.current) setRightCollapsed(false);
+    else if (!has && prevHadCompareRef.current) setRightCollapsed(true);
+    prevHadCompareRef.current = has;
+  }, [compareSet]);
   const toggleCompare = useCallback((ticker) => {
     setCompareSet(prev => {
       const next = new Set(prev);
