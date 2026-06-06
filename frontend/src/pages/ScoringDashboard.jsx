@@ -123,6 +123,9 @@ const INDICATOR_GROUPS = [
   { name: "EMA", label: "EMA 指数均线" },
   { name: "BOLL", label: "布林线" },
 ];
+// 放大弹窗的 K 线周期集合（与收起态 8 档不同）。从收起态打开放大图时，
+// 不在此集合的区间(1M/6M/YTD/1D/ALL)归一到「日线」，避免放大工具栏无高亮档。
+const MODAL_RANGES = ["5D", "1Y", "5Y", "MONK", "QUARK", "YEARK"];
 
 // 简单移动平均：把 key 写到对应数据点上（前 period-1 根无值，连线自动跳过）
 function withSMA(data, period, key) {
@@ -205,6 +208,8 @@ function CandleShape(props) {
   if (![o, h, l, c].every(Number.isFinite)) return null;
   const up = c >= o;
   const color = up ? "#1ED395" : "#FF6B6B";
+  // 阳线空心（仅描边）、阴线实心 —— 复刻 TradingView 默认蜡烛观感
+  const fill = up ? "none" : color;
   const cx = x + width / 2;
   // 实体宽度：留 30% 间隙，最细 1px
   const bw = Math.max(1, Math.min(width - 1, width * 0.7));
@@ -222,8 +227,8 @@ function CandleShape(props) {
     <g>
       {/* 上下影线（high → low） */}
       <line x1={cx} y1={y} x2={cx} y2={y + height} stroke={color} strokeWidth={1} />
-      {/* 实体：涨实心、跌实心（同色填充，简洁） */}
-      <rect x={bx} y={bodyTop} width={bw} height={bodyH} fill={color} stroke={color} strokeWidth={0.5} rx={0.5} />
+      {/* 实体：阳线空心(描边)、阴线实心 */}
+      <rect x={bx} y={bodyTop} width={bw} height={bodyH} fill={fill} stroke={color} strokeWidth={up ? 1 : 0.5} rx={0.5} />
     </g>
   );
 }
@@ -256,7 +261,83 @@ function VolumeLayer(props) {
         fill={up ? "rgba(30,211,149,0.42)" : "rgba(255,107,107,0.42)"} />
     );
   }
-  return <g clipPath={clipPathId ? `url(#${clipPathId})` : undefined}>{bars}</g>;
+  // 量价分隔线：在价格区与成交量区交界(底部 ~30%)画一条淡线，明确分栏
+  const dividerY = baseY - offset.height * 0.30;
+  return (
+    <g clipPath={clipPathId ? `url(#${clipPathId})` : undefined}>
+      <line x1={offset.left} y1={dividerY} x2={offset.left + offset.width} y2={dividerY} stroke="rgba(255,255,255,0.07)" strokeWidth={1} />
+      {bars}
+    </g>
+  );
+}
+
+// 十字光标轴标签：价格轴(左)弹出价格药丸、时间轴(底)弹出日期药丸，并补一条横向参考线。
+// hoverPoint(悬停数据点) 由 ComposedChart 的 onMouseMove 写入；借用主图 x/price 轴 scale 把药丸钉到精确像素。
+function CrosshairLayer(props) {
+  const { xAxisMap, yAxisMap, offset, point, priceFmt } = props;
+  if (!point || !offset || !xAxisMap || !yAxisMap) return null;
+  const d = point;
+  if (!(d.p > 0)) return null;
+  const xAxis = xAxisMap[Object.keys(xAxisMap)[0]];
+  const yAxis = yAxisMap.price || yAxisMap[Object.keys(yAxisMap)[0]];
+  if (!xAxis || !yAxis || !xAxis.scale || !yAxis.scale) return null;
+  const xs = xAxis.scale, ys = yAxis.scale;
+  const band = typeof xs.bandwidth === "function" ? xs.bandwidth() : 0;
+  const xv = xs(d.m);
+  const cy = ys(d.p);
+  if (xv == null || isNaN(xv) || cy == null || isNaN(cy)) return null;  // 缩放区间外
+  const cx = xv + band / 2;
+  const left = offset.left, right = offset.left + offset.width, bottom = offset.top + offset.height;
+  const priceTxt = priceFmt ? priceFmt(d.p) : `${Math.round(d.p * 100) / 100}`;
+  const dateTxt = String(d.m ?? "");
+  const pillH = 15;
+  const pw = Math.max(34, priceTxt.length * 6.5 + 10);
+  const dw = Math.max(30, dateTxt.length * 6.8 + 10);
+  return (
+    <g pointerEvents="none">
+      <line x1={left} y1={cy} x2={right} y2={cy} stroke="rgba(255,255,255,0.22)" strokeWidth={1} strokeDasharray="3 3" />
+      <rect x={left - pw} y={cy - pillH / 2} width={pw} height={pillH} rx={2} fill="#6366f1" />
+      <text x={left - pw / 2} y={cy + 3.5} textAnchor="middle" fontSize={10} fontFamily="monospace" fill="#fff">{priceTxt}</text>
+      <rect x={Math.max(left, Math.min(right - dw, cx - dw / 2))} y={bottom + 2} width={dw} height={pillH} rx={2} fill="#6366f1" />
+      <text x={Math.max(left + dw / 2, Math.min(right - dw / 2, cx))} y={bottom + 13} textAnchor="middle" fontSize={10} fontFamily="monospace" fill="#fff">{dateTxt}</text>
+    </g>
+  );
+}
+
+// 最新价标线 + 左侧价签：借 price 轴 scale 把虚线与色块药丸钉到最新收盘价处。
+function LastPriceLayer(props) {
+  const { yAxisMap, offset, price, up, priceFmt } = props;
+  if (price == null || !offset || !yAxisMap) return null;
+  const yAxis = yAxisMap.price || yAxisMap[Object.keys(yAxisMap)[0]];
+  if (!yAxis || !yAxis.scale) return null;
+  const cy = yAxis.scale(price);
+  if (cy == null || isNaN(cy) || cy < offset.top || cy > offset.top + offset.height) return null;
+  const left = offset.left, right = offset.left + offset.width;
+  const color = up ? "#1ED395" : "#FF6B6B";
+  const txt = priceFmt ? priceFmt(price) : `${Math.round(price * 100) / 100}`;
+  const w = Math.max(34, txt.length * 6.5 + 10);
+  return (
+    <g pointerEvents="none">
+      <line x1={left} y1={cy} x2={right} y2={cy} stroke={color} strokeOpacity={0.5} strokeWidth={1} strokeDasharray="2 2" />
+      <rect x={left - w} y={cy - 7.5} width={w} height={15} rx={2} fill={color} />
+      <text x={left - w / 2} y={cy + 3.5} textAnchor="middle" fontSize={10} fontFamily="monospace" fontWeight="600" fill="#0b0b15">{txt}</text>
+    </g>
+  );
+}
+
+// 对数轴「漂亮刻度」：在正数域 [lo,hi] 内取 1/2/5×10^k
+function niceLogTicks(lo, hi) {
+  if (!(lo > 0) || !(hi > lo)) return undefined;
+  const ticks = [];
+  const startExp = Math.floor(Math.log10(lo));
+  const endExp = Math.ceil(Math.log10(hi));
+  for (let e = startExp; e <= endExp; e++) {
+    for (const m of [1, 2, 5]) {
+      const v = m * Math.pow(10, e);
+      if (v >= lo * 0.999 && v <= hi * 1.001) ticks.push(+v.toFixed(6));
+    }
+  }
+  return ticks.length >= 2 ? ticks : undefined;
 }
 
 // ─── 市场交易时段判定 ───────────────────────────────────
@@ -567,6 +648,14 @@ const ScoringDashboard = () => {
   const [showBenchmark, setShowBenchmark] = useState(false);
   const [benchmarkData, setBenchmarkData] = useState([]);
   const [chartFullscreen, setChartFullscreen] = useState(false);
+  const [priceScale, setPriceScale] = useState("linear"); // 'linear' | 'log'（仅放大弹窗价格轴）
+  const [hoverPoint, setHoverPoint] = useState(null);      // 放大图悬停数据点：常驻图例 + 十字光标（存 datum 避免 Brush 索引错位）
+  const [brushRange, setBrushRange] = useState(null);      // {startIndex,endIndex}：滚轮缩放/拖拽平移窗口
+  // 从收起态打开放大图：把不在放大集合里的区间归一到「日线」，让放大工具栏有高亮档
+  const openFullscreen = useCallback(() => {
+    setChartRange((r) => (MODAL_RANGES.includes(r) ? r : "1Y"));
+    setChartFullscreen(true);
+  }, []);
   // 市场指数 (SPX / NDX / HSI / VIX)
   const [indices, setIndices] = useState([]); // [{ sym, close, pct }]
   const [indicesLoading, setIndicesLoading] = useState(false);
@@ -905,8 +994,14 @@ const ScoringDashboard = () => {
     if (!chartFullscreen) return;
     const onKey = (e) => { if (e.key === "Escape") setChartFullscreen(false); };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    // 锁背景滚动：放大图用滚轮缩放，避免滚轮穿透滚动页面（也省去 preventDefault 的 passive 警告）
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { window.removeEventListener("keydown", onKey); document.body.style.overflow = prevOverflow; };
   }, [chartFullscreen]);
+
+  // 周期/标的切换 → 重置缩放窗口与悬停态（旧索引对新数据长度无效）
+  useEffect(() => { setBrushRange(null); setHoverPoint(null); }, [sel?.ticker, chartRange]);
 
   // 基准指数数据加载（开启时拉取对应市场基准）
   useEffect(() => {
@@ -1043,6 +1138,38 @@ const ScoringDashboard = () => {
     }
     return isFinite(lo) && isFinite(hi) ? niceTicks(lo, hi, 5) : undefined;
   }, [chartSeries, hasVolume]);
+  // 对数轴域：正数域，并在 log 空间把最低价钉到 ~34% 高度处，给底部成交量留位
+  const priceDomainLog = useMemo(() => {
+    let lo = Infinity, hi = -Infinity;
+    for (const d of chartSeries) {
+      const l = d.l ?? d.p, h = d.h ?? d.p;
+      if (l > 0) lo = Math.min(lo, l);
+      if (h > 0) hi = Math.max(hi, h);
+    }
+    if (!isFinite(lo) || !isFinite(hi) || lo <= 0) return ["auto", "auto"];
+    const d1 = hi * 1.03, frac = hasVolume ? 0.34 : 0.02;
+    const Ld0 = (Math.log10(lo) - frac * Math.log10(d1)) / (1 - frac);
+    return [Math.pow(10, Ld0), d1];
+  }, [chartSeries, hasVolume]);
+  const priceTicksLog = useMemo(() => {
+    let lo = Infinity, hi = -Infinity;
+    for (const d of chartSeries) {
+      const l = d.l ?? d.p, h = d.h ?? d.p;
+      if (l > 0) lo = Math.min(lo, l);
+      if (h > 0) hi = Math.max(hi, h);
+    }
+    return isFinite(lo) && isFinite(hi) ? niceLogTicks(lo, hi) : undefined;
+  }, [chartSeries]);
+  const isLogScale = priceScale === "log";
+  const priceDomainFinal = isLogScale ? priceDomainLog : (hasVolume ? priceDomainTop : ["auto", "auto"]);
+  const priceTicksFinal = isLogScale ? priceTicksLog : priceTicks;
+  // 最新价（A2 标线 + 常驻图例默认点）；priceAxisFmt 供价格轴/光标药丸/标线共用
+  const lastPoint = chartSeries.length ? chartSeries[chartSeries.length - 1] : null;
+  const lastClose = lastPoint && lastPoint.p > 0 ? lastPoint.p : null;
+  const lastUp = lastPoint ? (lastPoint.chg != null ? lastPoint.chg >= 0 : (lastPoint.o != null ? lastPoint.p >= lastPoint.o : true)) : true;
+  const priceAxisFmt = (v) => (sel && (sel.currency === "KRW" || sel.currency === "JPY"))
+    ? Math.round(v).toLocaleString()
+    : (Math.round(v * 100) / 100).toLocaleString(undefined, { maximumFractionDigits: 2 });
 
   // 自己测量图表容器尺寸，避免 ResponsiveContainer 在 StrictMode 下的初次挂载 bug
   const [chartContainerRef, chartSize] = useContainerSize();
@@ -1356,7 +1483,7 @@ const ScoringDashboard = () => {
                 <div className="rounded-[14px] border p-3.5 mb-2" style={{ borderColor: "var(--line)", background: "var(--bg-2)" }}>
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-[12px] font-semibold" style={{ color: "var(--fg-0)" }}>{t("价格走势")} · {chartRange}</span>
-                    <button onClick={() => setChartFullscreen(true)} className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold active:scale-95" style={{ background: "rgba(99,102,241,.12)", border: "1px solid rgba(99,102,241,.3)", color: "var(--indigo-2)" }}><Maximize2 size={11} />{t("全屏")}</button>
+                    <button onClick={openFullscreen} className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold active:scale-95" style={{ background: "rgba(99,102,241,.12)", border: "1px solid rgba(99,102,241,.3)", color: "var(--indigo-2)" }}><Maximize2 size={11} />{t("全屏")}</button>
                   </div>
                   <div style={{ height: 92 }}>
                     {chartData.length >= 2 ? (
@@ -2292,7 +2419,7 @@ const ScoringDashboard = () => {
                   <button onClick={() => setShowBenchmark(v => !v)} title={showBenchmark ? t('隐藏基准') : t('对比基准')} className={`px-1.5 py-0.5 rounded text-[9px] font-medium border transition-all active:scale-95 ${showBenchmark ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40' : 'bg-white/5 text-[#a0aec0] border-white/10 hover:bg-white/10'}`}>
                     {benchmarkLabel}
                   </button>
-                  <button onClick={() => setChartFullscreen(true)} title={t('全屏')} className="p-1 rounded text-[#a0aec0] hover:text-white hover:bg-white/10 transition-all active:scale-95">
+                  <button onClick={openFullscreen} title={t('全屏')} className="p-1 rounded text-[#a0aec0] hover:text-white hover:bg-white/10 transition-all active:scale-95">
                     <Maximize2 size={11} />
                   </button>
                 </div>
@@ -2333,7 +2460,7 @@ const ScoringDashboard = () => {
               )}
               <div
                 ref={chartContainerRef}
-                onClick={() => { if (chartData.length >= 2) setChartFullscreen(true); }}
+                onClick={() => { if (chartData.length >= 2) openFullscreen(); }}
                 title={t("点击放大 · K线 / 成交量 / 指标")}
                 className={`h-36 chart-glow relative group ${chartData.length >= 2 ? "cursor-pointer" : ""}`}
               >
@@ -2383,9 +2510,9 @@ const ScoringDashboard = () => {
                     <XAxis dataKey="m" tick={{ fontSize: 9, fill: "#667" }} axisLine={false} tickLine={false} minTickGap={28} interval="preserveStartEnd" />
                     <YAxis yAxisId="price" tick={{ fontSize: 10, fill: "#667" }} axisLine={false} tickLine={false} domain={["auto", "auto"]} width={(sel.currency === "KRW" || sel.currency === "JPY") ? 64 : 45}
                       tickFormatter={(v) => {
-                        // KRW/JPY 用千分位整数；其他保持原样
+                        // KRW/JPY 用千分位整数；其他取整到 2 位，避免浮点尾巴(与放大图一致)
                         if (sel.currency === "KRW" || sel.currency === "JPY") return Math.round(v).toLocaleString();
-                        return v;
+                        return (Math.round(v * 100) / 100).toLocaleString(undefined, { maximumFractionDigits: 2 });
                       }}
                     />
                     <YAxis yAxisId="pct" orientation="right" tick={{ fontSize: 9, fill: "#778" }} axisLine={false} tickLine={false} domain={["auto", "auto"]} width={52} tickFormatter={(v) => `${v > 0 ? "+" : ""}${v.toFixed(1)}%`} />
@@ -2407,7 +2534,7 @@ const ScoringDashboard = () => {
                                 <div className="text-sm font-bold font-mono text-white leading-tight">{cur}{Number(d.p).toFixed(2)}</div>
                               </div>
                               <div>
-                                <div className="text-[9px] text-[#778] uppercase">% Δ</div>
+                                <div className="text-[9px] text-[#778] uppercase">{t('区间')}</div>
                                 <div className={`text-sm font-bold font-mono leading-tight ${d.pct >= 0 ? 'text-up' : 'text-down'}`}>
                                   {sign(d.pct)}{Number(d.pct).toFixed(2)}%
                                 </div>
@@ -3289,6 +3416,14 @@ const ScoringDashboard = () => {
                 >{label}</button>
               ))}
             </div>
+            {/* 线性 / 对数 价格轴（长周期看复利更合理） */}
+            <div className="flex items-center gap-0.5 bg-white/5 rounded-lg p-0.5 border border-white/8">
+              {[["linear", t("线性")], ["log", t("对数")]].map(([v, l]) => (
+                <button key={v} onClick={() => setPriceScale(v)}
+                  className={`px-2.5 py-0.5 rounded text-[11px] font-medium transition-all active:scale-95 ${priceScale === v ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20" : "text-[#a0aec0] hover:text-white"}`}
+                >{l}</button>
+              ))}
+            </div>
             {chartType === "candle" && !hasOHLC && (
               <span className="text-[10px] text-[#778] italic">{t("K线数据加载中，刷新后显示")}</span>
             )}
@@ -3315,10 +3450,68 @@ const ScoringDashboard = () => {
                 <button onClick={() => setActiveInd(new Set())} title={t("清除全部指标")} className="w-full px-0.5 py-1 rounded text-[9px] text-[#889] hover:text-white hover:bg-white/5 border-t border-white/8 mt-0.5 transition-colors">{t("清除")}</button>
               )}
             </div>
-            {/* 图表 */}
-            <div className="flex-1 min-h-0">
+            {/* 图表（relative 容纳常驻图例；onWheel 滚轮缩放 Brush 窗口，平移用底部 Brush 拖拽） */}
+            <div
+              className="flex-1 min-h-0 relative"
+              onWheel={(e) => {
+                const len = chartSeries.length;
+                if (len < 6) return;
+                let s = brushRange?.startIndex ?? 0, en = brushRange?.endIndex ?? len - 1;
+                const step = Math.max(1, Math.round((en - s) * 0.2));
+                const rect = e.currentTarget.getBoundingClientRect();
+                const frac = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+                if (e.deltaY < 0) { // 放大：两端向光标收拢
+                  const ns = Math.round(s + step * frac), ne = Math.round(en - step * (1 - frac));
+                  if (ne - ns >= 4) { s = ns; en = ne; }
+                } else {            // 缩小：两端外扩
+                  s = Math.round(s - step * frac); en = Math.round(en + step * (1 - frac));
+                }
+                s = Math.max(0, Math.min(s, len - 5));
+                en = Math.min(len - 1, Math.max(en, s + 4));
+                setBrushRange(s === 0 && en === len - 1 ? null : { startIndex: s, endIndex: en });
+              }}
+            >
+              {/* 常驻 OHLC + 指标图例（TradingView 式）：默认显示最新点，hover 时原地刷新成光标处读数 */}
+              {(() => {
+                const d = hoverPoint || lastPoint;
+                if (!d) return null;
+                const cur = currencySymbol(sel.currency);
+                const up = d.o != null ? d.p >= d.o : (d.chg ?? d.pct ?? 0) >= 0;
+                const upc = up ? "text-up" : "text-down";
+                const fmtVol = (v) => v == null ? "—" : v >= 1e9 ? `${(v / 1e9).toFixed(2)}B` : v >= 1e6 ? `${(v / 1e6).toFixed(2)}M` : v >= 1e3 ? `${(v / 1e3).toFixed(1)}K` : `${v}`;
+                const hasO = d.o != null && d.h > d.l;
+                return (
+                  <div className="absolute top-1 left-2 z-20 pointer-events-none select-none font-mono leading-tight">
+                    <div className="flex items-center gap-x-2 gap-y-0.5 flex-wrap text-[11px]">
+                      <span className="font-semibold text-white">{sel.ticker}</span>
+                      <span className="text-[#778]">{d.m}</span>
+                      {hasO ? [["开", d.o], ["高", d.h], ["低", d.l], ["收", d.p]].map(([k, val]) => (
+                        <span key={k} className="text-[#778]">{k}<span className={`ml-0.5 font-semibold ${upc}`}>{cur}{Number(val).toFixed(2)}</span></span>
+                      )) : <span className={`font-semibold ${upc}`}>{cur}{Number(d.p).toFixed(2)}</span>}
+                      {d.chg != null && <span className={`font-semibold ${d.chg >= 0 ? "text-up" : "text-down"}`}>{d.chg >= 0 ? "+" : ""}{d.chg.toFixed(2)}%</span>}
+                      {d.v > 0 && <span className="text-[#778]">{t('成交量')} <span className="text-white/80">{fmtVol(d.v)}</span></span>}
+                    </div>
+                    {activeIndList.length > 0 && (
+                      <div className="flex items-center gap-1.5 flex-wrap mt-0.5 text-[10px]">
+                        {activeIndList.map((ind) => {
+                          const val = ind.type === "boll" ? d.boll_mid : d[ind.key];
+                          return (
+                            <span key={ind.key} className="pointer-events-auto inline-flex items-center gap-1 px-1 rounded" style={{ color: ind.color, background: `${ind.color}14` }}>
+                              <span className="font-semibold">{ind.type === "boll" ? "BOLL" : ind.label}</span>
+                              <span>{val != null ? (Math.round(val * 100) / 100).toLocaleString() : "—"}</span>
+                              <button onClick={() => toggleInd(ind.key)} title={t('移除')} className="opacity-60 hover:opacity-100 font-bold">×</button>
+                            </span>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             <ResponsiveContainer key={`chart-full-${sel.ticker}-${chartRange}-${chartData.length}`} width="100%" height="100%">
-              <ComposedChart data={chartSeries} margin={{ top: 8, right: 10, left: 0, bottom: 0 }}>
+              <ComposedChart data={chartSeries} margin={{ top: 8, right: 10, left: 0, bottom: 0 }}
+                onMouseMove={(st) => { const p = st?.activePayload?.[0]?.payload; setHoverPoint((prev) => (p ? (prev && prev.m === p.m ? prev : p) : prev)); }}
+                onMouseLeave={() => setHoverPoint(null)}>
                 <defs>
                   <linearGradient id="pgFull" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor={chartData.length >= 2 && chartData[chartData.length-1].p >= chartData[0].p ? "#8A2BE2" : "#FF6B6B"} stopOpacity={0.25} />
@@ -3330,15 +3523,16 @@ const ScoringDashboard = () => {
                   </linearGradient>
                 </defs>
                 <XAxis dataKey="m" tick={{ fontSize: 11, fill: "#a0aec0" }} axisLine={false} tickLine={false} minTickGap={40} interval="preserveStartEnd" />
-                <YAxis yAxisId="price" tick={{ fontSize: 11, fill: "#a0aec0" }} axisLine={false} tickLine={false} domain={hasVolume ? priceDomainTop : ["auto", "auto"]} ticks={priceTicks} width={(sel.currency === "KRW" || sel.currency === "JPY") ? 80 : 60}
-                  tickFormatter={(v) => {
-                    // 取整，避免上压域产生 17.252000…01 这种浮点尾巴
-                    if (sel.currency === "KRW" || sel.currency === "JPY") return Math.round(v).toLocaleString();
-                    return (Math.round(v * 100) / 100).toLocaleString(undefined, { maximumFractionDigits: 2 });
-                  }}
+                <YAxis yAxisId="price" tick={{ fontSize: 11, fill: "#a0aec0" }} axisLine={false} tickLine={false}
+                  domain={priceDomainFinal} ticks={priceTicksFinal} scale={isLogScale ? "log" : "auto"} allowDataOverflow={isLogScale}
+                  width={(sel.currency === "KRW" || sel.currency === "JPY") ? 80 : 60}
+                  tickFormatter={priceAxisFmt}
                 />
                 <YAxis yAxisId="pct" orientation="right" tick={{ fontSize: 10, fill: "#a0aec0" }} axisLine={false} tickLine={false} domain={hasVolume ? pctDomainTop : ["auto", "auto"]} ticks={pctTicks} width={60} tickFormatter={(v) => `${v > 0 ? "+" : ""}${v.toFixed(1)}%`} />
+                {/* 细网格：只在真实数据区(顶部)出现，因刻度仅落在真实区间，不会穿过底部成交量区 */}
+                <CartesianGrid stroke="rgba(255,255,255,0.05)" strokeDasharray="0" vertical={false} />
                 <ReferenceLine yAxisId="pct" y={0} stroke="rgba(255,255,255,0.1)" strokeDasharray="4 3" />
+                {/* 最新价标线 + 价签：用 Customized 自绘（见下方 LastPriceLayer），避开 ReferenceLine 函数 label 的不确定性 */}
                 <Tooltip
                   cursor={{ stroke: 'rgba(255,255,255,0.25)', strokeWidth: 1, strokeDasharray: '3 3' }}
                   content={({ active, payload, label }) => {
@@ -3410,8 +3604,14 @@ const ScoringDashboard = () => {
                 ])}
                 <Line yAxisId="pct" type="monotone" dataKey="pct" stroke="transparent" dot={false} activeDot={false} />
                 {showBenchmark && <Line yAxisId="pct" type="monotone" dataKey="bpct" stroke="#94a3b8" strokeWidth={2} strokeDasharray="5 4" dot={false} activeDot={{ r: 4, fill: "#cbd5e1", stroke: "#94a3b8", strokeWidth: 2 }} />}
-                {/* 拖拽缩放/平移：底部 Brush 缩略轴，面板用干净的 p 面积线做 panorama */}
-                <Brush dataKey="m" height={24} stroke="#6366f1" fill="rgba(99,102,241,0.04)" travellerWidth={8} tickFormatter={() => ""}>
+                {/* 最新价标线 + 左侧价签（按涨跌着色） */}
+                {lastClose != null && <Customized component={(p) => <LastPriceLayer {...p} price={lastClose} up={lastUp} priceFmt={priceAxisFmt} />} />}
+                {/* 十字光标轴标签（价格/日期药丸 + 横向参考线）；画在最上层 */}
+                <Customized component={(p) => <CrosshairLayer {...p} point={hoverPoint} priceFmt={priceAxisFmt} />} />
+                {/* 缩放/平移：滚轮缩放(上方 onWheel) + 底部 Brush 拖拽平移；受控 startIndex/endIndex */}
+                <Brush dataKey="m" height={24} stroke="#6366f1" fill="rgba(99,102,241,0.04)" travellerWidth={8} tickFormatter={() => ""}
+                  startIndex={brushRange?.startIndex} endIndex={brushRange?.endIndex}
+                  onChange={(r) => { if (r && r.startIndex != null && r.endIndex != null) setBrushRange({ startIndex: r.startIndex, endIndex: r.endIndex }); }}>
                   <AreaChart>
                     <YAxis hide domain={["auto", "auto"]} />
                     <Area dataKey="p" stroke="#6366f1" fill="rgba(99,102,241,0.18)" dot={false} isAnimationActive={false} />
