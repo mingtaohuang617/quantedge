@@ -3349,14 +3349,14 @@ const ScoringDashboard = () => {
                     const fmtVol = (v) => v == null ? "—" : v >= 1e9 ? `${(v / 1e9).toFixed(2)}B` : v >= 1e6 ? `${(v / 1e6).toFixed(2)}M` : v >= 1e3 ? `${(v / 1e3).toFixed(1)}K` : `${v}`;
                     const upDay = d.o != null ? d.p >= d.o : d.pct >= 0;
                     return (
-                      <div className="glass-card border border-indigo-500/40 shadow-2xl px-2.5 py-2 tabular-nums" style={{ minWidth: 190 }}>
+                      <div className="glass-card border border-indigo-500/40 shadow-2xl px-2.5 py-2 tabular-nums" style={{ minWidth: 210 }}>
                         <div className="text-[9px] text-[#778] uppercase tracking-wider mb-1 font-mono">{label}</div>
                         {d.o != null && d.h > d.l && (
-                          <div className="grid grid-cols-4 gap-x-2 mb-1.5 pb-1.5 border-b border-white/10 font-mono">
-                            {[["O", d.o], ["H", d.h], ["L", d.l], ["C", d.p]].map(([k, val]) => (
-                              <div key={k}>
-                                <div className="text-[8px] text-[#778]">{k}</div>
-                                <div className={`text-[10px] font-semibold leading-tight ${upDay ? "text-up" : "text-down"}`}>{Number(val).toFixed(2)}</div>
+                          <div className="grid grid-cols-2 gap-x-3 gap-y-1 mb-1.5 pb-1.5 border-b border-white/10 font-mono">
+                            {[[t("开盘"), d.o], [t("最高"), d.h], [t("最低"), d.l], [t("收盘"), d.p]].map(([k, val]) => (
+                              <div key={k} className="flex items-baseline justify-between gap-2">
+                                <span className="text-[9px] text-[#778] shrink-0">{k}</span>
+                                <span className={`text-[11px] font-semibold leading-tight ${upDay ? "text-up" : "text-down"}`}>{Number(val).toFixed(2)}</span>
                               </div>
                             ))}
                           </div>
