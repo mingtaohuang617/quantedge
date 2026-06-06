@@ -555,6 +555,12 @@ const RANGE_CONFIG = {
   "1Y": { range: "1y",  interval: "1d" },
   "5Y": { range: "5y",  interval: "1wk" },
   "ALL": { range: "max", interval: "1mo" },
+  // K 线周期（每根 K 的跨度）：月线/季线/年线。
+  // Yahoo 的 interval=3mo 不被支持（会退化回月度），所以季线/年线统一拉月度，
+  // 再靠「同标签合并」把月聚合成季/年（formatDateKey 返回季/年标签）。
+  "MONK":  { range: "max", interval: "1mo" },  // 月线
+  "QUARK": { range: "max", interval: "1mo" },  // 季线（月→季合并）
+  "YEARK": { range: "max", interval: "1mo" },  // 年线（月→年合并）
 };
 
 // ─── 日期格式化工具 ──────────────────────────────────────
@@ -567,7 +573,12 @@ function formatDateKey(timestamp, rangeKey) {
       return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
     case "5Y":
     case "ALL":
+    case "MONK":   // 月线
       return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}`;
+    case "QUARK":  // 季线：标签到季度 → 同季的月份点合并成一根季 K
+      return `${d.getFullYear()}Q${Math.floor(d.getMonth() / 3) + 1}`;
+    case "YEARK":  // 年线：标签只到年 → 同年的月份点合并成一根年 K
+      return `${d.getFullYear()}`;
     default: // 1M, 6M, YTD, 1Y
       return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
   }
