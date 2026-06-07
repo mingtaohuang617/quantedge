@@ -258,3 +258,45 @@ def fetch_hk_fundamentals(yf_symbol: str) -> dict:
     out["profit_margin"] = round(pm * 100, 1) if pm is not None else None
 
     return out
+
+
+def fetch_fundamentals_enrich(yf_symbol: str) -> dict:
+    """data.js 富化用：一次 .info 取齐 估值/质量/成长 + 行业分类字段。
+
+    用于给 A股/港股回补 yf.info 基本面（与美股同源同口径）。返回 dict（缺失置 None），
+    单位严格对齐 data.js（个股口径）：
+      - pe:            trailingPE，round 2
+      - pb:            priceToBook，round 2（比率，无单位）
+      - roe:           returnOnEquity ×100，round 1（百分比，如 31.2）
+      - profit_margin: profitMargins ×100，round 1（百分比）
+      - revenue_growth:revenueGrowth ×100，round 1（百分比）
+      - market_cap:    marketCap（原值，本币）
+      - sector:        .info sector（英文大类，如 'Consumer Defensive'）
+      - industry:      .info industry（英文细类，如 'Banks - Diversified'）
+    .info 失败指数退避重试；全部失败返回全 None（不抛错，让上游跳过保原值）。
+    """
+    out = {"pe": None, "pb": None, "roe": None, "profit_margin": None,
+           "revenue_growth": None, "market_cap": None, "sector": None, "industry": None}
+    if not yf_symbol:
+        return out
+    try:
+        info = _with_retry(_do_fetch_fundamentals_info, yf_symbol)
+    except Exception:
+        return out
+
+    pe = _coerce_float(info.get("trailingPE"))
+    out["pe"] = round(pe, 2) if pe else None
+    pb = _coerce_float(info.get("priceToBook"))
+    out["pb"] = round(pb, 2) if pb else None
+    roe = _coerce_float(info.get("returnOnEquity"))
+    out["roe"] = round(roe * 100, 1) if roe is not None else None
+    pm = _coerce_float(info.get("profitMargins"))
+    out["profit_margin"] = round(pm * 100, 1) if pm is not None else None
+    rg = _coerce_float(info.get("revenueGrowth"))
+    out["revenue_growth"] = round(rg * 100, 1) if rg is not None else None
+    out["market_cap"] = _coerce_float(info.get("marketCap"))
+    sec = info.get("sector")
+    out["sector"] = str(sec).strip() if sec else None
+    ind = info.get("industry")
+    out["industry"] = str(ind).strip() if ind else None
+    return out
