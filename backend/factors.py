@@ -186,6 +186,33 @@ def parse_leverage(leverage) -> float | None:
     return val
 
 
+def parse_aum_to_usd(aum) -> float | None:
+    """把 AUM 字段解析为数值（美元口径）：'21.0B'→21e9、'728M'→728e6、'907412'→907412。
+
+    - 数值直接返回 float
+    - 带 B/M/K 后缀的字符串按量级展开
+    - 纯数字字符串直接转 float
+    - 空 / 无法解析 → None
+    注意：不做汇率换算（HK ETF 的 HKD AUM 按面值解析）——P0 临时口径，P2 重构时按币种归一。
+    """
+    if aum in (None, "", "None"):
+        return None
+    if isinstance(aum, (int, float)):
+        return float(aum)
+    s = str(aum).strip().upper().replace(",", "")
+    mult = 1.0
+    if s.endswith("B"):
+        mult, s = 1e9, s[:-1]
+    elif s.endswith("M"):
+        mult, s = 1e6, s[:-1]
+    elif s.endswith("K"):
+        mult, s = 1e3, s[:-1]
+    try:
+        return float(s) * mult
+    except ValueError:
+        return None
+
+
 def calc_leverage_decay(prices: pd.Series, leverage) -> float | None:
     """
     估算杠杆 ETF 的年化波动磨损率（vol drag）
