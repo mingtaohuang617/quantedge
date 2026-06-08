@@ -28,7 +28,8 @@
      中性色给 v6 hex；强调色别名指向 --accent-*（含 OKLCH 感知均匀），单一来源、深浅主题自动切换 */
   --bg-0: #08090E; --bg-1: #0D0F16; --bg-2: #13151E; --bg-3: #1A1D29;
   --line: #1F2230; --line-2: #2C3043;
-  --fg-0: #F5F6FA; --fg-1: #C9CDDA; --fg-2: #878BA0; --fg-3: #5A5E76; --fg-4: #3A3E54;
+  /* --fg-3 = 弱化文字 token（=--text-muted / --sem-neutral）。v7 a11y：#5A5E76(~2.9:1) → #767C92(~4.75:1) 过 WCAG AA，仍保持弱化层级 */
+  --fg-0: #F5F6FA; --fg-1: #C9CDDA; --fg-2: #878BA0; --fg-3: #767C92; --fg-4: #3A3E54;
   --indigo-2: #818CF8; --rose: #F472B6;
   --up: var(--accent-up); --down: var(--accent-down); --warn: var(--accent-amber);
   --cyan: var(--accent-cyan); --indigo: var(--accent-indigo); --violet: var(--accent-violet);
@@ -268,6 +269,10 @@
 .light .text-\[\#777\] { color: var(--text-muted) !important; }
 .light .text-\[\#667\],
 .light .text-\[\#556\] { color: var(--text-dim) !important; }
+/* v7 a11y（深色默认主题）：把最暗的硬编码弱灰文字 #5a6477/#667 提亮到 AA 合规的 --fg-3（#767C92 ~4.75:1）。
+   light 主题由上方更高优先级的 .light 规则覆盖，不受影响。 */
+.text-\[\#5a6477\],
+.text-\[\#667\] { color: var(--fg-3) !important; }
 .light .hover\:text-white:hover { color: var(--text-heading) !important; }
 .light .hover\:text-\[\#a0aec0\]:hover { color: var(--text-secondary) !important; }
 .light .placeholder-\[\#667\]::placeholder,
