@@ -39,20 +39,31 @@ import {
 import useIsMobile from "../hooks/useIsMobile";
 import { BottomSheet, ThumbActionBar, MobileAppBar, FullscreenChart, Segmented } from "../components/mobile";
 
-// C16: 按工作区读取评分权重（localStorage key: quantedge_weights_<wsId>）
-const DEFAULT_WEIGHTS = { fundamental: 40, technical: 30, growth: 30 };
+// P3 双轨权重：质量/时机两档（localStorage key: quantedge_weights_<wsId>）
+// 综合分 = 质量分 × quality% + 时机分 × timing%（对齐后端 COMPOSITE 0.6/0.4）
+const DEFAULT_WEIGHTS = { quality: 60, timing: 40 };
 function loadWeights(wsId) {
   try {
     const raw = localStorage.getItem(`quantedge_weights_${wsId || 'default'}`);
     if (raw) {
       const w = JSON.parse(raw);
-      if (typeof w?.fundamental === 'number' && typeof w?.technical === 'number' && typeof w?.growth === 'number') {
+      if (typeof w?.quality === 'number' && typeof w?.timing === 'number') {
         return w;
       }
     }
-  } catch { /* 静默回退 */ }
+  } catch { /* 静默回退（含旧三轴格式自动迁移到默认） */ }
   return { ...DEFAULT_WEIGHTS };
 }
+
+// ── P3 双轨维度元数据 ──────────────────────────────────────────
+// 质量轨：个股 估值/盈利/成长；ETF 成本/流动性/分散。时机轨（通用）：动量/趋势/RSI。
+const SUB_LABELS = {
+  valuation: '估值', profitability: '盈利', growth: '成长',
+  cost: '成本', liquidity: '流动性', diversification: '分散',
+  momentum: '动量', trend: '趋势', rsi: 'RSI',
+};
+const TIMING_KEYS = ['momentum', 'trend', 'rsi'];
+const qualityKeys = (isETF) => (isETF ? ['cost', 'liquidity', 'diversification'] : ['valuation', 'profitability', 'growth']);
 
 // ─── 移动端：评分环 + 要素条（v6 全屏个股卡用）──────────────
 function ScoreRing({ score = 0, size = 76 }) {
@@ -716,22 +727,16 @@ const ScoringDashboard = () => {
   }, [fetchIndices]);
   const { stocks: ctxStocks, setStocks: ctxSetStocks, addTicker, removeTicker, apiOnline, standalone, quickPriceRefresh } = useData() || {};
 
-  // C16: 重新评分 — 按权重对个股 subScores 加权（ETF 保持后端原分）。返回变更标的数。
+  // P3 双轨：综合分 = 质量分 × wQ + 时机分 × wT。个股与 ETF 都有 qualityScore/timingScore，
+  // 故统一重算（不再像旧三轴那样把 ETF 排除）。返回变更标的数。
   const applyWeights = useCallback((w) => {
-    const tw = (w?.fundamental || 0) + (w?.technical || 0) + (w?.growth || 0);
+    const tw = (w?.quality || 0) + (w?.timing || 0);
     if (tw === 0 || !ctxSetStocks) return 0;
-    const wf = w.fundamental / tw, wt = w.technical / tw, wg = w.growth / tw;
+    const wq = w.quality / tw, wt = w.timing / tw;
     let n = 0;
     ctxSetStocks(prev => prev.map(s => {
-      // ETF 用后端四维专属评分，与个股三维权重无关，保持不动
-      // P2 双轨引擎：新 subScores 无 fundamental/technical（改为 valuation/profitability/
-      // momentum/trend…），此处旧三维加权已不适用 → 保留后端综合分，不再客户端重算。
-      // （权重 UI 的双轨化在 P3 处理；缺此守卫会把个股分误算成 growth×0.3）
-      if (!s.subScores || s.isETF || s.subScores.fundamental == null) return s;
-      const f = s.subScores.fundamental ?? 0;
-      const tch = s.subScores.technical ?? 0;
-      const g = s.subScores.growth ?? 0;
-      const newScore = Math.round((f * wf + tch * wt + g * wg) * 10) / 10;
+      if (s.qualityScore == null || s.timingScore == null) return s;
+      const newScore = Math.round((s.qualityScore * wq + s.timingScore * wt) * 10) / 10;
       if (newScore === s.score) return s;
       n++;
       return { ...s, score: newScore };
@@ -1271,25 +1276,17 @@ const ScoringDashboard = () => {
     // v5.3：最佳同行（同业评分最高者）— 给三要素卡一个具体参照锚点（"对比 AVGO 74.9"）
     const best = peers.reduce((b, s) => (s.score != null && Number.isFinite(s.score) && (b == null || s.score > b.score)) ? s : b, null);
     const topPeer = best ? { ticker: best.ticker, score: best.score } : null;
-    if (sel.isETF) {
-      return {
-        cost: median(peers.map(s => s.subScores?.cost)),
-        liquidity: median(peers.map(s => s.subScores?.liquidity)),
-        momentum: median(peers.map(s => s.subScores?.momentum)),
-        risk: median(peers.map(s => s.subScores?.risk)),
-        score: median(peers.map(s => s.score)),
-        peerCount: peers.length,
-        topPeer,
-      };
-    }
-    return {
-      fundamental: median(peers.map(s => s.subScores?.fundamental)),
-      technical: median(peers.map(s => s.subScores?.technical)),
-      growth: median(peers.map(s => s.subScores?.growth)),
+    // P3 双轨：同行中位覆盖 质量/时机 综合 + 各 6 维（个股/ETF 自适应键集）
+    const subKeys = [...qualityKeys(sel.isETF), ...TIMING_KEYS];
+    const med = {
       score: median(peers.map(s => s.score)),    // PDF1 评分锚点：详情头部 vs 行业中位
+      quality: median(peers.map(s => s.qualityScore)),
+      timing: median(peers.map(s => s.timingScore)),
       peerCount: peers.length,
       topPeer,
     };
+    for (const k of subKeys) med[k] = median(peers.map(s => s.subScores?.[k]));
+    return med;
   }, [sel, liveStocks]);
 
   const radar = sel ? (sel.isETF ? [
@@ -1383,10 +1380,9 @@ const ScoringDashboard = () => {
     const setSeg = (v) => { if (v === "ETF") { setTypeFilter("ETF"); setMkt("ALL"); } else { setTypeFilter("ALL"); setMkt(v); } };
     const nFilters = (mkt !== "ALL" ? 1 : 0) + (typeFilter !== "ALL" ? 1 : 0) + (showFavOnly ? 1 : 0) + (sortBy !== "score" ? 1 : 0);
     const isFav = sel ? favorites.has(sel.ticker) : false;
-    const pillars = sel?.subScores ? [
-      { name: t("基本面"), v: sel.subScores.fundamental, w: weights.fundamental, c: "#818CF8", hl: "PE / ROE / 利润率" },
-      { name: t("技术面"), v: sel.subScores.technical, w: weights.technical, c: "#F5B53C", hl: "RSI / 均线 / 动量" },
-      { name: t("成长性"), v: sel.subScores.growth, w: weights.growth, c: "#1ED395", hl: "营收 / 盈利增速" },
+    const pillars = sel?.qualityScore != null ? [
+      { name: t("质量分"), v: sel.qualityScore, w: weights.quality, c: "#818CF8", hl: sel.isETF ? "成本 / 流动性 / 分散" : "估值 / 盈利 / 成长" },
+      { name: t("时机分"), v: sel.timingScore, w: weights.timing, c: "#F5B53C", hl: "动量 / 趋势 / RSI" },
     ] : [];
     let tStart = null;
     const onTS = (e) => { const p = e.touches[0]; tStart = { x: p.clientX, y: p.clientY }; };
@@ -1723,9 +1719,9 @@ const ScoringDashboard = () => {
             <div className="mb-2"><MiniSparkline data={get5DSparkData(pk)} w={224} h={34} /></div>
             {ss ? (
               <div className="space-y-1">
-                {[['基本面', ss.fundamental], ['技术面', ss.technical], ['成长性', ss.growth]].map(([lbl, v]) => (
+                {[[t('质量'), pk.qualityScore], [t('时机'), pk.timingScore]].map(([lbl, v]) => (
                   <div key={lbl} className="flex items-center gap-2">
-                    <span className="text-[9px] text-[#a0aec0] w-10 shrink-0">{t(lbl)}</span>
+                    <span className="text-[9px] text-[#a0aec0] w-10 shrink-0">{lbl}</span>
                     <div className="flex-1 h-1 rounded-full bg-white/5 overflow-hidden">
                       <div className="h-full rounded-full" style={{ width: `${Math.max(0, Math.min(100, v || 0))}%`, background: 'var(--brand-gradient)' }} />
                     </div>
@@ -1734,7 +1730,7 @@ const ScoringDashboard = () => {
                 ))}
               </div>
             ) : (
-              <div className="text-[10px] text-[#667]">{t('ETF · 无分项评分')}</div>
+              <div className="text-[10px] text-[#667]">{t('暂无分项评分')}</div>
             )}
             <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-white/8 text-[9px] text-[#778]">
               <kbd className="px-1 rounded bg-white/5 border border-white/10 font-mono">W</kbd><span>{t('自选')}</span>
@@ -1959,25 +1955,20 @@ const ScoringDashboard = () => {
         {showW && (
           <div className="glass-card p-3 space-y-3 animate-slide-up">
             <div className="flex items-center justify-between">
-              <div className="text-xs font-medium" style={{ color: "var(--text-heading)" }}>{t('因子权重配置')}</div>
-              <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded-md ${
-                (weights.fundamental + weights.technical + weights.growth) === 100
-                  ? "bg-up/10 text-up border border-up/20"
-                  : "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-              }`}>
-                {t('合计')} {weights.fundamental + weights.technical + weights.growth}%
+              <div className="text-xs font-medium" style={{ color: "var(--text-heading)" }}>{t('双轨权重配置')}</div>
+              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-md bg-up/10 text-up border border-up/20">
+                {t('质量')} {weights.quality}% · {t('时机')} {weights.timing}%
               </span>
             </div>
             {/* 策略预设 */}
             <div className="flex items-center gap-1 flex-wrap">
               <span className="text-[9px] text-[#778] mr-1">{t('预设')}</span>
               {[
-                [t('均衡'), { fundamental: 40, technical: 30, growth: 30 }],
-                [t('价值'), { fundamental: 60, technical: 25, growth: 15 }],
-                [t('成长'), { fundamental: 25, technical: 35, growth: 40 }],
-                [t('动量'), { fundamental: 15, technical: 55, growth: 30 }],
+                [t('持有视角'), { quality: 70, timing: 30 }],
+                [t('均衡'), { quality: 60, timing: 40 }],
+                [t('交易视角'), { quality: 30, timing: 70 }],
               ].map(([label, preset]) => {
-                const isActive = weights.fundamental === preset.fundamental && weights.technical === preset.technical && weights.growth === preset.growth;
+                const isActive = weights.quality === preset.quality && weights.timing === preset.timing;
                 return (
                   <button key={label} onClick={() => setWeights(preset)} className={`px-2 py-0.5 rounded-md text-[10px] font-medium transition-all active:scale-95 ${isActive ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40' : 'bg-white/5 text-[#a0aec0] border border-white/10 hover:bg-white/10'}`}>
                     {label}
@@ -1985,53 +1976,39 @@ const ScoringDashboard = () => {
                 );
               })}
             </div>
-            {[
-              ["fundamental", t("基本面"), "#6366f1", t("PE⁻¹ + ROE + EPS质量")],
-              ["technical", t("技术面"), "#06b6d4", t("RSI均值回归 + 动量 + β风险")],
-              ["growth", t("成长性"), "#1ED395", t("营收增速 + 利润率扩张")],
-            ].map(([k, label, color, desc]) => {
-              const v = weights[k];
-              return (
-                <div key={k} className="space-y-1">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full" style={{ background: color }} />
-                      <span className="text-[11px] font-medium" style={{ color: "var(--text-heading)" }}>{label}</span>
-                      <span className="text-[9px]" style={{ color: "var(--text-muted)" }}>{desc}</span>
-                    </div>
-                    <span className="text-[11px] font-mono font-bold tabular-nums" style={{ color }}>{v}%</span>
-                  </div>
-                  <div className="relative h-6 flex items-center group">
-                    {/* Track background */}
-                    <div className="absolute inset-x-0 h-1.5 rounded-full" style={{ background: "var(--bg-muted)" }} />
-                    {/* Active fill */}
-                    <div className="absolute left-0 h-1.5 rounded-full transition-all duration-150" style={{ width: `${v}%`, background: `linear-gradient(90deg, ${color}66, ${color})` }} />
-                    {/* Tick marks */}
-                    <div className="absolute inset-x-0 h-1.5 flex items-center pointer-events-none">
-                      {[0, 25, 50, 75, 100].map(tick => (
-                        <div key={tick} className="absolute w-px h-2.5" style={{ left: `${tick}%`, background: "var(--border-strong)", opacity: 0.3 }} />
-                      ))}
-                    </div>
-                    {/* Range input */}
-                    <input
-                      type="range" min="0" max="100" value={v}
-                      onChange={e => setWeights(p => ({ ...p, [k]: +e.target.value }))}
-                      className="weight-slider absolute inset-0 w-full appearance-none bg-transparent cursor-pointer z-10"
-                      style={{ "--slider-color": color }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-            {/* 作用范围说明：滑块只作用于个股，ETF 独立评分 */}
+            {/* 质量 ↔ 时机 单滑块：拖动改变两者占比（恒和 100） */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-[11px] font-medium">
+                <span className="flex items-center gap-1" style={{ color: "#818CF8" }}>
+                  <span className="w-2 h-2 rounded-full" style={{ background: "#818CF8" }} />{t('质量分')} {weights.quality}%
+                </span>
+                <span className="flex items-center gap-1" style={{ color: "#F5B53C" }}>
+                  {t('时机分')} {weights.timing}%<span className="w-2 h-2 rounded-full" style={{ background: "#F5B53C" }} />
+                </span>
+              </div>
+              <div className="relative h-6 flex items-center">
+                <div className="absolute inset-x-0 h-1.5 rounded-full" style={{ background: "linear-gradient(90deg, #818CF8, #F5B53C)" }} />
+                <input
+                  type="range" min="0" max="100" step="5" value={weights.quality}
+                  onChange={e => { const q = +e.target.value; setWeights({ quality: q, timing: 100 - q }); }}
+                  className="weight-slider absolute inset-0 w-full appearance-none bg-transparent cursor-pointer z-10"
+                  style={{ "--slider-color": "#cbd5e1" }}
+                />
+              </div>
+              <div className="flex items-center justify-between text-[9px]" style={{ color: "var(--text-muted)" }}>
+                <span>← {t('持有视角')}</span>
+                <span>{t('交易视角')} →</span>
+              </div>
+            </div>
+            {/* 公式说明 */}
             <div className="text-[9px] leading-relaxed px-2 py-1.5 rounded-md flex items-start gap-1.5" style={{ background: "var(--bg-muted)", color: "var(--text-muted)" }}>
               <Info size={11} className="shrink-0 mt-px opacity-70" />
-              <span>{t('权重仅作用于个股；ETF 按 成本/流动性/动量/风险 单独评分，不受此处影响')}</span>
+              <span>{t('综合分 = 质量分 × 质量权重 + 时机分 × 时机权重；个股与 ETF 同此公式')}</span>
             </div>
             {/* 确认应用按钮 */}
             <button
               onClick={() => {
-                // ETF 保持后端原分；三维滑块只作用于个股（详见 applyWeights）
+                // 双轨：质量×wQ + 时机×wT，对个股与 ETF 统一重算（详见 applyWeights）
                 const n = applyWeights(weights);
                 setWeightToast({ n });
                 setTimeout(() => setWeightToast(cur => (cur && cur.n === n && !cur.ws ? null : cur)), 3200);
@@ -2049,7 +2026,7 @@ const ScoringDashboard = () => {
             <span>
               {weightToast.ws && <b className="font-semibold text-white/90">{weightToast.ws} · </b>}
               {weightToast.n > 0
-                ? t('已按新权重重算 {n} 只个股评分（ETF 独立评分不受影响）', { n: weightToast.n })
+                ? t('已按双轨权重重算 {n} 只标的评分', { n: weightToast.n })
                 : t('评分无变化：当前已是该权重')}
             </span>
           </div>
@@ -2341,11 +2318,11 @@ const ScoringDashboard = () => {
               {/* v5 编辑式：三大要素 pillar cards — 把评分归因从深埋的 hover tooltip 提升为主视图
                   顶部色条 + 32px 大数字 + 进度条 + 高亮指标 — 一眼 grok "为什么是 X 分"
                   仅非 ETF：ETF 用 cost/liquidity/momentum/risk 四维（已有深处归因卡覆盖） */}
-              {sel.subScores && !sel.isETF && typeof sel.subScores.fundamental === 'number' && (
+              {sel.qualityScore != null && (
                 <div className="mb-3">
                   <div className="flex items-baseline justify-between mb-1.5">
-                    <h3 className="text-[11px] font-medium text-white/90">{t('评分由三大要素构成')}</h3>
-                    {/* v5.3：给"79 分"一个坐标系 — 对比同业最佳 + 行业中位的绝对锚点 */}
+                    <h3 className="text-[11px] font-medium text-white/90">{t('双轨评分：质量 + 时机')}</h3>
+                    {/* 给综合分一个坐标系 — 对比同业最佳 + 行业中位的绝对锚点 */}
                     {sectorMedians?.score != null && (
                       <span className="text-[9px] text-[#778] font-mono">
                         {sectorMedians.topPeer?.score != null && (
@@ -2355,66 +2332,47 @@ const ScoringDashboard = () => {
                       </span>
                     )}
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <div className="grid grid-cols-2 gap-2">
                     {[
-                      {
-                        key: 'fundamental',
-                        label: t('基本面'),
-                        color: '#818cf8',
-                        value: sel.subScores.fundamental,
-                        weight: weights.fundamental,
-                        highlight: [
-                          sel.pe != null && sel.pe > 0 && `PE ${sel.pe.toFixed(1)}`,
-                          sel.roe != null && `ROE ${sel.roe.toFixed(1)}%`,
-                        ].filter(Boolean).join(' · ') || t('盈利质量'),
-                        sub: t('盈利质量与估值'),
-                      },
-                      {
-                        key: 'technical',
-                        label: t('技术面'),
-                        color: '#f5b53c',
-                        value: sel.subScores.technical,
-                        weight: weights.technical,
-                        highlight: [
-                          sel.rsi != null && `RSI ${typeof sel.rsi === 'number' ? sel.rsi.toFixed(1) : sel.rsi}`,
-                          sel.beta != null && `β ${sel.beta}`,
-                        ].filter(Boolean).join(' · ') || t('价格动能'),
-                        sub: t('价格动能与位置'),
-                      },
-                      {
-                        key: 'growth',
-                        label: t('成长性'),
-                        color: '#1ed395',
-                        value: sel.subScores.growth,
-                        weight: weights.growth,
-                        highlight: [
-                          sel.revenueGrowth != null && `${t('营收')} ${sel.revenueGrowth.toFixed(1)}%`,
-                          sel.profitMargin != null && `${t('利润率')} ${sel.profitMargin.toFixed(1)}%`,
-                        ].filter(Boolean).join(' · ') || t('未来增长曲线'),
-                        sub: t('未来增长曲线'),
-                      },
-                    ].map(p => {
-                      const v = Number.isFinite(p.value) ? p.value : 0;
+                      { key: 'quality', label: t('质量分'), color: '#818cf8', score: sel.qualityScore, weight: weights.quality, med: sectorMedians?.quality, dims: qualityKeys(sel.isETF), sub: sel.isETF ? t('费率·流动性·分散') : t('值不值得长期持有') },
+                      { key: 'timing', label: t('时机分'), color: '#f5b53c', score: sel.timingScore, weight: weights.timing, med: sectorMedians?.timing, dims: TIMING_KEYS, sub: t('现在是不是买点') },
+                    ].map(trk => {
+                      const sc = Number.isFinite(trk.score) ? trk.score : 0;
                       return (
                         <div
-                          key={p.key}
+                          key={trk.key}
                           className="pillar-card"
-                          style={{ '--pillar-color': p.color }}
-                          title={`${p.label} ${v.toFixed(1)} / 100 · ${t('权重')} ${p.weight}%`}
+                          style={{ '--pillar-color': trk.color }}
+                          title={`${trk.label} ${sc.toFixed(1)} / 100 · ${t('权重')} ${trk.weight}%`}
                         >
-                          <div className="flex items-baseline justify-between mb-2">
-                            <span className="text-[11px] font-semibold text-white">{p.label}</span>
-                            <span className="text-[9px] font-mono" style={{ color: p.color }}>{t('权重')} {p.weight}%</span>
+                          <div className="flex items-baseline justify-between mb-1.5">
+                            <span className="text-[11px] font-semibold text-white">{trk.label}</span>
+                            <span className="text-[9px] font-mono" style={{ color: trk.color }}>{t('权重')} {trk.weight}%</span>
                           </div>
-                          <div className="flex items-baseline gap-1 mb-2">
-                            <span className="pillar-card__num">{v.toFixed(0)}</span>
+                          <div className="flex items-baseline gap-1 mb-1.5">
+                            <span className="pillar-card__num">{sc.toFixed(0)}</span>
                             <span className="text-[9px] text-[#778] font-mono">/100</span>
+                            {trk.med != null && Number.isFinite(trk.score) && (
+                              <span className={`text-[9px] font-mono ml-1 ${sc >= trk.med ? 'text-up' : 'text-down'}`} title={t('vs 行业中位')}>
+                                {sc >= trk.med ? '▲' : '▼'} {Math.abs(sc - trk.med).toFixed(0)}
+                              </span>
+                            )}
                           </div>
-                          <div className="pillar-card__bar mb-2">
-                            <div className="pillar-card__bar-fill" style={{ width: `${Math.max(2, Math.min(100, v))}%` }} />
+                          <div className="space-y-1">
+                            {trk.dims.map(k => {
+                              const dv = Number.isFinite(sel.subScores?.[k]) ? sel.subScores[k] : null;
+                              return (
+                                <div key={k} className="flex items-center gap-1.5">
+                                  <span className="text-[9px] text-[#a0aec0] w-8 shrink-0">{t(SUB_LABELS[k] || k)}</span>
+                                  <div className="flex-1 h-1 rounded-full bg-white/5 overflow-hidden">
+                                    <div className="h-full rounded-full" style={{ width: `${Math.max(0, Math.min(100, dv || 0))}%`, background: trk.color }} />
+                                  </div>
+                                  <span className="text-[9px] font-mono text-white/90 w-6 text-right">{dv != null ? Math.round(dv) : '—'}</span>
+                                </div>
+                              );
+                            })}
                           </div>
-                          <div className="text-[11px] text-white/90 font-medium leading-tight">{p.highlight}</div>
-                          <div className="text-[10px] text-[#778] mt-0.5">{p.sub}</div>
+                          <div className="text-[9px] text-[#778] mt-1.5">{trk.sub}</div>
                         </div>
                       );
                     })}
@@ -2688,7 +2646,7 @@ const ScoringDashboard = () => {
                       <div className="text-[9px] text-indigo-300 uppercase tracking-wider mb-1.5 font-medium">{t('分数构成')}</div>
                       <div className="space-y-1">
                         {Object.entries(sel.subScores).map(([k, v]) => {
-                          const labelMap = { fundamental: t('基本面'), technical: t('技术面'), growth: t('成长性'), cost: t('成本'), liquidity: t('流动性'), momentum: t('动量'), risk: t('风险') };
+                          const labelMap = { valuation: t('估值'), profitability: t('盈利'), growth: t('成长'), cost: t('成本'), liquidity: t('流动性'), diversification: t('分散'), momentum: t('动量'), trend: t('趋势'), rsi: 'RSI' };
                           const label = labelMap[k] || k;
                           const pct = Math.max(0, Math.min(100, Number(v) || 0));
                           // 用 CSS 语义 token（之前硬编码 Tailwind 默认 hex 绕过了项目调色板）
@@ -2921,7 +2879,7 @@ const ScoringDashboard = () => {
                     </div>
                     <div className="space-y-2.5">
                       {(sel.isETF ? [
-                        [t("成本效率"), sel.subScores.cost, "indigo", sectorMedians?.cost,
+                        [t("成本"), sel.subScores.cost, "indigo", sectorMedians?.cost,
                           [
                             sel.expenseRatio != null && [t('费率'), `${sel.expenseRatio}%`],
                           ].filter(Boolean)],
@@ -2930,42 +2888,49 @@ const ScoringDashboard = () => {
                             sel.aum && ['AUM', sel.aum],
                             sel.adv && [t('日均'), sel.adv],
                           ].filter(Boolean)],
-                        [t("动量趋势"), sel.subScores.momentum, "cyan", sectorMedians?.momentum,
-                          [
-                            sel.momentum != null && [t('动量'), sel.momentum],
-                          ].filter(Boolean)],
-                        [t("风险分散"), sel.subScores.risk, "amber", sectorMedians?.risk,
+                        [t("分散"), sel.subScores.diversification, "amber", sectorMedians?.diversification,
                           [
                             sel.concentrationTop3 != null && ['Top3', `${sel.concentrationTop3}%`],
                           ].filter(Boolean)],
+                        [t("动量"), sel.subScores.momentum, "cyan", sectorMedians?.momentum,
+                          [
+                            sel.momentum != null && [t('动量'), sel.momentum],
+                          ].filter(Boolean)],
+                        [t("趋势"), sel.subScores.trend, "up", sectorMedians?.trend, []],
+                        ["RSI", sel.subScores.rsi, "violet", sectorMedians?.rsi,
+                          [
+                            sel.rsi != null && ['RSI', typeof sel.rsi === 'number' ? sel.rsi.toFixed(0) : sel.rsi],
+                          ].filter(Boolean)],
                       ] : [
-                        [t("基本面"), sel.subScores.fundamental, "indigo", sectorMedians?.fundamental,
+                        [t("估值"), sel.subScores.valuation, "indigo", sectorMedians?.valuation,
                           [
                             sel.pe != null && sel.pe > 0 && ['PE', sel.pe.toFixed(1)],
-                            sel.roe != null && ['ROE', `${sel.roe.toFixed(1)}%`],
+                            sel.pb != null && ['PB', sel.pb.toFixed(2)],
                           ].filter(Boolean)],
-                        [t("技术面"), sel.subScores.technical, "cyan", sectorMedians?.technical,
+                        [t("盈利"), sel.subScores.profitability, "violet", sectorMedians?.profitability,
                           [
-                            sel.rsi != null && ['RSI', sel.rsi],
-                            sel.beta != null && ['β', sel.beta],
+                            sel.roe != null && ['ROE', `${sel.roe.toFixed(1)}%`],
+                            sel.profitMargin != null && [t('利润率'), `${sel.profitMargin.toFixed(1)}%`],
                           ].filter(Boolean)],
-                        [t("成长性"), sel.subScores.growth, "up", sectorMedians?.growth,
+                        [t("成长"), sel.subScores.growth, "up", sectorMedians?.growth,
                           [
                             sel.revenueGrowth != null && [t('营收'), `${sel.revenueGrowth.toFixed(1)}%`],
-                            sel.profitMargin != null && [t('利润率'), `${sel.profitMargin.toFixed(1)}%`],
+                          ].filter(Boolean)],
+                        [t("动量"), sel.subScores.momentum, "cyan", sectorMedians?.momentum,
+                          [
+                            sel.momentum != null && [t('动量'), sel.momentum],
+                          ].filter(Boolean)],
+                        [t("趋势"), sel.subScores.trend, "amber", sectorMedians?.trend, []],
+                        ["RSI", sel.subScores.rsi, "violet", sectorMedians?.rsi,
+                          [
+                            sel.rsi != null && ['RSI', typeof sel.rsi === 'number' ? sel.rsi.toFixed(0) : sel.rsi],
                           ].filter(Boolean)],
                       ]).map(([label, value, colorKey, peerMed, subInds]) => {
                         const delta = peerMed != null && Number.isFinite(value) ? +(value - peerMed).toFixed(1) : null;
-                        // PDF1 评分归因：每维度贡献 = 分值 × 权重（仅非 ETF；ETF 用等权平均）
-                        const weightKey = sel.isETF ? null
-                          : (colorKey === 'indigo' ? 'fundamental'
-                          : colorKey === 'cyan' ? 'technical'
-                          : colorKey === 'up' ? 'growth' : null);
-                        const wPct = weightKey ? (weights[weightKey] || 0) : 0;
-                        const totalW = (weights.fundamental || 0) + (weights.technical || 0) + (weights.growth || 0);
-                        const contribution = !sel.isETF && weightKey && Number.isFinite(value) && totalW > 0
-                          ? (value * wPct / totalW)
-                          : null;
+                        // P3 双轨：综合分由 质量/时机 两轨加权得到，不再按单维度算贡献
+                        const weightKey = null;
+                        const wPct = 0;
+                        const contribution = null;
                         return (
                           <div key={label}>
                             <div className="flex items-center justify-between mb-0.5">
@@ -3172,9 +3137,8 @@ const ScoringDashboard = () => {
           const subCls = v => v == null ? "text-[#667]" : v >= 80 ? "text-up" : v >= 60 ? "text-[#c9cdda]" : "text-amber-400";
           const ROWS = [
             [t("评分"), s => ({ txt: s.score != null ? s.score.toFixed(0) : "—", cls: s.score >= 75 ? "text-up" : "text-indigo-300" }), "score"],
-            [t("基本面"), s => ({ txt: s.subScores?.fundamental != null ? Math.round(s.subScores.fundamental) : "—", cls: subCls(s.subScores?.fundamental) })],
-            [t("技术面"), s => ({ txt: s.subScores?.technical != null ? Math.round(s.subScores.technical) : "—", cls: subCls(s.subScores?.technical) })],
-            [t("成长性"), s => ({ txt: s.subScores?.growth != null ? Math.round(s.subScores.growth) : "—", cls: subCls(s.subScores?.growth) })],
+            [t("质量"), s => ({ txt: s.qualityScore != null ? Math.round(s.qualityScore) : "—", cls: subCls(s.qualityScore) })],
+            [t("时机"), s => ({ txt: s.timingScore != null ? Math.round(s.timingScore) : "—", cls: subCls(s.timingScore) })],
             ["PE", s => ({ txt: s.pe ? s.pe.toFixed(1) : "—", cls: "text-[#c9cdda]" })],
             ["ROE", s => ({ txt: s.roe ? `${s.roe.toFixed(0)}%` : "—", cls: "text-[#c9cdda]" })],
             [t("营收YoY"), s => ({ txt: s.revenueGrowth != null ? `${s.revenueGrowth >= 0 ? "+" : ""}${s.revenueGrowth.toFixed(0)}%` : "—", cls: s.revenueGrowth >= 0 ? "text-up" : "text-down" })],
@@ -3206,7 +3170,7 @@ const ScoringDashboard = () => {
                 <div className="flex-1 flex flex-col items-center justify-center gap-2 p-6 text-center">
                   <div className="w-11 h-11 rounded-xl bg-white/[0.03] border border-white/8 flex items-center justify-center"><Layers size={18} className="text-[#556]" /></div>
                   <div className="text-[11px] text-[#a0aec0]">{t('勾选标的 · 或右键「加入对比」')}</div>
-                  <div className="text-[10px] text-[#667] leading-relaxed px-2">{t('多只标的 9 项因子逐行并排 — 桌面才做得到的并排决策')}</div>
+                  <div className="text-[10px] text-[#667] leading-relaxed px-2">{t('多只标的 8 项因子逐行并排 — 桌面才做得到的并排决策')}</div>
                 </div>
               ) : (
                 <>

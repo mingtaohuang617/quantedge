@@ -250,39 +250,42 @@ def journal_structure(text: str, watchlist: list[str], ttl_seconds: int = 0, for
 
 def explain_score(stock: dict, weights: dict, ttl_seconds: int = 86400, force: bool = False) -> dict:
     """
-    B2: 评分解读 — 解释为什么这只票得这个分。
+    B2: 评分解读 — 解释为什么这只票得这个分（P3 双轨）。
     输入:
-      stock: {ticker, score, subScores: {fundamental, technical, growth}, isETF (optional)}
-      weights: {fundamental, technical, growth}（前端归一化前的整数权重，函数内部归一化）
+      stock: {ticker, score, qualityScore, timingScore,
+              subScores: 个股{valuation,profitability,growth,momentum,trend,rsi}
+                          / ETF{cost,liquidity,diversification,momentum,trend,rsi},
+              isETF (optional)}
+      weights: {quality, timing}（前端归一化前的整数权重，函数内部归一化）
     返回 {ok, ticker, explanation: str, cached}
     """
     ticker = stock.get("ticker", "?")
     score = stock.get("score")
     subs = stock.get("subScores") or {}
+    qs = stock.get("qualityScore")
+    ts = stock.get("timingScore")
 
-    # 归一化 weights
+    # 归一化 quality/timing 权重
     total = sum(v for v in weights.values() if isinstance(v, (int, float)))
     if total <= 0:
-        wf = wt = wg = 1 / 3
+        wq, wt = 0.6, 0.4
     else:
-        wf = weights.get("fundamental", 0) / total
-        wt = weights.get("technical", 0) / total
-        wg = weights.get("growth", 0) / total
+        wq = weights.get("quality", 0) / total
+        wt = weights.get("timing", 0) / total
 
     if stock.get("isETF"):
         prompt = (
-            f"ETF {ticker} 综合得分 {score}/100。"
-            f"子项: 成本={subs.get('cost')}, 流动性={subs.get('liquidity')}, "
-            f"动量={subs.get('momentum')}, 风险={subs.get('risk')}（各项都是 0-100，越高越好）。"
-            "用 1-2 句中文解释为什么得这个分（哪个子项拉高/拉低了综合分），≤50 字。"
+            f"ETF {ticker} 综合得分 {score}/100 = 质量 {qs} × {wq*100:.0f}% + 时机 {ts} × {wt*100:.0f}%。\n"
+            f"质量子项: 成本={subs.get('cost')}, 流动性={subs.get('liquidity')}, 分散={subs.get('diversification')}；"
+            f"时机子项: 动量={subs.get('momentum')}, 趋势={subs.get('trend')}, RSI={subs.get('rsi')}（各 0-100，越高越好）。\n"
+            "用 1-2 句中文解释为什么得这个分（哪一轨/哪个子项拉高或拉低了综合分），≤50 字，纯文本。"
         )
     else:
         prompt = (
-            f"个股 {ticker} 综合得分 {score}/100。\n"
-            f"子项打分: 基本面={subs.get('fundamental')}/100, 技术面={subs.get('technical')}/100, "
-            f"成长={subs.get('growth')}/100。\n"
-            f"用户权重: 基本面 {wf*100:.0f}% / 技术 {wt*100:.0f}% / 成长 {wg*100:.0f}%。\n"
-            "用 1-2 句中文解释为什么得这个分（指出哪个子项拉高/拉低了综合分、是否在权重侧重项上表现强），"
+            f"个股 {ticker} 综合得分 {score}/100 = 质量 {qs} × {wq*100:.0f}% + 时机 {ts} × {wt*100:.0f}%。\n"
+            f"质量子项: 估值={subs.get('valuation')}, 盈利={subs.get('profitability')}, 成长={subs.get('growth')}；"
+            f"时机子项: 动量={subs.get('momentum')}, 趋势={subs.get('trend')}, RSI={subs.get('rsi')}（各 0-100）。\n"
+            "用 1-2 句中文解释为什么得这个分（指出质量轨与时机轨哪个更强、哪个子项拉高/拉低），"
             "≤50 字，纯文本不要 JSON。"
         )
 
