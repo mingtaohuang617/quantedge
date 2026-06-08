@@ -724,7 +724,10 @@ const ScoringDashboard = () => {
     let n = 0;
     ctxSetStocks(prev => prev.map(s => {
       // ETF 用后端四维专属评分，与个股三维权重无关，保持不动
-      if (!s.subScores || s.isETF) return s;
+      // P2 双轨引擎：新 subScores 无 fundamental/technical（改为 valuation/profitability/
+      // momentum/trend…），此处旧三维加权已不适用 → 保留后端综合分，不再客户端重算。
+      // （权重 UI 的双轨化在 P3 处理；缺此守卫会把个股分误算成 growth×0.3）
+      if (!s.subScores || s.isETF || s.subScores.fundamental == null) return s;
       const f = s.subScores.fundamental ?? 0;
       const tch = s.subScores.technical ?? 0;
       const g = s.subScores.growth ?? 0;
