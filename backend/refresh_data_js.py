@@ -34,9 +34,8 @@ except ImportError:
     pass
 
 import db
-from factors import (
-    calc_rsi, calc_momentum, calc_stock_score, calc_etf_score, parse_aum_to_usd,
-)
+from factors import calc_rsi, calc_momentum
+from scoring import score_universe
 from gen_data_js import build_ranges
 
 DATA_JS = BACKEND.parent / "frontend" / "src" / "data.js"
@@ -77,10 +76,13 @@ def main():
     stocks, alerts = parse_data_js(in_path)
     print(f"读入 {in_path.name}: {len(stocks)} 标的, alerts {len(alerts)}")
 
+    # ① 刷新展示用动态字段 + 收集全量 K 线（供评分引擎用）
+    bars_by_ticker = {}
     refreshed = skipped = 0
     for s in stocks:
         t = s.get("ticker")
         bars = db.get_bars(t) if t else []
+        bars_by_ticker[t] = bars
         if len(bars) < 20:
             skipped += 1
             continue
@@ -97,30 +99,19 @@ def main():
         latest = round(bars[-1]["close"], 2)
         prev = bars[-2]["close"]
         chg = round((latest - prev) / prev * 100, 2) if prev else 0.0
-        # ETF 与个股用各自的评分模型——ETF 没有 PE/ROE/营收，绝不能套个股公式
-        # （历史 bug：此处对 ETF 误用 calc_stock_score，把四维分写成个股三维分）
-        if s.get("isETF"):
-            score, subs = calc_etf_score(
-                s.get("expenseRatio"), s.get("premiumDiscount"),
-                parse_aum_to_usd(s.get("aum")), mom,
-                s.get("concentrationTop3"), s.get("leverage"), detailed=True)
-        else:
-            score, subs = calc_stock_score(
-                s.get("pe"), s.get("roe"), s.get("revenueGrowth"),
-                s.get("profitMargin"), mom, rsi, detailed=True)
         s["price"] = latest
         s["change"] = chg
-        s["momentum"] = mom
+        s["momentum"] = mom   # 展示用 20 日动量（评分引擎内部另算多周期分位）
         s["rsi"] = rsi
         s["priceRanges"] = ranges
         s["priceHistory"] = ph
-        s["score"] = score
-        s["subScores"] = subs
         refreshed += 1
 
-    stocks.sort(key=lambda x: x.get("score", 0) or 0, reverse=True)
-    for i, s in enumerate(stocks):
-        s["rank"] = i + 1
+    # ② 双轨横截面评分（替代旧的逐标的 calc_stock_score/calc_etf_score）：
+    #    质量分(同行业分位+绝对锚) + 时机分(动量分位/趋势/RSI)，综合=质×0.6+时×0.4。
+    #    需全量一起算分位，故批处理；内部完成排序 + 排名。
+    score_universe(stocks, bars_by_ticker)
+    print(f"[评分] 双轨引擎完成，{len(stocks)} 标的")
 
     write_data_js(out_path, stocks, alerts)
     print(f"[DONE] 刷新 {refreshed}, 跳过(bars<20/无K) {skipped}, "

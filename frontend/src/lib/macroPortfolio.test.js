@@ -5,8 +5,8 @@ import { portfolioMacroSensitivity, sensitivityLabel } from "./macroPortfolio.js
 const entry = (ticker, shares, currentPrice, name = ticker) => ({
   ticker, shares, currentPrice, name,
 });
-const stk = (ticker, fundamental, technical, score = 50) => ({
-  ticker, score, subScores: { fundamental, technical, growth: 50 },
+const stk = (ticker, quality, timing, score = 50) => ({
+  ticker, score, qualityScore: quality, timingScore: timing,
 });
 
 describe("portfolioMacroSensitivity", () => {
