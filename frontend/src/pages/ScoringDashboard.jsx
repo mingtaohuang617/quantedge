@@ -336,6 +336,66 @@ function LastPriceLayer(props) {
   );
 }
 
+// 把当前 price 轴 scale 写进 ref：图表外的 onClick 拿到像素 y，用 yScale.invert 反推价格。
+function ScaleCapture(props) {
+  const { yAxisMap, offset, geomRef } = props;
+  if (geomRef && yAxisMap) {
+    const yAxis = yAxisMap.price || yAxisMap[Object.keys(yAxisMap)[0]];
+    geomRef.current = { yScale: yAxis && yAxis.scale, offset };
+  }
+  return null;
+}
+
+// 画线渲染层：把已画图元(趋势线/水平线/测量)与正在画的草稿，用当前 x/price scale 重绘。
+// 图元锚定数据坐标 {m, price}，缩放/平移/周期切换自动跟随。
+function DrawingLayer(props) {
+  const { xAxisMap, yAxisMap, offset, drawings, draft, cursor, priceFmt, indexOf } = props;
+  if (!offset || !xAxisMap || !yAxisMap || (!drawings?.length && !draft)) return null;
+  const xAxis = xAxisMap[Object.keys(xAxisMap)[0]];
+  const yAxis = yAxisMap.price || yAxisMap[Object.keys(yAxisMap)[0]];
+  if (!xAxis || !yAxis || !xAxis.scale || !yAxis.scale) return null;
+  const xs = xAxis.scale, ys = yAxis.scale;
+  const band = typeof xs.bandwidth === "function" ? xs.bandwidth() : 0;
+  const L = offset.left, R = offset.left + offset.width;
+  const px = (pt) => { if (pt.m == null) return null; const v = xs(pt.m); return (v == null || isNaN(v)) ? null : v + band / 2; };
+  const py = (pt) => { const v = ys(pt.price); return (v == null || isNaN(v)) ? null : v; };
+  const items = [];
+  const drawOne = (d, key, isDraft) => {
+    const color = isDraft ? "#facc15" : (d.color || "#e5e7eb");
+    const dash = isDraft ? "4 3" : undefined;
+    if (d.type === "hline") {
+      const y = py(d.a); if (y == null) return;
+      const txt = priceFmt ? priceFmt(d.a.price) : `${Math.round(d.a.price * 100) / 100}`;
+      const w = Math.max(34, txt.length * 6.5 + 10);
+      items.push(<line key={key} x1={L} y1={y} x2={R} y2={y} stroke={color} strokeWidth={1.2} strokeDasharray={dash} />);
+      items.push(<g key={key + "t"}><rect x={R - w} y={y - 7.5} width={w} height={15} rx={2} fill={color} /><text x={R - w / 2} y={y + 3.5} textAnchor="middle" fontSize={10} fontFamily="monospace" fill="#0b0b15">{txt}</text></g>);
+      return;
+    }
+    const ax = px(d.a), ay = py(d.a);
+    const b = d.b || cursor;
+    if (ax == null || ay == null || !b) return;
+    const bx = px(b), by = py(b);
+    if (bx == null || by == null) return;
+    items.push(<line key={key} x1={ax} y1={ay} x2={bx} y2={by} stroke={color} strokeWidth={1.5} strokeDasharray={dash} />);
+    if (d.type === "measure") {
+      const x0 = Math.min(ax, bx), x1 = Math.max(ax, bx), y0 = Math.min(ay, by), y1 = Math.max(ay, by);
+      const pos = b.price >= d.a.price;
+      const pct = d.a.price > 0 ? ((b.price - d.a.price) / d.a.price * 100) : 0;
+      const bars = indexOf ? Math.abs(indexOf(b.m) - indexOf(d.a.m)) : null;
+      const label = `${pct >= 0 ? "+" : ""}${pct.toFixed(2)}%${bars != null && bars >= 0 ? ` · ${bars}根` : ""}`;
+      const lw = Math.max(54, label.length * 6.6 + 12), cxm = (x0 + x1) / 2, lyt = y0 - 11;
+      items.push(<rect key={key + "r"} x={x0} y={y0} width={x1 - x0} height={y1 - y0} fill={pos ? "rgba(30,211,149,0.12)" : "rgba(255,107,107,0.12)"} stroke={color} strokeOpacity={0.4} />);
+      items.push(<g key={key + "l"}><rect x={cxm - lw / 2} y={lyt - 9} width={lw} height={17} rx={3} fill={pos ? "#1ED395" : "#FF6B6B"} /><text x={cxm} y={lyt + 3} textAnchor="middle" fontSize={11} fontWeight="600" fontFamily="monospace" fill="#0b0b15">{label}</text></g>);
+    } else if (!isDraft) {
+      items.push(<circle key={key + "a"} cx={ax} cy={ay} r={2.5} fill={color} />);
+      items.push(<circle key={key + "b"} cx={bx} cy={by} r={2.5} fill={color} />);
+    }
+  };
+  drawings?.forEach((d, i) => drawOne(d, "d" + i, false));
+  if (draft) drawOne(draft, "draft", true);
+  return <g pointerEvents="none">{items}</g>;
+}
+
 // 对数轴「漂亮刻度」：在正数域 [lo,hi] 内取 1/2/5×10^k
 function niceLogTicks(lo, hi) {
   if (!(lo > 0) || !(hi > lo)) return undefined;
@@ -671,6 +731,16 @@ const ScoringDashboard = () => {
   const [priceScale, setPriceScale] = useState("linear"); // 'linear' | 'log'（仅放大弹窗价格轴）
   const [hoverPoint, setHoverPoint] = useState(null);      // 放大图悬停数据点：常驻图例 + 十字光标（存 datum 避免 Brush 索引错位）
   const [brushRange, setBrushRange] = useState(null);      // {startIndex,endIndex}：滚轮缩放/拖拽平移窗口
+  // PR2 画线/测量：drawTool 当前工具，drawings 已画图元，draftPoint 两点工具的第一点，cursorData 草稿预览第二点
+  const [drawTool, setDrawTool] = useState("none");        // 'none' | 'trend' | 'hline' | 'measure'
+  const [drawings, setDrawings] = useState([]);            // [{type,a:{m,price},b?,color}]
+  const [draftPoint, setDraftPoint] = useState(null);      // {m,price} 等待第二点
+  const [cursorData, setCursorData] = useState(null);      // {m,price} 草稿预览游标
+  const chartGeomRef = useRef(null);                       // ScaleCapture 写入 {yScale,offset}，供 onClick 反推价格
+  // PR2 指标自定义周期：在预设之外追加 {key,type,period,color,label} 实例（活跃指标 = 预设 + 自定义）
+  const [customInds, setCustomInds] = useState([]);
+  const [customType, setCustomType] = useState("sma");     // 自定义指标表单：均线类型
+  const [customPeriod, setCustomPeriod] = useState("");    // 自定义指标表单：周期输入
   // 从收起态打开放大图：把不在放大集合里的区间归一到「日线」，让放大工具栏有高亮档
   const openFullscreen = useCallback(() => {
     setChartRange((r) => (MODAL_RANGES.includes(r) ? r : "1Y"));
@@ -1017,8 +1087,19 @@ const ScoringDashboard = () => {
     return () => { window.removeEventListener("keydown", onKey); document.body.style.overflow = prevOverflow; };
   }, [chartFullscreen]);
 
-  // 周期/标的切换 → 重置缩放窗口与悬停态（旧索引对新数据长度无效）
-  useEffect(() => { setBrushRange(null); setHoverPoint(null); }, [sel?.ticker, chartRange]);
+  // 周期/标的切换 → 重置缩放窗口、悬停态、画线（数据标签变了，锚点失效）
+  useEffect(() => { setBrushRange(null); setHoverPoint(null); setDrawings([]); setDraftPoint(null); setCursorData(null); }, [sel?.ticker, chartRange]);
+
+  // 画线快捷键：Esc 取消当前草稿（捕获阶段优先于 PR1 的 ESC 关闭）；Del/Backspace 删最后一条
+  useEffect(() => {
+    if (!chartFullscreen) return;
+    const onKey = (e) => {
+      if (e.key === "Escape" && draftPoint) { e.stopPropagation(); setDraftPoint(null); setCursorData(null); }
+      else if ((e.key === "Delete" || e.key === "Backspace") && drawings.length) { setDrawings((d) => d.slice(0, -1)); }
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [chartFullscreen, draftPoint, drawings.length]);
 
   // 基准指数数据加载（开启时拉取对应市场基准）
   useEffect(() => {
@@ -1073,8 +1154,8 @@ const ScoringDashboard = () => {
 
   // 当前点亮的指标（按注册表顺序，稳定）
   const activeIndList = useMemo(
-    () => INDICATORS.filter((i) => activeInd.has(i.key)),
-    [activeInd]
+    () => [...INDICATORS.filter((i) => activeInd.has(i.key)), ...customInds],
+    [activeInd, customInds]
   );
 
   // 桌面图最终数据：在 chartDataWithBench 基础上补 OHLC（hl 供蜡烛 Bar 定位）
@@ -1187,6 +1268,34 @@ const ScoringDashboard = () => {
   const priceAxisFmt = (v) => (sel && (sel.currency === "KRW" || sel.currency === "JPY"))
     ? Math.round(v).toLocaleString()
     : (Math.round(v * 100) / 100).toLocaleString(undefined, { maximumFractionDigits: 2 });
+  // PR2 画线：放置一个点（hline 一点成线；trend/measure 两点成段）
+  const placePoint = (pt) => {
+    if (!pt || !(pt.price >= 0)) return;
+    if (drawTool === "hline") { setDrawings((ds) => [...ds, { type: "hline", a: { price: pt.price }, color: "#60a5fa" }]); return; }
+    if (drawTool === "trend" || drawTool === "measure") {
+      if (!draftPoint) setDraftPoint(pt);
+      else {
+        const type = drawTool === "measure" ? "measure" : "trend";
+        setDrawings((ds) => [...ds, { type, a: draftPoint, b: pt, color: type === "measure" ? "#f59e0b" : "#e5e7eb" }]);
+        setDraftPoint(null); setCursorData(null);
+      }
+    }
+  };
+  const indexOfLabel = useCallback((m) => chartSeries.findIndex((d) => d.m === m), [chartSeries]);
+  // 移除指标：预设走 toggleInd，自定义从 customInds 删
+  const removeInd = (ind) => {
+    if (activeInd.has(ind.key)) toggleInd(ind.key);
+    else setCustomInds((cs) => cs.filter((c) => c.key !== ind.key));
+  };
+  // 添加自定义均线：type='sma'|'ema'，period 2..400 整数，去重（含预设）
+  const CUSTOM_COLORS = ["#fb923c", "#4ade80", "#f0abfc", "#38bdf8", "#fbbf24", "#a78bfa"];
+  const addCustomInd = (type, period) => {
+    const p = Math.round(Number(period));
+    if (!(p >= 2 && p <= 400)) return;
+    const key = `c${type}${p}`;
+    if (INDICATORS.some((i) => i.key === key) || customInds.some((c) => c.key === key)) return;
+    setCustomInds((cs) => [...cs, { key, type, period: p, color: CUSTOM_COLORS[cs.length % CUSTOM_COLORS.length], label: `${type === "ema" ? "EMA" : "MA"}${p}` }]);
+  };
 
   // 自己测量图表容器尺寸，避免 ResponsiveContainer 在 StrictMode 下的初次挂载 bug
   const [chartContainerRef, chartSize] = useContainerSize();
@@ -3400,6 +3509,29 @@ const ScoringDashboard = () => {
                 >{l}</button>
               ))}
             </div>
+            {/* 画线工具：光标/趋势线/水平线/测量 + 清空 */}
+            <div className="flex items-center gap-0.5 bg-white/5 rounded-lg p-0.5 border border-white/8">
+              {[["none", t("光标")], ["trend", t("趋势线")], ["hline", t("水平线")], ["measure", t("测量")]].map(([v, l]) => (
+                <button key={v} onClick={() => { setDrawTool(v); setDraftPoint(null); setCursorData(null); }}
+                  className={`px-2 py-0.5 rounded text-[11px] font-medium transition-all active:scale-95 ${drawTool === v ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20" : "text-[#a0aec0] hover:text-white"}`}
+                >{l}</button>
+              ))}
+              {drawings.length > 0 && (
+                <button onClick={() => { setDrawings([]); setDraftPoint(null); setCursorData(null); }} title={t("清空画线")} className="ml-0.5 px-1 py-0.5 rounded text-[#889] hover:text-white hover:bg-white/10 inline-flex items-center gap-0.5"><Trash2 size={11} /><span className="text-[10px]">{drawings.length}</span></button>
+              )}
+            </div>
+            {/* 自定义指标周期：MA/EMA + 周期输入 + 添加 */}
+            <div className="flex items-center gap-0.5 bg-white/5 rounded-lg p-0.5 border border-white/8">
+              {[["sma", "MA"], ["ema", "EMA"]].map(([v, l]) => (
+                <button key={v} onClick={() => setCustomType(v)}
+                  className={`px-1.5 py-0.5 rounded text-[10px] font-medium transition-all ${customType === v ? "bg-white/15 text-white" : "text-[#a0aec0] hover:text-white"}`}
+                >{l}</button>
+              ))}
+              <input type="number" min="2" max="400" value={customPeriod} onChange={(e) => setCustomPeriod(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") { addCustomInd(customType, customPeriod); setCustomPeriod(""); } }}
+                placeholder={t("周期")} className="w-12 px-1 py-0.5 rounded bg-white/5 text-[11px] text-white placeholder-[#667] outline-none border border-white/10 focus:border-indigo-500/50" />
+              <button onClick={() => { addCustomInd(customType, customPeriod); setCustomPeriod(""); }} title={t("添加指标")} className="px-1 py-0.5 rounded text-indigo-300 hover:bg-indigo-500/20"><Plus size={12} /></button>
+            </div>
             {chartType === "candle" && !hasOHLC && (
               <span className="text-[10px] text-[#778] italic">{t("K线数据加载中，刷新后显示")}</span>
             )}
@@ -3422,13 +3554,14 @@ const ScoringDashboard = () => {
                   })}
                 </div>
               ))}
-              {activeInd.size > 0 && (
-                <button onClick={() => setActiveInd(new Set())} title={t("清除全部指标")} className="w-full px-0.5 py-1 rounded text-[9px] text-[#889] hover:text-white hover:bg-white/5 border-t border-white/8 mt-0.5 transition-colors">{t("清除")}</button>
+              {(activeInd.size > 0 || customInds.length > 0) && (
+                <button onClick={() => { setActiveInd(new Set()); setCustomInds([]); }} title={t("清除全部指标")} className="w-full px-0.5 py-1 rounded text-[9px] text-[#889] hover:text-white hover:bg-white/5 border-t border-white/8 mt-0.5 transition-colors">{t("清除")}</button>
               )}
             </div>
             {/* 图表（relative 容纳常驻图例；onWheel 滚轮缩放 Brush 窗口，平移用底部 Brush 拖拽） */}
             <div
               className="flex-1 min-h-0 relative"
+              style={{ cursor: drawTool !== "none" ? "crosshair" : undefined }}
               onWheel={(e) => {
                 const len = chartSeries.length;
                 if (len < 6) return;
@@ -3475,7 +3608,7 @@ const ScoringDashboard = () => {
                             <span key={ind.key} className="pointer-events-auto inline-flex items-center gap-1 px-1 rounded" style={{ color: ind.color, background: `${ind.color}14` }}>
                               <span className="font-semibold">{ind.type === "boll" ? "BOLL" : ind.label}</span>
                               <span>{val != null ? (Math.round(val * 100) / 100).toLocaleString() : "—"}</span>
-                              <button onClick={() => toggleInd(ind.key)} title={t('移除')} className="opacity-60 hover:opacity-100 font-bold">×</button>
+                              <button onClick={() => removeInd(ind)} title={t('移除')} className="opacity-60 hover:opacity-100 font-bold">×</button>
                             </span>
                           );
                         })}
@@ -3486,8 +3619,21 @@ const ScoringDashboard = () => {
               })()}
             <ResponsiveContainer key={`chart-full-${sel.ticker}-${chartRange}-${chartData.length}`} width="100%" height="100%">
               <ComposedChart data={chartSeries} margin={{ top: 8, right: 10, left: 0, bottom: 0 }}
-                onMouseMove={(st) => { const p = st?.activePayload?.[0]?.payload; setHoverPoint((prev) => (p ? (prev && prev.m === p.m ? prev : p) : prev)); }}
-                onMouseLeave={() => setHoverPoint(null)}>
+                onMouseMove={(st) => {
+                  const p = st?.activePayload?.[0]?.payload;
+                  setHoverPoint((prev) => (p ? (prev && prev.m === p.m ? prev : p) : prev));
+                  if (drawTool !== "none" && draftPoint) {
+                    const m = st?.activeLabel, yPx = st?.activeCoordinate?.y, inv = chartGeomRef.current?.yScale?.invert;
+                    if (m != null && yPx != null && inv) { const price = inv(yPx); setCursorData((c) => (c && c.m === m && Math.abs(c.price - price) < 1e-9 ? c : { m, price })); }
+                  }
+                }}
+                onMouseLeave={() => { setHoverPoint(null); if (!draftPoint) setCursorData(null); }}
+                onClick={(st) => {
+                  if (drawTool === "none" || !st) return;
+                  const yPx = st.activeCoordinate?.y, inv = chartGeomRef.current?.yScale?.invert;
+                  if (yPx == null || !inv) return;
+                  placePoint({ m: st.activeLabel, price: inv(yPx) });
+                }}>
                 <defs>
                   <linearGradient id="pgFull" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor={chartData.length >= 2 && chartData[chartData.length-1].p >= chartData[0].p ? "#8A2BE2" : "#FF6B6B"} stopOpacity={0.25} />
@@ -3512,7 +3658,7 @@ const ScoringDashboard = () => {
                 <Tooltip
                   cursor={{ stroke: 'rgba(255,255,255,0.25)', strokeWidth: 1, strokeDasharray: '3 3' }}
                   content={({ active, payload, label }) => {
-                    if (!active || !payload?.length) return null;
+                    if (!active || !payload?.length || drawTool !== "none") return null;
                     const d = payload[0].payload;
                     const cur = currencySymbol(sel.currency);
                     const sign = (n) => (n >= 0 ? '+' : '');
@@ -3582,6 +3728,9 @@ const ScoringDashboard = () => {
                 {showBenchmark && <Line yAxisId="pct" type="monotone" dataKey="bpct" stroke="#94a3b8" strokeWidth={2} strokeDasharray="5 4" dot={false} activeDot={{ r: 4, fill: "#cbd5e1", stroke: "#94a3b8", strokeWidth: 2 }} />}
                 {/* 最新价标线 + 左侧价签（按涨跌着色） */}
                 {lastClose != null && <Customized component={(p) => <LastPriceLayer {...p} price={lastClose} up={lastUp} priceFmt={priceAxisFmt} />} />}
+                {/* PR2 画线底座：ScaleCapture 把 price scale 写进 ref（供 onClick 反推价格）；DrawingLayer 用实时 scale 重绘图元+草稿 */}
+                <Customized component={(p) => <ScaleCapture {...p} geomRef={chartGeomRef} />} />
+                <Customized component={(p) => <DrawingLayer {...p} drawings={drawings} draft={draftPoint ? { type: drawTool === "measure" ? "measure" : "trend", a: draftPoint, color: drawTool === "measure" ? "#f59e0b" : "#e5e7eb" } : null} cursor={cursorData} priceFmt={priceAxisFmt} indexOf={indexOfLabel} />} />
                 {/* 十字光标轴标签（价格/日期药丸 + 横向参考线）；画在最上层 */}
                 <Customized component={(p) => <CrosshairLayer {...p} point={hoverPoint} priceFmt={priceAxisFmt} />} />
                 {/* 缩放/平移：滚轮缩放(上方 onWheel) + 底部 Brush 拖拽平移；受控 startIndex/endIndex */}
