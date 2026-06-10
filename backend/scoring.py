@@ -114,6 +114,14 @@ def _num(v):
         return None
 
 
+def _sane(v, lo: float, hi: float):
+    """基本面健全性钳制：超出合理区间视作坏数据 → None。
+    yfinance 偶尔返回不可能值（如净利率 808%、PB 1453），会污染横截面分位排名，
+    在评分入口剔除（视作缺失），比让坏值参与排名更稳。"""
+    f = _num(v)
+    return f if (f is not None and lo <= f <= hi) else None
+
+
 def _pct_in(value, pool_values, higher_better: bool = True) -> float:
     """value 在 pool_values（含 None）中的横截面百分位 0-100（中位秩法）。
     value 为 None 或有效样本≤1 → 50 中性。"""
@@ -175,14 +183,16 @@ def score_universe(stocks: list[dict], bars_by_ticker: dict[str, list[dict]]) ->
         s["_rsiT"] = rsi_timing_score(rsi)
         s["_closes"] = closes
         if not s.get("isETF"):
-            pe, pb = _num(s.get("pe")), _num(s.get("pb"))
+            # 健全性钳制：剔除 yfinance 偶发的不可能值，避免污染横截面分位
+            pe = _sane(s.get("pe"), 0.5, 1500)        # 极端高 PE 多为坏数据
+            pb = _sane(s.get("pb"), 0, 100)           # PB>100 必坏(如 ASML 1453)
             mc, rev = _num(s.get("marketCap")), _num(s.get("revenue"))
             s["_ey"] = (1.0 / pe) if (pe and pe > 0) else None       # 盈利收益率(越高越便宜)
             s["_by"] = (1.0 / pb) if (pb and pb > 0) else None       # 账面收益率
             s["_sy"] = (rev / mc) if (rev and mc and mc > 0) else None  # 营收/市值
-            s["_roe"] = _num(s.get("roe"))
-            s["_margin"] = _num(s.get("profitMargin"))
-            s["_grow"] = _num(s.get("revenueGrowth"))
+            s["_roe"] = _sane(s.get("roe"), -300, 500)               # ROE 极值多为坏数据
+            s["_margin"] = _sane(s.get("profitMargin"), -200, 100)   # 净利率 >100% 物理不可能
+            s["_grow"] = _sane(s.get("revenueGrowth"), -100, 2000)   # 营收增速 <-100% 不可能
 
     non_etf = [s for s in stocks if not s.get("isETF")]
 

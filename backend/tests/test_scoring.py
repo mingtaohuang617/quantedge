@@ -8,8 +8,33 @@ if str(BACKEND) not in sys.path:
 
 from scoring import (  # noqa: E402
     blended_momentum, trend_score, rsi_timing_score, _pct_in,
-    etf_class, score_universe,
+    etf_class, score_universe, _sane,
 )
+
+
+# ── _sane 基本面健全性钳制 ───────────────────────────────
+def test_sane_rejects_impossible():
+    assert _sane(808.8, -200, 100) is None    # 净利率 >100% 物理不可能
+    assert _sane(1453.31, 0, 100) is None      # PB 1453（ASML 坏数据）
+    assert _sane(-93.6, -100, 2000) == -93.6   # 营收 -93.6% 合法保留
+    assert _sane(212.9, -300, 500) == 212.9    # ROE 212%（AppLovin 真实）保留
+    assert _sane(None, 0, 100) is None
+    assert _sane("48.0", -200, 100) == 48.0     # 字符串数值正常转
+
+
+def test_sane_bad_margin_not_polluting_quality():
+    # 一只坏数据股(margin 808%)与正常同行相比，质量分不应被其虚高利润率拉爆
+    up = [100 + i for i in range(250)]
+    bad = {"ticker": "BAD", "market": "US", "gicsSector": "公用事业", "isETF": False,
+           "pe": 15, "pb": 2, "roe": 10, "profitMargin": 808.8, "revenueGrowth": 5,
+           "marketCap": 1e10, "revenue": 1e9}
+    peers = [{"ticker": f"U{i}", "market": "US", "gicsSector": "公用事业", "isETF": False,
+              "pe": 15, "pb": 2, "roe": 10, "profitMargin": 12, "revenueGrowth": 5,
+              "marketCap": 1e10, "revenue": 1e9} for i in range(9)]
+    bars = {s["ticker"]: [{"close": c} for c in up] for s in [bad] + peers}
+    score_universe([bad] + peers, bars)
+    # 坏 margin 被剔除 → BAD 的盈利质量分位应与同行相近(不是被 808% 顶到最高)
+    assert bad["subScores"]["profitability"] <= 75
 
 
 # ── blended_momentum ─────────────────────────────────────
