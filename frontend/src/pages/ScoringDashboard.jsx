@@ -137,6 +137,8 @@ const INDICATOR_GROUPS = [
 // 放大弹窗的 K 线周期集合（与收起态 8 档不同）。从收起态打开放大图时，
 // 不在此集合的区间(1M/6M/YTD/1D/ALL)归一到「日线」，避免放大工具栏无高亮档。
 const MODAL_RANGES = ["5D", "1Y", "5Y", "MONK", "QUARK", "YEARK"];
+// 画线持久化 key：按 (标的, 周期) 分桶 —— 趋势线/测量锚定周期相关的 K 线标签，跨周期无法映射，故各周期独立一套。
+const drawingsKey = (ticker, range) => `quantedge_drawings_${ticker}_${range}`;
 
 // 简单移动平均：把 key 写到对应数据点上（前 period-1 根无值，连线自动跳过）
 function withSMA(data, period, key) {
@@ -1087,8 +1089,24 @@ const ScoringDashboard = () => {
     return () => { window.removeEventListener("keydown", onKey); document.body.style.overflow = prevOverflow; };
   }, [chartFullscreen]);
 
-  // 周期/标的切换 → 重置缩放窗口、悬停态、画线（数据标签变了，锚点失效）
-  useEffect(() => { setBrushRange(null); setHoverPoint(null); setDrawings([]); setDraftPoint(null); setCursorData(null); }, [sel?.ticker, chartRange]);
+  // 周期/标的切换 → 重置缩放/悬停/草稿，并载入该 (标的,周期) 已存画线
+  useEffect(() => {
+    setBrushRange(null); setHoverPoint(null); setDraftPoint(null); setCursorData(null);
+    let loaded = [];
+    if (sel?.ticker) {
+      try { const raw = localStorage.getItem(drawingsKey(sel.ticker, chartRange)); if (raw) loaded = JSON.parse(raw); } catch {}
+    }
+    setDrawings(Array.isArray(loaded) ? loaded : []);
+  }, [sel?.ticker, chartRange]);
+
+  // 画线变化 → 回存到当前 (标的,周期)。仅依赖 drawings：切标的时本副作用不触发（drawings 尚未变），
+  // 待载入把 drawings 改为新桶内容后才存，此时 sel.ticker/chartRange 已是新值，key 正确，无错存。
+  useEffect(() => {
+    if (!sel?.ticker) return;
+    const key = drawingsKey(sel.ticker, chartRange);
+    try { if (drawings.length) localStorage.setItem(key, JSON.stringify(drawings)); else localStorage.removeItem(key); } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drawings]);
 
   // 画线快捷键：Esc 取消当前草稿（捕获阶段优先于 PR1 的 ESC 关闭）；Del/Backspace 删最后一条
   useEffect(() => {
