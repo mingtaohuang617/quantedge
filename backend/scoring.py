@@ -30,6 +30,11 @@ MIN_PEERS = 8  # 同类组少于此数 → 回退到更宽的分组
 QW = {"valuation": 0.35, "profitability": 0.35, "growth": 0.30}
 TW = {"momentum": 0.50, "trend": 0.30, "rsi": 0.20}
 COMPOSITE = {"quality": 0.6, "timing": 0.4}
+# 合成 score 时把两轨各自标准化到同方差再混合，让 0.6/0.4 名义权重 = 实际影响。
+# 病灶：时机分横截面离散度≈2×质量分，不标准化的话时机会主导排序，质量权重名不副实
+# （体检实测 corr(score,时机)>corr(score,质量)，与 0.6 质量权重相悖）。
+# 标准化目标标准差：让合成分布 std≈STD_TARGET×√(0.6²+0.4²)≈14，区间与原来相近。
+STD_TARGET = 20.0
 ETF_QW = {"cost": 0.35, "liquidity": 0.30, "diversification": 0.35}
 LEV_QUALITY_CAP = 60.0  # 杠杆 ETF 质量分封顶
 ANCHOR_W = 0.30  # 个股质量分：分位为主(0.7) + 绝对锚为辅(0.3)，让真正优秀的能冲 90+
@@ -261,11 +266,18 @@ def score_universe(stocks: list[dict], bars_by_ticker: dict[str, list[dict]]) ->
         s["_tsub"] = {"momentum": round(mom, 1), "trend": round(s["_trend"], 1), "rsi": round(s["_rsiT"], 1)}
 
     # ---- 合成 + 写回，清理临时键 ----
+    # qualityScore/timingScore 仍报【原始值】(保留绝对锚 / 杠杆封顶等语义)；
+    # 只有 score 用【两轨等方差标准化】后混合，让 0.6/0.4 名义权重 = 实际影响。
+    mq, sq = _mean_std([s["_q"] for s in stocks if s.get("_q") is not None])
+    mt, st = _mean_std([s["_t"] for s in stocks if s.get("_t") is not None])
     for s in stocks:
         q = s.get("_q", 50.0); t = s.get("_t", 50.0)
+        qz = (q - mq) / sq if sq > 1e-9 else 0.0
+        tz = (t - mt) / st if st > 1e-9 else 0.0
+        comp = 50.0 + STD_TARGET * (COMPOSITE["quality"] * qz + COMPOSITE["timing"] * tz)
         s["qualityScore"] = round(q, 1)
         s["timingScore"] = round(t, 1)
-        s["score"] = round(COMPOSITE["quality"] * q + COMPOSITE["timing"] * t, 1)
+        s["score"] = round(max(0.0, min(100.0, comp)), 1)
         s["subScores"] = {**s["_qsub"], **s["_tsub"]}
         for k in ("_mom", "_trend", "_rsiT", "_closes", "_ey", "_by", "_sy",
                   "_roe", "_margin", "_grow", "_q", "_t", "_qsub", "_tsub"):
@@ -274,6 +286,16 @@ def score_universe(stocks: list[dict], bars_by_ticker: dict[str, list[dict]]) ->
     stocks.sort(key=lambda x: x.get("score", 0) or 0, reverse=True)
     for i, s in enumerate(stocks):
         s["rank"] = i + 1
+
+
+def _mean_std(vals: list[float]) -> tuple[float, float]:
+    """横截面均值与总体标准差；空/单元素 → (50, 1) 兜底避免除零。"""
+    n = len(vals)
+    if n == 0:
+        return 50.0, 1.0
+    m = sum(vals) / n
+    sd = (sum((v - m) ** 2 for v in vals) / n) ** 0.5
+    return m, (sd if sd > 1e-9 else 1.0)
 
 
 def _avg(pcts: list[float], raws: list) -> float:

@@ -806,13 +806,23 @@ const ScoringDashboard = () => {
     if (tw === 0 || !ctxSetStocks) return 0;
     const wq = w.quality / tw, wt = w.timing / tw;
     let n = 0;
-    ctxSetStocks(prev => prev.map(s => {
-      if (s.qualityScore == null || s.timingScore == null) return s;
-      const newScore = Math.round((s.qualityScore * wq + s.timingScore * wt) * 10) / 10;
-      if (newScore === s.score) return s;
-      n++;
-      return { ...s, score: newScore };
-    }));
+    ctxSetStocks(prev => {
+      // 体检修复：合成前把两轨各自横截面标准化到同方差(与后端 scoring.py 一致)。
+      // 否则时机分离散度≈2×质量，会主导排序、令 0.6 质量权重名不副实。qualityScore/timingScore 显示值不变。
+      const ms = (arr) => { const a = arr.filter(v => v != null); if (!a.length) return [50, 1]; const m = a.reduce((x, y) => x + y, 0) / a.length; const sd = Math.sqrt(a.reduce((x, y) => x + (y - m) ** 2, 0) / a.length); return [m, sd > 1e-9 ? sd : 1]; };
+      const [mq, sq] = ms(prev.map(s => s.qualityScore));
+      const [mt, st] = ms(prev.map(s => s.timingScore));
+      let changed = false;
+      const next = prev.map(s => {
+        if (s.qualityScore == null || s.timingScore == null) return s;
+        const qz = (s.qualityScore - mq) / sq, tz = (s.timingScore - mt) / st;
+        const newScore = Math.round(Math.max(0, Math.min(100, 50 + 20 * (qz * wq + tz * wt))) * 10) / 10;
+        if (newScore === s.score) return s;
+        changed = true; n++;
+        return { ...s, score: newScore };
+      });
+      return changed ? next : prev;   // 无变化返回原引用，避免无谓 re-render 循环
+    });
     return n;
   }, [ctxSetStocks]);
 
@@ -829,6 +839,13 @@ const ScoringDashboard = () => {
     setTimeout(() => setWeightToast(cur => (cur && cur.ws === wsName ? null : cur)), 3200);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wsId]);
+
+  // 体检修复：挂载/数据刷新后用当前权重重算一次综合分（两轨等方差标准化），
+  // 让现有 data.js 的旧 score 立即标准化、不必等后端数据重生。applyWeights 无变化时返回原引用，幂等防循环。
+  useEffect(() => {
+    if (ctxStocks && ctxStocks.length && ctxStocks.some(s => s.qualityScore != null)) applyWeights(weights);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ctxStocks]);
 
   // F3 移动端 pull-to-refresh — 列表容器顶部下拉超过 60px 触发刷新
   const [pullDist, setPullDist] = useState(0);
