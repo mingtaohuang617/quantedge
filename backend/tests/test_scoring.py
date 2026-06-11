@@ -126,6 +126,27 @@ def test_score_universe_quality_ranks_within_sector():
     assert "qualityScore" in a and "timingScore" in a
 
 
+def test_composite_quality_dominates_after_standardization():
+    # A: 高质量+弱时机(下跌)；B: 低质量+强时机(上涨)。两轨等方差标准化后，
+    # 质量权重 0.6 应主导 → A.score > B.score（修复前时机离散度大，B 可能反超）。
+    down = [200 - i * 0.5 for i in range(250)]   # 持续下跌 → 低动量/趋势
+    up = [100 + i for i in range(250)]           # 持续上涨 → 高动量/趋势
+    flat = [150 + (i % 5) for i in range(250)]
+    A = _stock("A", "US", "信息技术", pe=10, roe=40, growth=60, margin=35)
+    B = _stock("B", "US", "信息技术", pe=90, roe=3, growth=-5, margin=2)
+    peers = [_stock(f"F{i}", "US", "信息技术", pe=25, roe=15, growth=10, margin=12) for i in range(8)]
+    stocks = [A, B] + peers
+    bars = {"A": [{"close": c} for c in down], "B": [{"close": c} for c in up]}
+    for p in peers:
+        bars[p["ticker"]] = [{"close": c} for c in flat]
+    score_universe(stocks, bars)
+    a = next(s for s in stocks if s["ticker"] == "A")
+    b = next(s for s in stocks if s["ticker"] == "B")
+    assert a["qualityScore"] > b["qualityScore"]   # A 质量更高
+    assert a["timingScore"] < b["timingScore"]     # A 时机更弱
+    assert a["score"] > b["score"]                 # 质量(0.6)主导 → A 综合分仍更高
+
+
 def test_leveraged_etf_quality_capped():
     up = [100 * (1.01 ** i) for i in range(250)]  # 强涨但波动
     etf = {"ticker": "TQQQ", "market": "US", "isETF": True, "etfType": "3倍杠杆ETF",
