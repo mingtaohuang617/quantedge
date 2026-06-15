@@ -1627,7 +1627,7 @@ const ScoringDashboard = () => {
                 <div className="mb-4"><AIStockSummaryCard stock={sel} /></div>
                 {pillars.length > 0 && (
                   <div className="mb-4">
-                    <div className="text-[12px] font-semibold mb-1" style={{ color: "var(--fg-0)" }}>{t("评分由三大要素构成")}</div>
+                    <div className="text-[12px] font-semibold mb-1" style={{ color: "var(--fg-0)" }}>{t("双轨评分")}</div>
                     {pillars.map((p) => <MPillar key={p.name} {...p} />)}
                   </div>
                 )}
