@@ -641,7 +641,8 @@ const ScoringDashboard = () => {
   const [mobileShowDetail, setMobileShowDetail] = useState(false); // mobile: toggle list vs detail
   const isMobile = useIsMobile();
   const [mFilterOpen, setMFilterOpen] = useState(false); // v6 移动端筛选 sheet
-  // 关注列表 — 持久化到 localStorage
+  // 关注列表 — localStorage + 服务端(KV/后端)双写持久化
+  // 服务端可读：GET /api/watchlist/favorites —— 让监控/AI/月度复盘脱离浏览器读到关注池
   const [favorites, setFavorites] = useState(() => {
     try { return new Set(JSON.parse(localStorage.getItem('quantedge_favorites') || '[]')); } catch { return new Set(); }
   });
@@ -654,6 +655,45 @@ const ScoringDashboard = () => {
       return next;
     });
   }, []);
+  // 服务端同步：整集 PUT（幂等）。失败时 apiFetch 返回 null，本地 localStorage 仍兜底。
+  const favSyncReady = useRef(false);   // 首挂载拉取完成前不回写，避免本地覆盖服务端
+  const favLastSynced = useRef(null);   // 去重：相同集合不重复 PUT
+  const pushFavorites = useCallback((set) => {
+    const arr = [...set].sort();
+    const key = JSON.stringify(arr);
+    if (key === favLastSynced.current) return;
+    favLastSynced.current = key;
+    apiFetch('/watchlist/favorites', { method: 'PUT', body: JSON.stringify({ tickers: arr }) });
+  }, []);
+  // 首挂载：服务端为权威。有数据→覆盖本地；服务端空且 KV 已启用→把本地星标种子上云。
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const resp = await apiFetch('/watchlist/favorites');
+      if (cancelled) return;
+      if (resp && Array.isArray(resp.tickers)) {
+        if (resp.tickers.length > 0) {
+          const serverSet = new Set(resp.tickers);
+          favLastSynced.current = JSON.stringify([...serverSet].sort());
+          setFavorites(serverSet);
+          try { localStorage.setItem('quantedge_favorites', JSON.stringify([...serverSet])); } catch {}
+        } else if (resp.kv !== false) {
+          let localArr = [];
+          try { localArr = JSON.parse(localStorage.getItem('quantedge_favorites') || '[]'); } catch {}
+          if (localArr.length > 0) pushFavorites(new Set(localArr));
+        }
+      }
+      favSyncReady.current = true;
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  // 变更时整集同步（跳过首挂载拉取完成前）
+  useEffect(() => {
+    if (!favSyncReady.current) return;
+    pushFavorites(favorites);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [favorites]);
   // 视图模式 — 列表 / 板块聚合
   const [viewMode, setViewMode] = useState("list"); // "list" | "sector"
   // 卡片密度 — 标准 / 紧凑

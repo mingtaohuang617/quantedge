@@ -1872,6 +1872,7 @@ def get_macro_narrative(market: str = "US", force: bool = False):
 
 # ── 10x 猎手：Universe + Watchlist + LLM ───────────────────
 import watchlist_10x as _wl  # noqa: E402
+import favorites as _fav  # noqa: E402
 from universe import universe_stats as _universe_stats  # noqa: E402
 
 
@@ -1962,6 +1963,23 @@ def delete_watchlist_10x(ticker: str):
     if _wl.remove_item(ticker):
         return {"ok": True, "ticker": ticker.upper()}
     raise HTTPException(404, f"{ticker} not in watchlist")
+
+
+# ── 自选股（评分页星标）—— 轻量 ticker 集合，全量替换 ────────
+class FavoritesPutReq(BaseModel):
+    tickers: list[str] = []
+
+
+@app.get("/api/watchlist/favorites")
+def get_favorites():
+    """读取自选股集合（评分页星标），供前端 / 监控 / AI 复盘读取关注池。"""
+    return sanitize(_fav.load_favorites())
+
+
+@app.put("/api/watchlist/favorites")
+def put_favorites(req: FavoritesPutReq):
+    """全量替换自选股集合（前端持有完整 Set，整集 PUT → 幂等、无合并冲突）。"""
+    return sanitize({"ok": True, **_fav.save_favorites(req.tickers)})
 
 
 @app.get("/api/watchlist/10x/export")
