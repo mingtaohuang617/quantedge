@@ -4,7 +4,7 @@
 // ─────────────────────────────────────────────────────────────
 import React, { useState, useEffect, useMemo, useContext, useCallback, useRef } from "react";
 import { Activity, Bell, BellOff, Check, Globe, ChevronLeft, BellRing, RefreshCw } from "lucide-react";
-import { useLang, isZh } from "../i18n.jsx";
+import { useLang, isZh, enFallback } from "../i18n.jsx";
 import useIsMobile from "../hooks/useIsMobile";
 import { BottomSheet, MobileAppBar, ThumbActionBar } from "../components/mobile";
 import {
@@ -114,7 +114,7 @@ function MAlertRow({ alert: a, onAck, onMute, t, lang, liveStocks, onTap }) {
   const stkLabel = a.type === "macro" ? t("宏观") :
     (() => {
       const s = liveStocks.find((x) => x.ticker === a.ticker);
-      return s ? (isZh(lang) ? t(s.nameCN || s.name) : s.name) : a.ticker;
+      return s ? (isZh(lang) ? t(s.nameCN || s.name) : enFallback(s.name, s.ticker)) : a.ticker;
     })();
 
   return (

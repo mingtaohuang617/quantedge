@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef, createContext
 // C1/C2: Recharts 已下沉到各 lazy page chunk（CompareModal 已迁至 ScoringDashboard），主文件不再直接依赖
 import { TrendingUp, TrendingDown, Search, Bell, BookOpen, BarChart3, Activity, Settings, ChevronRight, ChevronDown, ChevronLeft, Star, AlertTriangle, Clock, Target, Zap, Filter, ArrowUpRight, ArrowDownRight, Minus, RefreshCw, Plus, X, Check, Eye, EyeOff, Layers, Globe, Briefcase, Info, Database, Trash2, Loader, ExternalLink, Sun, Moon, Calendar, User, LogOut, Mail, Lock, Shield, KeyRound, UserCircle, Share2, GripVertical, Maximize2, AlertCircle, GraduationCap, Palette } from "lucide-react";
 import { searchTickers as standaloneSearch, fetchStockData, fetchBenchmarkPrices, fetchRangePrices, validateStockData, validateAllStocks, loadStandaloneStocks, saveStandaloneStocks, checkStandaloneMode, resolveSector, STOCK_CN_NAMES, STOCK_CN_DESCS } from "./standalone.js";
-import { LangProvider, useLang, localeFor, isZh, tStatic } from "./i18n.jsx";
+import { LangProvider, useLang, localeFor, isZh, tStatic, enFallback } from "./i18n.jsx";
 import { monteCarlo as mcSimulate, navToReturns as mcNavToReturns, hhi as hhiCalc, effectiveN as effN } from "./math/stats.ts";
 import { idbGet, idbSet } from "./lib/idb.js";
 import macroSnapshot from "./macroSnapshot.json";
@@ -774,7 +774,7 @@ export const displayTicker = (ticker, stock, lang) => {
   if (!ticker || !ticker.endsWith(".HK")) return ticker;
   const name = isZh(lang)
     ? tStatic(stock?.nameCN || STOCK_CN_NAMES[ticker] || stock?.name, lang)
-    : (stock?.name || STOCK_CN_NAMES[ticker]);
+    : enFallback(stock?.name, ticker);
   return name || ticker;
 };
 
@@ -1600,7 +1600,7 @@ const TickerManager = ({ open, onClose }) => {
                     <span className="text-xs font-semibold text-white">{s.ticker}</span>
                     <Badge variant="default">{s.market}</Badge>
                     {s.isETF && <Badge variant="accent">ETF</Badge>}
-                    <span className="text-[10px] text-[#a0aec0] truncate">{isZh(lang) ? t(s.nameCN || STOCK_CN_NAMES[s.ticker] || s.name) : s.name}</span>
+                    <span className="text-[10px] text-[#a0aec0] truncate">{isZh(lang) ? t(s.nameCN || STOCK_CN_NAMES[s.ticker] || s.name) : enFallback(s.name, s.ticker)}</span>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <span className="text-[10px] font-mono tabular-nums text-white">{s.currency === "HKD" ? "HK$" : "$"}{s.price}</span>
@@ -2000,7 +2000,7 @@ const CommandPalette = ({ open, onClose, stocks, onPickStock, onSwitchTab, curre
     }));
     const stockItems = (stocks || []).map(s => ({
       type: "stock", id: s.ticker, label: s.ticker,
-      sub: isZh(lang) ? t(s.nameCN || STOCK_CN_NAMES[s.ticker] || s.name) : s.name,
+      sub: isZh(lang) ? t(s.nameCN || STOCK_CN_NAMES[s.ticker] || s.name) : enFallback(s.name, s.ticker),
       score: s.score, change: safeChange(s.change), market: s.market, sector: s.sector,
       action: () => onPickStock(s),
     }));

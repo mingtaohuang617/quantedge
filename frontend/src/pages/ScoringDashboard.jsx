@@ -7,7 +7,7 @@ import { LineChart, Line, AreaChart, Area, Bar, Brush, Customized, XAxis, YAxis,
 import { Activity, ArrowDownRight, ArrowUpRight, Briefcase, Calendar, Check, ChevronDown, ChevronRight, Clock, Database, Eye, Filter, GripVertical, Info, Layers, Loader, Maximize2, Minus, Plus, RefreshCw, Search, Settings, Star, Trash2, TrendingUp, X, Zap, ArrowLeftRight } from "lucide-react";
 import { searchTickers as standaloneSearch, fetchRangePrices, STOCK_CN_NAMES, STOCK_CN_DESCS } from "../standalone.js";
 import { Z_ELEVATED } from "../lib/zIndex.js";
-import { useLang, isZh, localeFor } from "../i18n.jsx";
+import { useLang, isZh, localeFor, hasCJK, enFallback } from "../i18n.jsx";
 import { STOCKS } from "../data.js";
 import AIStockSummaryCard from "../components/AIStockSummaryCard.jsx";
 import ScoreExplainCard from "../components/ScoreExplainCard.jsx";
@@ -523,7 +523,7 @@ const CompareModal = ({ open, onClose, stocks }) => {
               <tbody className="font-mono tabular-nums">
                 {[
                   // 第 4 项 winner: "higher" | "lower" | null（null = 不评胜负，纯展示）
-                  [t("名称"), s => isZh(lang) ? t(s.nameCN || STOCK_CN_NAMES[s.ticker] || s.name) : s.name, "font-sans text-[10px] text-[#a0aec0]", null],
+                  [t("名称"), s => isZh(lang) ? t(s.nameCN || STOCK_CN_NAMES[s.ticker] || s.name) : enFallback(s.name, s.ticker), "font-sans text-[10px] text-[#a0aec0]", null],
                   [t("现价"), s => `${currencySymbol(s.currency)}${s.price}`, "text-white", null],
                   [t("涨跌"), s => `${safeChange(s.change) >= 0 ? "+" : ""}${fmtChange(s.change)}%`, s => safeChange(s.change) >= 0 ? "text-up" : "text-down", "higher"],
                   [t("评分"), s => s.score?.toFixed(1), "text-indigo-300 font-semibold", "higher"],
@@ -1627,7 +1627,7 @@ const ScoringDashboard = () => {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline gap-2">
                       <span className="font-mono text-[14px] font-semibold" style={{ color: "var(--fg-0)" }}>{stk.ticker}</span>
-                      <span className="text-[11px] truncate" style={{ color: "var(--fg-3)" }}>{isZh(lang) ? t(stk.nameCN || STOCK_CN_NAMES[stk.ticker] || stk.name) : stk.name}</span>
+                      <span className="text-[11px] truncate" style={{ color: "var(--fg-3)" }}>{isZh(lang) ? t(stk.nameCN || STOCK_CN_NAMES[stk.ticker] || stk.name) : enFallback(stk.name, stk.ticker)}</span>
                     </div>
                     <div className="font-mono text-[11px] mt-1" style={{ color: up ? "var(--up)" : "var(--down)" }}>
                       {stk.price != null ? `${px(stk)} · ` : ""}{up ? "+" : ""}{fmtChange(stk.change)}%
@@ -1662,7 +1662,7 @@ const ScoringDashboard = () => {
                 )}
                 <div className="flex justify-between items-start mb-4">
                   <div className="min-w-0">
-                    <div className="text-[13px] mb-1 truncate" style={{ color: "var(--fg-2)" }}>{isZh(lang) ? t(sel.nameCN || STOCK_CN_NAMES[sel.ticker] || sel.name) : sel.name}</div>
+                    <div className="text-[13px] mb-1 truncate" style={{ color: "var(--fg-2)" }}>{isZh(lang) ? t(sel.nameCN || STOCK_CN_NAMES[sel.ticker] || sel.name) : enFallback(sel.name, sel.ticker)}</div>
                     <div className="font-mono" style={{ fontSize: 36, fontWeight: 600, color: "var(--fg-0)", lineHeight: 1 }}>{px(sel)}</div>
                     <div className="mt-2">
                       <span className="font-mono text-[12px] px-2 py-1 rounded" style={{ background: safeChange(sel.change) >= 0 ? "rgba(30,211,149,.12)" : "rgba(255,107,107,.12)", color: safeChange(sel.change) >= 0 ? "var(--up)" : "var(--down)" }}>
@@ -1940,7 +1940,7 @@ const ScoringDashboard = () => {
             <div className="flex items-baseline justify-between gap-2 mb-1">
               <div className="min-w-0 flex items-baseline gap-1.5">
                 <span className="font-mono font-bold text-sm text-white shrink-0">{pk.ticker}</span>
-                <span className="text-[10px] text-[#778] truncate">{isZh(lang) ? t(pk.nameCN || STOCK_CN_NAMES[pk.ticker] || pk.name) : pk.name}</span>
+                <span className="text-[10px] text-[#778] truncate">{isZh(lang) ? t(pk.nameCN || STOCK_CN_NAMES[pk.ticker] || pk.name) : enFallback(pk.name, pk.ticker)}</span>
               </div>
               <span className={`font-mono text-sm font-bold shrink-0 ${pk.score >= 75 ? 'text-up' : 'text-indigo-300'}`}>{pk.score != null ? pk.score.toFixed(0) : '—'}</span>
             </div>
@@ -2332,7 +2332,7 @@ const ScoringDashboard = () => {
                         <div className="flex items-center gap-1.5 min-w-0">
                           <span className="text-[9px] w-3 text-center text-[#667] font-mono">{j + 1}</span>
                           <span className="text-[11px] font-mono font-semibold text-white shrink-0">{stk.ticker}</span>
-                          <span className="text-[9px] text-[#a0aec0] truncate">{isZh(lang) ? t(stk.nameCN || STOCK_CN_NAMES[stk.ticker] || stk.name) : stk.name}</span>
+                          <span className="text-[9px] text-[#a0aec0] truncate">{isZh(lang) ? t(stk.nameCN || STOCK_CN_NAMES[stk.ticker] || stk.name) : enFallback(stk.name, stk.ticker)}</span>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                           <MiniSparkline data={get5DSparkData(stk)} w={40} h={12} />
@@ -2360,7 +2360,7 @@ const ScoringDashboard = () => {
                 <div className="flex items-center gap-2">
                   <span className="text-[9px] w-4 text-center text-[#667] font-mono shrink-0">{i + 1}</span>
                   <span className="font-semibold text-[11px] text-white shrink-0 font-mono"><Highlight text={stk.ticker} query={searchTerm} /></span>
-                  <span className="text-[9px] text-[#a0aec0] truncate flex-1"><Highlight text={isZh(lang) ? t(stk.nameCN || STOCK_CN_NAMES[stk.ticker] || stk.name) : stk.name} query={searchTerm} /></span>
+                  <span className="text-[9px] text-[#a0aec0] truncate flex-1"><Highlight text={isZh(lang) ? t(stk.nameCN || STOCK_CN_NAMES[stk.ticker] || stk.name) : enFallback(stk.name, stk.ticker)} query={searchTerm} /></span>
                   <MiniSparkline data={get5DSparkData(stk)} w={56} h={16} />
                   <span className="text-[10px] font-mono tabular-nums text-indigo-300 shrink-0">{stk.score?.toFixed(1)}</span>
                   <span className={`text-[10px] font-mono tabular-nums shrink-0 w-14 text-right ${safeChange(stk.change) >= 0 ? "text-up" : "text-down"}`}>
@@ -2401,7 +2401,7 @@ const ScoringDashboard = () => {
                 </div>
               </div>
               <div className="flex items-center justify-between gap-2">
-                <span className="text-[10px] text-[#b0b8c4] truncate flex-1 min-w-0"><Highlight text={isZh(lang) ? t(stk.nameCN || STOCK_CN_NAMES[stk.ticker] || stk.name) : stk.name} query={searchTerm} /></span>
+                <span className="text-[10px] text-[#b0b8c4] truncate flex-1 min-w-0"><Highlight text={isZh(lang) ? t(stk.nameCN || STOCK_CN_NAMES[stk.ticker] || stk.name) : enFallback(stk.name, stk.ticker)} query={searchTerm} /></span>
                 <MiniSparkline data={get5DSparkData(stk)} w={48} h={14} />
                 <div className="flex items-center gap-1 w-20 shrink-0">
                   <ScoreBar score={stk.score} />
@@ -2473,7 +2473,7 @@ const ScoringDashboard = () => {
                     })()}
                     {/* PDF1 P0 收敛：etfType（国家/主题/行业 ETF）是分类信息，不是 warning。
                         leverage 保留 danger（杠杆是真风险标记）；普通 ETF 用 default neutral。 */}
-                    {sel.isETF && <Badge variant={sel.leverage ? "danger" : "default"} size="sm">{sel.etfType}</Badge>}
+                    {sel.isETF && <Badge variant={sel.leverage ? "danger" : "default"} size="sm">{t(sel.etfType)}</Badge>}
                     {/* v5 编辑式：评分环抬到 40px（含中心数字）— 让评分作为视觉锚点而非小图标 */}
                     {sel.score != null && (() => {
                       const C = 100.53;  // 2π × r=16
@@ -2518,7 +2518,7 @@ const ScoringDashboard = () => {
                     )}
                     <MacroAdjustBadge stock={sel} temp={macroSnapshot?.composite?.market_temperature} size="sm" />
                   </div>
-                  <div className="text-xs text-[#a0aec0]">{isZh(lang) ? t(sel.nameCN || STOCK_CN_NAMES[sel.ticker] || sel.name) : sel.name}</div>
+                  <div className="text-xs text-[#a0aec0]">{isZh(lang) ? t(sel.nameCN || STOCK_CN_NAMES[sel.ticker] || sel.name) : enFallback(sel.name, sel.ticker)}</div>
                 </div>
                 <div className="sm:text-right flex sm:block items-center gap-2">
                   {/* PDF2 抛光 4.2：主价格抬到 24/28px + 渐变文字（白→slate-300）让数字有金属感 */}
@@ -2540,7 +2540,13 @@ const ScoringDashboard = () => {
                   </div>
                 </div>
               </div>
-              <p className="text-xs text-[#a0aec0] leading-relaxed mb-2 border-l-2 border-indigo-500/30 pl-2">{isZh(lang) ? t(STOCK_CN_DESCS[sel.ticker] || sel.descriptionCN || sel.description) : sel.description}</p>
+              <p className="text-xs text-[#a0aec0] leading-relaxed mb-2 border-l-2 border-indigo-500/30 pl-2">{(() => {
+                if (isZh(lang)) return t(STOCK_CN_DESCS[sel.ticker] || sel.descriptionCN || sel.description);
+                // 英文模式：如果 description 是中文（data.js 里很多 ETF 描述只有中文），用英文公司名兜底
+                const enDesc = sel.descriptionEN || sel.description;
+                if (enDesc && !hasCJK(enDesc)) return enDesc;
+                return sel.name || sel.ticker;
+              })()}</p>
               {/* PDF2 抛光：AI 评分解读卡前置 — 紧贴评分块，回答「为什么是这个分」（默认折叠） */}
               {sel.subScores && (
                 <div className="mb-2">
@@ -3229,7 +3235,7 @@ const ScoringDashboard = () => {
                         <span className="section-title">{t('ETF 核心指标')}</span>
                       </div>
                       {/* PDF1 P0 收敛：etfType 分类标签用 neutral，不抢 ETF 核心指标的视觉权重 */}
-                      <Badge variant={sel.leverage ? "danger" : "default"} size="sm">{sel.etfType}</Badge>
+                      <Badge variant={sel.leverage ? "danger" : "default"} size="sm">{t(sel.etfType)}</Badge>
                     </div>
                     <div className="space-y-2">
                       {/* 成本与费用 */}
@@ -3546,7 +3552,7 @@ const ScoringDashboard = () => {
                               {r.alreadyAdded && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-up/10 text-up border border-up/20 flex items-center gap-0.5"><Check size={8} /> {t('已添加')}</span>}
                               {r.price && <span className="text-[10px] font-mono tabular-nums text-[#a0aec0]">${r.price}</span>}
                             </div>
-                            <div className="text-[10px] text-[#778] truncate">{isZh(lang) ? t(STOCK_CN_NAMES[r.symbol] || r.name) : r.name}</div>
+                            <div className="text-[10px] text-[#778] truncate">{isZh(lang) ? t(STOCK_CN_NAMES[r.symbol] || r.name) : enFallback(r.name, r.symbol)}</div>
                           </div>
                           {r.alreadyAdded ? (
                             <button
