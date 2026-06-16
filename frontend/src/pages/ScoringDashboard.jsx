@@ -137,8 +137,10 @@ const INDICATOR_GROUPS = [
 // 放大弹窗的 K 线周期集合（与收起态 8 档不同）。从收起态打开放大图时，
 // 不在此集合的区间(1M/6M/YTD/1D/ALL)归一到「日线」，避免放大工具栏无高亮档。
 const MODAL_RANGES = ["5D", "1Y", "5Y", "MONK", "QUARK", "YEARK"];
-// 画线持久化 key：按 (标的, 周期) 分桶 —— 趋势线/测量锚定周期相关的 K 线标签，跨周期无法映射，故各周期独立一套。
+// 画线持久化 key：趋势线/测量锚定周期相关的 K 线标签，跨周期无法映射，故按 (标的, 周期) 分桶。
 const drawingsKey = (ticker, range) => `quantedge_drawings_${ticker}_${range}`;
+// 水平线仅锚 price（无日期），天然跨周期通用 → 按标的单独存，所有周期共享同一套。
+const hlinesKey = (ticker) => `quantedge_hlines_${ticker}`;
 
 // 简单移动平均：把 key 写到对应数据点上（前 period-1 根无值，连线自动跳过）
 function withSMA(data, period, key) {
@@ -1146,22 +1148,42 @@ const ScoringDashboard = () => {
     return () => { window.removeEventListener("keydown", onKey); document.body.style.overflow = prevOverflow; };
   }, [chartFullscreen]);
 
-  // 周期/标的切换 → 重置缩放/悬停/草稿，并载入该 (标的,周期) 已存画线
+  // 周期/标的切换 → 重置缩放/悬停/草稿，并载入画线：
+  //   趋势线/测量 取 (标的,周期) 桶；水平线取按标的的共享桶（跨周期通用）。
+  //   兼容旧版：旧水平线曾混存进周期桶 → 一并读入并按 price 去重（下次回存会迁移到共享桶）。
   useEffect(() => {
     setBrushRange(null); setHoverPoint(null); setDraftPoint(null); setCursorData(null);
-    let loaded = [];
+    let merged = [];
     if (sel?.ticker) {
-      try { const raw = localStorage.getItem(drawingsKey(sel.ticker, chartRange)); if (raw) loaded = JSON.parse(raw); } catch {}
+      try {
+        const rawP = localStorage.getItem(drawingsKey(sel.ticker, chartRange));
+        const perPeriod = rawP ? JSON.parse(rawP) : [];
+        const others = Array.isArray(perPeriod) ? perPeriod.filter((d) => d.type !== "hline") : [];
+        const legacyH = Array.isArray(perPeriod) ? perPeriod.filter((d) => d.type === "hline") : [];
+        const rawH = localStorage.getItem(hlinesKey(sel.ticker));
+        const sharedH = rawH ? JSON.parse(rawH) : [];
+        const seen = new Set();
+        const hlines = [...(Array.isArray(sharedH) ? sharedH : []), ...legacyH]
+          .filter((d) => { const p = d?.a?.price; if (p == null || seen.has(p)) return false; seen.add(p); return true; });
+        merged = [...others, ...hlines];
+      } catch { merged = []; }
     }
-    setDrawings(Array.isArray(loaded) ? loaded : []);
+    setDrawings(merged);
   }, [sel?.ticker, chartRange]);
 
   // 画线变化 → 回存到当前 (标的,周期)。仅依赖 drawings：切标的时本副作用不触发（drawings 尚未变），
   // 待载入把 drawings 改为新桶内容后才存，此时 sel.ticker/chartRange 已是新值，key 正确，无错存。
   useEffect(() => {
     if (!sel?.ticker) return;
-    const key = drawingsKey(sel.ticker, chartRange);
-    try { if (drawings.length) localStorage.setItem(key, JSON.stringify(drawings)); else localStorage.removeItem(key); } catch {}
+    // 拆分回存：水平线 → 按标的共享桶（跨周期）；趋势线/测量 → (标的,周期) 桶。
+    const hlines = drawings.filter((d) => d.type === "hline");
+    const others = drawings.filter((d) => d.type !== "hline");
+    const pKey = drawingsKey(sel.ticker, chartRange);
+    const hKey = hlinesKey(sel.ticker);
+    try {
+      if (others.length) localStorage.setItem(pKey, JSON.stringify(others)); else localStorage.removeItem(pKey);
+      if (hlines.length) localStorage.setItem(hKey, JSON.stringify(hlines)); else localStorage.removeItem(hKey);
+    } catch {}
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [drawings]);
 
