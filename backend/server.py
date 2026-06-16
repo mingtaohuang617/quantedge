@@ -1873,6 +1873,7 @@ def get_macro_narrative(market: str = "US", force: bool = False):
 # ── 10x 猎手：Universe + Watchlist + LLM ───────────────────
 import watchlist_10x as _wl  # noqa: E402
 import favorites as _fav  # noqa: E402
+import anomaly_store as _anom  # noqa: E402
 from universe import universe_stats as _universe_stats  # noqa: E402
 
 
@@ -1980,6 +1981,27 @@ def get_favorites():
 def put_favorites(req: FavoritesPutReq):
     """全量替换自选股集合（前端持有完整 Set，整集 PUT → 幂等、无合并冲突）。"""
     return sanitize({"ok": True, **_fav.save_favorites(req.tickers)})
+
+
+# ── 关注股异动扫描结果 —— 本地脚本写、监控页读，整快照替换 ────────
+class AnomalyScanReq(BaseModel):
+    scanned_at: str | None = None
+    time_range: int = 7
+    items: list = []
+    skipped: list = []
+    errors: list = []
+
+
+@app.get("/api/anomaly/scan")
+def get_anomaly_scan():
+    """读取最近一次关注股异动扫描快照，供「实时监控」页展示。"""
+    return sanitize(_anom.load_scan())
+
+
+@app.put("/api/anomaly/scan")
+def put_anomaly_scan(req: AnomalyScanReq):
+    """本地 futu_anomaly_scan.py 跑完写入整快照（幂等替换）。"""
+    return sanitize({"ok": True, **_anom.save_scan(req.dict())})
 
 
 @app.get("/api/watchlist/10x/export")
