@@ -523,7 +523,7 @@ const CompareModal = ({ open, onClose, stocks }) => {
               <tbody className="font-mono tabular-nums">
                 {[
                   // 第 4 项 winner: "higher" | "lower" | null（null = 不评胜负，纯展示）
-                  [t("名称"), s => isZh(lang) ? (s.nameCN || STOCK_CN_NAMES[s.ticker] || s.name) : s.name, "font-sans text-[10px] text-[#a0aec0]", null],
+                  [t("名称"), s => isZh(lang) ? t(s.nameCN || STOCK_CN_NAMES[s.ticker] || s.name) : s.name, "font-sans text-[10px] text-[#a0aec0]", null],
                   [t("现价"), s => `${currencySymbol(s.currency)}${s.price}`, "text-white", null],
                   [t("涨跌"), s => `${safeChange(s.change) >= 0 ? "+" : ""}${fmtChange(s.change)}%`, s => safeChange(s.change) >= 0 ? "text-up" : "text-down", "higher"],
                   [t("评分"), s => s.score?.toFixed(1), "text-indigo-300 font-semibold", "higher"],
@@ -1627,7 +1627,7 @@ const ScoringDashboard = () => {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline gap-2">
                       <span className="font-mono text-[14px] font-semibold" style={{ color: "var(--fg-0)" }}>{stk.ticker}</span>
-                      <span className="text-[11px] truncate" style={{ color: "var(--fg-3)" }}>{isZh(lang) ? (stk.nameCN || STOCK_CN_NAMES[stk.ticker] || stk.name) : stk.name}</span>
+                      <span className="text-[11px] truncate" style={{ color: "var(--fg-3)" }}>{isZh(lang) ? t(stk.nameCN || STOCK_CN_NAMES[stk.ticker] || stk.name) : stk.name}</span>
                     </div>
                     <div className="font-mono text-[11px] mt-1" style={{ color: up ? "var(--up)" : "var(--down)" }}>
                       {stk.price != null ? `${px(stk)} · ` : ""}{up ? "+" : ""}{fmtChange(stk.change)}%
@@ -1662,7 +1662,7 @@ const ScoringDashboard = () => {
                 )}
                 <div className="flex justify-between items-start mb-4">
                   <div className="min-w-0">
-                    <div className="text-[13px] mb-1 truncate" style={{ color: "var(--fg-2)" }}>{isZh(lang) ? (sel.nameCN || STOCK_CN_NAMES[sel.ticker] || sel.name) : sel.name}</div>
+                    <div className="text-[13px] mb-1 truncate" style={{ color: "var(--fg-2)" }}>{isZh(lang) ? t(sel.nameCN || STOCK_CN_NAMES[sel.ticker] || sel.name) : sel.name}</div>
                     <div className="font-mono" style={{ fontSize: 36, fontWeight: 600, color: "var(--fg-0)", lineHeight: 1 }}>{px(sel)}</div>
                     <div className="mt-2">
                       <span className="font-mono text-[12px] px-2 py-1 rounded" style={{ background: safeChange(sel.change) >= 0 ? "rgba(30,211,149,.12)" : "rgba(255,107,107,.12)", color: safeChange(sel.change) >= 0 ? "var(--up)" : "var(--down)" }}>
@@ -1940,7 +1940,7 @@ const ScoringDashboard = () => {
             <div className="flex items-baseline justify-between gap-2 mb-1">
               <div className="min-w-0 flex items-baseline gap-1.5">
                 <span className="font-mono font-bold text-sm text-white shrink-0">{pk.ticker}</span>
-                <span className="text-[10px] text-[#778] truncate">{isZh(lang) ? (pk.nameCN || STOCK_CN_NAMES[pk.ticker] || pk.name) : pk.name}</span>
+                <span className="text-[10px] text-[#778] truncate">{isZh(lang) ? t(pk.nameCN || STOCK_CN_NAMES[pk.ticker] || pk.name) : pk.name}</span>
               </div>
               <span className={`font-mono text-sm font-bold shrink-0 ${pk.score >= 75 ? 'text-up' : 'text-indigo-300'}`}>{pk.score != null ? pk.score.toFixed(0) : '—'}</span>
             </div>
@@ -2332,7 +2332,7 @@ const ScoringDashboard = () => {
                         <div className="flex items-center gap-1.5 min-w-0">
                           <span className="text-[9px] w-3 text-center text-[#667] font-mono">{j + 1}</span>
                           <span className="text-[11px] font-mono font-semibold text-white shrink-0">{stk.ticker}</span>
-                          <span className="text-[9px] text-[#a0aec0] truncate">{isZh(lang) ? (stk.nameCN || STOCK_CN_NAMES[stk.ticker] || stk.name) : stk.name}</span>
+                          <span className="text-[9px] text-[#a0aec0] truncate">{isZh(lang) ? t(stk.nameCN || STOCK_CN_NAMES[stk.ticker] || stk.name) : stk.name}</span>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                           <MiniSparkline data={get5DSparkData(stk)} w={40} h={12} />
@@ -2360,7 +2360,7 @@ const ScoringDashboard = () => {
                 <div className="flex items-center gap-2">
                   <span className="text-[9px] w-4 text-center text-[#667] font-mono shrink-0">{i + 1}</span>
                   <span className="font-semibold text-[11px] text-white shrink-0 font-mono"><Highlight text={stk.ticker} query={searchTerm} /></span>
-                  <span className="text-[9px] text-[#a0aec0] truncate flex-1"><Highlight text={isZh(lang) ? (stk.nameCN || STOCK_CN_NAMES[stk.ticker] || stk.name) : stk.name} query={searchTerm} /></span>
+                  <span className="text-[9px] text-[#a0aec0] truncate flex-1"><Highlight text={isZh(lang) ? t(stk.nameCN || STOCK_CN_NAMES[stk.ticker] || stk.name) : stk.name} query={searchTerm} /></span>
                   <MiniSparkline data={get5DSparkData(stk)} w={56} h={16} />
                   <span className="text-[10px] font-mono tabular-nums text-indigo-300 shrink-0">{stk.score?.toFixed(1)}</span>
                   <span className={`text-[10px] font-mono tabular-nums shrink-0 w-14 text-right ${safeChange(stk.change) >= 0 ? "text-up" : "text-down"}`}>
@@ -2401,7 +2401,7 @@ const ScoringDashboard = () => {
                 </div>
               </div>
               <div className="flex items-center justify-between gap-2">
-                <span className="text-[10px] text-[#b0b8c4] truncate flex-1 min-w-0"><Highlight text={isZh(lang) ? (stk.nameCN || STOCK_CN_NAMES[stk.ticker] || stk.name) : stk.name} query={searchTerm} /></span>
+                <span className="text-[10px] text-[#b0b8c4] truncate flex-1 min-w-0"><Highlight text={isZh(lang) ? t(stk.nameCN || STOCK_CN_NAMES[stk.ticker] || stk.name) : stk.name} query={searchTerm} /></span>
                 <MiniSparkline data={get5DSparkData(stk)} w={48} h={14} />
                 <div className="flex items-center gap-1 w-20 shrink-0">
                   <ScoreBar score={stk.score} />
@@ -2456,7 +2456,7 @@ const ScoringDashboard = () => {
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <h3 className="text-[34px] sm:text-[42px] font-serif font-semibold text-white leading-none tracking-tight" style={{ letterSpacing: '-0.02em' }}>{sel.ticker}</h3>
                     {/* PDF1 收敛：sector 从 accent Badge 改 neutral 文字（信息性，无需视觉权重） */}
-                    <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>{sel.market} · {sel.sector}</span>
+                    <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>{sel.market} · {isZh(lang) ? t(sel.sector) : sel.sector}</span>
                     {/* v5.2：下次财报倒计时 chip — 提前把加/减仓窗口与财报日对齐 */}
                     {(() => {
                       if (!sel.nextEarnings) return null;
@@ -2518,7 +2518,7 @@ const ScoringDashboard = () => {
                     )}
                     <MacroAdjustBadge stock={sel} temp={macroSnapshot?.composite?.market_temperature} size="sm" />
                   </div>
-                  <div className="text-xs text-[#a0aec0]">{isZh(lang) ? (sel.nameCN || STOCK_CN_NAMES[sel.ticker] || sel.name) : sel.name}</div>
+                  <div className="text-xs text-[#a0aec0]">{isZh(lang) ? t(sel.nameCN || STOCK_CN_NAMES[sel.ticker] || sel.name) : sel.name}</div>
                 </div>
                 <div className="sm:text-right flex sm:block items-center gap-2">
                   {/* PDF2 抛光 4.2：主价格抬到 24/28px + 渐变文字（白→slate-300）让数字有金属感 */}
@@ -2540,7 +2540,7 @@ const ScoringDashboard = () => {
                   </div>
                 </div>
               </div>
-              <p className="text-xs text-[#a0aec0] leading-relaxed mb-2 border-l-2 border-indigo-500/30 pl-2">{isZh(lang) ? (STOCK_CN_DESCS[sel.ticker] || sel.descriptionCN || sel.description) : sel.description}</p>
+              <p className="text-xs text-[#a0aec0] leading-relaxed mb-2 border-l-2 border-indigo-500/30 pl-2">{isZh(lang) ? t(STOCK_CN_DESCS[sel.ticker] || sel.descriptionCN || sel.description) : sel.description}</p>
               {/* PDF2 抛光：AI 评分解读卡前置 — 紧贴评分块，回答「为什么是这个分」（默认折叠） */}
               {sel.subScores && (
                 <div className="mb-2">
@@ -2647,7 +2647,7 @@ const ScoringDashboard = () => {
                       className={`inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border ${maSignal.above ? 'text-warn bg-warn/10 border-warn/30' : 'text-[#a0aec0] bg-white/5 border-white/10'}`}
                     >
                       <span className="inline-block w-3" style={{ borderTop: '2px dashed #F5B53C' }} />
-                      MA20 {maSignal.above ? `↗ 站上均线 +${maSignal.gap.toFixed(1)}%` : `↘ 跌破均线 ${maSignal.gap.toFixed(1)}%`}
+                      MA20 {maSignal.above ? `↗ ${t('站上均线')} +${maSignal.gap.toFixed(1)}%` : `↘ ${t('跌破均线')} ${maSignal.gap.toFixed(1)}%`}
                     </span>
                   )}
                   {periodReturn !== null && (
@@ -3206,7 +3206,7 @@ const ScoringDashboard = () => {
                     </div>
                     {sectorMedians && (
                       <div className="mt-2.5 pt-2 border-t border-white/5 flex items-center justify-between text-[9px] text-[#778]">
-                        <span>{t('vs 行业中位')} · <span className="font-mono">{sel.sector} · {sectorMedians.peerCount} {t('对比')}</span></span>
+                        <span>{t('vs 行业中位')} · <span className="font-mono">{isZh(lang) ? t(sel.sector) : sel.sector} · {sectorMedians.peerCount} {t('对比')}</span></span>
                         {/* PDF1 推荐：归因卡为主，雷达保留为可切换备选视图 */}
                         <button
                           onClick={() => document.getElementById('detail-radar')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
@@ -3546,7 +3546,7 @@ const ScoringDashboard = () => {
                               {r.alreadyAdded && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-up/10 text-up border border-up/20 flex items-center gap-0.5"><Check size={8} /> {t('已添加')}</span>}
                               {r.price && <span className="text-[10px] font-mono tabular-nums text-[#a0aec0]">${r.price}</span>}
                             </div>
-                            <div className="text-[10px] text-[#778] truncate">{isZh(lang) ? (STOCK_CN_NAMES[r.symbol] || r.name) : r.name}</div>
+                            <div className="text-[10px] text-[#778] truncate">{isZh(lang) ? t(STOCK_CN_NAMES[r.symbol] || r.name) : r.name}</div>
                           </div>
                           {r.alreadyAdded ? (
                             <button

@@ -114,7 +114,7 @@ function MAlertRow({ alert: a, onAck, onMute, t, lang, liveStocks, onTap }) {
   const stkLabel = a.type === "macro" ? t("宏观") :
     (() => {
       const s = liveStocks.find((x) => x.ticker === a.ticker);
-      return s ? (isZh(lang) ? (s.nameCN || s.name) : s.name) : a.ticker;
+      return s ? (isZh(lang) ? t(s.nameCN || s.name) : s.name) : a.ticker;
     })();
 
   return (
@@ -167,7 +167,7 @@ function MAlertRow({ alert: a, onAck, onMute, t, lang, liveStocks, onTap }) {
               {a.type === "macro" ? t("宏观") : a.type === "price" ? t("价格") : a.type === "technical" ? t("技术") : a.type === "score" ? t("评级") : a.type}
             </span>
           </div>
-          <div style={{ fontSize: 12, color: "var(--fg-1)", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.message}</div>
+          <div style={{ fontSize: 12, color: "var(--fg-1)", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{isZh(lang) ? t(a.message) : a.message}</div>
         </div>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
           <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 10, color: "var(--fg-3)" }}>{a.time}</span>
@@ -509,13 +509,13 @@ const Monitor = () => {
             </div>
 
             {/* message */}
-            <p style={{ fontSize: 15, lineHeight: 1.65, color: "var(--fg-1)", marginBottom: 20 }}>{a.message}</p>
+            <p style={{ fontSize: 15, lineHeight: 1.65, color: "var(--fg-1)", marginBottom: 20 }}>{isZh(lang) ? t(a.message) : a.message}</p>
 
             {/* action recommendation */}
             {a.action && (
               <div style={{ padding: "12px 14px", borderRadius: 12, background: "rgba(139,92,246,.08)", border: "1px solid rgba(139,92,246,.2)", marginBottom: 20 }}>
                 <div style={{ fontSize: 10, color: "var(--violet)", marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.06em" }}>{t("建议")}</div>
-                <p style={{ fontSize: 13, color: "rgba(221,214,254,.85)", lineHeight: 1.55, margin: 0 }}>{a.action}</p>
+                <p style={{ fontSize: 13, color: "rgba(221,214,254,.85)", lineHeight: 1.55, margin: 0 }}>{isZh(lang) ? t(a.action) : a.action}</p>
               </div>
             )}
 
@@ -690,7 +690,7 @@ const Monitor = () => {
                 </div>
 
                 {/* message */}
-                <p style={{ margin: "0 0 14px", fontSize: 13.5, lineHeight: 1.6, color: "var(--fg-1)" }}>{mFeatured.message}</p>
+                <p style={{ margin: "0 0 14px", fontSize: 13.5, lineHeight: 1.6, color: "var(--fg-1)" }}>{isZh(lang) ? t(mFeatured.message) : mFeatured.message}</p>
 
                 {/* CTA buttons */}
                 <div style={{ display: "flex", gap: 9 }}>
@@ -1114,10 +1114,10 @@ const Monitor = () => {
                    featuredAlert.type === "price" ? t("价格") : t("新闻")}
                 </Badge>
               </div>
-              <p className="text-xs text-[#cdd5e0] leading-relaxed mb-2">{featuredAlert.message}</p>
+              <p className="text-xs text-[#cdd5e0] leading-relaxed mb-2">{isZh(lang) ? t(featuredAlert.message) : featuredAlert.message}</p>
               {featuredAlert.action && (
                 <p className="text-[11px] text-violet-200/90 leading-relaxed mb-2 pt-1.5 border-t border-white/[0.04]">
-                  {t('建议')}：{featuredAlert.action}
+                  {t('建议')}：{isZh(lang) ? t(featuredAlert.action) : featuredAlert.action}
                 </p>
               )}
               {/* v5: 价格位置条 — 用真实 52周高低 + 现价，告诉用户告警价在年内什么位置。
@@ -1224,10 +1224,10 @@ const Monitor = () => {
                   </div>
                   <span className="text-[10px] text-[#a0aec0] font-mono">{a.time}</span>
                 </div>
-                <p className="text-xs text-[#a0aec0] leading-relaxed">{a.message}</p>
+                <p className="text-xs text-[#a0aec0] leading-relaxed">{isZh(lang) ? t(a.message) : a.message}</p>
                 {a.action && (
                   <p className="text-[10px] text-violet-300/80 leading-relaxed mt-1 pt-1 border-t border-white/[0.04]">
-                    {t('建议')}：{a.action}
+                    {t('建议')}：{isZh(lang) ? t(a.action) : a.action}
                   </p>
                 )}
                 <div className="flex items-center gap-2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">

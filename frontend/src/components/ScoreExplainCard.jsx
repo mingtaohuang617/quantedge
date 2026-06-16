@@ -11,8 +11,10 @@
 import React, { useState, useEffect } from "react";
 import { Info, AlertCircle, Loader, Zap } from "lucide-react";
 import { apiFetch } from "../quant-platform.jsx";
+import { useLang } from "../i18n.jsx";
 
 export default function ScoreExplainCard({ stock, weights }) {
+  const { t } = useLang();
   const [state, setState] = useState({
     loading: false,
     text: null,
@@ -63,11 +65,11 @@ export default function ScoreExplainCard({ stock, weights }) {
         <div className="flex items-center gap-1.5">
           <Info size={11} className="text-indigo-400" />
           <span className="text-[10.5px] font-semibold tracking-wider uppercase text-indigo-300/90">
-            为什么 {stock.score?.toFixed(1)} 分？
+            {t('为什么 {n} 分？', { n: stock.score?.toFixed(1) })}
           </span>
           {state.cached && (
-            <span title="命中缓存" className="inline-flex items-center gap-0.5 text-[9px] text-amber-300/80 ml-1">
-              <Zap size={8} /> 缓存
+            <span title={t('命中缓存')} className="inline-flex items-center gap-0.5 text-[9px] text-amber-300/80 ml-1">
+              <Zap size={8} /> {t('缓存')}
             </span>
           )}
         </div>
@@ -76,7 +78,7 @@ export default function ScoreExplainCard({ stock, weights }) {
             onClick={handleGenerate}
             className="px-2 py-0.5 text-[10px] rounded-md bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-200 border border-indigo-500/30 transition"
           >
-            AI 解读
+            {t('AI 解读')}
           </button>
         )}
         {state.text && (
@@ -84,7 +86,7 @@ export default function ScoreExplainCard({ stock, weights }) {
             onClick={handleGenerate}
             className="text-[9px] text-indigo-300/70 hover:text-indigo-200 transition"
           >
-            重新解读
+            {t('重新解读')}
           </button>
         )}
       </div>
@@ -92,7 +94,7 @@ export default function ScoreExplainCard({ stock, weights }) {
       {state.loading && (
         <div className="flex items-center gap-1.5 text-[11px] text-[#a0aec0] py-0.5">
           <Loader size={10} className="animate-spin text-indigo-400" />
-          <span>正在分析...</span>
+          <span>{t('正在分析...')}</span>
         </div>
       )}
 
@@ -106,13 +108,13 @@ export default function ScoreExplainCard({ stock, weights }) {
       {state.text && !state.loading && (
         <>
           <p className="lead-paragraph__body">{state.text}</p>
-          <div className="lead-paragraph__based-on">based on · 质量分 · 时机分 · 双轨权重</div>
+          <div className="lead-paragraph__based-on">{t('based on · 质量分 · 时机分 · 双轨权重')}</div>
         </>
       )}
 
       {!state.expanded && !state.loading && !state.error && (
         <div className="text-[11px] text-[#a0aec0]">
-          点 AI 解读，1-2 句话告诉你为什么得这个分
+          {t('点 AI 解读，1-2 句话告诉你为什么得这个分')}
         </div>
       )}
     </div>

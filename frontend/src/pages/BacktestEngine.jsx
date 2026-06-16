@@ -1989,7 +1989,7 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
         <div className="glass-card p-2 border border-violet-500/20">
           <div className="flex items-center gap-1.5 mb-1.5">
             <Sparkles size={11} className="text-violet-400" />
-            <span className="text-[10px] font-medium text-violet-300">用一句话描述策略 (AI 自动选股)</span>
+            <span className="text-[10px] font-medium text-violet-300">{t('用一句话描述策略 (AI 自动选股)')}</span>
           </div>
           <div className="flex gap-1.5">
             <input
@@ -2128,7 +2128,7 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
                     <div className="flex items-center gap-2 min-w-0 flex-1">
                       <span className="font-semibold" style={{ color: r.alreadyInPortfolio ? "var(--text-muted)" : "var(--text-heading)" }}>{r.symbol}</span>
                       <span className="text-[9px] px-1 py-0.5 rounded" style={{ background: "rgba(99,102,241,0.12)", color: "var(--accent-indigo)" }}>{r.market || "US"}</span>
-                      <span className="truncate text-[10px]" style={{ color: "var(--text-secondary)" }}>{isZh(lang) ? (STOCK_CN_NAMES[r.symbol] || r.name) : r.name}</span>
+                      <span className="truncate text-[10px]" style={{ color: "var(--text-secondary)" }}>{isZh(lang) ? t(STOCK_CN_NAMES[r.symbol] || r.name) : r.name}</span>
                     </div>
                     {r.alreadyInPortfolio ? (
                       <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-up/10 text-up border border-up/20 flex items-center gap-0.5 shrink-0 ml-1">
