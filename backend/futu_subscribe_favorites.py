@@ -92,6 +92,7 @@ def main(argv=None):
     p.add_argument("--poll", type=int, default=300, help="重拉关注列表间隔秒(保持模式)")
     p.add_argument("--once", action="store_true", help="只订一次+打印快照后退出")
     p.add_argument("--tickers", help="逗号分隔,绕过 KV(调试)")
+    p.add_argument("--reconnect-delay", type=int, default=30, help="掉线/异常后重连等待秒")
     args = p.parse_args(argv)
 
     os.environ.setdefault("PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION", "python")
@@ -102,47 +103,71 @@ def main(argv=None):
             return [t.strip() for t in args.tickers.split(",") if t.strip()]
         return fetch_favorites(args.favorites_url, args.referer)
 
-    ctx = OpenQuoteContext(host=args.host, port=args.port)
-    subscribed = set()
-    try:
-        while True:
-            favs = get_favs()
-            codes, skipped = resolve_codes(favs)
-            want = {c for _, c in codes}
-            add, rem = want - subscribed, subscribed - want
-            if add:
-                ret, data = ctx.subscribe(list(add), [SubType.QUOTE])
-                if ret == RET_OK:
-                    subscribed |= add
-                    print(f"[sub] +{len(add)} 已订阅: {sorted(add)}", flush=True)
-                else:
-                    print(f"[sub] 订阅失败: {data}", flush=True)
-            if rem:
-                ctx.unsubscribe(list(rem), [SubType.QUOTE])
-                subscribed -= rem
-                print(f"[sub] -{len(rem)} 已取消: {sorted(rem)}", flush=True)
-            if skipped:
-                print(f"[sub] 跳过(无权限市场): {[t for t, _ in skipped]}", flush=True)
+    def run_session():
+        """连一次 + 订阅 + 轮询保持。任何连接级异常向上抛,交给外层重连。"""
+        ctx = OpenQuoteContext(host=args.host, port=args.port)
+        subscribed = set()
+        try:
+            while True:
+                try:
+                    favs = get_favs()
+                except Exception as e:  # noqa: BLE001 — 拉取失败不拆连接,保持现有订阅,短退避后重试
+                    if args.once:
+                        raise
+                    backoff = min(args.poll, 20)
+                    print(f"[sub] 拉关注列表失败,保持现有 {len(subscribed)} 订阅,{backoff}s 后重试: {e}", flush=True)
+                    time.sleep(backoff)
+                    continue
+                codes, skipped = resolve_codes(favs)
+                want = {c for _, c in codes}
+                add, rem = want - subscribed, subscribed - want
+                if add:
+                    ret, data = ctx.subscribe(list(add), [SubType.QUOTE])
+                    if ret == RET_OK:
+                        subscribed |= add
+                        print(f"[sub] +{len(add)} 已订阅: {sorted(add)}", flush=True)
+                    else:
+                        print(f"[sub] 订阅失败: {data}", flush=True)
+                if rem:
+                    ctx.unsubscribe(list(rem), [SubType.QUOTE])
+                    subscribed -= rem
+                    print(f"[sub] -{len(rem)} 已取消: {sorted(rem)}", flush=True)
+                if skipped:
+                    print(f"[sub] 跳过(无权限市场): {[t for t, _ in skipped]}", flush=True)
 
-            # 实时行情快照（证明订阅生效）
-            if subscribed:
-                ret, q = ctx.get_stock_quote(list(subscribed))
-                if ret == RET_OK and hasattr(q, "to_dict"):
-                    rows = q.to_dict(orient="records")
-                    print(f"[sub] 实时行情({len(rows)}):", flush=True)
-                    for r in rows:
-                        print(f"      {r.get('code'):<12} 现价 {r.get('last_price')}", flush=True)
+                # 实时行情快照（证明订阅生效）
+                if subscribed:
+                    ret, q = ctx.get_stock_quote(list(subscribed))
+                    if ret == RET_OK and hasattr(q, "to_dict"):
+                        rows = q.to_dict(orient="records")
+                        print(f"[sub] 实时行情({len(rows)}):", flush=True)
+                        for r in rows:
+                            print(f"      {r.get('code'):<12} 现价 {r.get('last_price')}", flush=True)
 
-            ret, sub = ctx.query_subscription()
-            used = sub.get("own_used") if isinstance(sub, dict) else None
-            print(f"[sub] 订阅配额已用={used} (共1000) | 当前持有 {len(subscribed)} 只", flush=True)
+                ret, sub = ctx.query_subscription()
+                used = sub.get("own_used") if isinstance(sub, dict) else None
+                print(f"[sub] 订阅配额已用={used} (共1000) | 当前持有 {len(subscribed)} 只", flush=True)
 
-            if args.once:
-                break
-            time.sleep(args.poll)
-    finally:
-        ctx.close()
-    return 0
+                if args.once:
+                    return
+                time.sleep(args.poll)
+        finally:
+            try:
+                ctx.close()
+            except Exception:  # noqa: BLE001
+                pass
+
+    if args.once:
+        run_session()
+        return 0
+
+    # 永久常驻:OpenD 重启 / 掉线 / 拉取失败都自动重连,直到进程被杀
+    while True:
+        try:
+            run_session()
+        except Exception as e:  # noqa: BLE001
+            print(f"[sub] 会话中断,{args.reconnect_delay}s 后重连: {e}", flush=True)
+        time.sleep(args.reconnect_delay)
 
 
 if __name__ == "__main__":
