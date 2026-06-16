@@ -258,13 +258,16 @@ def test_append_history_cap_limits_size(tmp_sg):
 
 # ── get_alerts ────────────────────────────────────────────
 def test_get_alerts_detects_score_drop(tmp_sg):
+    # 用相对日期，避免硬编码日期随时间滑出 get_alerts 的 days 窗口（时间炸弹）
+    from datetime import datetime, timedelta, timezone
+    now = datetime.now(timezone.utc)
     sg.add_to_watchlist("AAPL")
     data = sg.load_watchlist()
     item = data["items"][0]
     item["score_history"] = [
-        {"engine": "trend", "checked_at": "2026-05-10T00:00:00Z",
+        {"engine": "trend", "checked_at": (now - timedelta(days=14)).isoformat(),
          "score": 5, "max_score": 8, "verdict_level": "moderate"},
-        {"engine": "trend", "checked_at": "2026-05-17T00:00:00Z",
+        {"engine": "trend", "checked_at": (now - timedelta(days=7)).isoformat(),
          "score": 3, "max_score": 8, "verdict_level": "weak"},
     ]
     sg.save_watchlist(data)
@@ -279,14 +282,17 @@ def test_get_alerts_detects_score_drop(tmp_sg):
 
 
 def test_get_alerts_filters_min_delta(tmp_sg):
+    # 同上：相对日期，避免时间炸弹
+    from datetime import datetime, timedelta, timezone
+    now = datetime.now(timezone.utc)
     sg.add_to_watchlist("AAPL")
     data = sg.load_watchlist()
     item = data["items"][0]
     item["score_history"] = [
-        {"engine": "trend", "checked_at": "2026-05-10T00:00:00Z",
+        {"engine": "trend", "checked_at": (now - timedelta(days=14)).isoformat(),
          "score": 5, "max_score": 8, "verdict_level": "moderate"},
         # 仅 1 分差异
-        {"engine": "trend", "checked_at": "2026-05-17T00:00:00Z",
+        {"engine": "trend", "checked_at": (now - timedelta(days=7)).isoformat(),
          "score": 4, "max_score": 8, "verdict_level": "neutral"},
     ]
     sg.save_watchlist(data)

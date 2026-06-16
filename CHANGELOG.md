@@ -5,6 +5,29 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added — K线浏览平台 + TradingView 化（PR #232–#247）
+
+评分页「价格走势」从简单面积线升级成完整 K线浏览平台（桌面）：
+- **点击放大成 K线平台** (#232)：总览图点击 → 全屏蜡烛 + 成交量 + MA/EMA + 拖拽缩放
+- **K线平台增强** (#234)：左价轴浮点修复 / K线周期(五日~年线) / 左侧竖向指标栏 / 布林线 / MA(5 倍数)·EMA(斐波那契)扩充
+- **浮窗信息补强**：当日涨跌幅 (#235)、OHLC 改中文全称 开盘/最高/最低/收盘 (#236)
+- **对齐 TradingView · 渲染+交互** (#239)：常驻 OHLC+指标图例(hover 原地刷新) / 最新价标线+左侧价签 / 细网格 / 量价分隔线 / 阳线空心 / 线性·对数轴切换 / 十字光标轴标签 / 滚轮缩放 / 指标图例可一键移除；附 3 个 bug 修复(收起态左轴浮点、tooltip 措辞、周期高亮归一)
+- **画线工具** (#244)：趋势线 / 水平线 / 测量(Δ价%·Δ根数) + 指标自定义周期；`ScaleCapture`+`DrawingLayer` Customized 层，图元锚数据坐标、跟随缩放/平移/周期
+- **画线持久化** (#247)：按 (标的×周期) 存 localStorage，切标的/切周期/刷新均留存
+
+### Changed — 评分机制双轨重构（PR #240–#248）
+
+评分从「硬阈值揉一个综合分」重构为「双轨 + 横截面分位 + 分资产类型」，根治「74% A股/港股无基本面 → 综合分≈纯动量」的病根：
+- **ETF 评分回归修复** (#240)：refresh 误用个股公式 → 恢复 24 个 ETF 四维分
+- **P1 数据地基** (#241)：A股/港股基本面回补(yfinance .info) + 全量 GICS 行业归一(519 标的全归类、0 个「其他」)
+- **P2 双轨引擎 + P3 前端** (#243)：`score = 质量×0.6 + 时机×0.4`；质量分(市场×GICS 横截面分位×0.7 + 绝对锚×0.3)、时机分(多周期动量分位 50 + 趋势 30 + RSI 20)；个股分行业、ETF 分 4 类(杠杆质量封顶 60 + 波动磨损)；前端双表盘归因 + 「质量↔时机」权重滑块(持有/均衡/交易预设)
+- **基本面健全性钳制** (#245)：`_sane()` 在评分入口剔除 yfinance 不可能值(净利率 808% / PB 1453)，防污染横截面分位
+- **评分驱动策略回测** (#248)：`backtest_strategy.py` 走式分位组合(月度再平衡、top20% 等权)；综合分 IC +0.033~+0.049、IR 0.30~0.37 验证排序有效
+
+### Added — 桌面工作站 + 设计评审（PR #230 / #238）
+- **评分页左右栏可折叠** (#230)：桌面三栏研究工作站，中间详情让出更多空间
+- **对比盘空态自动折叠** (#238)：设计评审最高 ROI 项
+
 ### Infrastructure — Vercel 部署解锁（PR #173 / #176 / #178）
 
 终于把 `quantedge-chi.vercel.app` 从 PR #136（5-23）冷冻状态解放，过去 5 个 PR（smart-beta / mining-alpha / v5 等）全部上线。
@@ -105,6 +128,85 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - **name fallback 兼顾 broad 模式** (PR #108)：之前 sector 空的 TSM/EQIX 在默认 broad 模式下永远 0 命中；移除 `precise and` 守卫
   - 测试：vitest 374 passed / backend pytest test_sector_mapping + test_watchlist_10x 全过
   - Audit 命中率（5 大指数）：SPX 500 88% / NDX ~95% / HSI 97% / HSTECH 100% / CSI 300 99%
+
+### Added — v5 / v6 / v7 设计语言迭代（2026-05~06）
+
+把 v5 编辑式继续扩展，落地 v6 移动端响应式全 10 页，再做 v7 桌面工作站升级。每个 PR 都在前一阶段上做增量，最终形成 移动→平板→桌面 + serif hero + glass-card + 6 色主题 一致的视觉语言。
+
+- **v5 设计落地 4 新页重做 + 6 页 v5.2/v5.3 增量** (PR #217)
+- **v5 编辑式大字号 hero 恢复 + Smart Beta 套设计视觉语言** (PR #223)
+- **v6 移动端响应式全 10 页 + v6 配色 + 共享原语** (PR #224)：底栏 5-tab + 各页 hero / BottomSheet / 横屏全屏图表
+- **v6 移动端 8 页像素级对齐设计稿** (PR #227)：CompoundPower / SmartBeta / Screener10x / MiningAlpha / StockGene / BacktestEngine / Monitor / Journal；新增 `.t-cap` 工具类；`live-dot` 改 v6 绿 `#1ED395`
+- **v7 桌面工作站 — 6 色主题切换 + W/C 键盘动作 + 评分 hover peek** (PR #225)：indigo / cyan / emerald / amber / rose / violet 一键换色；W 切到当前 ticker 工作站 / C 添加到对比盘
+- **v7 桌面三栏研究工作台 — 常驻对比盘第三栏** (PR #226)：评分 / 详情 / 对比 同时可见
+- **v7 桌面工作站对齐设计稿 02-10** (PR #228)：盯盘墙 + regime 仪表组 + 多页 diff polish
+- **功能教程面板** (PR #218)：按功能引导 + 首次导览改版（侧栏 / 顶部双入口）
+- **工作区下拉框可见性修复 + 切换响应式重新评分** (PR #220)
+
+### Added — Smart Beta 历史回测 + 修复
+
+把 Smart Beta 从纯静态预设页升级到带历史回测的策略实验室，覆盖月度再平衡 vs SPY 对比 + 多个严重 bug 修复。
+
+- **历史回测 — 月度再平衡 vs SPY benchmark** (PR #205)
+- **回测首次超时自动重试** (PR #213)：用户无需手动点两次
+- **回测数据拉取并行优化** (PR #214)：SPY 纳入并行池 + 并行度 8→16
+- **回测两个严重 bug 修复** (PR #215)：数据不足兜底 + 净值未归一化导致 -82% 暴跌
+- **RiskDial 弧线方向错 + CoreSectorPie 不显示** (PR #209)
+- **glass-card 体系对齐 + 语义色** (PR #195)：解决 Smart Beta 体制外孤儿样式
+
+### Added — Mining Alpha + StockGene 生产 demo 补完
+
+PR #178 解除 Vercel `.vercelignore` 排除后，stock-gene / mining-alpha tab 在生产能跑了，但 demo 模式数据 shape 与组件不匹配，连串修复让两个 tab 在 Vercel 也可用。
+
+- **Mining Alpha Vercel demo 模式补全** (PR #200)：不再显示「还没数据 → 跑 python」
+- **Mining Alpha demo 数据字段名匹配真实 component shape** (PR #202)
+- **Mining Alpha 页面不能垂直滚动** (PR #203)：加 `h-full overflow-y-auto` 外层
+- **StockGene + Screener10x 空 watchlist 触发 demo fallback** (PR #207)
+- **StockGene import missing TagsInput** (PR #197)：prod hotfix
+
+### Added — 数据扩展 + 一键回测 + 异常警示
+
+- **VITE_API_BASE wiring → Render backend** (PR #185)：前端可路由到 Render 后端跑 pandas / numpy 重活
+- **543 标的扩展** (PR #211)：纳指 100 / 恒生 / 恒生科技 / 沪深 300 全 supertrend 覆盖
+- **Compound 一键回测** (PR #191)：复利策略卡直接注入 BacktestEngine
+- **回测指标异常警示** (PR #216)：极端值（夏普 > 5 / 年化 > 100% 等）提示成分股数据可能有问题
+- **QoL batch 3** (PR #190)：EmptyState 组件 + zIndex 常量 + ShortcutsModal merge + Node 22 + ruff 87 fixes
+- **文案友好化 + apiFetch silent retry** (PR #188)：Smart Beta / 10x demo 完善
+
+### Changed
+
+- **priceRanges 剥离 → data.js bundle -86%** (PR #192)：1.1 MB → 150 KB，首屏 parse 时间显著下降
+- **港股基本面兜底 akshare → yfinance** (PR #210)：摘除 eastmoney 死依赖（见 PR #206 known issue）
+- **CompoundPower 对齐 glass-card 体系** (PR #199)：同 PR #195 模式应用到第二个孤儿
+- **yfinance_period 阶梯映射** (PR #212)：长周期日 K 不再 cap 到 6mo
+
+### Fixed — 生产 / 部署
+
+- **`render.yaml` build 时拷 universe_\*.json 到 output/** (PR #193)：修「全宇宙 US 0 · HK 0 · CN 0」候选永远 0 的 bug（用户在 VITE_API_BASE 接 Render 后报）
+- **Service Worker + Vercel SPA fallback 把 .js 404 兜底成 HTML** (PR #201)：导致 Smart Beta tab 永久挂的严重 bug
+- **Futu 断路器避免云端 OpenD 重连污染日志** (PR #194)
+- **`BacktestEngine` DataContext 消费补 `|| {}` 兜底** (PR #222)：避免 null 解构崩溃
+- **10x 市场 chip 视觉强化 + 保护「至少 1 个市场」** (PR #187)：修「取消选择 US 但仍显示 CN」的混淆 bug
+
+### Fixed — 数据 / 评分
+
+- **港股 `fetch_hk_fundamentals` 修 6 bug + 防御性多格式匹配** (PR #181)
+- **扫雷 3 修** (PR #208)：快捷键错位/缺失 + demo 因子详情 + 一键回测丢标的
+- **ETF 不再被个股因子等权重算** (PR #219)：杠杆 ETF 虚高 15 分
+- **跟踪误差徽章语义修正** (PR #221)：主动管理不再误报警告
+
+### Tests / Infra / Docs
+
+- **breadth_engine 13 单测** (PR #145)（已在前述 Tests/Infra 段记录，此处仅交叉引用）
+- **`_format` 24 单测覆盖 `fmt_big`** (PR #184)：之前 0 覆盖
+- **smart-beta-route 20 集成测试** (PR #186)：覆盖 `/api/smart-beta/snapshot`
+- **`yfinance` `fetch_history` 显式传 timeout** (PR #180)：默认 30s 可调
+- **a11y aria-label 13 icon-only button** (PR #183)：screen reader 兼容
+- **`universe/loader` 加部署数据流注释** (PR #198)：避免再踩 PR #193 那个坑
+- **CHANGELOG 同步 v5 phase 1-10 + API 合并 + Vercel 部署解锁** (PR #182)
+- **chore: tests warning 噪音屏蔽** (PR #196)：mining_alpha / futu 预期 warning
+- **docs(akshare): eastmoney TLS reverse-crawl known issue** (PR #206)
+- **chore(vercel): trigger rebuild for VITE_API_BASE plaintext** (PR #189)
 
 ## [0.8.0] - 2026-05-19 — UI/UX optimization sprint
 

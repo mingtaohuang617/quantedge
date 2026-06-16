@@ -18,6 +18,7 @@ from smart_beta import (  # noqa: E402
     get_core_allocation,
     load_universe,
     risk_score_to_core_weight,
+    run_backtest,
     score_sector_etf,
     select_sector_top_k,
 )
@@ -209,3 +210,72 @@ def test_build_snapshot_excludes_etfs_with_short_history():
     tickers = [r["ticker"] for r in snap["sector_ranked"]]
     assert "SHORT" not in tickers
     assert "XLK" in tickers
+
+
+# ── run_backtest 历史回测引擎 ──────────────────────────────
+def _dated_series(n=760, start=100.0, drift=0.0004, osc=0.012, period=23):
+    """确定性日频价格（带平滑振荡 → vol>0；无随机 → 测试稳定）。"""
+    idx = pd.date_range("2021-01-04", periods=n, freq="B")
+    tt = np.arange(n)
+    prices = start * (1.0 + drift) ** tt * (1.0 + osc * np.sin(tt / period))
+    return pd.Series(prices, index=idx)
+
+
+def _bt_prices():
+    """spy / core / sector 价格，ticker 取自真实 universe。"""
+    uni = load_universe()
+    core_tickers = list(get_core_allocation("balanced", uni).keys())
+    sector_tickers = [s["ticker"] for s in uni.get("sector", [])][:8]
+    spy = _dated_series(drift=0.0004)
+    core_prices = {
+        tk: (spy if tk == "SPY" else _dated_series(drift=0.0004 + 0.0001 * i, start=80 + 10 * i))
+        for i, tk in enumerate(core_tickers)
+    }
+    drifts = [0.0007, 0.0005, 0.0003, 0.0001, -0.0001, -0.0003, 0.0006, 0.0002]
+    sector_prices = {
+        tk: _dated_series(drift=drifts[i % len(drifts)], start=50 + 3 * i)
+        for i, tk in enumerate(sector_tickers)
+    }
+    return spy, core_prices, sector_prices
+
+
+def test_run_backtest_smoke():
+    spy, core_prices, sector_prices = _bt_prices()
+    res = run_backtest(spy, sector_prices, core_prices, core_preset="balanced", k=3)
+    assert "error" not in res
+    n = len(res["dates"])
+    assert n > 100
+    assert len(res["strategy_nav"]) == n and len(res["benchmark_nav"]) == n
+    assert all(np.isfinite(v) and v > 0 for v in res["strategy_nav"])
+    assert abs(res["strategy_nav"][0] - 1.0) < 1e-9
+    assert abs(res["benchmark_nav"][0] - 1.0) < 1e-9
+    assert len(res["rebalances"]) >= 12
+    for rb in res["rebalances"]:
+        assert 0.0 <= rb["risk_score"] <= 1.0
+        assert 0.4 <= rb["core_weight"] <= 0.9
+        assert abs(sum(rb["weights"].values()) - 1.0) < 0.02
+    for key in ("total_return", "annualized_return", "sharpe", "max_dd", "volatility"):
+        assert np.isfinite(res["metrics"][key])
+    assert res["metrics"]["max_dd"] <= 0.0
+    assert res["benchmark_metrics"]["total_return"] > 0  # SPY 上行
+
+
+def test_run_backtest_missing_core_ticker_renormalizes():
+    """关键修复回归锁：core 缺一只 ETF（数据没拉到）时剩余权重必须重新归一化，
+    否则净值每次再平衡被 ×Σw(<1) → 阶梯式暴跌。"""
+    spy, core_prices, sector_prices = _bt_prices()
+    drop = next(tk for tk in core_prices if tk != "SPY")
+    core_prices.pop(drop)  # 模拟数据缺失
+    res = run_backtest(spy, sector_prices, core_prices, core_preset="balanced", k=3)
+    assert "error" not in res
+    navs = res["strategy_nav"]
+    assert all(v > 0 for v in navs)
+    # 未归一化会 ~26×月度 ×0.85 → 终值≈0.01 collapse；归一化后上行市应增长
+    assert navs[-1] > 0.5
+    ratios = [navs[i + 1] / navs[i] for i in range(len(navs) - 1)]
+    assert min(ratios) > 0.8  # 再平衡边界无跳水
+
+
+def test_run_backtest_insufficient_spy_bars():
+    res = run_backtest(_dated_series(n=150), {}, {}, core_preset="balanced", k=3)
+    assert "error" in res

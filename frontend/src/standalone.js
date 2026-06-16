@@ -189,8 +189,8 @@ export const STOCK_CN_NAMES = {
   EWY: "韩国ETF", IYZ: "通信ETF", TQQQ: "纳指3倍多",
   ARKK: "方舟创新ETF", CWEB: "中概互联ETF", YINN: "中国3倍多",
   UGL: "黄金2倍多", SCO: "原油2倍空", KORU: "韩国3倍多",
-  BABX: "债券ETF", SOXL: "半导体3倍多", SOXS: "半导体3倍空",
-  RKLX: "火箭实验室2倍多", SNXX: "西部数据2倍多",
+  BABX: "阿里巴巴2倍多", SOXL: "半导体3倍多", SOXS: "半导体3倍空",
+  RKLX: "火箭实验室2倍多", SNXX: "闪迪2倍多",
   // ── 港股（已有） ──
   "00005.HK": "汇丰控股", "00700.HK": "腾讯控股",
   "09988.HK": "阿里巴巴", "01276.HK": "恒瑞医药",
@@ -348,11 +348,11 @@ export const STOCK_CN_DESCS = {
   UGL: "黄金价格2倍杠杆ETF，追踪黄金现货价格的两倍日度收益。",
   SCO: "原油价格2倍反向ETF，适合看空原油价格时使用。",
   KORU: "韩国股市3倍杠杆ETF，跟踪MSCI韩国指数的日度表现。",
-  BABX: "跟踪中国国债和政策性金融债的ETF。",
+  BABX: "阿里巴巴（BABA）2倍杠杆ETF，放大阿里巴巴股价的两倍日度收益，波动极大，适合短线方向性交易。",
   SOXL: "半导体行业3倍杠杆ETF，波动极大，适合短线方向性交易。",
   SOXS: "半导体行业3倍反向ETF，适合看空半导体板块时使用。",
   RKLX: "Rocket Lab（火箭实验室）每日2倍杠杆ETF，跟踪RKLB股价的两倍日度表现。",
-  SNXX: "西部数据（SNDK）每日2倍杠杆ETF，跟踪SNDK股价的两倍日度表现。",
+  SNXX: "闪迪（SanDisk, SNDK）每日2倍杠杆ETF，跟踪SNDK股价的两倍日度表现。",
   // ── 港股（已有） ──
   "00005.HK": "汇丰控股是全球最大的银行和金融服务机构之一，总部位于伦敦，业务遍及全球60多个国家。",
   "00700.HK": "中国最大的互联网公司之一，旗下拥有微信、QQ社交平台，以及游戏、云计算和金融科技业务。",
@@ -506,7 +506,7 @@ const TICKER_SECTOR_MAP = {
   UFO: "ETF/航天", EWY: "ETF/韩国", IYZ: "ETF/通信",
   TQQQ: "ETF/纳指3倍杠杆", ARKK: "ETF/创新", CWEB: "ETF/中概互联网",
   YINN: "ETF/中国3倍杠杆", UGL: "ETF/黄金2倍杠杆", SCO: "ETF/原油反向",
-  KORU: "ETF/韩国3倍杠杆", BABX: "ETF/债券",
+  KORU: "ETF/韩国3倍杠杆", BABX: "ETF/中国科技2倍杠杆",
 
   // ── 港股（已有） ──
   "00005.HK": "银行/金融", "00700.HK": "互联网/社交",
@@ -555,6 +555,12 @@ const RANGE_CONFIG = {
   "1Y": { range: "1y",  interval: "1d" },
   "5Y": { range: "5y",  interval: "1wk" },
   "ALL": { range: "max", interval: "1mo" },
+  // K 线周期（每根 K 的跨度）：月线/季线/年线。
+  // Yahoo 的 interval=3mo 不被支持（会退化回月度），所以季线/年线统一拉月度，
+  // 再靠「同标签合并」把月聚合成季/年（formatDateKey 返回季/年标签）。
+  "MONK":  { range: "max", interval: "1mo" },  // 月线
+  "QUARK": { range: "max", interval: "1mo" },  // 季线（月→季合并）
+  "YEARK": { range: "max", interval: "1mo" },  // 年线（月→年合并）
 };
 
 // ─── 日期格式化工具 ──────────────────────────────────────
@@ -567,7 +573,12 @@ function formatDateKey(timestamp, rangeKey) {
       return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
     case "5Y":
     case "ALL":
+    case "MONK":   // 月线
       return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}`;
+    case "QUARK":  // 季线：标签到季度 → 同季的月份点合并成一根季 K
+      return `${d.getFullYear()}Q${Math.floor(d.getMonth() / 3) + 1}`;
+    case "YEARK":  // 年线：标签只到年 → 同年的月份点合并成一根年 K
+      return `${d.getFullYear()}`;
     default: // 1M, 6M, YTD, 1Y
       return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
   }
@@ -582,7 +593,14 @@ async function _fetchOneRange(yfSym, rangeKey) {
   const result = data?.chart?.result?.[0];
   if (!result) return [];
   const timestamps = result.timestamp || [];
-  const closes = result.indicators?.quote?.[0]?.close || [];
+  const quote = result.indicators?.quote?.[0] || {};
+  const closes = quote.close || [];
+  const opens = quote.open || [];
+  const highs = quote.high || [];
+  const lows = quote.low || [];
+  const vols = quote.volume || [];
+  // 单字段防御：缺失/异常时降级到收盘价，保证蜡烛图不会画出 NaN 影线
+  const px2 = (v, fallback) => (Number.isFinite(v) && v > 0 ? +v.toFixed(2) : fallback);
   const history = [];
   for (let i = 0; i < timestamps.length; i++) {
     const c = closes[i];
@@ -593,10 +611,18 @@ async function _fetchOneRange(yfSym, rangeKey) {
     //    （已知症状: SK 海力士 ALL 范围 25Y 出现 -45 万韩元）
     if (c == null || !Number.isFinite(c) || c <= 0) continue;
     const m = formatDateKey(timestamps[i], rangeKey);
+    const cl = +(c.toFixed(2));
+    const o = px2(opens[i], cl), h = px2(highs[i], cl), l = px2(lows[i], cl);
+    const vol = Number.isFinite(vols[i]) && vols[i] >= 0 ? vols[i] : 0;
     if (history.length > 0 && history[history.length - 1].m === m) {
-      history[history.length - 1].p = +(c.toFixed(2));
+      // 同一标签合并（如 5D 把 30m K 合到同一天）：收盘取最新、高/低取极值、开盘保留首个、成交量累加
+      const prev = history[history.length - 1];
+      prev.p = cl; prev.c = cl;
+      prev.h = Math.max(prev.h, h);
+      prev.l = Math.min(prev.l, l);
+      prev.v = (prev.v || 0) + vol;
     } else {
-      history.push({ m, p: +(c.toFixed(2)) });
+      history.push({ m, p: cl, o, h, l, c: cl, v: vol });
     }
   }
   return history;

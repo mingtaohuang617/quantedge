@@ -15,6 +15,7 @@ from factors import (  # noqa: E402
     calc_momentum,
     calc_rsi,
     calc_stock_score,
+    parse_aum_to_usd,
     parse_leverage,
 )
 
@@ -98,7 +99,35 @@ def test_stock_score_detailed_returns_breakdown():
     assert set(parts.keys()) == {"fundamental", "technical", "growth"}
 
 
+# ── parse_aum_to_usd ─────────────────────────────────────
+def test_parse_aum_suffixes():
+    assert parse_aum_to_usd("21.0B") == 21e9
+    assert parse_aum_to_usd("728M") == 728e6
+    assert parse_aum_to_usd("1.5K") == 1500.0
+
+
+def test_parse_aum_plain_and_numeric():
+    assert parse_aum_to_usd("907412") == 907412.0
+    assert parse_aum_to_usd(1.2e9) == 1.2e9
+    assert parse_aum_to_usd("1,100M") == 1100e6  # 容忍千分位逗号
+
+
+def test_parse_aum_empty_or_bad_returns_none():
+    assert parse_aum_to_usd(None) is None
+    assert parse_aum_to_usd("") is None
+    assert parse_aum_to_usd("N/A") is None
+
+
 # ── calc_etf_score ───────────────────────────────────────
+def test_etf_score_detailed_returns_etf_dimensions():
+    # 回归护栏：ETF 必须产出 cost/liquidity/momentum/risk 四维，绝不是个股三维
+    _, parts = calc_etf_score(
+        expense_ratio=0.5, premium_discount=0.0, aum_usd=21e9,
+        momentum=100, concentration_top3=None, leverage=None, detailed=True,
+    )
+    assert set(parts.keys()) == {"cost", "liquidity", "momentum", "risk"}
+
+
 def test_etf_leverage_penalty_applied():
     no_lev = calc_etf_score(
         expense_ratio=0.5, premium_discount=0.2, aum_usd=5e8,

@@ -39,7 +39,7 @@ export default function ScoreExplainCard({ stock, weights }) {
           score: stock.score ?? null,
           isETF: !!stock.isETF,
           subScores: stock.subScores || {},
-          weights: weights || { fundamental: 40, technical: 30, growth: 30 },
+          weights: weights || { quality: 60, timing: 40 },
         }),
       });
       if (!json) throw new Error("后端无响应");
@@ -106,7 +106,7 @@ export default function ScoreExplainCard({ stock, weights }) {
       {state.text && !state.loading && (
         <>
           <p className="lead-paragraph__body">{state.text}</p>
-          <div className="lead-paragraph__based-on">based on · 基本面 · 技术面 · 成长性 · 子项权重</div>
+          <div className="lead-paragraph__based-on">based on · 质量分 · 时机分 · 双轨权重</div>
         </>
       )}
 

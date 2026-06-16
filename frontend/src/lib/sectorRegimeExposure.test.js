@@ -2,9 +2,9 @@ import { describe, it, expect } from "vitest";
 import { sectorRegimeExposure } from "./sectorRegimeExposure.js";
 
 const entry = (ticker, shares, price, name = ticker) => ({ ticker, shares, currentPrice: price, name });
-const stk = (ticker, sector, fundamental, technical, name = ticker) => ({
+const stk = (ticker, sector, quality, timing, name = ticker) => ({
   ticker, name, sector, score: 50,
-  subScores: { fundamental, technical, growth: 50 },
+  qualityScore: quality, timingScore: timing,
 });
 
 describe("sectorRegimeExposure", () => {
@@ -104,7 +104,7 @@ describe("sectorRegimeExposure", () => {
     const entries = [entry("X", 10, 100)];
     const stocks = [{
       ticker: "X", score: 50,
-      subScores: { fundamental: 30, technical: 80, growth: 50 },
+      qualityScore: 30, timingScore: 80,
     }];
     const r = sectorRegimeExposure(entries, stocks, 80);
     expect(r.sectors[0].sector).toBe("未分类");
