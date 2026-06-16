@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef, createContext
 // C1/C2: Recharts 已下沉到各 lazy page chunk（CompareModal 已迁至 ScoringDashboard），主文件不再直接依赖
 import { TrendingUp, TrendingDown, Search, Bell, BookOpen, BarChart3, Activity, Settings, ChevronRight, ChevronDown, ChevronLeft, Star, AlertTriangle, Clock, Target, Zap, Filter, ArrowUpRight, ArrowDownRight, Minus, RefreshCw, Plus, X, Check, Eye, EyeOff, Layers, Globe, Briefcase, Info, Database, Trash2, Loader, ExternalLink, Sun, Moon, Calendar, User, LogOut, Mail, Lock, Shield, KeyRound, UserCircle, Share2, GripVertical, Maximize2, AlertCircle, GraduationCap, Palette } from "lucide-react";
 import { searchTickers as standaloneSearch, fetchStockData, fetchBenchmarkPrices, fetchRangePrices, validateStockData, validateAllStocks, loadStandaloneStocks, saveStandaloneStocks, checkStandaloneMode, resolveSector, STOCK_CN_NAMES, STOCK_CN_DESCS } from "./standalone.js";
-import { LangProvider, useLang, localeFor, isZh } from "./i18n.jsx";
+import { LangProvider, useLang, localeFor, isZh, tStatic } from "./i18n.jsx";
 import { monteCarlo as mcSimulate, navToReturns as mcNavToReturns, hhi as hhiCalc, effectiveN as effN } from "./math/stats.ts";
 import { idbGet, idbSet } from "./lib/idb.js";
 import macroSnapshot from "./macroSnapshot.json";
@@ -773,7 +773,7 @@ export const fmtPrice = (price, currency = "USD", opts = {}) => {
 export const displayTicker = (ticker, stock, lang) => {
   if (!ticker || !ticker.endsWith(".HK")) return ticker;
   const name = isZh(lang)
-    ? (stock?.nameCN || STOCK_CN_NAMES[ticker] || stock?.name)
+    ? tStatic(stock?.nameCN || STOCK_CN_NAMES[ticker] || stock?.name, lang)
     : (stock?.name || STOCK_CN_NAMES[ticker]);
   return name || ticker;
 };
@@ -1559,7 +1559,7 @@ const TickerManager = ({ open, onClose }) => {
                           {item.price > 0 && <span className="text-[10px] font-mono tabular-nums text-[#a0aec0]">${item.price}</span>}
                           {item.change != null && safeChange(item.change) !== 0 && <span className={`text-[10px] font-mono tabular-nums ${safeChange(item.change) >= 0 ? "text-up" : "text-down"}`}>{safeChange(item.change) >= 0 ? "+" : ""}{fmtChange(item.change)}%</span>}
                         </div>
-                        <div className="text-[10px] text-[#a0aec0] truncate">{item.name} {item.sector ? `· ${item.sector}` : ""} {item.exchange ? `· ${item.exchange}` : ""}</div>
+                        <div className="text-[10px] text-[#a0aec0] truncate">{item.name} {item.sector ? `· ${isZh(lang) ? t(item.sector) : item.sector}` : ""} {item.exchange ? `· ${item.exchange}` : ""}</div>
                       </div>
                       <button
                         onClick={() => doAdd(item)}
@@ -1600,7 +1600,7 @@ const TickerManager = ({ open, onClose }) => {
                     <span className="text-xs font-semibold text-white">{s.ticker}</span>
                     <Badge variant="default">{s.market}</Badge>
                     {s.isETF && <Badge variant="accent">ETF</Badge>}
-                    <span className="text-[10px] text-[#a0aec0] truncate">{isZh(lang) ? (s.nameCN || STOCK_CN_NAMES[s.ticker] || s.name) : s.name}</span>
+                    <span className="text-[10px] text-[#a0aec0] truncate">{isZh(lang) ? t(s.nameCN || STOCK_CN_NAMES[s.ticker] || s.name) : s.name}</span>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <span className="text-[10px] font-mono tabular-nums text-white">{s.currency === "HKD" ? "HK$" : "$"}{s.price}</span>
@@ -1667,7 +1667,7 @@ const WorkspaceSwitcher = () => {
         title={t("切换工作区 / 多组合管理")}
       >
         <span className="w-2 h-2 rounded-full" style={{ background: active.color }} />
-        <span className="text-white max-w-[90px] truncate">{active.name}</span>
+        <span className="text-white max-w-[90px] truncate">{t(active.name)}</span>
         <ChevronDown size={10} className="text-[#778]" />
       </button>
       {open && (
@@ -1708,7 +1708,7 @@ const WorkspaceSwitcher = () => {
                         <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: w.color }} />
                         <span className="flex flex-col min-w-0">
                           <span className="flex items-center gap-1">
-                            <span className={`text-xs truncate ${isActive ? 'text-white font-medium' : 'text-[#a0aec0]'}`}>{w.name}</span>
+                            <span className={`text-xs truncate ${isActive ? 'text-white font-medium' : 'text-[#a0aec0]'}`}>{t(w.name)}</span>
                             {isActive && <Check size={10} className="text-indigo-400 shrink-0" />}
                           </span>
                           <span className="flex items-center gap-2 text-[9px] text-[#667] font-mono mt-0.5">
@@ -2000,7 +2000,7 @@ const CommandPalette = ({ open, onClose, stocks, onPickStock, onSwitchTab, curre
     }));
     const stockItems = (stocks || []).map(s => ({
       type: "stock", id: s.ticker, label: s.ticker,
-      sub: isZh(lang) ? (s.nameCN || STOCK_CN_NAMES[s.ticker] || s.name) : s.name,
+      sub: isZh(lang) ? t(s.nameCN || STOCK_CN_NAMES[s.ticker] || s.name) : s.name,
       score: s.score, change: safeChange(s.change), market: s.market, sector: s.sector,
       action: () => onPickStock(s),
     }));

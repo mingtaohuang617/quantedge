@@ -22,6 +22,15 @@ export const localeFor = (lang) => lang === 'en' ? 'en-US' : (lang === 'zh-TW' ?
 // 是否中文（含简繁）
 export const isZh = (lang) => lang !== 'en';
 
+// 无 hook 的翻译：用于非 React 组件场景（如 displayTicker 等纯函数）；
+// 行为与 useLang().t 一致：en 查 EN 字典；zh-TW 走 TW 字典 + opencc 兜底；zh-CN 穿透
+export const tStatic = (text, lang) => {
+  if (!text) return '';
+  if (lang === 'en') return EN[text] || text;
+  if (lang === 'zh-TW') return translateTW(text);
+  return text;
+};
+
 const s2twp = OpenCC.Converter({ from: 'cn', to: 'twp' });
 // opencc s2twp 在金融语境下会把「代码」误转为「程式碼」；股票/证券代码场景下应保留「代碼」
 const TW_POSTFIX = [
