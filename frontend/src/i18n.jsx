@@ -36,6 +36,8 @@ const toTW = (text) => {
 // ─── English Translation Dictionary ─────────────────────────
 const EN = {
   '10x 猎手': '10x Hunter',
+  '股性检测': 'Stock Gene',
+  '复利的力量': 'Compounding Power',
   '52W位': '52W Pos',
   '60/40 经典': '60/40 Classic',
   '= 总收益 − 基准': '= Total Return − Benchmark',
