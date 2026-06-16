@@ -122,6 +122,7 @@ const EN = {
   '持有视角': 'Hold',
   '交易视角': 'Trade',
   '双轨权重配置': 'Dual-track Weights',
+  '双轨评分': 'Dual-track Score',
   '营收增速 + 利润率扩张': 'Revenue Growth + Margin Expansion',
   '应用权重并重新评分': 'Apply & Rescore',
   '权重仅作用于个股；ETF 按 成本/流动性/动量/风险 单独评分，不受此处影响': 'Weights apply to stocks only; ETFs are scored separately on cost/liquidity/momentum/risk and are unaffected here',
