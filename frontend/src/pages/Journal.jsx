@@ -15,7 +15,7 @@ import { TEMP_TEXT, TEMP_LABEL } from "../components/macro/shared.js";
 import { macroDelta, macroAdjustExplain, macroAdjustedScore } from "../lib/macroAdjust.js";
 import { buildDigest } from "../components/macro/digestBuilder.js";
 import { searchTickers as standaloneSearch, fetchStockData, STOCK_CN_NAMES } from "../standalone.js";
-import { useLang } from "../i18n.jsx";
+import { useLang, isZh } from "../i18n.jsx";
 import useIsMobile from "../hooks/useIsMobile";
 import { BottomSheet, ThumbActionBar, MobileAppBar } from "../components/mobile";
 import {
@@ -722,7 +722,7 @@ ${angleQuestion}
               const hasPos = (e.shares || 0) > 0;
               const isHK = e.ticker?.endsWith(".HK");
               const mainLabel = isHK
-                ? (lang === "zh" ? (stk?.nameCN || STOCK_CN_NAMES[e.ticker] || stk?.name || e.name) : (stk?.name || e.name)) || e.ticker
+                ? (isZh(lang) ? (stk?.nameCN || STOCK_CN_NAMES[e.ticker] || stk?.name || e.name) : (stk?.name || e.name)) || e.ticker
                 : e.ticker;
 
               return (
@@ -857,7 +857,7 @@ ${angleQuestion}
                     <span className="font-mono font-semibold" style={{ color: "var(--fg-0)" }}>{r.symbol}</span>
                     <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: "rgba(99,102,241,.12)", color: "var(--indigo-2)" }}>{r.market || "US"}</span>
                     <span className="truncate flex-1 text-[11px]" style={{ color: "var(--fg-2)" }}>
-                      {lang === "zh" ? (STOCK_CN_NAMES[r.symbol] || r.name) : r.name}
+                      {isZh(lang) ? (STOCK_CN_NAMES[r.symbol] || r.name) : r.name}
                     </span>
                   </button>
                 ))}
@@ -1004,7 +1004,7 @@ ${angleQuestion}
           const retUp = Number(ret) >= 0;
           const isHK = e.ticker?.endsWith(".HK");
           const mainLabel = isHK
-            ? (lang === "zh" ? (stk?.nameCN || STOCK_CN_NAMES[e.ticker] || stk?.name || e.name) : (stk?.name || e.name)) || e.ticker
+            ? (isZh(lang) ? (stk?.nameCN || STOCK_CN_NAMES[e.ticker] || stk?.name || e.name) : (stk?.name || e.name)) || e.ticker
             : e.ticker;
           const days = Math.max(0, Math.floor((Date.now() - new Date(e.anchorDate).getTime()) / 86400000));
           return (
@@ -1244,7 +1244,7 @@ ${angleQuestion}
                     >
                       <span className="font-semibold" style={{ color: "var(--text-heading)" }}>{r.symbol}</span>
                       <span className="text-[9px] px-1 py-0.5 rounded" style={{ background: "rgba(99,102,241,0.12)", color: "var(--accent-indigo)" }}>{r.market || "US"}</span>
-                      <span className="truncate text-[10px] flex-1" style={{ color: "var(--text-secondary)" }}>{lang === 'zh' ? (STOCK_CN_NAMES[r.symbol] || r.name) : r.name}</span>
+                      <span className="truncate text-[10px] flex-1" style={{ color: "var(--text-secondary)" }}>{isZh(lang) ? (STOCK_CN_NAMES[r.symbol] || r.name) : r.name}</span>
                       {r.price && <span className="text-[10px] font-mono" style={{ color: "var(--text-muted)" }}>${r.price}</span>}
                     </button>
                   ))}
@@ -1427,7 +1427,7 @@ ${angleQuestion}
             const hasPos = (e.shares || 0) > 0;
             const isHK = e.ticker?.endsWith(".HK");
             const mainLabel = isHK
-              ? (lang === 'zh' ? (stk?.nameCN || STOCK_CN_NAMES[e.ticker] || stk?.name || e.name) : (stk?.name || e.name || STOCK_CN_NAMES[e.ticker])) || e.ticker
+              ? (isZh(lang) ? (stk?.nameCN || STOCK_CN_NAMES[e.ticker] || stk?.name || e.name) : (stk?.name || e.name || STOCK_CN_NAMES[e.ticker])) || e.ticker
               : e.ticker;
             const subLabel = isHK ? e.ticker : e.name;
             return (
@@ -1503,7 +1503,7 @@ ${angleQuestion}
                     <span className="text-xs font-medium" style={{ color: "var(--text-heading)" }}>
                       {t('投资论点')} — {sel.ticker?.endsWith(".HK")
                         ? displayTicker(sel.ticker, stk, lang)
-                        : <>{sel.ticker} {lang === 'zh' ? (STOCK_CN_NAMES[sel.ticker] || sel.name) : sel.name}</>}
+                        : <>{sel.ticker} {isZh(lang) ? (STOCK_CN_NAMES[sel.ticker] || sel.name) : sel.name}</>}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 md:gap-3 flex-wrap">
