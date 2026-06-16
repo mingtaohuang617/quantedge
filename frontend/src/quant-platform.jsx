@@ -952,6 +952,29 @@ const ACCENTS = [
   { id: "rose",    label: "玫瑰",   swatch: "#ec4899" },
 ];
 
+// 语言切换胶囊：简 / 繁 / EN，header 右侧与 UserProfile 共用
+const LangSwitcher = ({ compact = false }) => {
+  const { lang, setLang } = useLang();
+  const sizeBtn = compact
+    ? 'px-2 py-1 text-[10px]'
+    : 'px-2 py-0.5 text-[10px]';
+  const items = [
+    { code: 'zh-CN', label: '简' },
+    { code: 'zh-TW', label: '繁' },
+    { code: 'en',    label: 'EN' },
+  ];
+  return (
+    <div className="flex items-center gap-0.5 bg-white/5 rounded-md border border-white/5 p-0.5">
+      {items.map(({ code, label }) => (
+        <button key={code} onClick={() => setLang(code)}
+          className={`${sizeBtn} rounded font-medium transition-all ${lang === code ? 'bg-indigo-500 text-white shadow-sm' : 'text-[#a0aec0] hover:text-white'}`}>
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+};
+
 const UserProfilePanel = ({ open, onClose, theme, toggleTheme, accent, setAccent }) => {
   const { user, logout, updateProfile } = useAuth();
   const { stocks, apiOnline, priceUpdatedAt } = useData();
@@ -1102,20 +1125,7 @@ const UserProfilePanel = ({ open, onClose, theme, toggleTheme, accent, setAccent
               <div className="flex-1 min-w-0">
                 <div className="text-xs font-medium text-white">{t('语言')}</div>
               </div>
-              <div className="flex items-center gap-0.5 bg-white/5 rounded-md border border-white/5 p-0.5">
-                <button onClick={() => setLang('zh-CN')}
-                  className={`px-2 py-0.5 rounded text-[10px] font-medium transition-all ${lang === 'zh-CN' ? 'bg-indigo-500 text-white shadow-sm' : 'text-[#a0aec0] hover:text-white'}`}>
-                  简
-                </button>
-                <button onClick={() => setLang('zh-TW')}
-                  className={`px-2 py-0.5 rounded text-[10px] font-medium transition-all ${lang === 'zh-TW' ? 'bg-indigo-500 text-white shadow-sm' : 'text-[#a0aec0] hover:text-white'}`}>
-                  繁
-                </button>
-                <button onClick={() => setLang('en')}
-                  className={`px-2 py-0.5 rounded text-[10px] font-medium transition-all ${lang === 'en' ? 'bg-indigo-500 text-white shadow-sm' : 'text-[#a0aec0] hover:text-white'}`}>
-                  EN
-                </button>
-              </div>
+              <LangSwitcher />
             </div>
           </div>
 
@@ -1819,7 +1829,7 @@ const MobileBottomNav = React.memo(({ tab, setTab }) => {
               />
             )}
             <I size={21} strokeWidth={active ? 2.1 : 1.8} className={active ? 'drop-shadow-[0_0_5px_rgba(99,102,241,0.5)]' : ''} />
-            <span className="tracking-tight">{isZh(lang) ? c.short : t(c.label)}</span>
+            <span className="tracking-tight">{isZh(lang) ? t(c.short) : t(c.label)}</span>
           </button>
         );
       })}
@@ -2661,8 +2671,8 @@ function QuantPlatformInner() {
                 <I size={12} className="shrink-0" />
                 {useShort ? (
                   <span className="flex flex-col items-center leading-[1.1] tracking-tight">
-                    <span>{c.short[0]}</span>
-                    <span>{c.short[1]}</span>
+                    <span>{t(c.short[0])}</span>
+                    <span>{t(c.short[1])}</span>
                   </span>
                 ) : (
                   <span>{t(c.label)}</span>
@@ -2687,6 +2697,8 @@ function QuantPlatformInner() {
           {/* C16: 工作区切换器 */}
           <WorkspaceSwitcher />
           <div className="w-px h-5 bg-white/8" />
+          {/* 语言切换：简 / 繁 / EN — 顶栏快捷胶囊 */}
+          <LangSwitcher compact />
           <button onClick={toggleTheme} className="p-1.5 rounded-lg bg-white/5 text-[#a0aec0] hover:text-white hover:bg-white/10 border border-white/5 transition-all btn-tactile" title={theme === "dark" ? t("切换浅色模式") : t("切换深色模式")}>
             {theme === "dark" ? <Sun size={14} /> : <Moon size={14} />}
           </button>
