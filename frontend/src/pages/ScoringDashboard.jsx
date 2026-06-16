@@ -137,6 +137,10 @@ const INDICATOR_GROUPS = [
 // 放大弹窗的 K 线周期集合（与收起态 8 档不同）。从收起态打开放大图时，
 // 不在此集合的区间(1M/6M/YTD/1D/ALL)归一到「日线」，避免放大工具栏无高亮档。
 const MODAL_RANGES = ["5D", "1Y", "5Y", "MONK", "QUARK", "YEARK"];
+// 画线持久化 key：趋势线/测量锚定周期相关的 K 线标签，跨周期无法映射，故按 (标的, 周期) 分桶。
+const drawingsKey = (ticker, range) => `quantedge_drawings_${ticker}_${range}`;
+// 水平线仅锚 price（无日期），天然跨周期通用 → 按标的单独存，所有周期共享同一套。
+const hlinesKey = (ticker) => `quantedge_hlines_${ticker}`;
 
 // 简单移动平均：把 key 写到对应数据点上（前 period-1 根无值，连线自动跳过）
 function withSMA(data, period, key) {
@@ -804,13 +808,23 @@ const ScoringDashboard = () => {
     if (tw === 0 || !ctxSetStocks) return 0;
     const wq = w.quality / tw, wt = w.timing / tw;
     let n = 0;
-    ctxSetStocks(prev => prev.map(s => {
-      if (s.qualityScore == null || s.timingScore == null) return s;
-      const newScore = Math.round((s.qualityScore * wq + s.timingScore * wt) * 10) / 10;
-      if (newScore === s.score) return s;
-      n++;
-      return { ...s, score: newScore };
-    }));
+    ctxSetStocks(prev => {
+      // 体检修复：合成前把两轨各自横截面标准化到同方差(与后端 scoring.py 一致)。
+      // 否则时机分离散度≈2×质量，会主导排序、令 0.6 质量权重名不副实。qualityScore/timingScore 显示值不变。
+      const ms = (arr) => { const a = arr.filter(v => v != null); if (!a.length) return [50, 1]; const m = a.reduce((x, y) => x + y, 0) / a.length; const sd = Math.sqrt(a.reduce((x, y) => x + (y - m) ** 2, 0) / a.length); return [m, sd > 1e-9 ? sd : 1]; };
+      const [mq, sq] = ms(prev.map(s => s.qualityScore));
+      const [mt, st] = ms(prev.map(s => s.timingScore));
+      let changed = false;
+      const next = prev.map(s => {
+        if (s.qualityScore == null || s.timingScore == null) return s;
+        const qz = (s.qualityScore - mq) / sq, tz = (s.timingScore - mt) / st;
+        const newScore = Math.round(Math.max(0, Math.min(100, 50 + 20 * (qz * wq + tz * wt))) * 10) / 10;
+        if (newScore === s.score) return s;
+        changed = true; n++;
+        return { ...s, score: newScore };
+      });
+      return changed ? next : prev;   // 无变化返回原引用，避免无谓 re-render 循环
+    });
     return n;
   }, [ctxSetStocks]);
 
@@ -827,6 +841,13 @@ const ScoringDashboard = () => {
     setTimeout(() => setWeightToast(cur => (cur && cur.ws === wsName ? null : cur)), 3200);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wsId]);
+
+  // 体检修复：挂载/数据刷新后用当前权重重算一次综合分（两轨等方差标准化），
+  // 让现有 data.js 的旧 score 立即标准化、不必等后端数据重生。applyWeights 无变化时返回原引用，幂等防循环。
+  useEffect(() => {
+    if (ctxStocks && ctxStocks.length && ctxStocks.some(s => s.qualityScore != null)) applyWeights(weights);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ctxStocks]);
 
   // F3 移动端 pull-to-refresh — 列表容器顶部下拉超过 60px 触发刷新
   const [pullDist, setPullDist] = useState(0);
@@ -868,9 +889,9 @@ const ScoringDashboard = () => {
     if (!sel || !sel.ticker) return;
     const cur = sel.priceRanges && sel.priceRanges[chartRange];
     const hasCurRange = cur && cur.length >= 2;
-    // 候选股初始 bundled 数据只含收盘价；放大弹窗（仅桌面）开 K 线时才重拉一次带 OHLC+成交量的数据
+    // 候选股初始 bundled 数据只含收盘价；放大全屏开 K 线时才重拉一次带 OHLC+成交量的数据（桌面模态 + 移动端横屏全屏共用）
     const rangeHasOHLC = hasCurRange && cur.some(d => d.h != null && d.l != null && d.h > d.l);
-    const needOHLCUpgrade = !isMobile && chartFullscreen && chartType === "candle" && hasCurRange && !rangeHasOHLC;
+    const needOHLCUpgrade = chartFullscreen && chartType === "candle" && hasCurRange && !rangeHasOHLC;
     if (hasCurRange && !needOHLCUpgrade) return;
     let cancelled = false;
     (async () => {
@@ -1087,8 +1108,44 @@ const ScoringDashboard = () => {
     return () => { window.removeEventListener("keydown", onKey); document.body.style.overflow = prevOverflow; };
   }, [chartFullscreen]);
 
-  // 周期/标的切换 → 重置缩放窗口、悬停态、画线（数据标签变了，锚点失效）
-  useEffect(() => { setBrushRange(null); setHoverPoint(null); setDrawings([]); setDraftPoint(null); setCursorData(null); }, [sel?.ticker, chartRange]);
+  // 周期/标的切换 → 重置缩放/悬停/草稿，并载入画线：
+  //   趋势线/测量 取 (标的,周期) 桶；水平线取按标的的共享桶（跨周期通用）。
+  //   兼容旧版：旧水平线曾混存进周期桶 → 一并读入并按 price 去重（下次回存会迁移到共享桶）。
+  useEffect(() => {
+    setBrushRange(null); setHoverPoint(null); setDraftPoint(null); setCursorData(null);
+    let merged = [];
+    if (sel?.ticker) {
+      try {
+        const rawP = localStorage.getItem(drawingsKey(sel.ticker, chartRange));
+        const perPeriod = rawP ? JSON.parse(rawP) : [];
+        const others = Array.isArray(perPeriod) ? perPeriod.filter((d) => d.type !== "hline") : [];
+        const legacyH = Array.isArray(perPeriod) ? perPeriod.filter((d) => d.type === "hline") : [];
+        const rawH = localStorage.getItem(hlinesKey(sel.ticker));
+        const sharedH = rawH ? JSON.parse(rawH) : [];
+        const seen = new Set();
+        const hlines = [...(Array.isArray(sharedH) ? sharedH : []), ...legacyH]
+          .filter((d) => { const p = d?.a?.price; if (p == null || seen.has(p)) return false; seen.add(p); return true; });
+        merged = [...others, ...hlines];
+      } catch { merged = []; }
+    }
+    setDrawings(merged);
+  }, [sel?.ticker, chartRange]);
+
+  // 画线变化 → 回存到当前 (标的,周期)。仅依赖 drawings：切标的时本副作用不触发（drawings 尚未变），
+  // 待载入把 drawings 改为新桶内容后才存，此时 sel.ticker/chartRange 已是新值，key 正确，无错存。
+  useEffect(() => {
+    if (!sel?.ticker) return;
+    // 拆分回存：水平线 → 按标的共享桶（跨周期）；趋势线/测量 → (标的,周期) 桶。
+    const hlines = drawings.filter((d) => d.type === "hline");
+    const others = drawings.filter((d) => d.type !== "hline");
+    const pKey = drawingsKey(sel.ticker, chartRange);
+    const hKey = hlinesKey(sel.ticker);
+    try {
+      if (others.length) localStorage.setItem(pKey, JSON.stringify(others)); else localStorage.removeItem(pKey);
+      if (hlines.length) localStorage.setItem(hKey, JSON.stringify(hlines)); else localStorage.removeItem(hKey);
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drawings]);
 
   // 画线快捷键：Esc 取消当前草稿（捕获阶段优先于 PR1 的 ESC 关闭）；Del/Backspace 删最后一条
   useEffect(() => {
@@ -1592,7 +1649,7 @@ const ScoringDashboard = () => {
                 <div className="mb-4"><AIStockSummaryCard stock={sel} /></div>
                 {pillars.length > 0 && (
                   <div className="mb-4">
-                    <div className="text-[12px] font-semibold mb-1" style={{ color: "var(--fg-0)" }}>{t("评分由三大要素构成")}</div>
+                    <div className="text-[12px] font-semibold mb-1" style={{ color: "var(--fg-0)" }}>{t("双轨评分")}</div>
                     {pillars.map((p) => <MPillar key={p.name} {...p} />)}
                   </div>
                 )}
@@ -1649,24 +1706,50 @@ const ScoringDashboard = () => {
         {/* ── 横屏全屏图表 ── */}
         <FullscreenChart open={chartFullscreen} onClose={() => setChartFullscreen(false)} title={sel?.ticker}
           meta={sel && <span className="font-mono text-[13px]" style={{ color: safeChange(sel.change) >= 0 ? "var(--up)" : "var(--down)" }}>{px(sel)} {safeChange(sel.change) >= 0 ? "+" : ""}{fmtChange(sel.change)}%</span>}
-          indicators={maSignal && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border text-warn bg-warn/10 border-warn/30">
-              <span className="inline-block w-3" style={{ borderTop: "2px dashed #F5B53C" }} />
-              MA20 {maSignal.above ? `↗ 站上 +${maSignal.gap.toFixed(1)}%` : `↘ 跌破 ${maSignal.gap.toFixed(1)}%`}
-            </span>
-          )}
+          indicators={
+            <>
+              {/* 面积 / K线 切换 */}
+              <div className="flex gap-0.5 p-0.5 rounded-lg" style={{ background: "rgba(255,255,255,.04)" }}>
+                {[["candle", t("K线")], ["area", t("面积")]].map(([v, l]) => (
+                  <button key={v} onClick={() => setChartType(v)} className="px-2.5 py-1 rounded-md text-[11px] transition active:scale-95"
+                    style={chartType === v ? { background: "var(--bg-2)", color: "var(--fg-0)", fontWeight: 600 } : { color: "var(--fg-3)" }}>{l}</button>
+                ))}
+              </div>
+              {maSignal && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border text-warn bg-warn/10 border-warn/30">
+                  <span className="inline-block w-3" style={{ borderTop: "2px dashed #F5B53C" }} />
+                  MA20 {maSignal.above ? `↗ 站上 +${maSignal.gap.toFixed(1)}%` : `↘ 跌破 ${maSignal.gap.toFixed(1)}%`}
+                </span>
+              )}
+              {chartType === "candle" && !hasOHLC && <span className="text-[10px]" style={{ color: "var(--fg-3)" }}>{t("K线数据加载中，刷新后显示")}</span>}
+            </>
+          }
           ranges={["1D", "5D", "1M", "6M", "YTD", "1Y", "5Y", "ALL"]} activeRange={chartRange} onRangeChange={setChartRange}>
           {chartData.length >= 2 ? (
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={chartDataWithBench} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
-                <defs><linearGradient id="mScoreAreaLand" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#1ED395" stopOpacity="0.22" /><stop offset="100%" stopColor="#1ED395" stopOpacity="0" /></linearGradient></defs>
+              <ComposedChart data={chartSeries} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
+                <defs><linearGradient id="mKlineArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#1ED395" stopOpacity="0.22" /><stop offset="100%" stopColor="#1ED395" stopOpacity="0" /></linearGradient></defs>
                 <CartesianGrid stroke="rgba(255,255,255,.05)" vertical={false} />
                 <XAxis dataKey="m" tick={{ fontSize: 9, fill: "var(--fg-3)" }} axisLine={false} tickLine={false} minTickGap={50} interval="preserveStartEnd" />
-                <YAxis domain={["auto", "auto"]} width={42} tick={{ fontSize: 10, fill: "var(--fg-3)" }} axisLine={false} tickLine={false} />
-                {/* v6 移动端横屏图表补齐设计稿丰富度：十字光标 + MA20 虚线（数据已算，与桌面一致） */}
-                <Tooltip contentStyle={TOOLTIP_STYLE} cursor={{ stroke: "rgba(99,102,241,0.6)", strokeWidth: 1.5, strokeDasharray: "4 3" }} />
-                <Area type="monotone" dataKey="p" stroke="#1ED395" strokeWidth={2.2} fill="url(#mScoreAreaLand)" dot={false} isAnimationActive={false} />
-                {maSignal && <Line type="monotone" dataKey="ma20" stroke="#F5B53C" strokeWidth={1.6} strokeDasharray="5 4" dot={false} connectNulls activeDot={false} isAnimationActive={false} />}
+                <YAxis yAxisId="price" domain={priceDomainFinal} ticks={priceTicksFinal} width={48} tick={{ fontSize: 10, fill: "var(--fg-3)" }} axisLine={false} tickLine={false} tickFormatter={priceAxisFmt} />
+                <Tooltip cursor={{ stroke: "rgba(99,102,241,0.6)", strokeWidth: 1.5, strokeDasharray: "4 3" }} content={({ active, payload, label }) => {
+                  if (!active || !payload?.length) return null;
+                  const d = payload[0].payload; const cur = currencySymbol(sel.currency); const up = (d.chg ?? d.pct ?? 0) >= 0;
+                  return (
+                    <div className="glass-card border border-indigo-500/40 px-2 py-1.5 tabular-nums font-mono" style={{ minWidth: 96 }}>
+                      <div className="text-[9px] text-[#778] mb-0.5">{label}</div>
+                      <div className="text-[12px] font-semibold text-white">{cur}{Number(d.p).toFixed(2)}</div>
+                      {d.chg != null && <div className={`text-[11px] ${up ? "text-up" : "text-down"}`}>{d.chg >= 0 ? "+" : ""}{d.chg.toFixed(2)}%</div>}
+                    </div>
+                  );
+                }} />
+                {hasVolume && <Customized component={(p) => <VolumeLayer {...p} data={chartSeries} volMax={volMax} />} />}
+                {showCandle ? (
+                  <Bar yAxisId="price" dataKey="hl" shape={<CandleShape />} isAnimationActive={false} />
+                ) : (
+                  <Area yAxisId="price" type="monotone" dataKey="p" stroke="#1ED395" strokeWidth={2.2} fill="url(#mKlineArea)" dot={false} isAnimationActive={false} />
+                )}
+                {maSignal && <Line yAxisId="price" type="monotone" dataKey="ma20" stroke="#F5B53C" strokeWidth={1.6} strokeDasharray="5 4" dot={false} connectNulls activeDot={false} isAnimationActive={false} />}
               </ComposedChart>
             </ResponsiveContainer>
           ) : <div className="h-full flex items-center justify-center text-[12px]" style={{ color: "var(--fg-3)" }}>{t("暂无价格数据")}</div>}
