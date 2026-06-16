@@ -21,6 +21,7 @@ import {
 } from "../quant-platform.jsx";
 import macroSnapshot from "../macroSnapshot.json";
 import { TEMP_TEXT, TEMP_LABEL } from "../components/macro/shared.js";
+import FavoritesAnomalyCard from "../components/FavoritesAnomalyCard.jsx";
 
 const ALERT_RULES_KEY = "quantedge_alert_rules";
 
@@ -603,6 +604,9 @@ const Monitor = () => {
               )}
             </div>
 
+            {/* ── 关注股异动 ── */}
+            <div style={{ marginBottom: 16 }}><FavoritesAnomalyCard t={t} /></div>
+
             {/* ── 类型过滤 chips ── */}
             <div style={{ display: "flex", gap: 7, overflowX: "auto", marginBottom: 16, paddingBottom: 2 }}>
               {[
@@ -789,6 +793,8 @@ const Monitor = () => {
   return (
     <div className="flex flex-col md:grid md:grid-cols-12 gap-4 h-full min-h-0 overflow-auto md:overflow-hidden">
       <div className="md:col-span-4 flex flex-col gap-4 md:gap-3 md:min-h-0 md:overflow-auto pr-0 md:pr-1">
+        {/* 关注股异动 — 本地 09:00 扫描结果 */}
+        <FavoritesAnomalyCard t={t} />
         {/* v5 编辑式：F&G + 宏观温度 双徽章 ribbon — 替代单一 100px 圆环，让两个视角并列 + AI 一句话解读 */}
         <div className="glass-card p-3 md:p-3.5">
           <div className="section-header mb-2">
