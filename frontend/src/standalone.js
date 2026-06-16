@@ -143,7 +143,7 @@ export const STOCK_CN_NAMES = {
   AMAT: "应用材料", LRCX: "拉姆研究", KLAC: "科磊", MRVL: "美满电子", NXPI: "恩智浦",
   ADI: "亚德诺", MCHP: "微芯科技", ON: "安森美", GFS: "格芯", MU: "美光科技",
   ASML: "阿斯麦", SNPS: "新思科技", CDNS: "楷登电子", ARM: "ARM控股",
-  SMCI: "超微电脑", DRAM: "信韵存储ETF", SNDK: "西部数据",
+  SMCI: "超微电脑", DRAM: "信韵存储ETF", SNDK: "闪迪",
   // ── 软件 & 云计算 ──
   MSFT: "微软", ADBE: "Adobe", INTU: "财捷", CRM: "赛富时",
   PANW: "派拓网络", CRWD: "CrowdStrike", ZS: "Zscaler", FTNT: "飞塔网络",
@@ -238,7 +238,7 @@ export const STOCK_CN_DESCS = {
   ARM: "全球最广泛使用的芯片架构设计公司，其指令集应用于绝大多数智能手机处理器。",
   SMCI: "高性能服务器和存储解决方案提供商，专注于AI和数据中心基础设施。",
   DRAM: "跟踪亚洲半导体和存储芯片行业表现的交易所交易基金。",
-  SNDK: "西部数据旗下闪存品牌，生产SSD固态硬盘、存储卡和U盘等消费级和企业级存储产品。",
+  SNDK: "闪迪（SanDisk）——全球领先的 NAND 闪存存储厂商，产品涵盖 SSD 固态硬盘、存储卡、U 盘等消费级与企业级存储；已从西部数据分拆为独立上市公司。",
   // ── 软件 & 云计算 ──
   MSFT: "全球最大的软件公司，拥有Windows、Office、Azure云计算和AI助手Copilot等核心产品。",
   ADBE: "创意和文档软件巨头，旗下拥有Photoshop、Illustrator、Acrobat等行业标准工具。",
