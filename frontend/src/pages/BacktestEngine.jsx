@@ -12,7 +12,7 @@ import FullscreenChart from "../components/mobile/FullscreenChart.jsx";
 import { searchTickers as standaloneSearch, fetchStockData, fetchBenchmarkPrices, fetchRangePrices, fetchRangePricesEx, STOCK_CN_NAMES } from "../standalone.js";
 import { Z_ELEVATED } from "../lib/zIndex.js";
 import BacktestNarrationCard from "../components/BacktestNarrationCard.jsx";
-import { useLang } from "../i18n.jsx";
+import { useLang, isZh } from "../i18n.jsx";
 import { monteCarlo as mcSimulate, navToReturns as mcNavToReturns, hhi as hhiCalc, effectiveN as effN } from "../math/stats.ts";
 import { STOCKS } from "../data.js";
 import {
@@ -2128,7 +2128,7 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
                     <div className="flex items-center gap-2 min-w-0 flex-1">
                       <span className="font-semibold" style={{ color: r.alreadyInPortfolio ? "var(--text-muted)" : "var(--text-heading)" }}>{r.symbol}</span>
                       <span className="text-[9px] px-1 py-0.5 rounded" style={{ background: "rgba(99,102,241,0.12)", color: "var(--accent-indigo)" }}>{r.market || "US"}</span>
-                      <span className="truncate text-[10px]" style={{ color: "var(--text-secondary)" }}>{lang === 'zh' ? (STOCK_CN_NAMES[r.symbol] || r.name) : r.name}</span>
+                      <span className="truncate text-[10px]" style={{ color: "var(--text-secondary)" }}>{isZh(lang) ? (STOCK_CN_NAMES[r.symbol] || r.name) : r.name}</span>
                     </div>
                     {r.alreadyInPortfolio ? (
                       <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-up/10 text-up border border-up/20 flex items-center gap-0.5 shrink-0 ml-1">

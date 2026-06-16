@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef, createContext
 // C1/C2: Recharts 已下沉到各 lazy page chunk（CompareModal 已迁至 ScoringDashboard），主文件不再直接依赖
 import { TrendingUp, TrendingDown, Search, Bell, BookOpen, BarChart3, Activity, Settings, ChevronRight, ChevronDown, ChevronLeft, Star, AlertTriangle, Clock, Target, Zap, Filter, ArrowUpRight, ArrowDownRight, Minus, RefreshCw, Plus, X, Check, Eye, EyeOff, Layers, Globe, Briefcase, Info, Database, Trash2, Loader, ExternalLink, Sun, Moon, Calendar, User, LogOut, Mail, Lock, Shield, KeyRound, UserCircle, Share2, GripVertical, Maximize2, AlertCircle, GraduationCap, Palette } from "lucide-react";
 import { searchTickers as standaloneSearch, fetchStockData, fetchBenchmarkPrices, fetchRangePrices, validateStockData, validateAllStocks, loadStandaloneStocks, saveStandaloneStocks, checkStandaloneMode, resolveSector, STOCK_CN_NAMES, STOCK_CN_DESCS } from "./standalone.js";
-import { LangProvider, useLang } from "./i18n.jsx";
+import { LangProvider, useLang, localeFor, isZh } from "./i18n.jsx";
 import { monteCarlo as mcSimulate, navToReturns as mcNavToReturns, hhi as hhiCalc, effectiveN as effN } from "./math/stats.ts";
 import { idbGet, idbSet } from "./lib/idb.js";
 import macroSnapshot from "./macroSnapshot.json";
@@ -772,7 +772,7 @@ export const fmtPrice = (price, currency = "USD", opts = {}) => {
 // 用于"近期财报、实时监控、投资日志"三处：港股以名称示人，更易识别。
 export const displayTicker = (ticker, stock, lang) => {
   if (!ticker || !ticker.endsWith(".HK")) return ticker;
-  const name = lang === 'zh'
+  const name = isZh(lang)
     ? (stock?.nameCN || STOCK_CN_NAMES[ticker] || stock?.name)
     : (stock?.name || STOCK_CN_NAMES[ticker]);
   return name || ticker;
@@ -986,7 +986,7 @@ const UserProfilePanel = ({ open, onClose, theme, toggleTheme, accent, setAccent
     keys.forEach(k => localStorage.removeItem(k));
     if (authBak) localStorage.setItem(AUTH_KEY, authBak);
     setClearConfirm(false);
-    setExportMsg(lang === 'en' ? "Cache cleared. Refresh to apply." : "缓存已清除，刷新后生效");
+    setExportMsg(t('缓存已清除，刷新后生效'));
     setTimeout(() => setExportMsg(""), 3000);
   };
 
@@ -1001,7 +1001,7 @@ const UserProfilePanel = ({ open, onClose, theme, toggleTheme, accent, setAccent
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a"); a.href = url; a.download = `quantedge-export-${new Date().toISOString().slice(0, 10)}.json`; a.click();
     URL.revokeObjectURL(url);
-    setExportMsg(lang === 'en' ? "Data exported" : "数据已导出");
+    setExportMsg(t('数据已导出'));
     setTimeout(() => setExportMsg(""), 3000);
   };
 
@@ -1103,9 +1103,13 @@ const UserProfilePanel = ({ open, onClose, theme, toggleTheme, accent, setAccent
                 <div className="text-xs font-medium text-white">{t('语言')}</div>
               </div>
               <div className="flex items-center gap-0.5 bg-white/5 rounded-md border border-white/5 p-0.5">
-                <button onClick={() => setLang('zh')}
-                  className={`px-2 py-0.5 rounded text-[10px] font-medium transition-all ${lang === 'zh' ? 'bg-indigo-500 text-white shadow-sm' : 'text-[#a0aec0] hover:text-white'}`}>
-                  中文
+                <button onClick={() => setLang('zh-CN')}
+                  className={`px-2 py-0.5 rounded text-[10px] font-medium transition-all ${lang === 'zh-CN' ? 'bg-indigo-500 text-white shadow-sm' : 'text-[#a0aec0] hover:text-white'}`}>
+                  简
+                </button>
+                <button onClick={() => setLang('zh-TW')}
+                  className={`px-2 py-0.5 rounded text-[10px] font-medium transition-all ${lang === 'zh-TW' ? 'bg-indigo-500 text-white shadow-sm' : 'text-[#a0aec0] hover:text-white'}`}>
+                  繁
                 </button>
                 <button onClick={() => setLang('en')}
                   className={`px-2 py-0.5 rounded text-[10px] font-medium transition-all ${lang === 'en' ? 'bg-indigo-500 text-white shadow-sm' : 'text-[#a0aec0] hover:text-white'}`}>
@@ -1132,11 +1136,11 @@ const UserProfilePanel = ({ open, onClose, theme, toggleTheme, accent, setAccent
               <div className="flex items-center justify-between text-[10px]">
                 <span className="text-[#667]">{t('最近更新')}</span>
                 <span className="text-[#a0aec0] font-mono tabular-nums">
-                  {priceUpdatedAt ? new Date(priceUpdatedAt).toLocaleString(lang === 'en' ? "en-US" : "zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}
+                  {priceUpdatedAt ? new Date(priceUpdatedAt).toLocaleString(localeFor(lang), { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}
                 </span>
               </div>
               <div className="flex items-center justify-between text-[10px]">
-                <span className="text-[#667]">{lang === 'en' ? 'Mode' : '模式'}</span>
+                <span className="text-[#667]">{t('模式')}</span>
                 <span className="text-[#a0aec0]">{apiOnline ? t("API 直连") : t("独立模式 · 本地缓存")}</span>
               </div>
             </div>
@@ -1586,7 +1590,7 @@ const TickerManager = ({ open, onClose }) => {
                     <span className="text-xs font-semibold text-white">{s.ticker}</span>
                     <Badge variant="default">{s.market}</Badge>
                     {s.isETF && <Badge variant="accent">ETF</Badge>}
-                    <span className="text-[10px] text-[#a0aec0] truncate">{lang === 'zh' ? (s.nameCN || STOCK_CN_NAMES[s.ticker] || s.name) : s.name}</span>
+                    <span className="text-[10px] text-[#a0aec0] truncate">{isZh(lang) ? (s.nameCN || STOCK_CN_NAMES[s.ticker] || s.name) : s.name}</span>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <span className="text-[10px] font-mono tabular-nums text-white">{s.currency === "HKD" ? "HK$" : "$"}{s.price}</span>
@@ -1815,7 +1819,7 @@ const MobileBottomNav = React.memo(({ tab, setTab }) => {
               />
             )}
             <I size={21} strokeWidth={active ? 2.1 : 1.8} className={active ? 'drop-shadow-[0_0_5px_rgba(99,102,241,0.5)]' : ''} />
-            <span className="tracking-tight">{lang === 'zh' ? c.short : t(c.label)}</span>
+            <span className="tracking-tight">{isZh(lang) ? c.short : t(c.label)}</span>
           </button>
         );
       })}
@@ -1986,7 +1990,7 @@ const CommandPalette = ({ open, onClose, stocks, onPickStock, onSwitchTab, curre
     }));
     const stockItems = (stocks || []).map(s => ({
       type: "stock", id: s.ticker, label: s.ticker,
-      sub: lang === 'zh' ? (s.nameCN || STOCK_CN_NAMES[s.ticker] || s.name) : s.name,
+      sub: isZh(lang) ? (s.nameCN || STOCK_CN_NAMES[s.ticker] || s.name) : s.name,
       score: s.score, change: safeChange(s.change), market: s.market, sector: s.sector,
       action: () => onPickStock(s),
     }));
@@ -2644,7 +2648,7 @@ function QuantPlatformInner() {
             const I = c.icon;
             const active = tab === c.id;
             // 中文 label 在 zh 模式下用 2 行 short 标签（量化/评分），英文 fallback 单行 t(label)
-            const useShort = lang === 'zh' && Array.isArray(c.short) && c.short.length === 2;
+            const useShort = isZh(lang) && Array.isArray(c.short) && c.short.length === 2;
             return (
               <button
                 key={c.id}
@@ -2836,7 +2840,7 @@ function QuantPlatformInner() {
                             const asOfList = stocks.map(s => s.dataFreshness?.priceAsOf).filter(Boolean);
                             if (!asOfList.length) return '—';
                             const oldest = asOfList.sort()[0];
-                            return new Date(oldest).toLocaleDateString(lang === 'en' ? 'en-US' : 'zh-CN', { month: '2-digit', day: '2-digit' });
+                            return new Date(oldest).toLocaleDateString(localeFor(lang), { month: '2-digit', day: '2-digit' });
                           })()}
                         </span>
                       </div>

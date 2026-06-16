@@ -1,12 +1,37 @@
 /**
- * QuantEdge i18n — 中英文国际化
- * 架构：中文文本作为 key，英文翻译作为 value
- * 中文模式直接穿透，英文模式查表
+ * QuantEdge i18n — 简/繁/英三语
+ * 架构：简体中文作 key，英文查 EN 字典，繁体查 TW 字典并以 opencc(s2twp) 兜底
+ * 旧值 'zh' 自动迁移为 'zh-CN'
  */
 import { createContext, useContext, useState, useCallback, useMemo } from 'react';
+import * as OpenCC from 'opencc-js';
 
 const LangContext = createContext();
 const LANG_KEY = 'quantedge_lang';
+
+export const LANGS = ['zh-CN', 'zh-TW', 'en'];
+const normalizeLang = (raw) => {
+  if (raw === 'zh' || raw === 'zh-CN') return 'zh-CN';
+  if (raw === 'zh-TW' || raw === 'zh-HK') return 'zh-TW';
+  if (raw === 'en') return 'en';
+  return 'zh-CN';
+};
+
+// 给 toLocaleString / Intl 用的 BCP-47 locale
+export const localeFor = (lang) => lang === 'en' ? 'en-US' : (lang === 'zh-TW' ? 'zh-TW' : 'zh-CN');
+// 是否中文（含简繁）
+export const isZh = (lang) => lang !== 'en';
+
+const s2twp = OpenCC.Converter({ from: 'cn', to: 'twp' });
+// opencc s2twp 在金融语境下会把「代码」误转为「程式碼」；股票/证券代码场景下应保留「代碼」
+const TW_POSTFIX = [
+  [/程式碼/g, '代碼'],
+];
+const toTW = (text) => {
+  let out = s2twp(text);
+  for (const [re, rep] of TW_POSTFIX) out = out.replace(re, rep);
+  return out;
+};
 
 // ─── English Translation Dictionary ─────────────────────────
 const EN = {
@@ -45,6 +70,9 @@ const EN = {
   '独立模式 · 本地缓存': 'Standalone · Local Cache',
   '数据管理': 'Data Management',
   '导出数据': 'Export Data',
+  '缓存已清除，刷新后生效': 'Cache cleared. Refresh to apply.',
+  '数据已导出': 'Data exported',
+  '模式': 'Mode',
   '标的列表 + 投资日志 → JSON': 'Securities + Journal → JSON',
   '清除缓存': 'Clear Cache',
   '确认清除？再次点击执行': 'Confirm? Click again to clear',
@@ -674,18 +702,39 @@ const EN = {
   '风险/机会': 'Risks/Opportunities',
 };
 
+// ─── 繁体中文手工字典（覆盖 opencc s2twp 兜底之外的术语）─────
+// 大多数转换由 opencc s2twp 自动完成（軟體/資訊/快取/設定/智慧等台湾用语）；
+// 这里只放需要意译、机械转换效果不佳、或品牌/语义上希望统一的术语。
+const TW = {
+  '简体中文': '繁體中文',
+};
+
+// 缓存简体 key → 繁体输出，避免每次 render 都跑 opencc 转换
+const TW_CACHE = new Map();
+const translateTW = (text) => {
+  if (TW[text]) return TW[text];
+  if (TW_CACHE.has(text)) return TW_CACHE.get(text);
+  const out = toTW(text);
+  TW_CACHE.set(text, out);
+  return out;
+};
+
 // ─── Language Context & Provider ────────────────────────────
 export function LangProvider({ children }) {
-  const [lang, setLangRaw] = useState(() => localStorage.getItem(LANG_KEY) || 'zh');
+  const [lang, setLangRaw] = useState(() => normalizeLang(localStorage.getItem(LANG_KEY)));
 
   const setLang = useCallback((l) => {
-    setLangRaw(l);
-    localStorage.setItem(LANG_KEY, l);
+    const norm = normalizeLang(l);
+    setLangRaw(norm);
+    localStorage.setItem(LANG_KEY, norm);
   }, []);
 
   const t = useCallback((text, params) => {
     if (!text) return '';
-    let result = lang === 'en' ? (EN[text] || text) : text;
+    let result;
+    if (lang === 'en') result = EN[text] || text;
+    else if (lang === 'zh-TW') result = translateTW(text);
+    else result = text;
     if (params) {
       Object.entries(params).forEach(([k, v]) => {
         result = result.replaceAll(`{${k}}`, String(v));
