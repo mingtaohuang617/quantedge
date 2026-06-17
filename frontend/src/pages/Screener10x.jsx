@@ -1291,7 +1291,7 @@ export default function Screener10x() {
       <div className="flex items-center justify-between px-3 py-2 glass-card border border-white/10">
         <div className="flex items-center gap-3">
           <Target size={16} className="text-amber-400" />
-          <span className="text-sm font-semibold text-white">10x 猎手</span>
+          <span className="text-sm font-semibold text-white">{t('10x 猎手')}</span>
           {/* Growth / Value tab 切换 */}
           <div className="flex items-center gap-0.5 ml-2 bg-white/5 rounded border border-white/10 p-0.5">
             <button

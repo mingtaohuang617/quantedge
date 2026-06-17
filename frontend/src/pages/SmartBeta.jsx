@@ -812,22 +812,22 @@ export default function SmartBeta() {
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             {/* v5 编辑式：eyebrow + serif 标题（套设计视觉语言；真实轮动功能不动） */}
-            <div className="t-eyebrow mb-0.5">SMART BETA ENGINE · 三层动态轮动</div>
+            <div className="t-eyebrow mb-0.5">{t('SMART BETA ENGINE · 三层动态轮动')}</div>
             <div className="flex items-center gap-2 flex-wrap">
               <Layers size={16} className="text-indigo-400" />
-              <h2 className="font-serif text-base sm:text-lg font-semibold tracking-tight" style={{ color: "var(--text-heading)", letterSpacing: "-0.02em" }}>指数 + 行业 ETF 动态轮动</h2>
+              <h2 className="font-serif text-base sm:text-lg font-semibold tracking-tight" style={{ color: "var(--text-heading)", letterSpacing: "-0.02em" }}>{t('指数 + 行业 ETF 动态轮动')}</h2>
               {isDemoMode && (
                 <span
                   className="px-1.5 py-0.5 rounded text-[9px] font-mono uppercase tracking-wider bg-amber-500/15 text-amber-300 border border-amber-500/40"
                   title="后端未连接，展示静态示例快照。启动 backend/server.py 后点「重新计算」可拉真实数据。"
                 >
-                  DEMO 模式
+                  {t('DEMO 模式')}
                 </span>
               )}
             </div>
             <p className="text-[10px] mt-0.5" style={{ color: "var(--text-secondary)" }}>
-              三层：风险层（VIX/趋势/信用利差/实际利率）→ Core ETF 配比 → 行业 ETF 评分轮动
-              {snapshot?.as_of && <span className="ml-2 font-mono">· 基准日 {snapshot.as_of.slice(0, 10)}</span>}
+              {t('三层：风险层（VIX/趋势/信用利差/实际利率）→ Core ETF 配比 → 行业 ETF 评分轮动')}
+              {snapshot?.as_of && <span className="ml-2 font-mono">· {t('基准日 {d}', { d: snapshot.as_of.slice(0, 10) })}</span>}
             </p>
           </div>
           <button
@@ -837,7 +837,7 @@ export default function SmartBeta() {
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 border border-indigo-500/30 disabled:opacity-50"
           >
             {loading ? <Loader size={12} className="animate-spin" /> : <RefreshCw size={12} />}
-            {loading ? "计算中…" : "重新计算"}
+            {loading ? t('计算中…') : t('重新计算')}
           </button>
         </div>
 
@@ -874,7 +874,7 @@ export default function SmartBeta() {
           </div>
           <div>
             <label className="text-[10px] text-[#a0aec0] mb-1 flex items-center gap-1">
-              当前持仓行业 ETF
+              {t('当前持仓行业 ETF')}
               <span className="text-[#6b7280]" title="逗号分隔，如 XLK,XLF,XLV — 用于缓冲带判断">
                 <Info size={9} />
               </span>
@@ -906,7 +906,7 @@ export default function SmartBeta() {
             <div className="glass-card p-3">
               <div className="flex items-center gap-2 mb-2">
                 <Compass size={13} className="text-amber-400" />
-                <h3 className="text-[11px] font-semibold text-white/90">L1 · 风险评分</h3>
+                <h3 className="text-[11px] font-semibold text-white/90">{t('L1 · 风险评分')}</h3>
               </div>
               <RiskDial score={riskScore} components={riskComponents} />
             </div>
