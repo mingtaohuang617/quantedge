@@ -1175,16 +1175,16 @@ export default function MiningAlpha() {
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           {/* v5 编辑式：eyebrow + serif 版头（与 Smart Beta 一致的视觉语言）*/}
-          <div className="t-eyebrow mb-0.5">MINING ALPHA · 信号实验室</div>
+          <div className="t-eyebrow mb-0.5">{t('MINING ALPHA · 信号实验室')}</div>
           <div className="flex items-center gap-2 flex-wrap">
             <Zap size={18} className="text-violet-400" />
-            <h2 className="font-serif text-base md:text-lg font-semibold text-white" style={{ letterSpacing: "-0.02em" }}>因子挖掘 · ML 合成 · 回测</h2>
+            <h2 className="font-serif text-base md:text-lg font-semibold text-white" style={{ letterSpacing: "-0.02em" }}>{t('因子挖掘 · ML 合成 · 回测')}</h2>
             {isDemoMode && (
               <span
                 className="text-[10px] font-semibold px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 cursor-help"
                 title="后端无数据 — 显示静态示例。要看真实结果需 self-hosted backend 跑过 pipeline。"
               >
-                DEMO 模式
+                {t('DEMO 模式')}
               </span>
             )}
           </div>
@@ -1194,7 +1194,7 @@ export default function MiningAlpha() {
           {!backendUnreachable && (
             <button onClick={fetchAll} disabled={loading} className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium bg-white/5 hover:bg-white/10 text-white border border-white/10 disabled:opacity-50">
               {loading ? <Loader size={12} className="animate-spin" /> : <RefreshCw size={12} />}
-              刷新
+              {t('刷新')}
             </button>
           )}
         </div>
@@ -1238,7 +1238,7 @@ export default function MiningAlpha() {
       <div className="bg-white/[0.02] border border-white/5 rounded-lg p-3">
         <div className="flex items-center justify-between mb-2">
           <div className="text-[11px] font-semibold text-white/80 flex items-center gap-1.5">
-            <Database size={12} /> 流水线状态
+            <Database size={12} /> {t('流水线状态')}
           </div>
           {status && (
             <div className="text-[10px] text-[#a0aec0] tabular-nums font-mono">
@@ -1248,15 +1248,15 @@ export default function MiningAlpha() {
         </div>
         {status ? (
           <div className="flex flex-wrap gap-1.5">
-            <StepChip label="1. 同步行情 + universe" done={status.factor_count > 0} />
-            <StepChip label="2. 因子计算" done={status.factor_count > 0} />
-            <StepChip label="3. IC 报告" done={status.files?.ic_report} />
-            <StepChip label="3b. 相关性剔除" done={status.files?.factor_correlation} />
-            <StepChip label="3c. Optuna 调参" done={status.files?.optuna_best} />
-            <StepChip label="4. ML 训练" done={status.files?.predictions} />
-            <StepChip label="4b. Regime-aware" done={status.files?.regime} />
-            <StepChip label="5. 回测" done={status.files?.backtest_report} />
-            <StepChip label="5b. 多 Top-N" done={status.files?.multi_topn} />
+            <StepChip label={t('1. 同步行情 + universe')} done={status.factor_count > 0} />
+            <StepChip label={t('2. 因子计算')} done={status.factor_count > 0} />
+            <StepChip label={t('3. IC 报告')} done={status.files?.ic_report} />
+            <StepChip label={t('3b. 相关性剔除')} done={status.files?.factor_correlation} />
+            <StepChip label={t('3c. Optuna 调参')} done={status.files?.optuna_best} />
+            <StepChip label={t('4. ML 训练')} done={status.files?.predictions} />
+            <StepChip label={t('4b. Regime-aware')} done={status.files?.regime} />
+            <StepChip label={t('5. 回测')} done={status.files?.backtest_report} />
+            <StepChip label={t('5b. 多 Top-N')} done={status.files?.multi_topn} />
           </div>
         ) : (
           <div className="text-[#a0aec0] text-xs">{loading ? "加载中..." : "无法连接 API；后端是否启动？"}</div>

@@ -40,6 +40,7 @@ import { ScoreDetail } from "../components/stock-gene/ScoreDetail.jsx";
 import { TickerSearchBox } from "../components/stock-gene/TickerSearchBox.jsx";
 import EmptyState from "../components/EmptyState.jsx";
 import { MobileAppBar, BottomSheet, FullscreenChart, useIsMobile } from "../components/mobile/index.js";
+import { useLang } from "../i18n.jsx";
 
 
 // ── 模块级辅助：移动端性格派生（包装 deriveCharacter，stock 可为 null）──
@@ -49,6 +50,7 @@ function driveCharacterForMobile(stock) {
 }
 
 export default function StockGene() {
+  const { t } = useLang();
   // ── 移动端检测（hooks 必须在任何 early return 前声明）──────
   const isMobile = useIsMobile();
   // 移动端专用 state
@@ -1461,7 +1463,7 @@ export default function StockGene() {
       <div className="flex items-center justify-between px-3 py-2 glass-card border border-white/10">
         <div className="flex items-center gap-3">
           <Activity size={16} className="text-emerald-400" />
-          <span className="text-sm font-semibold text-white">股性检测 · Stock Gene</span>
+          <span className="text-sm font-semibold text-white">{t('股性检测 · Stock Gene')}</span>
           {/* 引擎切换：动态从 ENGINES 渲染 */}
           <div className="flex items-center gap-0.5 bg-white/5 rounded border border-white/10 p-0.5">
             {ENGINE_IDS.map(id => {
@@ -1489,7 +1491,7 @@ export default function StockGene() {
               className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 cursor-help"
               title="当前是示例数据（Vercel 等无后端部署）。要看真实评分: cd backend && python server.py 后访问 localhost:5173"
             >
-              DEMO 模式
+              {t('DEMO 模式')}
             </span>
           )}
         </div>
@@ -1501,7 +1503,7 @@ export default function StockGene() {
             title={`对所有观察项跑${eng(engine).framework}评分`}
           >
             {batchScoring ? <Loader size={11} className="animate-spin" /> : <Sparkles size={11} />}
-            批量评分
+            {t('批量评分')}
           </button>
           {/* 导出 JSON 备份 */}
           <button
@@ -1737,7 +1739,7 @@ export default function StockGene() {
         <div className="glass-card border border-white/10 flex flex-col overflow-hidden">
           <div className="px-3 py-2 border-b border-white/8 flex items-center gap-2">
             <Layers size={12} className="text-emerald-300" />
-            <span className="text-[11px] font-semibold text-white">观察列表</span>
+            <span className="text-[11px] font-semibold text-white">{t('观察列表')}</span>
             <span className="text-[9px] text-[#a0aec0]">
               {sortedItems.length}{sortedItems.length !== items.length ? `/${items.length}` : ""} 只
             </span>
@@ -2131,7 +2133,7 @@ export default function StockGene() {
         <div className="glass-card border border-white/10 flex flex-col overflow-hidden">
           <div className="px-3 py-2 border-b border-white/8 flex items-center gap-2">
             <BarChart3 size={12} className="text-cyan-300" />
-            <span className="text-[11px] font-semibold text-white">同行业横向对比</span>
+            <span className="text-[11px] font-semibold text-white">{t('同行业横向对比')}</span>
             <span className={`text-[9px] px-1 py-px rounded border ${eng(engine).btnBg}`}>
               {eng(engine).short} · {eng(engine).framework}
             </span>

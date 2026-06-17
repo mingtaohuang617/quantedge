@@ -22,6 +22,7 @@ import {
 } from "../math/compound.ts";
 import useIsMobile from "../hooks/useIsMobile";
 import { FullscreenChart, ThumbActionBar } from "../components/mobile";
+import { useLang } from "../i18n.jsx";
 
 // ─── 常量 ────────────────────────────────────────────────
 
@@ -341,6 +342,7 @@ function GrowthChart({ data, showSpy = true, useLogScale = false }) {
 //  主组件
 // ═════════════════════════════════════════════════════════
 export default function CompoundPower({ onOneClickBacktest = null }) {
+  const { t } = useLang();
   const isMobile = useIsMobile();
   const [selectedRate, setSelectedRate] = useState(0.10);
   const [years, setYears] = useState(20);
@@ -798,10 +800,10 @@ export default function CompoundPower({ onOneClickBacktest = null }) {
       <div className="sticky top-0 z-10 backdrop-blur border-b border-white/8 px-4 py-2.5" style={{ background: "color-mix(in srgb, var(--bg-base) 92%, transparent)" }}>
         <div className="flex items-center gap-2">
           <Sparkles size={16} className="text-indigo-400" />
-          <h2 className="text-sm font-semibold tracking-tight" style={{ color: "var(--text-heading)" }}>复利的力量 · The Power of Compounding</h2>
+          <h2 className="text-sm font-semibold tracking-tight" style={{ color: "var(--text-heading)" }}>{t('复利的力量 · The Power of Compounding')}</h2>
         </div>
         <p className="text-[10px] mt-0.5" style={{ color: "var(--text-secondary)" }}>
-          "时间是投资人最好的朋友" — 输入年化收益率、年限、本金，看复利曲线，并对照同档风险下的可行组合。
+          {t('"时间是投资人最好的朋友" — 输入年化收益率、年限、本金，看复利曲线，并对照同档风险下的可行组合。')}
         </p>
       </div>
 
@@ -811,19 +813,19 @@ export default function CompoundPower({ onOneClickBacktest = null }) {
         <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-3">
           {/* 左：假设滑块 + 72 法则 */}
           <div className="glass-card p-4 flex flex-col">
-            <div className="text-[10px] uppercase tracking-wider text-[#778] mb-3">假设条件</div>
-            <AssumptionSlider label="初始本金" displayValue={fmtMoney(principal)}
+            <div className="text-[10px] uppercase tracking-wider text-[#778] mb-3">{t('假设条件')}</div>
+            <AssumptionSlider label={t('初始本金')} displayValue={fmtMoney(principal)}
               value={Math.min(500000, principal)} min={0} max={500000} step={5000}
               onChange={(v) => setPrincipalStr(String(v))} loLabel="$0" hiLabel="$500k" />
-            <AssumptionSlider label="每月定投" displayValue={fmtMoney(monthly)}
+            <AssumptionSlider label={t('每月定投')} displayValue={fmtMoney(monthly)}
               value={Math.min(10000, monthly)} min={0} max={10000} step={250}
               onChange={(v) => setMonthlyStr(String(v))} loLabel="$0" hiLabel="$10k" />
-            <AssumptionSlider label="年化收益" displayValue={fmtPct(selectedRate, 0)}
+            <AssumptionSlider label={t('年化收益')} displayValue={fmtPct(selectedRate, 0)}
               value={Math.max(0, RETURN_OPTIONS.findIndex((o) => o.rate === selectedRate))}
               min={0} max={RETURN_OPTIONS.length - 1} step={1}
               onChange={(i) => { setSelectedRate(RETURN_OPTIONS[i].rate); setTierOverride(null); }}
               loLabel={RETURN_OPTIONS[0].label} hiLabel={RETURN_OPTIONS[RETURN_OPTIONS.length - 1].label} />
-            <AssumptionSlider label="投资年限" displayValue={`${years} 年`}
+            <AssumptionSlider label={t('投资年限')} displayValue={t('{n} 年', { n: years })}
               value={Math.max(0, YEAR_OPTIONS.indexOf(years))}
               min={0} max={YEAR_OPTIONS.length - 1} step={1}
               onChange={(i) => setYears(YEAR_OPTIONS[i])}
@@ -834,7 +836,7 @@ export default function CompoundPower({ onOneClickBacktest = null }) {
               </div>
             )}
             <div className="mt-auto pt-3 border-t border-white/8">
-              <div className="text-[9px] uppercase tracking-wider text-[#778] mb-1.5">72 法则</div>
+              <div className="text-[9px] uppercase tracking-wider text-[#778] mb-1.5">{t('72 法则')}</div>
               <p className="text-[11px] text-[#a0aec0] leading-relaxed">
                 年化 <span className="font-mono text-up">{fmtPct(selectedRate, 0)}</span> → 资产翻倍约需{" "}
                 <span className="font-mono text-cyan-300 font-semibold">{story.doublingYears ? story.doublingYears.toFixed(1) : "—"} 年</span>。
@@ -868,10 +870,10 @@ export default function CompoundPower({ onOneClickBacktest = null }) {
             </div>
             {/* 双层增长曲线 + 交叉点 */}
             <div className="flex items-baseline justify-between mb-1">
-              <h3 className="text-[12px] font-semibold text-white/90">本金 vs 复利增值</h3>
+              <h3 className="text-[12px] font-semibold text-white/90">{t('本金 vs 复利增值')}</h3>
               <div className="flex gap-3 text-[10px] text-[#a0aec0]">
-                <span className="inline-flex items-center gap-1"><span className="inline-block w-3.5 h-0.5 bg-[#5A5E76]" />累计本金</span>
-                <span className="inline-flex items-center gap-1"><span className="inline-block w-3.5 h-0.5 bg-up" />账户总值</span>
+                <span className="inline-flex items-center gap-1"><span className="inline-block w-3.5 h-0.5 bg-[#5A5E76]" />{t('累计本金')}</span>
+                <span className="inline-flex items-center gap-1"><span className="inline-block w-3.5 h-0.5 bg-up" />{t('账户总值')}</span>
               </div>
             </div>
             <ResponsiveContainer width="100%" height={220}>
