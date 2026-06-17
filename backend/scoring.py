@@ -19,6 +19,7 @@ timingScore / subScores。bars_by_ticker: {ticker: [{'close':..}, ...]}（升序
 """
 from __future__ import annotations
 
+import math
 from collections import defaultdict
 
 from factors import calc_rsi, calc_leverage_decay, parse_aum_to_usd, parse_leverage
@@ -87,17 +88,21 @@ def blended_momentum(closes: list[float]) -> float | None:
 
 
 def trend_score(closes: list[float]) -> float:
-    """趋势分 0-100：价格 vs MA50/MA200 + 均线多头排列。数据不足→50 中性。"""
+    """趋势分 0-100：价格 vs MA50/MA200 + 均线多头排列，按「偏离强度」连续给分。
+    旧版是 ±17/±17/±16 三段阶跃(全宇宙仅 6 个离散档)，把"勉强站上均线"和"暴力多头"
+    都给满分、丢失趋势强弱。改用 tanh(相对差/5%) 软压成连续：±5% 偏离≈0.76，强多头仍 ~100、
+    强空头仍 ~0，中间平滑可分。数据不足→50 中性。"""
     n = len(closes)
     if n < 50:
         return 50.0
     price = closes[-1]
     ma50 = sum(closes[-50:]) / 50
     ma200 = sum(closes[-200:]) / 200 if n >= 200 else sum(closes) / n
-    s = 50.0
-    s += 17 if price > ma50 else -17
-    s += 17 if price > ma200 else -17
-    s += 16 if ma50 > ma200 else -16
+
+    def _lean(a: float, b: float) -> float:  # 相对差经 tanh 软压到 [-1,1]
+        return math.tanh((a / b - 1.0) / 0.05) if b > 0 else 0.0
+
+    s = 50.0 + 17 * _lean(price, ma50) + 17 * _lean(price, ma200) + 16 * _lean(ma50, ma200)
     return max(0.0, min(100.0, s))
 
 
