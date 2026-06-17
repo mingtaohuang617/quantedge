@@ -12,7 +12,8 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "audit:lucide": "node scripts/audit-lucide.mjs",
-    "audit:imports": "node scripts/audit-imports.mjs"
+    "audit:imports": "node scripts/audit-imports.mjs",
+    "audit:i18n": "node scripts/audit-i18n.mjs"
   },
   "dependencies": {
     "@sentry/react": "^10.50.0",
