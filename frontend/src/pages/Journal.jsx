@@ -1768,10 +1768,10 @@ ${angleQuestion}
                     <div className="glass-card p-2">
                       <div className="text-[9px] text-cyan-300 mb-1 font-semibold">{t('支持的列名')}</div>
                       <div className="text-[#a0aec0] space-y-0.5">
-                        <div><span className="text-[#778]">代码:</span> symbol / ticker / 代码 / 股票代码</div>
-                        <div><span className="text-[#778]">数量:</span> quantity / shares / qty / 数量 / 持仓</div>
-                        <div><span className="text-[#778]">成本:</span> price / cost / avg / 成本 / 均价 / 买入价</div>
-                        <div><span className="text-[#778]">日期:</span> date / 日期 / 时间 / 买入日期</div>
+                        <div><span className="text-[#778]">{t('代码:')}</span> symbol / ticker / 代码 / 股票代码</div>
+                        <div><span className="text-[#778]">{t('数量:')}</span> quantity / shares / qty / 数量 / 持仓</div>
+                        <div><span className="text-[#778]">{t('成本:')}</span> price / cost / avg / 成本 / 均价 / 买入价</div>
+                        <div><span className="text-[#778]">{t('日期:')}</span> date / 日期 / 时间 / 买入日期</div>
                       </div>
                     </div>
                     <div className="glass-card p-2">
