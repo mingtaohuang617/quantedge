@@ -7,6 +7,7 @@
 // ─────────────────────────────────────────────────────────────
 import React, { useMemo } from "react";
 import { Flame } from "lucide-react";
+import { useLang } from "../../i18n.jsx";
 
 const clamp01 = (x) => Math.max(0, Math.min(1, x));
 
@@ -147,6 +148,7 @@ function TraitRadar({ traits, tone }) {
 }
 
 export default function CharacterProfile({ stock, allStocks, onPick }) {
+  const { t } = useLang();
   const char = useMemo(() => deriveCharacter(stock), [stock]);
 
   // 相似性格标的：用轻量向量在全池找最近
@@ -176,33 +178,33 @@ export default function CharacterProfile({ stock, allStocks, onPick }) {
   return (
     <div className="p-3 border-b border-white/8" style={{ background: `radial-gradient(ellipse 480px 240px at 90% 0%, ${char.tone}10, transparent)` }}>
       {/* hero: 性格标签 */}
-      <div className="text-[9px] uppercase tracking-wider text-[#7a8497] mb-2">性格档案 · {stock.ticker} · 基于 52 周行情与因子（β/动量/区间）</div>
+      <div className="text-[9px] uppercase tracking-wider text-[#7a8497] mb-2">{t('性格档案')} · {stock.ticker} · {t('基于 52 周行情与因子（β/动量/区间）')}</div>
       <div className="flex items-center gap-2.5 flex-wrap mb-2">
         <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border" style={{ background: `linear-gradient(135deg, ${char.tone}30, ${char.tone}0c)`, borderColor: `${char.tone}55`, boxShadow: `0 6px 20px -8px ${char.tone}55` }}>
           <Flame size={15} style={{ color: char.tone }} />
-          <span className="font-serif font-semibold text-[18px]" style={{ color: char.tone, letterSpacing: "-0.01em" }}>{char.label}</span>
+          <span className="font-serif font-semibold text-[18px]" style={{ color: char.tone, letterSpacing: "-0.01em" }}>{t(char.label)}</span>
         </span>
-        <span className="text-[10px] px-2 py-1 rounded-md border" style={{ color: char.tone, background: `${char.tone}14`, borderColor: `${char.tone}33` }}>{char.fit}</span>
+        <span className="text-[10px] px-2 py-1 rounded-md border" style={{ color: char.tone, background: `${char.tone}14`, borderColor: `${char.tone}33` }}>{t(char.fit)}</span>
       </div>
-      <p className="font-serif text-[12.5px] leading-relaxed text-[#c9cdda] mb-3" style={{ maxWidth: 600 }}>{char.paragraph}</p>
+      <p className="font-serif text-[12.5px] leading-relaxed text-[#c9cdda] mb-3" style={{ maxWidth: 600 }}>{t(char.paragraph)}</p>
 
       {/* 雷达 + 人话解读 */}
       <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-3 mb-3">
         <div className="rounded-lg border border-white/8 bg-white/[0.02] p-2 flex flex-col">
-          <div className="text-[9px] uppercase tracking-wider text-[#7a8497] mb-1">六维性格雷达</div>
+          <div className="text-[9px] uppercase tracking-wider text-[#7a8497] mb-1">{t('六维性格雷达')}</div>
           <div className="flex-1 min-h-[180px]"><TraitRadar traits={char.traits} tone={char.tone} /></div>
         </div>
         <div className="flex flex-col gap-1.5">
-          {char.traits.map((t) => (
-            <div key={t.k} className="grid grid-cols-[58px_1fr_34px] items-center gap-2 px-2.5 py-1.5 rounded-lg bg-white/[0.018] border border-white/8">
-              <span className="text-[11px] text-[#c9cdda] font-medium">{t.n}</span>
+          {char.traits.map((tr) => (
+            <div key={tr.k} className="grid grid-cols-[58px_1fr_34px] items-center gap-2 px-2.5 py-1.5 rounded-lg bg-white/[0.018] border border-white/8">
+              <span className="text-[11px] text-[#c9cdda] font-medium">{t(tr.n)}</span>
               <div>
                 <div className="h-[5px] bg-white/[0.05] rounded-full overflow-hidden mb-1">
-                  {t.v != null && <div className="h-full rounded-full" style={{ width: `${t.v * 100}%`, background: t.v >= 0.7 ? "linear-gradient(90deg,#F5B53C,#FFD580)" : t.v >= 0.4 ? "linear-gradient(90deg,#6366F1,#818CF8)" : "linear-gradient(90deg,#1ED395,#5EE6E6)" }} />}
+                  {tr.v != null && <div className="h-full rounded-full" style={{ width: `${tr.v * 100}%`, background: tr.v >= 0.7 ? "linear-gradient(90deg,#F5B53C,#FFD580)" : tr.v >= 0.4 ? "linear-gradient(90deg,#6366F1,#818CF8)" : "linear-gradient(90deg,#1ED395,#5EE6E6)" }} />}
                 </div>
-                <span className="text-[9px] text-[#7a8497]">{t.hint}</span>
+                <span className="text-[9px] text-[#7a8497]">{t(tr.hint)}</span>
               </div>
-              <span className="text-[13px] font-mono font-bold text-right" style={{ color: t.v == null ? "#5a6477" : t.v >= 0.7 ? "#F5B53C" : "#c9cdda" }}>{t.v == null ? "—" : Math.round(t.v * 100)}</span>
+              <span className="text-[13px] font-mono font-bold text-right" style={{ color: tr.v == null ? "#5a6477" : tr.v >= 0.7 ? "#F5B53C" : "#c9cdda" }}>{tr.v == null ? "—" : Math.round(tr.v * 100)}</span>
             </div>
           ))}
         </div>
@@ -212,9 +214,9 @@ export default function CharacterProfile({ stock, allStocks, onPick }) {
       <div className="grid grid-cols-4 gap-2 mb-3">
         {char.behavioral.map((b) => (
           <div key={b.l} className="rounded-lg border border-white/8 bg-white/[0.02] p-2">
-            <div className="text-[8.5px] uppercase tracking-wider text-[#7a8497] mb-1">{b.l}</div>
+            <div className="text-[8.5px] uppercase tracking-wider text-[#7a8497] mb-1">{t(b.l)}</div>
             <div className="font-serif font-semibold text-[18px] leading-none" style={{ color: b.c, letterSpacing: "-0.02em" }}>{b.v}</div>
-            <div className="text-[9px] text-[#7a8497] mt-1">{b.sub}</div>
+            <div className="text-[9px] text-[#7a8497] mt-1">{t(b.sub)}</div>
           </div>
         ))}
       </div>
@@ -223,8 +225,8 @@ export default function CharacterProfile({ stock, allStocks, onPick }) {
       {peers.length > 0 && (
         <div className="rounded-lg border border-white/8 bg-white/[0.02] p-2.5">
           <div className="flex items-baseline justify-between mb-2">
-            <span className="text-[11px] font-semibold text-white/90">相似性格的标的</span>
-            <span className="text-[9px] text-[#7a8497]">性格距离最近 · 可复用同套策略</span>
+            <span className="text-[11px] font-semibold text-white/90">{t('相似性格的标的')}</span>
+            <span className="text-[9px] text-[#7a8497]">{t('性格距离最近 · 可复用同套策略')}</span>
           </div>
           <div className="grid grid-cols-5 gap-1.5">
             {peers.map(({ s, sim }) => (

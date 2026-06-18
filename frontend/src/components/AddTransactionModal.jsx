@@ -79,8 +79,8 @@ export default function AddTransactionModal({ open, onClose, onAdded, defaultTic
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
       <div className="glass-card p-4 w-[360px] max-w-[90vw] border border-emerald-500/30" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-3">
-          <span className="text-sm font-semibold text-emerald-300">录入交易</span>
-          <button onClick={onClose} className="p-1.5 -m-1 rounded text-[#778] hover:text-white hover:bg-white/10 transition-colors" aria-label="关闭"><X size={14} /></button>
+          <span className="text-sm font-semibold text-emerald-300">{t('录入交易')}</span>
+          <button onClick={onClose} className="p-1.5 -m-1 rounded text-[#778] hover:text-white hover:bg-white/10 transition-colors" aria-label={t('关闭')}><X size={14} /></button>
         </div>
 
         <div className="space-y-2">
@@ -91,7 +91,7 @@ export default function AddTransactionModal({ open, onClose, onAdded, defaultTic
               list="ticker-suggestions"
               value={ticker}
               onChange={e => setTicker(e.target.value)}
-              placeholder="如 NVDA / 00700.HK"
+              placeholder={t('如 NVDA / 00700.HK')}
               className="w-full px-2 py-1.5 mt-0.5 text-xs bg-[var(--bg-input)] border border-[var(--border-default)] rounded outline-none text-white"
             />
             <datalist id="ticker-suggestions">
@@ -113,7 +113,7 @@ export default function AddTransactionModal({ open, onClose, onAdded, defaultTic
                     : "bg-white/5 text-[#a0aec0] border border-white/10 hover:bg-white/10"
                 }`}
               >
-                {s === "buy" ? "买入" : "卖出"}
+                {s === "buy" ? t('买入') : t('卖出')}
               </button>
             ))}
           </div>
@@ -121,7 +121,7 @@ export default function AddTransactionModal({ open, onClose, onAdded, defaultTic
           {/* Qty + Price */}
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="text-[9px] text-[#778] uppercase tracking-wider">数量</label>
+              <label className="text-[9px] text-[#778] uppercase tracking-wider">{t('数量')}</label>
               <input
                 type="number" step="any" value={qty} onChange={e => setQty(e.target.value)}
                 placeholder="100"
@@ -129,7 +129,7 @@ export default function AddTransactionModal({ open, onClose, onAdded, defaultTic
               />
             </div>
             <div>
-              <label className="text-[9px] text-[#778] uppercase tracking-wider">单价</label>
+              <label className="text-[9px] text-[#778] uppercase tracking-wider">{t('单价')}</label>
               <input
                 type="number" step="any" value={price} onChange={e => setPrice(e.target.value)}
                 placeholder="201.50"
@@ -141,14 +141,14 @@ export default function AddTransactionModal({ open, onClose, onAdded, defaultTic
           {/* Fee + Date */}
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="text-[9px] text-[#778] uppercase tracking-wider">手续费</label>
+              <label className="text-[9px] text-[#778] uppercase tracking-wider">{t('手续费')}</label>
               <input
                 type="number" step="any" value={fee} onChange={e => setFee(e.target.value)}
                 className="w-full px-2 py-1.5 mt-0.5 text-xs bg-[var(--bg-input)] border border-[var(--border-default)] rounded outline-none text-white tabular-nums"
               />
             </div>
             <div>
-              <label className="text-[9px] text-[#778] uppercase tracking-wider">交易日期</label>
+              <label className="text-[9px] text-[#778] uppercase tracking-wider">{t('交易日期')}</label>
               <input
                 type="date" value={tradedAt} onChange={e => setTradedAt(e.target.value)}
                 style={{ colorScheme: "dark" }}
@@ -159,10 +159,10 @@ export default function AddTransactionModal({ open, onClose, onAdded, defaultTic
 
           {/* Notes */}
           <div>
-            <label className="text-[9px] text-[#778] uppercase tracking-wider">备注（可选）</label>
+            <label className="text-[9px] text-[#778] uppercase tracking-wider">{t('备注（可选）')}</label>
             <input
               value={notes} onChange={e => setNotes(e.target.value)}
-              placeholder="财报前加仓 / 止盈"
+              placeholder={t('财报前加仓 / 止盈')}
               className="w-full px-2 py-1.5 mt-0.5 text-xs bg-[var(--bg-input)] border border-[var(--border-default)] rounded outline-none text-white"
             />
           </div>
@@ -198,10 +198,10 @@ export default function AddTransactionModal({ open, onClose, onAdded, defaultTic
               className="flex-1 py-1.5 text-xs rounded bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-semibold flex items-center justify-center gap-1 disabled:opacity-40"
             >
               {submitting ? <Loader size={11} className="animate-spin" /> : <Plus size={11} />}
-              {submitting ? "提交中..." : "确认录入"}
+              {submitting ? t('提交中...') : t('确认录入')}
             </button>
             <button onClick={onClose} className="px-3 py-1.5 text-xs rounded bg-white/5 text-[#a0aec0] hover:bg-white/10 transition">
-              取消
+              {t('取消')}
             </button>
           </div>
         </div>
