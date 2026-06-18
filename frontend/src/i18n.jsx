@@ -6,7 +6,15 @@
 import { createContext, useContext, useState, useCallback, useMemo } from 'react';
 import * as OpenCC from 'opencc-js';
 
-const LangContext = createContext();
+// Provider 外的安全兜底：行为同 zh-CN（原文穿透 + 参数插值），
+// 避免组件在 LangProvider 外（如组件单测）渲染时 useLang() 取到 undefined 而崩溃。
+const fallbackInterpolate = (text, params) => {
+  if (!text) return '';
+  let r = text;
+  if (params) Object.entries(params).forEach(([k, v]) => { r = r.replaceAll(`{${k}}`, String(v)); });
+  return r;
+};
+const LangContext = createContext({ lang: 'zh-CN', setLang: () => {}, t: fallbackInterpolate });
 const LANG_KEY = 'quantedge_lang';
 
 export const LANGS = ['zh-CN', 'zh-TW', 'en'];
@@ -56,6 +64,103 @@ const toTW = (text) => {
 
 // ─── English Translation Dictionary ─────────────────────────
 const EN = {
+  // ── audit cleanup #3: MiningAlpha + CompoundPower ──
+  // MiningAlpha — tables / detail modal / notices
+  '正胜率': 'Pos Rate',
+  'Top超额': 'Top Excess',
+  'IC 报告未生成。`mining_alpha.run ic-report`': 'IC report not generated. `mining_alpha.run ic-report`',
+  'IC 热力图未生成。`mining_alpha.run ic-report` 后会自动产出 ic_monthly_heatmap.csv': 'IC heatmap not generated. `mining_alpha.run ic-report` will produce ic_monthly_heatmap.csv',
+  'α{n} 详情': 'α{n} Detail',
+  '关闭 α{n} 详情': 'Close α{n} detail',
+  '加载中...': 'Loading...',
+  'DEMO 模式下单因子 / 历史 IC 详情不可用 —— 需 self-hosted backend 跑过 pipeline 才有逐因子数据。上方的 IC 排行 / 热力图为合成示例。': "Single-factor formula / historical IC detail is unavailable in demo mode — per-factor data requires a self-hosted backend that has run the pipeline. The IC ranking / heatmap above are synthetic examples.",
+  '未找到详情': 'No detail found',
+  '公式描述': 'Formula',
+  'IC 统计': 'IC Stats',
+  'Mining Alpha 需要 self-hosted backend': 'Mining Alpha requires a self-hosted backend',
+  '本页面读取 /api/mining-alpha/* 数据（IC 报告、回测、Top 持仓、流水线 subprocess 控制）。当前部署看不到这些路由 — Vercel 这类静态托管只提供前端 SPA，没在跑 FastAPI 后端。': "This page reads /api/mining-alpha/* data (IC report, backtest, top holdings, pipeline subprocess control). The current deployment can't see these routes — static hosts like Vercel only serve the frontend SPA and don't run a FastAPI backend.",
+  '# 启动后端 + 前端 dev，访问 localhost:5173': '# Start backend + frontend dev, open localhost:5173',
+  '其他不依赖后端的页面（量化评分 / 投资日志 / 宏观）在 Vercel 上仍然可用。': "Other pages that don't need the backend (Quant Scoring / Journal / Macro) still work on Vercel.",
+  '重试连接': 'Retry connection',
+  '特征重要性未生成。`mining_alpha.run train`': 'Feature importance not generated. `mining_alpha.run train`',
+  '回测净值未生成。`mining_alpha.run backtest`': 'Backtest equity not generated. `mining_alpha.run backtest`',
+  '月度胜率': 'Monthly Win Rate',
+  'vs基准超额': 'vs Bench Excess',
+  'IR vs基准': 'IR vs Bench',
+  '年化换手': 'Annual Turnover',
+  '多 Top-N 切片对比': 'Multi Top-N Comparison',
+  'Walk-forward Per-fold 测试集 IC': 'Walk-forward Per-fold Test IC',
+  '测试期': 'Test Period',
+  '回测指标': 'Backtest Metrics',
+  '涨跌停剔除已启用': 'limit-up/down exclusion enabled',
+  '策略净值 vs 基准': 'Strategy NAV vs Benchmark',
+  '当前 Top 20 持仓': 'Current Top 20 Holdings',
+  'vs 上周持仓': 'vs last week',
+  '头部因子 IC mean': 'Top Factor IC mean',
+  'IC 胜率': 'IC Win Rate',
+  '策略 Sharpe': 'Strategy Sharpe',
+  '单因子 IC 排行（Top 20 by |ICIR|，点击查看详情）': 'Single-Factor IC Ranking (Top 20 by |ICIR|, click for detail)',
+  'ML 特征重要性（多 fold 平均 gain）': 'ML Feature Importance (avg gain across folds)',
+  '无法连接 API；后端是否启动？': "Can't reach API; is the backend running?",
+  '🚀 还没数据？30 秒首体验': '🚀 No data yet? 30-second first run',
+  '不需 tushare、一键生成合成 50 票 × 3 年 panel：': 'No tushare needed — generate a synthetic 50-stock × 3-year panel in one click:',
+  '然后用': 'Then run',
+  '跑完整 pipeline (Run Pipeline 面板的"DEMO"按钮)': 'to run the full pipeline (the "DEMO" button in the Run Pipeline panel)',
+  '▶ 上方 Run Pipeline 面板可一键触发后续步骤（或在终端跑）：': '▶ The Run Pipeline panel above can trigger the next steps in one click (or run in terminal):',
+  // CompoundPower — risk tiers / strategy cards / narrative
+  '低风险': 'Low Risk',
+  '中低风险': 'Low-Mid Risk',
+  '中风险': 'Mid Risk',
+  '中高风险': 'Mid-High Risk',
+  '高风险': 'High Risk',
+  '极高/投机': 'Extreme/Speculative',
+  '目标年化': 'Target Return',
+  '历史波动': 'Historical Vol',
+  '保守': 'Conservative',
+  '平衡': 'Balanced',
+  '进取': 'Aggressive',
+  '无可推荐组合': 'No recommended portfolio',
+  '跳转到组合回测并填入此组合': 'Jump to Backtest with this portfolio prefilled',
+  '此档位无可回测组合': 'No backtestable portfolio for this tier',
+  '一键回测 →': 'One-click Backtest →',
+  '无可回测组合': 'No portfolio to backtest',
+  '100% 短期国债 ETF，规避利率风险，类货币基金体验': '100% short-term Treasury ETF — avoids rate risk, money-market-like',
+  '投资级综合债 + 长期国债，吃久期': 'Investment-grade aggregate bonds + long Treasuries, capturing duration',
+  '债券为主 + 20% 股票，长期收益小幅提升': 'Bond-heavy + 20% stocks, modest long-term return boost',
+  '60/40 反向版，债券主导': 'Reverse 60/40, bond-dominated',
+  '经典 50/50，股债等权': 'Classic 50/50, equal stock/bond weight',
+  '50/50 + 加 10% 科技': '50/50 + 10% tech tilt',
+  '经典 60/40，长期年化 ~8%，机构标配': 'Classic 60/40, ~8% long-term annualized, institutional standard',
+  '大盘 + 科技 + 债券缓冲': 'Large-cap + tech + bond cushion',
+  '全股票，叠加半导体主题': 'All-equity with a semiconductor theme',
+  '100% 大盘 + 科技偏重': '100% large-cap with a tech tilt',
+  '大盘 + 科技 + 半导体': 'Large-cap + tech + semiconductors',
+  '科技 + 半导体 + 动量因子': 'Tech + semiconductors + momentum factor',
+  '科技 + 半导体 + 创新主题': 'Tech + semiconductors + innovation theme',
+  '⚠ 3x 杠杆 QQQ + 半导体，剧烈波动': '⚠ 3x leveraged QQQ + semiconductors, highly volatile',
+  '⚠ 100% 3x 杠杆 QQQ，回撤可能 -80% 以上': '⚠ 100% 3x leveraged QQQ, drawdowns can exceed -80%',
+  '历史上能持续 50%+ 年化的几乎只有：早期加密资产、单只爆发期个股、复杂期权策略 —— 没有可被定义为「组合」的实盘策略。本档位仅作复利演示。': "Historically, sustained 50%+ annualized returns came almost only from early crypto, single explosive stocks, or complex options strategies — there is no live-tradable strategy definable as a 'portfolio'. This tier is for compounding illustration only.",
+  '增长曲线': 'Growth Curve',
+  '其中': 'of which',
+  '是复利赚来的': 'is from compounding',
+  '早开始 5 年': 'Start 5 Years Earlier',
+  '同样的定投，只要': 'The same contributions, just ',
+  '早 5 年': '5 years earlier',
+  '开始，{y} 年终值达': ' — the {y}-year value reaches',
+  '—— 多出的几乎全是复利。': ' — almost all the extra is compounding.',
+  '时间是复利唯一无法补救的变量。': "Time is the one compounding variable you can't make up.",
+  '波动放大：': 'Volatility amplification: ',
+  '名义复利': 'Nominal compounding',
+  '是"运气一直在线"的上限；蒙特卡洛中位数': " is the 'luck always on' ceiling; the Monte Carlo median",
+  '才是 50% 概率水平 — 名义是中位数的': ' is the true 50% level — nominal is',
+  '倍': '×',
+  '。σ 越高、年限越长，差距越极端（lognormal 偏度）。': ' the median. The higher σ and the longer the horizon, the more extreme the gap (lognormal skew).',
+  '提醒：': 'Note: ',
+  '50%+ 持续年化在任何成熟资产类别上都不可持续。若历史回测显示这种收益，多半是过拟合或样本期偏差，请勿当作可执行策略。': "Sustained 50%+ annualized returns aren't achievable in any mature asset class. If a backtest shows such returns, it's most likely overfitting or sample-period bias — don't treat it as an executable strategy.",
+  '方法论：': 'Methodology: ',
+  '名义复利 = 本金 ×(1+r)^n；实际购买力 = 名义值 / (1+通胀)^n（通胀取美元长期 3%）；蒙特卡洛 = 几何布朗运动，对数收益 ~ N(ln(1+μ) - σ²/2, σ²)，1000 路径取分位。': 'Nominal compounding = principal ×(1+r)^n; real purchasing power = nominal / (1+inflation)^n (inflation = 3% long-run USD); Monte Carlo = geometric Brownian motion, log-return ~ N(ln(1+μ) - σ²/2, σ²), 1000 paths by percentile.',
+  '免责：': 'Disclaimer: ',
+  '本页所有"策略组合"为教育性示例，基于历史经验的资产配置范式，非实盘推荐。"蒙特卡洛区间"假设收益独立同分布，**严重低估**长尾风险（黑天鹅、流动性危机、再平衡成本等）。': 'All "strategy portfolios" on this page are educational examples based on historically-grounded asset-allocation paradigms, not live recommendations. The "Monte Carlo interval" assumes i.i.d. returns and **severely underestimates** tail risk (black swans, liquidity crises, rebalancing costs, etc.).',
   // ── audit cleanup #2: SmartBeta + StockGene ──
   '风险偏好': 'Risk Tolerance',
   '趋势:': 'Trend:',
