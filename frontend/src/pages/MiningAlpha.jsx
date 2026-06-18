@@ -94,8 +94,9 @@ const RunSwitcher = ({ status, onSwitch }) => {
 
 // ─── IC 表 (rows clickable → 弹因子详情) ─────────────────────
 const ICTable = ({ rows, onPickAlpha }) => {
+  const { t } = useLang();
   if (!rows || rows.length === 0) {
-    return <div className="text-[#a0aec0] text-xs">IC 报告未生成。`mining_alpha.run ic-report`</div>;
+    return <div className="text-[#a0aec0] text-xs">{t('IC 报告未生成。`mining_alpha.run ic-report`')}</div>;
   }
   return (
     <div className="overflow-auto max-h-[420px] rounded-lg border border-white/5">
@@ -106,9 +107,9 @@ const ICTable = ({ rows, onPickAlpha }) => {
             <th className="text-right px-3 py-2">IC mean</th>
             <th className="text-right px-3 py-2">ICIR</th>
             <th className="text-right px-3 py-2">t</th>
-            <th className="text-right px-3 py-2">正胜率</th>
-            <th className="text-right px-3 py-2">Top超额</th>
-            <th className="text-right px-3 py-2">换手</th>
+            <th className="text-right px-3 py-2">{t('正胜率')}</th>
+            <th className="text-right px-3 py-2">{t('Top超额')}</th>
+            <th className="text-right px-3 py-2">{t('换手')}</th>
           </tr>
         </thead>
         <tbody className="text-white/90 tabular-nums font-mono">
@@ -149,13 +150,14 @@ const IC_COLOR_SCALE = (ic) => {
 };
 
 const ICHeatmap = ({ data, onPickAlpha }) => {
+  const { t } = useLang();
   // hook 必须在 early return 之前，避免 data 由空变非空时 hook 顺序变化
   const lookup = useMemo(() => {
     const m = new Map();
     (data?.cells || []).forEach(c => { m.set(`${c.alpha}|${c.month}`, c.ic); });
     return m;
   }, [data]);
-  if (!data?.cells?.length) return <div className="text-[#a0aec0] text-xs">IC 热力图未生成。`mining_alpha.run ic-report` 后会自动产出 ic_monthly_heatmap.csv</div>;
+  if (!data?.cells?.length) return <div className="text-[#a0aec0] text-xs">{t('IC 热力图未生成。`mining_alpha.run ic-report` 后会自动产出 ic_monthly_heatmap.csv')}</div>;
   const { alphas, months } = data;
   return (
     <div className="overflow-auto max-h-[480px] rounded-lg border border-white/5">
@@ -199,6 +201,7 @@ const ICHeatmap = ({ data, onPickAlpha }) => {
 
 // ─── 因子详情 modal (点击 alpha 弹) ─────────────────────────
 const FactorDetailModal = ({ alphaNum, runId, onClose, isDemoMode = false }) => {
+  const { t } = useLang();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
@@ -221,28 +224,27 @@ const FactorDetailModal = ({ alphaNum, runId, onClose, isDemoMode = false }) => 
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Info size={14} className="text-cyan-400" />
-            <h3 className="text-sm font-bold text-white">α{alphaNum} 详情</h3>
+            <h3 className="text-sm font-bold text-white">{t('α{n} 详情', { n: alphaNum })}</h3>
             {data?.category && <span className="text-[10px] text-[#a0aec0] px-2 py-0.5 rounded bg-white/5">{data.category}</span>}
           </div>
-          <button onClick={onClose} aria-label={`关闭 α${alphaNum} 详情`} className="p-1 hover:bg-white/10 rounded text-[#a0aec0]"><X size={14} /></button>
+          <button onClick={onClose} aria-label={t('关闭 α{n} 详情', { n: alphaNum })} className="p-1 hover:bg-white/10 rounded text-[#a0aec0]"><X size={14} /></button>
         </div>
-        {loading && <div className="text-[#a0aec0] text-xs flex items-center gap-2"><Loader size={12} className="animate-spin" />加载中...</div>}
+        {loading && <div className="text-[#a0aec0] text-xs flex items-center gap-2"><Loader size={12} className="animate-spin" />{t('加载中...')}</div>}
         {!loading && isDemoMode && (
           <div className="text-[12px] text-amber-300/90 leading-relaxed bg-amber-500/5 border border-amber-500/20 rounded px-3 py-2.5">
-            DEMO 模式下单因子公式 / 历史 IC 详情不可用 —— 需 self-hosted backend 跑过
-            pipeline 才有逐因子数据。上方的 IC 排行 / 热力图为合成示例。
+            {t('DEMO 模式下单因子公式 / 历史 IC 详情不可用 —— 需 self-hosted backend 跑过 pipeline 才有逐因子数据。上方的 IC 排行 / 热力图为合成示例。')}
           </div>
         )}
-        {!loading && !isDemoMode && !data && <div className="text-rose-300 text-xs">未找到详情</div>}
+        {!loading && !isDemoMode && !data && <div className="text-rose-300 text-xs">{t('未找到详情')}</div>}
         {!loading && data && (
           <div className="space-y-3">
             <div>
-              <div className="text-[10px] text-[#a0aec0] mb-1">公式描述</div>
+              <div className="text-[10px] text-[#a0aec0] mb-1">{t('公式描述')}</div>
               <div className="text-[12px] text-white/90 font-mono leading-relaxed bg-black/40 rounded px-3 py-2 border border-white/5">{data.description || "—"}</div>
             </div>
             {data.stats && Object.keys(data.stats).length > 0 && (
               <div>
-                <div className="text-[10px] text-[#a0aec0] mb-1">IC 统计</div>
+                <div className="text-[10px] text-[#a0aec0] mb-1">{t('IC 统计')}</div>
                 <div className="grid grid-cols-3 md:grid-cols-4 gap-1.5">
                   {["ic_mean", "ic_ir", "ic_t", "ic_pos_rate", "top_excess_mean", "top_excess_ir", "turnover", "n_obs"].map(k => (
                     data.stats[k] != null && (
@@ -262,7 +264,7 @@ const FactorDetailModal = ({ alphaNum, runId, onClose, isDemoMode = false }) => 
             )}
             {data.monthly_ic?.length > 0 && (
               <div>
-                <div className="text-[10px] text-[#a0aec0] mb-1">月度 IC 时序</div>
+                <div className="text-[10px] text-[#a0aec0] mb-1">{t('月度 IC 时序')}</div>
                 <ResponsiveContainer width="100%" height={160}>
                   <LineChart data={data.monthly_ic}>
                     <CartesianGrid stroke="rgba(255,255,255,0.05)" />
@@ -397,23 +399,24 @@ const RunPipelinePanel = ({ runId, onJobDone }) => {
 // 区分于「后端在跑但缺产物」的场景 — 那种情况 status 非 null，文案该
 // 提示具体 CLI 命令；这里是后端整体不可达，给个清晰指引就够，避免在
 // 每个面板里都喷 `mining_alpha.run xxx`，对 demo 访客来说是噪音。
-const BackendUnreachableNotice = ({ onRetry, loading }) => (
+const BackendUnreachableNotice = ({ onRetry, loading }) => {
+  const { t } = useLang();
+  return (
   <div className="bg-white/[0.02] border border-white/10 rounded-lg p-5 md:p-6 text-center">
     <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-violet-500/10 border border-violet-500/30 mb-3">
       <Database size={18} className="text-violet-400" />
     </div>
-    <h3 className="text-sm md:text-base font-bold text-white mb-1.5">Mining Alpha 需要 self-hosted backend</h3>
+    <h3 className="text-sm md:text-base font-bold text-white mb-1.5">{t('Mining Alpha 需要 self-hosted backend')}</h3>
     <p className="text-[11px] md:text-xs text-[#a0aec0] max-w-[520px] mx-auto leading-relaxed mb-4">
-      本页面读取 <code className="text-cyan-300">/api/mining-alpha/*</code> 数据（IC 报告、回测、Top 持仓、流水线 subprocess 控制）。
-      当前部署看不到这些路由 — Vercel 这类静态托管只提供前端 SPA，没在跑 FastAPI 后端。
+      {t('本页面读取 /api/mining-alpha/* 数据（IC 报告、回测、Top 持仓、流水线 subprocess 控制）。当前部署看不到这些路由 — Vercel 这类静态托管只提供前端 SPA，没在跑 FastAPI 后端。')}
     </p>
     <div className="bg-black/30 border border-white/5 rounded-md p-3 text-left max-w-[520px] mx-auto mb-4 font-mono text-[10px] md:text-[11px] leading-relaxed">
-      <div className="text-[#a0aec0] mb-1"># 启动后端 + 前端 dev，访问 localhost:5173</div>
+      <div className="text-[#a0aec0] mb-1">{t('# 启动后端 + 前端 dev，访问 localhost:5173')}</div>
       <div className="text-emerald-300">cd backend && python server.py</div>
       <div className="text-emerald-300">cd frontend && npm run dev</div>
     </div>
     <p className="text-[10px] text-[#a0aec0]/80 mb-4">
-      其他不依赖后端的页面（量化评分 / 投资日志 / 宏观）在 Vercel 上仍然可用。
+      {t('其他不依赖后端的页面（量化评分 / 投资日志 / 宏观）在 Vercel 上仍然可用。')}
     </p>
     <button
       onClick={onRetry}
@@ -421,10 +424,11 @@ const BackendUnreachableNotice = ({ onRetry, loading }) => (
       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium bg-violet-500/15 hover:bg-violet-500/25 text-violet-200 border border-violet-500/40 disabled:opacity-50"
     >
       {loading ? <Loader size={12} className="animate-spin" /> : <RefreshCw size={12} />}
-      重试连接
+      {t('重试连接')}
     </button>
   </div>
-);
+  );
+};
 
 // ─── Alerts banner ───────────────────────────────────────────
 const AlertsBanner = ({ alerts }) => {
@@ -447,7 +451,8 @@ const AlertsBanner = ({ alerts }) => {
 
 // ─── 特征重要性条形图 ──────────────────────────────────────
 const FeatureImportanceChart = ({ data }) => {
-  if (!data || data.length === 0) return <div className="text-[#a0aec0] text-xs">特征重要性未生成。`mining_alpha.run train`</div>;
+  const { t } = useLang();
+  if (!data || data.length === 0) return <div className="text-[#a0aec0] text-xs">{t('特征重要性未生成。`mining_alpha.run train`')}</div>;
   return (
     <ResponsiveContainer width="100%" height={Math.max(260, data.length * 18)}>
       <BarChart layout="vertical" data={data} margin={{ left: 50, right: 20, top: 4, bottom: 4 }}>
@@ -487,6 +492,7 @@ const REGIME_COLOR = {
 
 // ─── 净值曲线（含 benchmark + regime overlay）─────────────────
 const EquityCurveChart = ({ strategy, benchmark, regimeSegments }) => {
+  const { t } = useLang();
   // 合并 strategy + benchmark 数据，使用 date 字段对齐
   // 注意：hook 必须在任何 early return 之前调用，否则 hook 顺序在 strategy 由空变非空时会变化
   const benchMap = useMemo(() => {
@@ -494,7 +500,7 @@ const EquityCurveChart = ({ strategy, benchmark, regimeSegments }) => {
     (benchmark || []).forEach(p => m.set(p.date, p.bench_equity));
     return m;
   }, [benchmark]);
-  if (!strategy || strategy.length === 0) return <div className="text-[#a0aec0] text-xs">回测净值未生成。`mining_alpha.run backtest`</div>;
+  if (!strategy || strategy.length === 0) return <div className="text-[#a0aec0] text-xs">{t('回测净值未生成。`mining_alpha.run backtest`')}</div>;
   const data = strategy.map(p => ({ date: p.date, equity: p.equity, bench: benchMap.get(p.date) }));
   return (
     <ResponsiveContainer width="100%" height={320}>
@@ -525,6 +531,7 @@ const EquityCurveChart = ({ strategy, benchmark, regimeSegments }) => {
 
 // ─── 指标卡片（含阈值上色）────────────────────────────────────
 const MetricsCard = ({ metrics }) => {
+  const { t } = useLang();
   if (!metrics) return null;
   const items = [
     { k: "年化收益", v: fmtPct(metrics.annual_return), good: metrics.annual_return > 0 },
@@ -542,7 +549,7 @@ const MetricsCard = ({ metrics }) => {
     <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
       {items.map((it) => (
         <div key={it.k} className="bg-white/[0.02] border border-white/5 rounded-md px-3 py-2">
-          <div className="text-[10px] text-[#a0aec0]">{it.k}</div>
+          <div className="text-[10px] text-[#a0aec0]">{t(it.k)}</div>
           <div className={`text-sm font-semibold tabular-nums font-mono mt-0.5 ${
             it.good === null ? "text-white" : it.good ? "text-emerald-300" : "text-rose-300"
           }`}>{it.v}</div>
@@ -678,25 +685,26 @@ const BacktestNarrationPanel = ({ metrics }) => {
 
 // ─── 多 Top-N 对比表 ───────────────────────────────────────
 const MultiTopNTable = ({ rows }) => {
+  const { t } = useLang();
   if (!rows || rows.length === 0) return null;
   return (
     <div className="bg-white/[0.02] border border-white/5 rounded-lg p-3">
       <div className="text-[11px] font-semibold text-white/80 mb-2 flex items-center gap-1.5">
-        <Target size={12} /> 多 Top-N 切片对比
+        <Target size={12} /> {t('多 Top-N 切片对比')}
       </div>
       <div className="overflow-auto">
         <table className="w-full text-[11px] font-mono tabular-nums">
           <thead className="text-[#a0aec0] border-b border-white/10">
             <tr>
               <th className="text-left px-2 py-1.5">Top-N</th>
-              <th className="text-right px-2 py-1.5">年化</th>
+              <th className="text-right px-2 py-1.5">{t('年化')}</th>
               <th className="text-right px-2 py-1.5">Sharpe</th>
-              <th className="text-right px-2 py-1.5">最大回撤</th>
+              <th className="text-right px-2 py-1.5">{t('最大回撤')}</th>
               <th className="text-right px-2 py-1.5">Calmar</th>
-              <th className="text-right px-2 py-1.5">vs基准超额</th>
+              <th className="text-right px-2 py-1.5">{t('vs基准超额')}</th>
               <th className="text-right px-2 py-1.5">IR</th>
-              <th className="text-right px-2 py-1.5">月度胜率</th>
-              <th className="text-right px-2 py-1.5">年化换手</th>
+              <th className="text-right px-2 py-1.5">{t('月度胜率')}</th>
+              <th className="text-right px-2 py-1.5">{t('年化换手')}</th>
             </tr>
           </thead>
           <tbody className="text-white/90">
@@ -764,18 +772,19 @@ const TopHoldingsTable = ({ holdings, asOf, summary, errorDetail }) => {
 
 // ─── Per-fold IC 表 ────────────────────────────────────────
 const FoldICTable = ({ rows }) => {
+  const { t } = useLang();
   if (!rows || rows.length === 0) return null;
   return (
     <div className="bg-white/[0.02] border border-white/5 rounded-lg p-3">
       <div className="text-[11px] font-semibold text-white/80 mb-2 flex items-center gap-1.5">
-        <Activity size={12} /> Walk-forward Per-fold 测试集 IC
+        <Activity size={12} /> {t('Walk-forward Per-fold 测试集 IC')}
       </div>
       <div className="overflow-auto">
         <table className="w-full text-[11px] font-mono tabular-nums">
           <thead className="text-[#a0aec0] border-b border-white/10">
             <tr>
               <th className="text-left px-2 py-1.5">Fold</th>
-              <th className="text-left px-2 py-1.5">测试期</th>
+              <th className="text-left px-2 py-1.5">{t('测试期')}</th>
               <th className="text-right px-2 py-1.5">IC mean</th>
               <th className="text-right px-2 py-1.5">IC IR</th>
               <th className="text-right px-2 py-1.5">Best iter</th>
@@ -1259,22 +1268,22 @@ export default function MiningAlpha() {
             <StepChip label={t('5b. 多 Top-N')} done={status.files?.multi_topn} />
           </div>
         ) : (
-          <div className="text-[#a0aec0] text-xs">{loading ? "加载中..." : "无法连接 API；后端是否启动？"}</div>
+          <div className="text-[#a0aec0] text-xs">{loading ? t('加载中...') : t('无法连接 API；后端是否启动？')}</div>
         )}
         {!allDone && status && !isDemoMode && (
           <div className="mt-2 space-y-1.5">
             {status.factor_count === 0 ? (
               <div className="border border-cyan-500/30 bg-cyan-500/5 rounded-md p-2.5">
-                <div className="text-[11px] font-semibold text-cyan-300 mb-1">🚀 还没数据？30 秒首体验</div>
+                <div className="text-[11px] font-semibold text-cyan-300 mb-1">{t('🚀 还没数据？30 秒首体验')}</div>
                 <div className="text-[10px] text-white/80 font-mono leading-relaxed">
-                  不需 tushare、一键生成合成 50 票 × 3 年 panel：<br />
+                  {t('不需 tushare、一键生成合成 50 票 × 3 年 panel：')}<br />
                   <code className="text-emerald-300">.venv/Scripts/python -m mining_alpha.synthetic_demo</code><br />
-                  然后用 <code className="text-amber-300">--universe DEMO --run-id demo</code> 跑完整 pipeline (Run Pipeline 面板的"DEMO"按钮)
+                  {t('然后用')} <code className="text-amber-300">--universe DEMO --run-id demo</code> {t('跑完整 pipeline (Run Pipeline 面板的"DEMO"按钮)')}
                 </div>
               </div>
             ) : (
               <div className="text-[10px] text-amber-300/80 font-mono leading-relaxed">
-                ▶ 上方 Run Pipeline 面板可一键触发后续步骤（或在终端跑）：<br />
+                {t('▶ 上方 Run Pipeline 面板可一键触发后续步骤（或在终端跑）：')}<br />
                 <code className="text-white/70">.venv/Scripts/python -m mining_alpha.run {!status.files?.ic_report ? "ic-report" : !status.files?.predictions ? "train" : "backtest"} --run-id $RUN_ID</code>
               </div>
             )}
@@ -1286,11 +1295,11 @@ export default function MiningAlpha() {
       {backtest?.metrics && (
         <div className="bg-white/[0.02] border border-white/5 rounded-lg p-3 space-y-2">
           <div className="text-[11px] font-semibold text-white/80 flex items-center gap-1.5">
-            <TrendingUp size={12} /> 回测指标
+            <TrendingUp size={12} /> {t('回测指标')}
             <span className="text-[10px] text-[#a0aec0] font-normal">
               ({backtest.metrics.start_date} → {backtest.metrics.end_date},
               Top-{backtest.metrics.top_n}, cost {(backtest.metrics.cost * 100).toFixed(2)}%
-              {backtest.metrics.has_tradeable_mask && " · 涨跌停剔除已启用"})
+              {backtest.metrics.has_tradeable_mask && ` · ${t('涨跌停剔除已启用')}`})
             </span>
           </div>
           <MetricsCard metrics={backtest.metrics} />
@@ -1305,12 +1314,12 @@ export default function MiningAlpha() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
         <div className="lg:col-span-2 bg-white/[0.02] border border-white/5 rounded-lg p-3">
           <div className="text-[11px] font-semibold text-white/80 mb-2 flex items-center justify-between">
-            <span className="flex items-center gap-1.5"><Activity size={12} /> 策略净值 vs 基准</span>
+            <span className="flex items-center gap-1.5"><Activity size={12} /> {t('策略净值 vs 基准')}</span>
             {regimeSegments.length > 0 && (
               <span className="flex items-center gap-2 text-[10px] text-[#a0aec0]">
-                <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded" style={{ background: REGIME_COLOR.bull }} />牛</span>
-                <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded" style={{ background: REGIME_COLOR.neutral }} />震荡</span>
-                <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded" style={{ background: REGIME_COLOR.bear }} />熊</span>
+                <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded" style={{ background: REGIME_COLOR.bull }} />{t('牛')}</span>
+                <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded" style={{ background: REGIME_COLOR.neutral }} />{t('震荡')}</span>
+                <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded" style={{ background: REGIME_COLOR.bear }} />{t('熊')}</span>
               </span>
             )}
           </div>
@@ -1318,9 +1327,9 @@ export default function MiningAlpha() {
         </div>
         <div className="bg-white/[0.02] border border-white/5 rounded-lg p-3">
           <div className="text-[11px] font-semibold text-white/80 mb-2 flex items-center gap-1.5">
-            <Target size={12} /> 当前 Top 20 持仓
+            <Target size={12} /> {t('当前 Top 20 持仓')}
             <ArrowRight size={10} className="text-[#a0aec0]" />
-            <span className="text-[10px] text-[#a0aec0] font-normal">vs 上周持仓</span>
+            <span className="text-[10px] text-[#a0aec0] font-normal">{t('vs 上周持仓')}</span>
           </div>
           <TopHoldingsTable holdings={topHoldings?.holdings} asOf={topHoldings?.as_of} summary={summary} errorDetail={topHoldings?.detail} />
         </div>
@@ -1343,7 +1352,7 @@ export default function MiningAlpha() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
             {cards.map((c) => (
               <div key={c.l} className="rounded-lg border border-white/10 bg-white/[0.02] p-2.5">
-                <div className="text-[9px] uppercase tracking-wider text-[#778] mb-1 truncate">{c.l}</div>
+                <div className="text-[9px] uppercase tracking-wider text-[#778] mb-1 truncate">{t(c.l)}</div>
                 <div className="font-serif font-semibold text-[24px] leading-none" style={{ color: c.c, letterSpacing: "-0.02em" }}>{c.v}</div>
               </div>
             ))}
@@ -1355,12 +1364,12 @@ export default function MiningAlpha() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         <div className="bg-white/[0.02] border border-white/5 rounded-lg p-3">
           <div className="text-[11px] font-semibold text-white/80 mb-2 flex items-center gap-1.5">
-            单因子 IC 排行（Top 20 by |ICIR|，点击查看详情）
+            {t('单因子 IC 排行（Top 20 by |ICIR|，点击查看详情）')}
           </div>
           <ICTable rows={ic} onPickAlpha={setPickedAlpha} />
         </div>
         <div className="bg-white/[0.02] border border-white/5 rounded-lg p-3">
-          <div className="text-[11px] font-semibold text-white/80 mb-2">ML 特征重要性（多 fold 平均 gain）</div>
+          <div className="text-[11px] font-semibold text-white/80 mb-2">{t('ML 特征重要性（多 fold 平均 gain）')}</div>
           <FeatureImportanceChart data={importance} />
         </div>
       </div>
