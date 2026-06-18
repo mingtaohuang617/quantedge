@@ -103,7 +103,7 @@ def main():
         s["change"] = chg
         s["momentum"] = mom   # 展示用 20 日动量（评分引擎内部另算多周期分位）
         s["rsi"] = rsi
-        s["priceRanges"] = ranges
+        # priceRanges 不再写入 data.js（长周期 K 线改前端按需 fetch，减包 ~85%）；ranges 仅用于上面的有效性闸
         s["priceHistory"] = ph
         refreshed += 1
 

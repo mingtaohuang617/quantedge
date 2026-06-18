@@ -166,7 +166,7 @@ def main():
             "marketCap": None, "revenue": None, "eps": None, "beta": None,
             "week52High": None, "week52Low": None, "avgVolume": None,
             "nextEarnings": None,
-            "priceHistory": ph, "priceRanges": ranges,
+            "priceHistory": ph,  # priceRanges 不再写入 data.js（长周期 K 线改前端按需 fetch，减包 ~85%）
             "description": c.get("description", ""),
         })
     print(f"生成 {len(new)} 只新标的, 跳过(数据<20) {fail}")
