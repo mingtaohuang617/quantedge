@@ -962,7 +962,7 @@ export default function StockGene() {
             </svg>
           </div>
           <div style={{ width: 240, display: "flex", flexDirection: "column", gap: 9 }}>
-            <div style={{ fontSize: 9, color: "var(--fg-3)", marginBottom: 2 }}>维度明细 · vs 板块中位</div>
+            <div style={{ fontSize: 9, color: "var(--fg-3)", marginBottom: 2 }}>{t('维度明细 · vs 板块中位')}</div>
             {traits.map(t => (
               <div key={t.k} style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <span style={{ fontSize: 11.5, color: "var(--fg-1)", width: 58, flexShrink: 0 }}>{t.n}</span>
@@ -1080,7 +1080,7 @@ export default function StockGene() {
                 border: "1px solid var(--line)",
               }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: "var(--fg-1)" }}>六维性格雷达</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: "var(--fg-1)" }}>{t('六维性格雷达')}</span>
                   <button
                     onClick={() => setMRadarFs(true)}
                     style={{
@@ -1145,7 +1145,7 @@ export default function StockGene() {
                   background: "rgba(255,255,255,.022)",
                   border: "1px solid var(--line)",
                 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: "var(--fg-1)", marginBottom: 10 }}>引擎评分</div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: "var(--fg-1)", marginBottom: 10 }}>{t('引擎评分')}</div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                     {ENGINE_IDS.map(id => {
                       const cfg = eng(id);
@@ -1169,7 +1169,7 @@ export default function StockGene() {
                               )}
                             </>
                           ) : (
-                            <div style={{ fontSize: 13, color: "var(--fg-4)" }}>未评分</div>
+                            <div style={{ fontSize: 13, color: "var(--fg-4)" }}>{t('未评分')}</div>
                           )}
                         </div>
                       );
@@ -1280,7 +1280,7 @@ export default function StockGene() {
                             {r.verdict && <div style={{ fontSize: 9, marginTop: 3, color: "var(--fg-2)" }}>{r.verdict.label}</div>}
                           </>
                         ) : (
-                          <div style={{ fontSize: 13, color: "var(--fg-4)" }}>未评分</div>
+                          <div style={{ fontSize: 13, color: "var(--fg-4)" }}>{t('未评分')}</div>
                         )}
                       </div>
                     );
@@ -1323,7 +1323,7 @@ export default function StockGene() {
           background: "color-mix(in srgb, var(--bg-1) 78%, transparent)",
         }}>
           <Activity size={18} style={{ color: "var(--up)" }} />
-          <span style={{ flex: 1, fontSize: 18, fontWeight: 700, color: "var(--fg-0)" }}>股性检测</span>
+          <span style={{ flex: 1, fontSize: 18, fontWeight: 700, color: "var(--fg-0)" }}>{t('股性检测')}</span>
           {isDemoMode && (
             <span style={{ fontSize: 9, padding: "2px 7px", borderRadius: 6, background: "rgba(245,181,60,.14)", color: "var(--warn)", border: "1px solid rgba(245,181,60,.3)" }}>
               DEMO
@@ -1349,14 +1349,14 @@ export default function StockGene() {
         <div className="flex-1 overflow-y-auto overscroll-contain" style={{ paddingBottom: 16 }}>
           {loading && items.length === 0 && (
             <div style={{ padding: 40, textAlign: "center", color: "var(--fg-3)", fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-              <Loader size={14} className="animate-spin" />加载中…
+              <Loader size={14} className="animate-spin" />{t('加载中…')}
             </div>
           )}
           {!loading && items.length === 0 && (
             <div style={{ padding: "40px 24px", textAlign: "center" }}>
               <Activity size={36} style={{ color: "var(--fg-4)", margin: "0 auto 12px" }} />
-              <div style={{ fontSize: 14, color: "var(--fg-2)", marginBottom: 8 }}>还没有观察项</div>
-              <div style={{ fontSize: 12, color: "var(--fg-3)" }}>点右上角 + 添加第一只</div>
+              <div style={{ fontSize: 14, color: "var(--fg-2)", marginBottom: 8 }}>{t('还没有观察项')}</div>
+              <div style={{ fontSize: 12, color: "var(--fg-3)" }}>{t('点右上角 + 添加第一只')}</div>
             </div>
           )}
           {sortedItems.map(it => {
@@ -1603,14 +1603,13 @@ export default function StockGene() {
         <div className="px-3 py-1.5 glass-card border border-amber-500/30 bg-amber-500/5 flex items-center gap-2 text-[10px]">
           <AlertCircle size={12} className="text-amber-400 shrink-0" />
           <span className="text-amber-100">
-            <span className="font-semibold">评分功能未启用</span>
-            ：当前部署是 Vercel serverless（无 pandas/numpy）。可以加股票、改标签、分组、备份，
-            但 4 引擎评分需 self-hosted backend。
+            <span className="font-semibold">{t('评分功能未启用')}</span>
+            {t('：当前部署是 Vercel serverless（无 pandas/numpy）。可以加股票、改标签、分组、备份，但 4 引擎评分需 self-hosted backend。')}
             <a
               href="https://github.com/mingtaohuang617/quantedge/blob/main/docs/STOCK_GENE_ONBOARDING.md"
               target="_blank" rel="noreferrer"
               className="ml-1 underline text-amber-300/90 hover:text-amber-200"
-            >上手指南 ↗</a>
+            >{t('上手指南 ↗')}</a>
           </span>
           <button
             onClick={() => setDismissedScoringBanner(true)}
@@ -1751,10 +1750,10 @@ export default function StockGene() {
                 onChange={(e) => setSortBy(e.target.value)}
                 className="text-[9px] bg-white/5 border border-white/10 rounded px-1 py-0.5 text-[#d0d7e2] focus:outline-none focus:border-emerald-500/40"
               >
-                <option value="composite">按综合分</option>
-                <option value="score">按{eng(engine).short} 分</option>
-                <option value="added">按添加时间</option>
-                <option value="ticker">按代码</option>
+                <option value="composite">{t('按综合分')}</option>
+                <option value="score">{t('按 {n} 分', { n: eng(engine).short })}</option>
+                <option value="added">{t('按添加时间')}</option>
+                <option value="ticker">{t('按代码')}</option>
               </select>
             </div>
           </div>
@@ -1797,7 +1796,7 @@ export default function StockGene() {
               {Object.keys(positions).length > 0 && (
                 <div className="flex items-center gap-1 text-[9px] text-[#7a8497]">
                   <Briefcase size={9} className="text-amber-400" />
-                  <span>持仓</span>
+                  <span>{t('持仓')}</span>
                   <button
                     onClick={() => setOnlyHeld(!onlyHeld)}
                     className={`text-[9px] px-1.5 py-px rounded border transition ${
@@ -1807,15 +1806,15 @@ export default function StockGene() {
                     }`}
                     title={onlyHeld ? "点击取消，显示全部" : "只看我已购买的"}
                   >
-                    仅持仓
+                    {t('仅持仓')}
                   </button>
                   <span className="text-[#5a6477]">·</span>
-                  <span className="text-[#a0aec0]">{Object.keys(positions).length} 只持仓</span>
+                  <span className="text-[#a0aec0]">{t('{n} 只持仓', { n: Object.keys(positions).length })}</span>
                 </div>
               )}
               {/* 综合分阈值滑块 */}
               <div className="flex items-center gap-1.5 text-[9px] text-[#7a8497]">
-                <span className="shrink-0">综合分 ≥</span>
+                <span className="shrink-0">{t('综合分 ≥')}</span>
                 <input
                   type="range"
                   min={0}
@@ -1927,15 +1926,15 @@ export default function StockGene() {
                     <div className="flex items-center gap-1 mt-0.5">
                       <span className={`text-[9px] px-1 py-px rounded border font-mono font-semibold ${cStyle.bg} ${cStyle.border} ${cStyle.text}`}
                         title={`综合分（按权重 ${ENGINE_IDS.map(id => `${eng(id).short}${weights[id]}`).join("/")}，${scored}/${ENGINE_IDS.length} 引擎有评分）`}>
-                        综合 {composite}
+                        {t('综合')} {composite}
                       </span>
                       {scored < ENGINE_IDS.length && (
-                        <span className="text-[9px] text-[#5a6477]" title="部分引擎未评分">部分</span>
+                        <span className="text-[9px] text-[#5a6477]" title={t('部分引擎未评分')}>{t('部分')}</span>
                       )}
                     </div>
                   )}
                   {it.sector && (
-                    <div className="text-[9px] text-[#7a8497] mt-0.5 truncate">行业：{it.sector}</div>
+                    <div className="text-[9px] text-[#7a8497] mt-0.5 truncate">{t('行业：')}{it.sector}</div>
                   )}
                   {/* 评分新鲜度：显示当前 engine 的最近评分时间 */}
                   {(activeR?.checked_at) && (
@@ -2025,7 +2024,7 @@ export default function StockGene() {
               <div className="space-y-1.5">
                 <div className="flex items-center gap-1 mb-1">
                   <Layers size={10} className="text-emerald-300" />
-                  <span className="text-[10px] font-semibold text-white">批量加入</span>
+                  <span className="text-[10px] font-semibold text-white">{t('批量加入')}</span>
                   <select
                     value={batchMarket}
                     onChange={(e) => setBatchMarket(e.target.value)}
