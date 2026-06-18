@@ -38,10 +38,11 @@ function findHardcodedCJK(line) {
   // 已经在 t('...') / t("...") 里 → 跳过整行的这些片段
   // 简化：如果整行包含 t('<含CJK>') 或 t("<含CJK>")，认为该行的中文已翻译
   const tWrapped = /\bt\(\s*['"][^'"]*[㐀-䶿一-鿿]/.test(line);
-  // JSX 文本节点：> 后面（非 <）直到下一个 < 之间有 CJK
-  const jsxText = />[^<>{}]*[㐀-䶿一-鿿][^<>{}]*</.test(line);
+  // JSX 文本节点：> 后面（非 <）直到下一个 < 之间有 CJK。
+  // 用 (?!=) 排除 >= / <= 比较运算符造成的 JS 字符串误报（如三元 `beta >= 1.3 ? "放大波动" : x <= 0.8`）。
+  const jsxText = />(?!=)[^<>{}]*[㐀-䶿一-鿿][^<>{}]*<(?!=)/.test(line);
   if (jsxText && !tWrapped) {
-    const m = line.match(/>([^<>{}]*[㐀-䶿一-鿿][^<>{}]*)</);
+    const m = line.match(/>(?!=)([^<>{}]*[㐀-䶿一-鿿][^<>{}]*)<(?!=)/);
     return m ? m[1].trim() : null;
   }
   return null;

@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { eng, verdictStyle } from "./helpers.js";
 import { TagsInput } from "./filters.jsx";
+import { useLang } from "../../i18n.jsx";
 
 // ─── VerdictBadge ───────────────────────────────────────────────────
 export function VerdictBadge({ verdict, score, maxScore, available }) {
@@ -67,6 +68,7 @@ export function FeatureRow({ feature, index, prefix = "F" }) {
 
 // ─── PositionCard — 详情面板的持仓信息卡 ────────────────────────────
 export function PositionCard({ position }) {
+  const { t } = useLang();
   const p = position;
   const upPct = p.unrealized_pnl_pct;
   const pnlColor = upPct == null ? "text-[#a0aec0]" : upPct >= 0 ? "text-emerald-300" : "text-rose-300";
@@ -78,27 +80,27 @@ export function PositionCard({ position }) {
     <div className="mt-2 px-2 py-2 bg-amber-500/8 border-l-2 border-amber-500/50 rounded">
       <div className="flex items-center gap-1.5 mb-1.5">
         <Briefcase size={11} className="text-amber-400" />
-        <span className="text-[10px] font-semibold text-amber-100">持仓信息</span>
+        <span className="text-[10px] font-semibold text-amber-100">{t('持仓信息')}</span>
       </div>
       <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[10px] tabular-nums">
         <div className="flex justify-between">
-          <span className="text-[#a0aec0]">持股</span>
-          <span className="font-mono text-white">{fmt(p.net_qty, 0)} 股</span>
+          <span className="text-[#a0aec0]">{t('持股')}</span>
+          <span className="font-mono text-white">{fmt(p.net_qty, 0)} {t('股')}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-[#a0aec0]">均价</span>
+          <span className="text-[#a0aec0]">{t('均价')}</span>
           <span className="font-mono text-white">${fmt(p.avg_cost)}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-[#a0aec0]">现价</span>
+          <span className="text-[#a0aec0]">{t('现价')}</span>
           <span className="font-mono text-white">${fmt(p.latest_close)}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-[#a0aec0]">市值</span>
+          <span className="text-[#a0aec0]">{t('市值')}</span>
           <span className="font-mono text-white">${fmt(p.market_value)}</span>
         </div>
         <div className="col-span-2 mt-1 pt-1 border-t border-amber-500/15 flex justify-between">
-          <span className="text-[#a0aec0]">浮动 P&L</span>
+          <span className="text-[#a0aec0]">{t('浮动 P&L')}</span>
           <span className={`font-mono font-semibold ${pnlColor}`}>
             {arrow} ${fmt(p.unrealized_pnl)}
             {upPct != null && (
@@ -108,7 +110,7 @@ export function PositionCard({ position }) {
         </div>
         {p.realized_pnl !== 0 && (
           <div className="col-span-2 flex justify-between">
-            <span className="text-[#a0aec0]">已实现 P&L</span>
+            <span className="text-[#a0aec0]">{t('已实现 P&L')}</span>
             <span className={`font-mono ${p.realized_pnl >= 0 ? "text-emerald-300" : "text-rose-300"}`}>
               ${fmt(p.realized_pnl)}
             </span>
@@ -121,6 +123,7 @@ export function PositionCard({ position }) {
 
 // ─── PeersTable — 横向对比表格（右栏结果）─────────────────────────────
 export function PeersTable({ result, onAdd, engine = "trend" }) {
+  const { t } = useLang();
   const items = result.items || [];
   const sorted = [...items].sort((a, b) => {
     const sa = a.score ?? -1;
@@ -130,7 +133,7 @@ export function PeersTable({ result, onAdd, engine = "trend" }) {
   return (
     <div className="space-y-2">
       <div className="text-[10px] text-[#7a8497] px-1">
-        共 {result.count} 只 · 按{eng(engine).framework}评分降序
+        {t('共')} {result.count} {t('只 · 按 {f} 评分降序', { f: eng(engine).framework })}
       </div>
       {sorted.map((it) => {
         if (it.error) {
@@ -138,7 +141,7 @@ export function PeersTable({ result, onAdd, engine = "trend" }) {
             <div key={it.ticker} className="p-2 bg-red-500/5 border border-red-500/20 rounded text-[10px]">
               <div className="flex items-center gap-1">
                 <span className="font-mono text-white">{it.ticker}</span>
-                <span className="text-red-300 ml-auto">错误</span>
+                <span className="text-red-300 ml-auto">{t('错误')}</span>
               </div>
               <div className="text-[9px] text-red-300/80 mt-0.5">{it.error}</div>
             </div>
