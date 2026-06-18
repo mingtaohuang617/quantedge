@@ -840,7 +840,7 @@ export default function Screener10x() {
             )}
             {/* 锚→当→目标轨迹 */}
             <div style={{ borderRadius: 14, padding: 16, marginBottom: 16, background: "rgba(255,255,255,.022)", border: "1px solid var(--line)" }}>
-              <div style={{ fontSize: 11, marginBottom: 12, fontWeight: 500, color: "var(--fg-3)" }}>锚 → 当 → 目标 轨迹</div>
+              <div style={{ fontSize: 11, marginBottom: 12, fontWeight: 500, color: "var(--fg-3)" }}>{t('锚 → 当 → 目标 轨迹')}</div>
               {hasTrack ? (
                 <>
                   <div className="relative" style={{ height: 5, borderRadius: 3, background: "rgba(255,255,255,.06)", marginBottom: 8 }}>
@@ -848,9 +848,9 @@ export default function Screener10x() {
                     <div className="absolute" style={{ left: `${pct}%`, top: -4, width: 13, height: 13, borderRadius: 7, background: "#fff", marginLeft: -6, boxShadow: "0 0 0 2px var(--up)" }} />
                   </div>
                   <div className="flex justify-between font-mono" style={{ fontSize: 10 }}>
-                    <span style={{ color: "var(--fg-3)" }}>锚 ${anchor.toFixed(2)}</span>
-                    <span style={{ color: "var(--up)", fontWeight: 600 }}>当 ${now.toFixed(2)}</span>
-                    <span style={{ color: "var(--indigo-2)" }}>目标 ${target.toFixed(2)}{upside ? ` · ${upside}x` : ""}</span>
+                    <span style={{ color: "var(--fg-3)" }}>{t('锚')} ${anchor.toFixed(2)}</span>
+                    <span style={{ color: "var(--up)", fontWeight: 600 }}>{t('当')} ${now.toFixed(2)}</span>
+                    <span style={{ color: "var(--indigo-2)" }}>{t('目标')} ${target.toFixed(2)}{upside ? ` · ${upside}x` : ""}</span>
                   </div>
                 </>
               ) : (
@@ -864,10 +864,10 @@ export default function Screener10x() {
             {/* stop loss */}
             {item.stop_loss != null && (
               <div className="flex items-center gap-2 text-[12px] mb-4">
-                <span style={{ color: "var(--fg-3)" }}>止损</span>
+                <span style={{ color: "var(--fg-3)" }}>{t('止损')}</span>
                 <span className="font-mono" style={{ color: "var(--down)" }}>${item.stop_loss}</span>
                 {now != null && now <= item.stop_loss && (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: "rgba(239,68,68,.15)", color: "var(--down)", border: "1px solid rgba(239,68,68,.3)" }}>触发</span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: "rgba(239,68,68,.15)", color: "var(--down)", border: "1px solid rgba(239,68,68,.3)" }}>{t('触发')}</span>
                 )}
               </div>
             )}
@@ -904,7 +904,7 @@ export default function Screener10x() {
               {t("10x 猎手")}
             </h1>
             {isDemoMode && (
-              <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ background: "rgba(245,181,60,.12)", color: "var(--warn)", border: "1px solid rgba(245,181,60,.25)" }}>演示</span>
+              <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ background: "rgba(245,181,60,.12)", color: "var(--warn)", border: "1px solid rgba(245,181,60,.25)" }}>{t('演示')}</span>
             )}
             <button
               onClick={handleAiPipeline}
@@ -1439,8 +1439,8 @@ export default function Screener10x() {
         <div className="glass-card border border-white/10 flex flex-col overflow-hidden">
           <div className="px-3 py-2 border-b border-white/8 flex items-center gap-2">
             <Layers size={12} className="text-cyan-300" />
-            <span className="text-[11px] font-semibold text-white">超级赛道</span>
-            <span className="text-[9px] text-[#a0aec0] ml-auto">{selectedTrends.length} 选中</span>
+            <span className="text-[11px] font-semibold text-white">{t('超级赛道')}</span>
+            <span className="text-[9px] text-[#a0aec0] ml-auto">{selectedTrends.length} {t('选中')}</span>
           </div>
           <div className="flex-1 overflow-auto p-2 space-y-1.5">
             {displayedSupertrends.map((s) => {
@@ -1476,10 +1476,10 @@ export default function Screener10x() {
               className="flex items-center gap-1 px-2 py-1 text-[10px] rounded bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-200 border border-indigo-500/40 transition disabled:opacity-40 disabled:cursor-not-allowed"
               title={isDemoMode ? "需后端 + KV 才能添加" : "添加自定义赛道（含 AI 关键词生成）"}
             >
-              <Plus size={10} /> 自定义赛道
+              <Plus size={10} /> {t('自定义赛道')}
             </button>
             <span className="text-[9px] text-[#7a8497] flex-1 truncate">
-              内置 4 个 · 关键词在 sector_mapping
+              {t('内置 4 个 · 关键词在 sector_mapping')}
             </span>
           </div>
         </div>
@@ -1488,7 +1488,7 @@ export default function Screener10x() {
         <div className="glass-card border border-white/10 flex flex-col overflow-hidden">
           <div className="px-3 py-2 border-b border-white/8 flex items-center gap-2 flex-wrap">
             <Filter size={12} className="text-indigo-300" />
-            <span className="text-[11px] font-semibold text-white">候选个股</span>
+            <span className="text-[11px] font-semibold text-white">{t('候选个股')}</span>
             <span
               className="text-[9px] text-[#a0aec0]"
               title={`US: ${marketBreakdown.US} / HK: ${marketBreakdown.HK} / CN: ${marketBreakdown.CN}${marketBreakdown.other > 0 ? ` / 其他: ${marketBreakdown.other}` : ""}`}
@@ -1555,9 +1555,9 @@ export default function Screener10x() {
               }
             >
               {aiPipelineState.loading ? (
-                <><Loader size={10} className="animate-spin" /> 一键 {aiPipelineState.matched}/{aiPipelineState.total}</>
+                <><Loader size={10} className="animate-spin" /> {t('一键')} {aiPipelineState.matched}/{aiPipelineState.total}</>
               ) : (
-                <><Sparkles size={10} /> AI 一键</>
+                <><Sparkles size={10} /> {t('AI 一键')}</>
               )}
             </button>
 
@@ -1578,9 +1578,9 @@ export default function Screener10x() {
               }
             >
               {aiRankingState.loading ? (
-                <><Loader size={10} className="animate-spin" /> 排序中</>
+                <><Loader size={10} className="animate-spin" /> {t('排序中')}</>
               ) : (
-                <><Sparkles size={10} /> AI 排序</>
+                <><Sparkles size={10} /> {t('AI 排序')}</>
               )}
             </button>
 
@@ -1622,7 +1622,7 @@ export default function Screener10x() {
                 onChange={(e) => setPrecise(e.target.checked)}
                 className="accent-amber-400"
               />
-              <span className={precise ? "text-amber-300 font-medium" : ""}>精严</span>
+              <span className={precise ? "text-amber-300 font-medium" : ""}>{t('精严')}</span>
             </label>
 
             {/* 市场切换 — active 用 indigo 实色 + bold + 圆点；inactive 灰文字带删除线
@@ -1666,9 +1666,9 @@ export default function Screener10x() {
                 <Sparkles size={13} className="text-violet-300" />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-[11.5px] font-semibold text-white">AI Pipeline 已完成</div>
+                <div className="text-[11.5px] font-semibold text-white">{t('AI Pipeline 已完成')}</div>
                 <div className="text-[10px] text-[#a0aec0] mt-0.5">
-                  校验 top <span className="font-mono text-white/85">{aiPipelineState.total}</span> · 命中 <span className="font-mono text-violet-200">{aiPipelineState.matched}</span> · 前 3 名已紫色高亮
+                  {t('校验 top')} <span className="font-mono text-white/85">{aiPipelineState.total}</span> · {t('命中')} <span className="font-mono text-violet-200">{aiPipelineState.matched}</span> · {t('前 3 名已紫色高亮')}
                 </div>
               </div>
               <button
@@ -1677,19 +1677,19 @@ export default function Screener10x() {
                 className="text-[10px] px-2 py-1 rounded bg-violet-500/20 border border-violet-400/35 text-violet-200 hover:bg-violet-500/30 transition disabled:opacity-40"
                 title="重新运行 AI Pipeline"
               >
-                重新运行 →
+                {t('重新运行 →')}
               </button>
             </div>
           )}
           <div className="flex-1 overflow-auto">
             {selectedTrends.length === 0 && (
               <div className="h-full flex items-center justify-center text-[11px] text-[#7a8497] p-4 text-center">
-                ← 在左侧勾选一个或多个超级赛道开始筛选
+                {t('← 在左侧勾选一个或多个超级赛道开始筛选')}
               </div>
             )}
             {selectedTrends.length > 0 && loadingCands && (
               <div className="h-full flex items-center justify-center gap-2 text-[11px] text-[#a0aec0]">
-                <Loader size={12} className="animate-spin" /> 正在筛选 ...
+                <Loader size={12} className="animate-spin" /> {t('正在筛选 ...')}
               </div>
             )}
             {errorCands && (
@@ -1716,9 +1716,9 @@ export default function Screener10x() {
                   : <AlertCircle size={11} className="text-red-400 shrink-0 mt-0.5" />}
                 <div className="flex-1">
                   <span className="font-mono text-white">{geneToast.ticker}</span>
-                  <span className="ml-1">→ 股性检测：{geneToast.msg}</span>
+                  <span className="ml-1">→ {t('股性检测')}：{geneToast.msg}</span>
                   {geneToast.ok && (
-                    <span className="ml-1 text-[9px] text-emerald-300/70">（去"股性检测"tab 查看评分）</span>
+                    <span className="ml-1 text-[9px] text-emerald-300/70">{t('（去"股性检测"tab 查看评分）')}</span>
                   )}
                 </div>
                 <button onClick={() => setGeneToast(null)}
@@ -1732,7 +1732,7 @@ export default function Screener10x() {
                 {/* eyebrow row：AI 标识 + ticker + 关闭按钮 */}
                 <div className="flex items-center gap-2 mb-2">
                   <Sparkles size={11} className="text-violet-400 shrink-0" />
-                  <span className="text-[10px] uppercase tracking-wider font-semibold text-violet-300/90">AI 赛道校验</span>
+                  <span className="text-[10px] uppercase tracking-wider font-semibold text-violet-300/90">{t('AI 赛道校验')}</span>
                   <span className="font-mono text-[10px] text-white">{aiMatchResult.ticker}</span>
                   {aiMatchResult.name && (
                     <span className="text-[10px] text-[#a0aec0] truncate">{aiMatchResult.name}</span>
@@ -1752,14 +1752,14 @@ export default function Screener10x() {
                 ) : aiMatchResult.matched && aiMatchResult.matched.length > 0 ? (
                   <>
                     <div className="flex flex-wrap items-center gap-1 mb-2">
-                      <span className="text-[10px] text-[#a0aec0]">AI 认为属于：</span>
+                      <span className="text-[10px] text-[#a0aec0]">{t('AI 认为属于：')}</span>
                       {aiMatchResult.matched.map((t) => (
                         <span key={t} className="text-[10px] px-1.5 py-px rounded bg-violet-500/20 text-violet-200 border border-violet-500/40">
                           {trendName(t)}
                         </span>
                       ))}
                       <span className="text-[10px] text-[#7a8497] ml-1">
-                        置信度 {(aiMatchResult.confidence * 100).toFixed(0)}%
+                        {t('置信度')} {(aiMatchResult.confidence * 100).toFixed(0)}%
                       </span>
                     </div>
                     {aiMatchResult.reason && (
@@ -1768,10 +1768,10 @@ export default function Screener10x() {
                   </>
                 ) : (
                   <div className="text-[11px] text-amber-300/90">
-                    AI 不认为这只票属于已勾选的赛道
+                    {t('AI 不认为这只票属于已勾选的赛道')}
                     {aiMatchResult.confidence != null && (
                       <span className="text-[10px] text-[#7a8497] ml-2">
-                        置信度 {(aiMatchResult.confidence * 100).toFixed(0)}%
+                        {t('置信度')} {(aiMatchResult.confidence * 100).toFixed(0)}%
                       </span>
                     )}
                     {aiMatchResult.reason && (
@@ -1783,8 +1783,8 @@ export default function Screener10x() {
             )}
             {!loadingCands && !errorCands && selectedTrends.length > 0 && filteredCandidates.length === 0 && (
               <div className="h-full flex flex-col items-center justify-center text-[11px] text-[#7a8497] p-4 text-center gap-3">
-                <div>没有匹配的候选股</div>
-                <div className="text-[10px] text-[#5a6477]">点击下方一键放宽筛选条件：</div>
+                <div>{t('没有匹配的候选股')}</div>
+                <div className="text-[10px] text-[#5a6477]">{t('点击下方一键放宽筛选条件：')}</div>
                 <div className="flex flex-wrap gap-1.5 justify-center max-w-[320px]">
                   {activeStrategy === "growth" && maxMcapInput > 0 && maxMcapInput < 5000 && (
                     <button
@@ -1839,9 +1839,9 @@ export default function Screener10x() {
                 <thead className="text-[9px] text-[#7a8497] sticky top-0 bg-[var(--surface)]/95 backdrop-blur">
                   <tr>
                     <th className="text-left px-2 py-1.5">Ticker</th>
-                    <th className="text-left px-2 py-1.5">名称</th>
-                    <th className="text-left px-2 py-1.5">市场</th>
-                    <th className="text-left px-2 py-1.5">行业</th>
+                    <th className="text-left px-2 py-1.5">{t('名称')}</th>
+                    <th className="text-left px-2 py-1.5">{t('市场')}</th>
+                    <th className="text-left px-2 py-1.5">{t('行业')}</th>
                     <SortHeader
                       label="市值"
                       sortKey="marketCap"
@@ -1863,16 +1863,16 @@ export default function Screener10x() {
                         className="text-center px-2 py-1.5 text-violet-300"
                         title={activeStrategy === "value" ? "护城河强度 / 价值确信度" : "卡位独特性"}
                       >
-                        AI {activeStrategy === "value" ? "护城河" : "卡位"}
+                        AI {activeStrategy === "value" ? t('护城河') : t('卡位')}
                       </th>
                     )}
                     {Object.keys(aiMatchMap).length > 0 && (
                       <th
                         className="text-center px-2 py-1.5 text-amber-300"
                         title="AI 一键校验：是否真的属于勾选的赛道（绿=是 / 红=否）"
-                      >AI 校验</th>
+                      >AI {t('校验')}</th>
                     )}
-                    <th className="text-left px-2 py-1.5">命中</th>
+                    <th className="text-left px-2 py-1.5">{t('命中')}</th>
                     <th className="px-2 py-1.5"></th>
                   </tr>
                 </thead>
@@ -2018,17 +2018,17 @@ export default function Screener10x() {
             {!loadingCands && candidates.length > 0 && (
               <div className="flex items-center justify-between gap-2 px-3 py-1.5 mt-1 border-t border-white/5 text-[9px] text-[#7a8497]">
                 <span className="font-mono">
-                  显示 {filteredCandidates.length}/{candidates.length}
+                  {t('显示')} {filteredCandidates.length}/{candidates.length}
                   {candidates.length - filteredCandidates.length > 0 && (
-                    <span className="text-amber-300/80"> · {candidates.length - filteredCandidates.length} 项被过滤</span>
+                    <span className="text-amber-300/80"> · {candidates.length - filteredCandidates.length} {t('项被过滤')}</span>
                   )}
                 </span>
                 <span className="hidden md:inline-flex items-center gap-1.5">
-                  <span><kbd className="px-1 py-px rounded bg-white/[0.06] border border-white/12 font-mono text-[8px]">J</kbd>/<kbd className="px-1 py-px rounded bg-white/[0.06] border border-white/12 font-mono text-[8px]">K</kbd> 移动</span>
+                  <span><kbd className="px-1 py-px rounded bg-white/[0.06] border border-white/12 font-mono text-[8px]">J</kbd>/<kbd className="px-1 py-px rounded bg-white/[0.06] border border-white/12 font-mono text-[8px]">K</kbd> {t('移动')}</span>
                   <span className="opacity-40">·</span>
-                  <span><kbd className="px-1 py-px rounded bg-white/[0.06] border border-white/12 font-mono text-[8px]">↵</kbd> 详情</span>
+                  <span><kbd className="px-1 py-px rounded bg-white/[0.06] border border-white/12 font-mono text-[8px]">↵</kbd> {t('详情')}</span>
                   <span className="opacity-40">·</span>
-                  <span><kbd className="px-1 py-px rounded bg-white/[0.06] border border-white/12 font-mono text-[8px]">+</kbd> 观察</span>
+                  <span><kbd className="px-1 py-px rounded bg-white/[0.06] border border-white/12 font-mono text-[8px]">+</kbd> {t('观察')}</span>
                 </span>
               </div>
             )}
@@ -2039,7 +2039,7 @@ export default function Screener10x() {
         <div className="glass-card border border-white/10 flex flex-col overflow-hidden">
           <div className="px-3 py-2 border-b border-white/8 flex items-center gap-2">
             <Star size={12} className="text-amber-400" />
-            <span className="text-[11px] font-semibold text-white">观察列表</span>
+            <span className="text-[11px] font-semibold text-white">{t('观察列表')}</span>
             <span className="text-[9px] text-[#a0aec0]">{items.length}</span>
             <div className="ml-auto flex items-center gap-1">
               <button
