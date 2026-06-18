@@ -274,7 +274,12 @@
 .light .placeholder-\[\#556\]::placeholder { color: var(--text-dim) !important; }
 /* Dark-only solid backgrounds → 浅色对应的纸白背景 */
 .light .bg-\[\#0b0b14\]\/85 { background-color: rgba(240, 242, 248, 0.92) !important; }
+.light .bg-\[\#0b0b14\]\/95 { background-color: rgba(240, 242, 248, 0.96) !important; }
+/* v7 浅色：未被 remap 的实色深背景（Mining Alpha 表头/下拉/弹窗、回测横评表头）→ 纸白，避免浅色下黑斑 */
+.light .bg-\[\#0d1117\] { background-color: var(--bg-2) !important; }
 .light .bg-\[\#0f1019\] { background-color: var(--bg-overlay) !important; }
+/* v7 浅色：渐变"金属数字"（白→浅色 + 透明填充）在白底会看不见 → 浅色下改回实色深字（保持可读） */
+.light .num-gradient { background: none !important; -webkit-text-fill-color: var(--fg-0) !important; color: var(--fg-0) !important; }
 /* 半透明白文字（玻璃反色） */
 .light .text-white\/80 { color: var(--text-primary) !important; }
 .light .text-white\/10 { color: rgba(15, 23, 42, 0.15) !important; }

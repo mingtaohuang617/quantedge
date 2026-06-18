@@ -2523,7 +2523,7 @@ const ScoringDashboard = () => {
                 <div className="sm:text-right flex sm:block items-center gap-2">
                   {/* PDF2 抛光 4.2：主价格抬到 24/28px + 渐变文字（白→slate-300）让数字有金属感 */}
                   <div
-                    className="text-[32px] sm:text-[40px] font-bold font-mono tabular-nums leading-none"
+                    className="num-gradient text-[32px] sm:text-[40px] font-bold font-mono tabular-nums leading-none"
                     style={{
                       background: 'linear-gradient(180deg, #ffffff 0%, #cbd5e1 100%)',
                       WebkitBackgroundClip: 'text',
