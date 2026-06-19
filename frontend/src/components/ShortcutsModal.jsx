@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import { KeyRound, X } from "lucide-react";
+import { useLang } from "../i18n.jsx";
 
 /**
  * ShortcutsModal — 全局快捷键速查
@@ -38,6 +39,7 @@ function Kbd({ children }) {
 }
 
 export default function ShortcutsModal({ open, onClose, tabs = [] }) {
+  const { t } = useLang();
   useEffect(() => {
     if (!open) return;
     const onKey = (e) => {
@@ -103,7 +105,7 @@ export default function ShortcutsModal({ open, onClose, tabs = [] }) {
         </div>
         {/* Footer */}
         <div className="px-4 py-2 border-t border-white/8 bg-white/[0.02] text-[10px] text-[#7a8497]">
-          按 <Kbd>Esc</Kbd> 关闭，或随时按 <Kbd>?</Kbd> 重新打开
+          {t('按')} <Kbd>Esc</Kbd> {t('关闭，或随时按')} <Kbd>?</Kbd> {t('重新打开')}
         </div>
       </div>
     </div>

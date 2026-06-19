@@ -64,6 +64,92 @@ const toTW = (text) => {
 
 // ─── English Translation Dictionary ─────────────────────────
 const EN = {
+  // ── audit cleanup #5（收尾）：剩余 13 个组件 ──
+  // stock-gene/dialogs.jsx
+  '选择下一只': 'Select next',
+  '选择上一只': 'Select previous',
+  '切到趋势引擎': 'Switch to Trend engine',
+  '切到价值引擎': 'Switch to Value engine',
+  '刷新列表': 'Refresh list',
+  '清过滤 / 关弹层': 'Clear filters / close dialog',
+  '显示此帮助': 'Show this help',
+  'ⓘ 焦点在输入框 / 弹层内时快捷键不触发': 'ⓘ Shortcuts are disabled while focus is in an input / dialog',
+  '综合分权重': 'Composite Weights',
+  '各引擎在综合分里的权重（总和不需等于 100，会自动归一化）。调整会立即重算所有综合分 + 重新排序。': "Each engine's weight in the composite score (sum need not equal 100; auto-normalized). Changes recompute all composites and re-sort immediately.",
+  '恢复默认': 'Reset',
+  '删除分组「{n}」': 'Delete group "{n}"',
+  '重命名分组': 'Rename group',
+  '新建分组': 'New group',
+  '该分组下的所有 items 会被自动移到「默认」分组，评分历史 / tags / notes 全部保留。分组本身会被删除，操作不可撤销。': 'All items in this group move to the "Default" group; score history / tags / notes are kept. The group itself is deleted — this cannot be undone.',
+  '如：核心仓 / 投机仓 / 长持...': 'e.g. Core / Speculative / Long-hold...',
+  '颜色': 'Color',
+  '评分变化预警': 'Score-Change Alerts',
+  '近 30 天': 'Last 30 days',
+  '{n} 条': '{n} alerts',
+  '允许浏览器在评分变化时主动推送': 'Let the browser push when a score changes',
+  '启用桌面通知': 'Enable desktop notifications',
+  '桌面通知已启用': 'Desktop notifications enabled',
+  '浏览器已拒绝通知权限。需要到浏览器设置手动开启': 'The browser denied notification permission. Enable it manually in browser settings',
+  '已拒绝': 'Denied',
+  '关闭预警面板': 'Close alerts panel',
+  '暂无评分变化': 'No score changes yet',
+  '每次评分会跟历史比对，分差 ≥1 时生成预警': 'Each scoring run is compared to history; an alert is created when the delta is ≥1',
+  '评分定时刷新': 'Scheduled Rescoring',
+  '关闭定时刷新设置': 'Close scheduler settings',
+  '每日自动评分': 'Daily auto-scoring',
+  '已启用 — 后台每天定时跑所有 4 个引擎': 'Enabled — runs all 4 engines on schedule each day',
+  '已关闭 — 仅手动评分': 'Off — manual scoring only',
+  '点击关闭': 'Click to turn off',
+  '点击开启': 'Click to turn on',
+  '每天 UTC 时刻（默认 06:00 = 北京 14:00 美股盘后）': 'Daily UTC time (default 06:00 = Beijing 14:00, US after-hours)',
+  '保存时间': 'Save time',
+  '北京时间': 'Beijing time',
+  '+1 天': '+1 day',
+  '下次运行': 'Next run',
+  '上次运行': 'Last run',
+  '从未': 'Never',
+  '上次结果（{n} 只）': 'Last result ({n} tickers)',
+  '立即跑一次': 'Run now',
+  // stock-gene/ScoreDetail / viz / TickerSearchBox
+  '已在观察': 'Watching',
+  '雷达': 'Radar',
+  // StockDetailPanel
+  '今日变化（最近一根 K 线）': "Today's change (latest candle)",
+  '价格数据不可用': 'Price data unavailable',
+  '财务指标': 'Financials',
+  'ⓘ 缺数据显示 — ；可跑 Finnhub enrich 补齐': 'ⓘ Missing data shows —; run Finnhub enrich to fill',
+  '命中赛道': 'Matched Trends',
+  '查看命中诊断': 'View match diagnostics',
+  '加入观察': 'Add to Watchlist',
+  // TenxItemEditor
+  '— 选择 —': '— Select —',
+  'AI 生成草稿': 'AI draft',
+  // ValueDCFCalculator
+  'DCF 估算（两阶段，Gordon 终值）': 'DCF Estimate (2-stage, Gordon terminal)',
+  '内在价值（每股）': 'Intrinsic value (per share)',
+  // ValueFilters
+  '股息率下限（小数；输入 0.04 = 4%）': 'Min dividend yield (decimal; 0.04 = 4%)',
+  '息≥': 'Yield≥',
+  // WatchlistCard（'值'/'护城河'/'卡位' 复用既有翻译；'新' 复用 macro 段 'NEW'）
+  '成': 'G',
+  '归档': 'Archived',
+  // ShortcutsModal
+  '按': 'Press',
+  '关闭，或随时按': 'to close, or press',
+  '重新打开': 'to reopen',
+  // BacktestNarrationCard
+  'AI 回测一句话总结': 'AI One-line Backtest Summary',
+  '生成总结': 'Generate summary',
+  '正在分析回测结果...': 'Analyzing backtest results...',
+  'based on · NAV · Sharpe · 板块权重 · 回撤序列 · 单月最差': 'based on · NAV · Sharpe · sector weights · drawdown series · worst month',
+  // MonthlyReviewModal
+  '月度复盘（DeepSeek 生成）': 'Monthly Review (DeepSeek)',
+  '生成复盘': 'Generate review',
+  '复制 markdown': 'Copy markdown',
+  '分析本月交易和持仓中... (~5s)': "Analyzing this month's trades and holdings... (~5s)",
+  // BacktestEngine
+  '已从复利模块加载组合：': 'Portfolio loaded from the Compounding module: ',
+  '指标异常 · 数据可能有问题': 'Anomalous metrics · data may be off',
   // ── audit cleanup #4: 录入/赛道弹窗 + stock-gene 卡片 + 性格档案 ──
   // AddTransactionModal
   '单价': 'Unit Price',
