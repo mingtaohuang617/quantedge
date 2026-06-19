@@ -21,6 +21,7 @@
 // ─────────────────────────────────────────────────────────────
 import React, { useMemo } from "react";
 import { Edit2, Trash2, Star, ChevronRight, Archive, ArchiveRestore, Check } from "lucide-react";
+import { useLang } from "../i18n.jsx";
 
 export default function WatchlistCard({
   item,
@@ -31,6 +32,7 @@ export default function WatchlistCard({
   onToggleArchive,
   onMarkReviewed,
 }) {
+  const { t } = useLang();
   const moat = item.moat_score || 0;
   const archived = !!item.archived;
   // strategy-aware：价值型和成长型 item 在同一 watchlist 里混合显示，
@@ -116,7 +118,7 @@ export default function WatchlistCard({
               return (
                 <span className={`text-[9px] font-mono px-1 py-px rounded border ${fresh ? "bg-cyan-500/15 text-cyan-200 border-cyan-500/40" : "bg-white/[0.03] text-[#7a8497] border-white/10"}`}
                   title={`加入观察 ${days} 天`}>
-                  {fresh ? "新 " : ""}{days}d
+                  {fresh ? t('新') + " " : ""}{days}d
                 </span>
               );
             })()}
@@ -129,10 +131,10 @@ export default function WatchlistCard({
               }`}
               title={isValue ? "价值型 — Graham 安全边际" : "成长型 — 双层瓶颈 / 卡位公司"}
             >
-              {isValue ? "值" : "成"}
+              {isValue ? t('值') : t('成')}
             </span>
             {archived && (
-              <span className="text-[9px] px-1 py-px rounded bg-white/5 text-[#a0aec0] border border-white/15">归档</span>
+              <span className="text-[9px] px-1 py-px rounded bg-white/5 text-[#a0aec0] border border-white/15">{t('归档')}</span>
             )}
             {item.bottleneck_layer === 2 && (
               <span
@@ -210,7 +212,7 @@ export default function WatchlistCard({
             className={n <= moat ? "text-amber-400 fill-amber-400" : "text-white/15"}
           />
         ))}
-        <span className="text-[9px] text-[#7a8497] ml-1">{isValue ? "护城河" : "卡位"}</span>
+        <span className="text-[9px] text-[#7a8497] ml-1">{isValue ? t('护城河') : t('卡位')}</span>
       </div>
 
       {item.bottleneck_tag && (
@@ -344,8 +346,8 @@ export default function WatchlistCard({
 
       {item.tags && item.tags.length > 0 && (
         <div className="flex flex-wrap gap-0.5 mt-1">
-          {item.tags.map((t) => (
-            <span key={t} className="text-[9px] px-1 py-px rounded bg-white/5 text-[#a0aec0] border border-white/10">#{t}</span>
+          {item.tags.map((tg) => (
+            <span key={tg} className="text-[9px] px-1 py-px rounded bg-white/5 text-[#a0aec0] border border-white/10">#{tg}</span>
           ))}
         </div>
       )}

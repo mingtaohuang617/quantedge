@@ -10,12 +10,14 @@ import { EngineRadar, ScoreSparkline } from "./viz.jsx";
 import {
   VerdictBadge, FeatureRow, PositionCard, NotesBlock, TagsRow,
 } from "./cards.jsx";
+import { useLang } from "../../i18n.jsx";
 
 export function ScoreDetail({
   item, engine, onRescore, onDelete, scoring, onExplain, explainLoading, narrative,
   editingNotes, notesDraft, setNotesDraft, onEditNotes, onSaveNotes, onCancelNotes, notesSaving,
   onSaveTags, weights, position, lists, onMove,
 }) {
+  const { t } = useLang();
   const cfg = eng(engine);
   const r = engResult(item, engine);
   const engineLabel = cfg.framework;
@@ -52,7 +54,7 @@ export function ScoreDetail({
                 </div>
                 {composite != null && (
                   <div className="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded border bg-white/5 border-white/15">
-                    <span className="text-[9px] text-[#7a8497]">综合</span>
+                    <span className="text-[9px] text-[#7a8497]">{t('综合')}</span>
                     <span className={`text-[11px] font-mono font-bold ${compositeStyle(composite).text}`}>
                       {composite}
                     </span>

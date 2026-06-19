@@ -1,9 +1,11 @@
 // Stock Gene 可视化：EngineRadar (4 维雷达) / ScoreSparkline (评分历史折线)
 import React from "react";
 import { ENGINE_IDS, eng, engResult } from "./helpers.js";
+import { useLang } from "../../i18n.jsx";
 
 // ─── EngineRadar — 4 维雷达图（trend / value / signal / risk）─────────
 export function EngineRadar({ item }) {
+  const { t } = useLang();
   const size = 78;
   const cx = size / 2, cy = size / 2;
   const radius = size / 2 - 9;
@@ -25,7 +27,7 @@ export function EngineRadar({ item }) {
   if (!anyScored) {
     return (
       <div className="flex items-center justify-center" style={{ width: size, height: size }}>
-        <span className="text-[9px] text-[#5a6477]">雷达</span>
+        <span className="text-[9px] text-[#5a6477]">{t('雷达')}</span>
       </div>
     );
   }

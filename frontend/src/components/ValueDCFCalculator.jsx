@@ -13,6 +13,7 @@
 //                                  字段（点击「应用」按钮触发）
 // ─────────────────────────────────────────────────────────────
 import React, { useState, useMemo } from 'react';
+import { useLang } from '../i18n.jsx';
 import { Calculator, ChevronDown, ChevronRight, Check, AlertCircle } from 'lucide-react';
 import { calcDCF, marginOfSafety, DCF_DEFAULTS } from '../lib/dcf.js';
 
@@ -25,6 +26,7 @@ const INPUT_DEFAULTS = {
 };
 
 export default function ValueDCFCalculator({ currentPrice, onApplyTarget }) {
+  const { t } = useLang();
   const [expanded, setExpanded] = useState(false);
   const [inputs, setInputs] = useState(INPUT_DEFAULTS);
 
@@ -56,7 +58,7 @@ export default function ValueDCFCalculator({ currentPrice, onApplyTarget }) {
       >
         <div className="flex items-center gap-1.5 text-emerald-300">
           <Calculator size={11} />
-          <span className="font-medium">DCF 估算（两阶段，Gordon 终值）</span>
+          <span className="font-medium">{t('DCF 估算（两阶段，Gordon 终值）')}</span>
           {result && !result.error && (
             <span className="text-[10px] text-emerald-200/80 font-mono">
               · 内在 {result.intrinsicValue.toFixed(2)}
@@ -122,7 +124,7 @@ export default function ValueDCFCalculator({ currentPrice, onApplyTarget }) {
               {/* 内在价值 */}
               <div className="flex items-center justify-between px-2 py-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded">
                 <div className="flex flex-col">
-                  <span className="text-[9px] text-[#a0aec0]">内在价值（每股）</span>
+                  <span className="text-[9px] text-[#a0aec0]">{t('内在价值（每股）')}</span>
                   <span className="text-[9px] text-[#7a8497]">
                     短期 {result.shortTermPV.toFixed(2)} + 终值 {result.terminalValuePV.toFixed(2)}
                   </span>

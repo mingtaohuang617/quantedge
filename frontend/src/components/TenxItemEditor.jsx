@@ -15,6 +15,7 @@
 // "AI 生成草稿" 按钮：调 /api/llm/10x-thesis，把返回的 5 段文本拼到 thesis
 // ─────────────────────────────────────────────────────────────
 import React, { useEffect, useState } from "react";
+import { useLang } from "../i18n.jsx";
 import { X, Sparkles, Loader, AlertCircle, Save, Zap } from "lucide-react";
 import { apiFetch } from "../quant-platform.jsx";
 import ValueDCFCalculator from "./ValueDCFCalculator.jsx";
@@ -92,6 +93,7 @@ function toNumberOrNull(v) {
 }
 
 export default function TenxItemEditor({ open, item, candidate, supertrends, onClose, onSaved, currentPrice }) {
+  const { t } = useLang();
   // candidate: 来自候选股表，含 ticker / name / sector / marketCap (用于 LLM 草稿)
   // item: 已存在的 watchlist item（编辑模式）
   const isNew = !item;
@@ -280,7 +282,7 @@ export default function TenxItemEditor({ open, item, candidate, supertrends, onC
                 onChange={(e) => setField("supertrend_id", e.target.value)}
                 className="input-base"
               >
-                <option value="">— 选择 —</option>
+                <option value="">{t('— 选择 —')}</option>
                 {(supertrends || []).map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.name}
@@ -336,9 +338,9 @@ export default function TenxItemEditor({ open, item, candidate, supertrends, onC
                 className="flex items-center gap-1 px-2 py-0.5 text-[10px] rounded-md bg-violet-500/20 hover:bg-violet-500/30 text-violet-200 border border-violet-500/40 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {llmState.loading ? (
-                  <><Loader size={10} className="animate-spin" /> 生成中</>
+                  <><Loader size={10} className="animate-spin" /> {t('生成中')}</>
                 ) : (
-                  <><Sparkles size={10} /> AI 生成草稿</>
+                  <><Sparkles size={10} /> {t('AI 生成草稿')}</>
                 )}
                 {llmState.cached && !llmState.loading && (
                   <Zap size={9} className="text-amber-300" />
