@@ -52,9 +52,15 @@ export const tStatic = (text, lang) => {
 };
 
 const s2twp = OpenCC.Converter({ from: 'cn', to: 'twp' });
-// opencc s2twp 在金融语境下会把「代码」误转为「程式碼」；股票/证券代码场景下应保留「代碼」
+// opencc s2twp 在金融/IT 语境下的几处过度转换修正（保持台湾习惯用语）：
+//   1) 「代码」→ opencc「程式碼」，但股票/证券代码场景应保留「代碼」
+//   2) 「权限」→ opencc「許可權」，但通知/IT 语境台湾标准用「權限」
+//   3) 「复盘」→ opencc「覆盤」，但金融「复盘(review)」的「复」是「重复」义，应为「復盤」
+// 注：这些是对 opencc 输出的二次替换，只命中连用词，不影响「覆盖→覆蓋」等正常转换。
 const TW_POSTFIX = [
   [/程式碼/g, '代碼'],
+  [/許可權/g, '權限'],
+  [/覆盤/g, '復盤'],
 ];
 const toTW = (text) => {
   let out = s2twp(text);
