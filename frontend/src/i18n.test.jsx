@@ -84,6 +84,17 @@ describe('tStatic（无 hook 翻译）', () => {
   it('zh-TW：post-process 修正「代码」→「代碼」而非「程式碼」', () => {
     expect(tStatic('股票代码', 'zh-TW')).toBe('股票代碼');
   });
+  it('zh-TW：post-process 修正「权限」→「權限」而非「許可權」', () => {
+    expect(tStatic('通知权限', 'zh-TW')).toBe('通知權限');
+  });
+  it('zh-TW：post-process 修正金融「复盘」→「復盤」而非「覆盤」', () => {
+    expect(tStatic('月度复盘', 'zh-TW')).toBe('月度復盤');
+  });
+  it('zh-TW：post-process 不误伤正常的「覆盖 / 复利 / 重复」', () => {
+    expect(tStatic('覆盖', 'zh-TW')).toBe('覆蓋');
+    expect(tStatic('复利', 'zh-TW')).toBe('複利');
+    expect(tStatic('重复', 'zh-TW')).toBe('重複');
+  });
   it('空文本 → 空串', () => {
     expect(tStatic('', 'en')).toBe('');
     expect(tStatic(null, 'zh-TW')).toBe('');
