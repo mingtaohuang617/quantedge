@@ -70,6 +70,34 @@ const toTW = (text) => {
 
 // ─── English Translation Dictionary ─────────────────────────
 const EN = {
+  // ── 盲区 B.2：audit 漏扫的多行 / 裸中文文本节点（跨 12 文件）──
+  // 逐行 audit 扫不到「整行纯中文」的 JSX 文本节点，硬化 audit 后清出这批。
+  '调整你的计划': 'Adjust your plan',
+  '注意后段的陡峭加速 — 这就是复利': 'Note the steep acceleration later — that’s compounding',
+  '里程碑': 'Milestones',
+  '风险等级对照（点击切换查看对应策略）': 'Risk-tier reference (click to switch and view the matching strategy)',
+  '恢复自动': 'Resume auto',
+  '📊 DEMO 模式 — 静态示例数据': '📊 DEMO mode — static sample data',
+  '演示模式': 'Demo mode',
+  '市值放宽到 5000B': 'Relax market cap to 5000B',
+  '关闭精严模式': 'Turn off strict mode',
+  '包含 ETF': 'Include ETFs',
+  '清空 5 维筛选': 'Clear 5-factor filters',
+  '启用全部市场': 'Enable all markets',
+  '股性': 'Character',
+  '首次回测开销大（拉 ETF 历史 + 月度滚动重算）— 预计 30-60s，缓存后秒回': 'First backtest is heavy (fetch ETF history + monthly rolling recompute) — ~30-60s, then instant from cache',
+  '加入 + 评分': 'Add + score',
+  '输入 ticker（如 NVDA / 00700.HK / 600519.SH）': 'Enter a ticker (e.g. NVDA / 00700.HK / 600519.SH)',
+  '输入 2-10 个 ticker（逗号 / 空格分隔），按当前引擎和选中项的行业上下文打分': 'Enter 2-10 tickers (comma / space separated); scored by the current engine and the selected item’s sector context',
+  '对比评分': 'Compare scores',
+  '对比结果将在此显示': 'Comparison results will appear here',
+  '部分数据源刷新失败，主面板仍可用。下次刷新会自动重试。': 'Some data sources failed to refresh; the main panel still works. It’ll retry automatically next refresh.',
+  '无法获取历史数据，请检查 ticker 是否正确': 'Couldn’t fetch historical data — check that the ticker is correct',
+  '💡 写明退出条件能避免持仓时把假设当信仰（Druckenmiller pre-mortem）': '💡 Writing down exit conditions stops a thesis from hardening into faith while you hold (Druckenmiller pre-mortem)',
+  '选择月份 → 点"生成复盘"': 'Pick a month → click "Generate review"',
+  'DeepSeek 会基于该月 SQLite transactions + 持仓 自动撰写 1000 字结构化复盘': 'DeepSeek auto-writes a ~1,000-word structured review from that month’s SQLite transactions + holdings',
+  '后端在线但还没跑过 pipeline，下面 IC 报告 / 回测净值 / Top 20 持仓 / 特征重要性等面板展示的是 deterministic 合成示例。要看真实结果，请在 self-hosted backend 上跑：': 'Backend is online but the pipeline hasn’t run yet — the IC report / backtest equity / Top 20 holdings / feature-importance panels below show deterministic synthetic samples. For real results, run on a self-hosted backend:',
+  'ⓘ DCF 适合现金流稳定的票（消费/公用/银行），不适合周期股或纯成长股。数字略变化会放大终值差异 — 多跑几组参数试敏感性。': 'ⓘ DCF suits stable-cash-flow names (consumer / utilities / banks), not cyclicals or pure growth. Small input changes amplify terminal value — run several parameter sets to test sensitivity.',
   // ── i18n 盲区 B：性格档案动态文案（CharacterProfile / StockGene 移动端档案）──
   // 含 {占位符} 的为模板键，t(key, params) 注入实时数字；$ 为字面货币符。
   '52周振幅 {r}% · β {b}': '52w range {r}% · β {b}',

@@ -48,15 +48,50 @@ function findHardcodedCJK(line) {
   return null;
 }
 
+// 「整行纯中文文本节点」检测（补单行 >中文< 的盲区：多行 JSX text 时
+// 中文常独占一行，既无 > 也无 <，旧启发式扫不到，如：
+//   <div>
+//     未找到该标的        ← 这一行
+//   </div>
+// ）。判据：剔除块注释后，该行不含任何 JS/JSX 语法符号（<>{}=`;"'）却含 CJK。
+// 这类行作为合法 JS 几乎不可能（裸中文标识符/无引号字符串），基本必是文本节点。
+const SYNTAX = /[<>{}=`;"']/;
+function isBareTextLine(codeLine) {
+  return codeLine.length > 0 && CJK.test(codeLine) && !SYNTAX.test(codeLine);
+}
+
 function scanFile(path) {
   const src = readFileSync(path, 'utf8');
   const offenders = [];
+  let inBlock = false;    // 跨行 /* … */ 状态
+  let inTemplate = false; // 跨行 `…` 模板字符串状态（排除多行 prompt / markdown 模板）
   src.split('\n').forEach((line, i) => {
     const trimmed = line.trim();
-    if (!CJK.test(trimmed)) return;
-    if (LINE_ALLOW_SUBSTR.some(s => trimmed.startsWith(s) || (s.endsWith(' ') && trimmed.includes(s)))) return;
+    // ── 维护块注释状态，得到「剔除注释后的代码部分」codeLine ──
+    let codeLine = trimmed;
+    if (inBlock) {
+      const end = trimmed.indexOf('*/');
+      if (end === -1) return;            // 整行仍在块注释里
+      inBlock = false;
+      codeLine = trimmed.slice(end + 2).trim();
+    }
+    const open = codeLine.indexOf('/*');
+    if (open !== -1 && codeLine.indexOf('*/', open) === -1) {
+      inBlock = true;
+      codeLine = codeLine.slice(0, open).trim();
+    }
+    // ── 维护模板字符串状态：整行落在多行 `…` 内 → 跳过（模板属字符串内容，非 JSX 文本）──
+    const wasInTemplate = inTemplate;
+    const ticks = (codeLine.match(/`/g) || []).length;
+    if (ticks % 2 === 1) inTemplate = !inTemplate;
+    if (wasInTemplate) return;
+    if (!CJK.test(codeLine)) return;
+    if (LINE_ALLOW_SUBSTR.some(s => codeLine.startsWith(s) || (s.endsWith(' ') && codeLine.includes(s)))) return;
+    // 1) 单行 >中文<
     const hit = findHardcodedCJK(line);
-    if (hit) offenders.push({ line: i + 1, text: hit });
+    if (hit) { offenders.push({ line: i + 1, text: hit }); return; }
+    // 2) 整行纯中文文本节点
+    if (isBareTextLine(codeLine)) offenders.push({ line: i + 1, text: codeLine.slice(0, 60) });
   });
   return offenders;
 }

@@ -115,7 +115,7 @@ export default function DataStatusBanner({ composite, factors }) {
             </div>
           ))}
           <div className="text-[10px] opacity-50 pt-1 border-t border-white/[0.05]">
-            部分数据源刷新失败，主面板仍可用。下次刷新会自动重试。
+            {t('部分数据源刷新失败，主面板仍可用。下次刷新会自动重试。')}
           </div>
         </div>
       )}

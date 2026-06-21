@@ -1425,13 +1425,13 @@ export default function StockGene() {
               }}
             >
               {mAddLoading ? <Loader size={15} className="animate-spin" /> : <Check size={15} />}
-              加入 + 评分
+              {t('加入 + 评分')}
             </button>
           }
         >
           <div style={{ paddingBottom: 8 }}>
             <div style={{ fontSize: 12, color: "var(--fg-3)", marginBottom: 12 }}>
-              输入 ticker（如 NVDA / 00700.HK / 600519.SH）
+              {t('输入 ticker（如 NVDA / 00700.HK / 600519.SH）')}
             </div>
             <input
               value={mNewTicker}
@@ -1891,7 +1891,7 @@ export default function StockGene() {
                         }）`}
                       >
                         <Briefcase size={8} />
-                        持仓
+                        {t('持仓')}
                       </span>
                     )}
                     {/* 多引擎评分徽章：每个引擎一个，当前 engine 加 ring 高亮 */}
@@ -2017,7 +2017,7 @@ export default function StockGene() {
                     onClick={() => { setShowAddForm(false); setAddError(null); }}
                     className="px-2 py-1 text-[10px] rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] border border-white/10"
                   >
-                    取消
+                    {t('取消')}
                   </button>
                 </div>
               </div>
@@ -2067,7 +2067,7 @@ export default function StockGene() {
                     disabled={!!batchProgress}
                     className="px-2 py-1 text-[10px] rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] border border-white/10 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
-                    取消
+                    {t('取消')}
                   </button>
                 </div>
               </div>
@@ -2140,7 +2140,7 @@ export default function StockGene() {
           </div>
           <div className="px-3 py-2 border-b border-white/8 space-y-1.5">
             <div className="text-[10px] text-[#a0aec0]">
-              输入 2-10 个 ticker（逗号 / 空格分隔），按当前引擎和选中项的行业上下文打分
+              {t('输入 2-10 个 ticker（逗号 / 空格分隔），按当前引擎和选中项的行业上下文打分')}
               {selectedItem?.sector && (
                 <span className="text-emerald-300/80"> · 行业：{selectedItem.sector}</span>
               )}
@@ -2158,7 +2158,7 @@ export default function StockGene() {
               className="w-full flex items-center justify-center gap-1 px-2 py-1 text-[10px] rounded bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-200 border border-cyan-500/40 transition disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {peersLoading ? <Loader size={10} className="animate-spin" /> : <TrendingUp size={10} />}
-              对比评分
+              {t('对比评分')}
             </button>
             {peersError && (
               <div className="text-[10px] text-red-300 flex items-start gap-1">
@@ -2170,7 +2170,7 @@ export default function StockGene() {
           <div className="flex-1 overflow-auto p-2">
             {!peersResults && !peersLoading && (
               <div className="h-full flex items-center justify-center text-[11px] text-[#7a8497] p-4 text-center">
-                对比结果将在此显示
+                {t('对比结果将在此显示')}
               </div>
             )}
             {peersResults && <PeersTable result={peersResults} engine={engine} onAdd={(t, n, m, s) => {

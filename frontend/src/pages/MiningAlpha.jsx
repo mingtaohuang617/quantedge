@@ -1231,11 +1231,10 @@ export default function MiningAlpha() {
       {isDemoMode && (
         <div className="border border-amber-500/30 bg-amber-500/5 rounded-md p-3">
           <div className="text-[12px] font-semibold text-amber-300 mb-1">
-            📊 DEMO 模式 — 静态示例数据
+            {t('📊 DEMO 模式 — 静态示例数据')}
           </div>
           <div className="text-[11px] text-white/80 leading-relaxed">
-            后端在线但还没跑过 pipeline，下面 IC 报告 / 回测净值 / Top 20 持仓 / 特征重要性
-            等面板展示的是 deterministic 合成示例。要看真实结果，请在 self-hosted backend 上跑：
+            {t('后端在线但还没跑过 pipeline，下面 IC 报告 / 回测净值 / Top 20 持仓 / 特征重要性等面板展示的是 deterministic 合成示例。要看真实结果，请在 self-hosted backend 上跑：')}
           </div>
           <div className="mt-1.5 text-[10px] font-mono text-emerald-300/90">
             cd backend && python -m mining_alpha.synthetic_demo && python -m mining_alpha.run all --universe DEMO --run-id demo

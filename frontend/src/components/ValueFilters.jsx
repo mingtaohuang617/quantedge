@@ -96,7 +96,7 @@ export default function ValueFilters({ value, onChange }) {
         title={t("清空 5 维筛选（保留赛道）")}
         className="px-1.5 py-0.5 rounded text-[9px] text-[#7a8497] hover:text-white hover:bg-white/10 transition border border-transparent"
       >
-        清空
+        {t('清空')}
       </button>
       <span className="text-[#5a6477]">|</span>
       <span title={t("PE 上限（< 0 视为亏损一律剔除）")}>PE≤</span>

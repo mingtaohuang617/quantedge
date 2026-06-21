@@ -72,7 +72,7 @@ export default function ShortcutsModal({ open, onClose, tabs = [] }) {
             <KeyRound size={14} className="text-cyan-300" />
           </span>
           <h2 id="shortcuts-title" className="text-[13px] font-semibold text-white flex-1">
-            键盘快捷键
+            {t('键盘快捷键')}
           </h2>
           <button
             onClick={onClose}

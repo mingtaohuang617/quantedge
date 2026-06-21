@@ -83,7 +83,7 @@ export function ScoreDetail({
               title={t("让 DeepSeek 用一段话解读这只票的强项 / 弱项 / 建议")}
             >
               {explainLoading ? <Loader size={10} className="animate-spin" /> : <Sparkles size={10} />}
-              AI 解读
+              {t('AI 解读')}
             </button>
           )}
           {lists && lists.length > 1 && onMove && (
@@ -154,7 +154,7 @@ export function ScoreDetail({
         )}
         {r && r.features && r.features.length === 0 && (
           <div className="p-3 text-[11px] text-[#7a8497] text-center">
-            无法获取历史数据，请检查 ticker 是否正确
+            {t('无法获取历史数据，请检查 ticker 是否正确')}
           </div>
         )}
         {r && r.features && r.features.map((f, idx) => (

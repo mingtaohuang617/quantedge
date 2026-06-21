@@ -1303,7 +1303,7 @@ export default function Screener10x() {
               }`}
               title={t("成长型：超级趋势 + 双层瓶颈 + 卡位公司")}
             >
-              成长型
+              {t('成长型')}
             </button>
             <button
               onClick={() => handleStrategySwitch("value")}
@@ -1314,7 +1314,7 @@ export default function Screener10x() {
               }`}
               title={t("价值型：Graham 安全边际 + 估值点位 + 护城河")}
             >
-              价值型
+              {t('价值型')}
             </button>
           </div>
           {isDemoMode && (
@@ -1322,7 +1322,7 @@ export default function Screener10x() {
               className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30"
               title={t("后端不可用：仅展示内置赛道；筛选 / 添加观察 / AI 草稿需 self-hosted backend")}
             >
-              演示模式
+              {t('演示模式')}
             </span>
           )}
         </div>
@@ -1792,7 +1792,7 @@ export default function Screener10x() {
                       className="px-2 py-0.5 text-[10px] rounded bg-cyan-500/15 text-cyan-200 border border-cyan-500/30 hover:bg-cyan-500/25 transition"
                       title={t("把市值上限放到 5000B（含全部大市值）")}
                     >
-                      市值放宽到 5000B
+                      {t('市值放宽到 5000B')}
                     </button>
                   )}
                   {precise && (
@@ -1801,7 +1801,7 @@ export default function Screener10x() {
                       className="px-2 py-0.5 text-[10px] rounded bg-cyan-500/15 text-cyan-200 border border-cyan-500/30 hover:bg-cyan-500/25 transition"
                       title={t("关闭精严模式（用宽泛关键词扩大候选池）")}
                     >
-                      关闭精严模式
+                      {t('关闭精严模式')}
                     </button>
                   )}
                   {!includeETF && (
@@ -1810,7 +1810,7 @@ export default function Screener10x() {
                       className="px-2 py-0.5 text-[10px] rounded bg-cyan-500/15 text-cyan-200 border border-cyan-500/30 hover:bg-cyan-500/25 transition"
                       title={t("包含 ETF（如 SOXX、SMH 等行业 ETF）")}
                     >
-                      包含 ETF
+                      {t('包含 ETF')}
                     </button>
                   )}
                   {activeStrategy === "value" && Object.values(valueFilters).some((v) => v != null) && (
@@ -1819,7 +1819,7 @@ export default function Screener10x() {
                       className="px-2 py-0.5 text-[10px] rounded bg-cyan-500/15 text-cyan-200 border border-cyan-500/30 hover:bg-cyan-500/25 transition"
                       title={t("清空 5 维筛选保留赛道")}
                     >
-                      清空 5 维筛选
+                      {t('清空 5 维筛选')}
                     </button>
                   )}
                   {markets.length < 3 && (
@@ -1828,7 +1828,7 @@ export default function Screener10x() {
                       className="px-2 py-0.5 text-[10px] rounded bg-cyan-500/15 text-cyan-200 border border-cyan-500/30 hover:bg-cyan-500/25 transition"
                       title={t("启用全部 3 个市场（US / HK / CN）")}
                     >
-                      启用全部市场
+                      {t('启用全部市场')}
                     </button>
                   )}
                 </div>
@@ -2004,7 +2004,7 @@ export default function Screener10x() {
                               {geneAdding === c.ticker
                                 ? <Loader size={9} className="animate-spin" />
                                 : <Activity size={9} />}
-                              股性
+                              {t('股性')}
                             </button>
                           </div>
                         </td>
