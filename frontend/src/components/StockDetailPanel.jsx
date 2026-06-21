@@ -117,9 +117,9 @@ export default function StockDetailPanel({
                   href={`https://finance.yahoo.com/quote/${encodeURIComponent(yfSym)}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  title="在 Yahoo Finance 打开（新标签页）"
+                  title={t("在 Yahoo Finance 打开（新标签页）")}
                   className="text-[#7a8497] hover:text-cyan-300 transition-colors p-0.5 rounded hover:bg-white/5"
-                  aria-label="在 Yahoo Finance 打开"
+                  aria-label={t("在 Yahoo Finance 打开")}
                 >
                   <ExternalLink size={10} />
                 </a>
@@ -132,7 +132,7 @@ export default function StockDetailPanel({
           <button
             onClick={onClose}
             className="text-[#a0aec0] hover:text-white transition-colors p-1 rounded hover:bg-white/10"
-            aria-label="关闭"
+            aria-label={t("关闭")}
           >
             <X size={14} />
           </button>
@@ -170,7 +170,7 @@ export default function StockDetailPanel({
                   className={`text-[10px] font-mono flex items-center gap-0.5 whitespace-nowrap ${
                     monthChange >= 0 ? "text-emerald-400" : "text-red-400"
                   }`}
-                  title="30 天累计变化"
+                  title={t("30 天累计变化")}
                 >
                   {monthChange >= 0 ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
                   {(monthChange >= 0 ? "+" : "")}{(monthChange * 100).toFixed(2)}%

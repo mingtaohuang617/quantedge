@@ -477,7 +477,7 @@ const CompareModal = ({ open, onClose, stocks }) => {
             <h2 className="text-sm font-semibold text-white">{t('标的对比')}</h2>
             <span className="text-[10px] text-[#a0aec0]">{stocks.length}</span>
           </div>
-          <button onClick={onClose} aria-label="关闭对比" className="text-[#a0aec0] hover:text-white transition-colors p-1 rounded hover:bg-white/10">
+          <button onClick={onClose} aria-label={t("关闭对比")} className="text-[#a0aec0] hover:text-white transition-colors p-1 rounded hover:bg-white/10">
             <X size={16} />
           </button>
         </div>

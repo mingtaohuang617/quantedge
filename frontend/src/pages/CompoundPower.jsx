@@ -143,7 +143,7 @@ function ButtonGroup({ options, value, onChange, getLabel, getKey, warningOf, ar
             title={warn || ""}
           >
             {getLabel(opt)}
-            {warn && <span className="ml-1 text-amber-400" aria-label="风险警示">⚠</span>}
+            {warn && <span className="ml-1 text-amber-400" aria-label={t("风险警示")}>⚠</span>}
           </button>
         );
       })}

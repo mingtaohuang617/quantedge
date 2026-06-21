@@ -77,7 +77,7 @@ export default function ShortcutsModal({ open, onClose, tabs = [] }) {
           <button
             onClick={onClose}
             className="p-1 rounded text-[#a0aec0] hover:text-white hover:bg-white/10 transition"
-            aria-label="关闭"
+            aria-label={t("关闭")}
           >
             <X size={13} />
           </button>
