@@ -7,7 +7,33 @@ import {
   validateAllStocks,
   loadStandaloneStocks,
   saveStandaloneStocks,
+  STOCK_CN_DESCS,
+  STOCK_EN_DESCS,
 } from "./standalone.js";
+
+const CJK_RE = /[㐀-䶿一-鿿]/;
+
+describe("STOCK_EN_DESCS 与 STOCK_CN_DESCS 平价（i18n 盲区 C 防回归）", () => {
+  it("英文描述键与中文描述键一一对应", () => {
+    const cn = Object.keys(STOCK_CN_DESCS).sort();
+    const en = Object.keys(STOCK_EN_DESCS).sort();
+    expect(en).toEqual(cn);
+  });
+
+  it("英文描述里不含任何中文字符", () => {
+    const offenders = Object.entries(STOCK_EN_DESCS)
+      .filter(([, v]) => CJK_RE.test(v))
+      .map(([k]) => k);
+    expect(offenders).toEqual([]);
+  });
+
+  it("每条英文描述非空", () => {
+    const empty = Object.entries(STOCK_EN_DESCS)
+      .filter(([, v]) => !v || !v.trim())
+      .map(([k]) => k);
+    expect(empty).toEqual([]);
+  });
+});
 
 describe("resolveSector", () => {
   it("个股有人工映射时返回中文行业", () => {
