@@ -44,13 +44,14 @@ import { useLang } from "../i18n.jsx";
 
 
 // ── 模块级辅助：移动端性格派生（包装 deriveCharacter，stock 可为 null）──
-function driveCharacterForMobile(stock) {
+// t / lang 透传给 deriveCharacter，使 hint / paragraph 随语言切换（详见 CharacterProfile）。
+function driveCharacterForMobile(stock, t, lang) {
   if (!stock) return null;
-  try { return deriveCharacter(stock); } catch { return null; }
+  try { return deriveCharacter(stock, t, lang); } catch { return null; }
 }
 
 export default function StockGene() {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   // ── 移动端检测（hooks 必须在任何 early return 前声明）──────
   const isMobile = useIsMobile();
   // 移动端专用 state
@@ -872,7 +873,7 @@ export default function StockGene() {
     const drillSelStock = mDrillStock && Array.isArray(mktStocks)
       ? mktStocks.find(s => s.ticker === mDrillStock)
       : null;
-    const drillChar = driveCharacterForMobile(drillSelStock);
+    const drillChar = driveCharacterForMobile(drillSelStock, t, lang);
 
     // 快速添加 ticker（仅 ticker 字段，后台评分）
     const handleMAdd = async () => {
@@ -963,15 +964,15 @@ export default function StockGene() {
           </div>
           <div style={{ width: 240, display: "flex", flexDirection: "column", gap: 9 }}>
             <div style={{ fontSize: 9, color: "var(--fg-3)", marginBottom: 2 }}>{t('维度明细 · vs 板块中位')}</div>
-            {traits.map(t => (
-              <div key={t.k} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontSize: 11.5, color: "var(--fg-1)", width: 58, flexShrink: 0 }}>{t.n}</span>
+            {traits.map(tr => (
+              <div key={tr.k} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 11.5, color: "var(--fg-1)", width: 58, flexShrink: 0 }}>{t(tr.n)}</span>
                 <div style={{ flex: 1, height: 6, background: "rgba(255,255,255,.05)", borderRadius: 3, position: "relative" }}>
-                  <div style={{ width: `${(t.v ?? 0) * 100}%`, height: "100%", background: "linear-gradient(90deg,var(--indigo),var(--cyan))", borderRadius: 3 }} />
+                  <div style={{ width: `${(tr.v ?? 0) * 100}%`, height: "100%", background: "linear-gradient(90deg,var(--indigo),var(--cyan))", borderRadius: 3 }} />
                   <div style={{ position: "absolute", left: "50%", top: -2, bottom: -2, width: 1, background: "var(--fg-3)" }} />
                 </div>
-                <span style={{ fontSize: 11, color: (t.v ?? 0) > 0.5 ? "var(--up)" : "var(--fg-3)", width: 20, textAlign: "right", fontWeight: 600 }}>
-                  {t.v == null ? "—" : Math.round(t.v * 100)}
+                <span style={{ fontSize: 11, color: (tr.v ?? 0) > 0.5 ? "var(--up)" : "var(--fg-3)", width: 20, textAlign: "right", fontWeight: 600 }}>
+                  {tr.v == null ? "—" : Math.round(tr.v * 100)}
                 </span>
               </div>
             ))}
@@ -990,7 +991,7 @@ export default function StockGene() {
               fontSize: 11, padding: "2px 8px", borderRadius: 6,
               background: `${char.tone}20`, color: char.tone,
               border: `1px solid ${char.tone}44`,
-            }}>{char.label}</span>
+            }}>{t(char.label)}</span>
           )}
         </>
       );
@@ -1021,7 +1022,7 @@ export default function StockGene() {
                 fontSize: 11, padding: "2px 8px", borderRadius: 6,
                 background: `${char.tone}20`, color: char.tone,
                 border: `1px solid ${char.tone}44`,
-              }}>{char.label}</span>
+              }}>{t(char.label)}</span>
             }
           >
             <RadarFullscreen traits={char.traits} tone={char.tone} label={char.label} />
@@ -1043,7 +1044,7 @@ export default function StockGene() {
                 letterSpacing: "-0.01em", color: "var(--fg-0)",
                 fontFamily: "Georgia, 'Noto Serif SC', serif",
               }}>
-                {char.label}
+                {t(char.label)}
               </div>
               <div style={{ display: "flex", gap: 6, justifyContent: "center", flexWrap: "wrap", marginBottom: 14 }}>
                 {char.fit && (
@@ -1051,7 +1052,7 @@ export default function StockGene() {
                     fontSize: 10, padding: "3px 9px", borderRadius: 20,
                     background: `${char.tone}18`, color: char.tone,
                     border: `1px solid ${char.tone}33`,
-                  }}>{char.fit}</span>
+                  }}>{t(char.fit)}</span>
                 )}
                 {drillItem?.sector && (
                   <span style={{
@@ -1091,24 +1092,24 @@ export default function StockGene() {
                       borderRadius: 7, fontSize: 10, color: "var(--indigo-2)", fontWeight: 600,
                     }}
                   >
-                    <Maximize2 size={11} />全屏
+                    <Maximize2 size={11} />{t('全屏')}
                   </button>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <RadarInline traits={char.traits} tone={char.tone} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    {char.traits.map(t => (
-                      <div key={t.k} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                        <span style={{ fontSize: 10.5, color: "var(--fg-2)", width: 50, flexShrink: 0 }}>{t.n}</span>
+                    {char.traits.map(tr => (
+                      <div key={tr.k} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                        <span style={{ fontSize: 10.5, color: "var(--fg-2)", width: 50, flexShrink: 0 }}>{t(tr.n)}</span>
                         <div style={{ flex: 1, height: 4, background: "rgba(255,255,255,.05)", borderRadius: 2, overflow: "hidden" }}>
                           <div style={{
-                            width: `${(t.v ?? 0) * 100}%`, height: "100%",
+                            width: `${(tr.v ?? 0) * 100}%`, height: "100%",
                             background: "linear-gradient(90deg,var(--indigo),var(--cyan))",
                             borderRadius: 2,
                           }} />
                         </div>
                         <span style={{ fontSize: 10, color: "var(--fg-1)", width: 18, textAlign: "right", fontFamily: "var(--font-mono, monospace)" }}>
-                          {t.v == null ? "—" : Math.round(t.v * 100)}
+                          {tr.v == null ? "—" : Math.round(tr.v * 100)}
                         </span>
                       </div>
                     ))}
@@ -1127,9 +1128,9 @@ export default function StockGene() {
                       background: "rgba(255,255,255,.022)",
                       border: "1px solid var(--line)",
                     }}>
-                      <div style={{ fontSize: 8.5, color: "var(--fg-3)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>{b.l}</div>
+                      <div style={{ fontSize: 8.5, color: "var(--fg-3)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>{t(b.l)}</div>
                       <div style={{ fontSize: 20, fontWeight: 700, color: b.c || "var(--fg-0)", lineHeight: 1, fontFamily: "var(--font-mono, monospace)" }}>{b.v}</div>
-                      <div style={{ fontSize: 10, color: "var(--fg-3)", marginTop: 4 }}>{b.sub}</div>
+                      <div style={{ fontSize: 10, color: "var(--fg-3)", marginTop: 4 }}>{t(b.sub)}</div>
                     </div>
                   ))}
                 </div>
@@ -1177,7 +1178,7 @@ export default function StockGene() {
                   </div>
                   {scoringTicker === mDrillStock && (
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 10, fontSize: 11, color: "var(--indigo-2)" }}>
-                      <Loader size={12} className="animate-spin" />评分中…
+                      <Loader size={12} className="animate-spin" />{t('评分中…')}
                     </div>
                   )}
                   {!isDemoMode && (
@@ -1193,7 +1194,7 @@ export default function StockGene() {
                         display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
                       }}
                     >
-                      <Sparkles size={13} />重新评分
+                      <Sparkles size={13} />{t('重新评分')}
                     </button>
                   )}
                 </div>
@@ -1218,7 +1219,7 @@ export default function StockGene() {
               return (
                 <div style={{ paddingBottom: 8 }}>
                   <div style={{ fontSize: 9, color: "var(--fg-3)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10, padding: "0 16px" }}>
-                    性格相似的标的 · 横滑
+                    {t('性格相似的标的 · 横滑')}
                   </div>
                   <div style={{ display: "flex", gap: 10, overflowX: "auto", padding: "0 16px", WebkitOverflowScrolling: "touch" }}>
                     {peers.map(({ s, sim }) => (
@@ -1239,7 +1240,7 @@ export default function StockGene() {
                           border: "1px solid rgba(99,102,241,.25)",
                           color: "var(--indigo-2)",
                         }}>
-                          匹配 {Math.round(sim * 100)}%
+                          {t('匹配 {n}%', { n: Math.round(sim * 100) })}
                         </span>
                       </button>
                     ))}
@@ -1298,13 +1299,13 @@ export default function StockGene() {
                     }}
                   >
                     {scoringTicker === mDrillStock ? <Loader size={13} className="animate-spin" /> : <Sparkles size={13} />}
-                    重新评分
+                    {t('重新评分')}
                   </button>
                 )}
               </div>
             ) : (
               <div style={{ padding: 32, textAlign: "center", color: "var(--fg-3)", fontSize: 13 }}>
-                未找到该标的
+                {t('未找到该标的')}
               </div>
             )}
           </div>
