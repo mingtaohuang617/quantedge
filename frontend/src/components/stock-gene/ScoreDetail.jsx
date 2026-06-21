@@ -80,7 +80,7 @@ export function ScoreDetail({
               onClick={onExplain}
               disabled={explainLoading}
               className="flex items-center gap-1 px-2 py-1 text-[10px] rounded bg-violet-500/15 hover:bg-violet-500/25 text-violet-200 border border-violet-500/40 transition disabled:opacity-40 disabled:cursor-not-allowed"
-              title="让 DeepSeek 用一段话解读这只票的强项 / 弱项 / 建议"
+              title={t("让 DeepSeek 用一段话解读这只票的强项 / 弱项 / 建议")}
             >
               {explainLoading ? <Loader size={10} className="animate-spin" /> : <Sparkles size={10} />}
               AI 解读
@@ -91,7 +91,7 @@ export function ScoreDetail({
               value={item.list_id || "default"}
               onChange={(e) => onMove(e.target.value)}
               className="px-1.5 py-1 text-[10px] rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white border border-white/10 transition cursor-pointer"
-              title="移动到其它分组"
+              title={t("移动到其它分组")}
             >
               {lists.map(l => (
                 <option key={l.id} value={l.id}>→ {l.name}</option>

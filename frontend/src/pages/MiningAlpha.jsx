@@ -117,7 +117,7 @@ const ICTable = ({ rows, onPickAlpha }) => {
             <tr key={i}
               onClick={() => onPickAlpha?.(r.alpha)}
               className="border-b border-white/5 hover:bg-cyan-500/10 cursor-pointer"
-              title="点击查看因子公式 + 历史 IC"
+              title={t("点击查看因子公式 + 历史 IC")}
             >
               <td className="px-3 py-1.5 text-left">
                 <span className="inline-flex items-center gap-1.5">
@@ -647,7 +647,7 @@ const BacktestNarrationPanel = ({ metrics }) => {
           <button
             onClick={() => fetchNarration(true)}
             className="text-[10px] text-[#a0aec0] hover:text-white px-1.5 py-0.5 rounded hover:bg-white/5"
-            title="强制重新生成（force=true 跳过 30 分钟后端缓存，重新调 DeepSeek）"
+            title={t("强制重新生成（force=true 跳过 30 分钟后端缓存，重新调 DeepSeek）")}
           >
             <RefreshCw size={10} />
           </button>
@@ -1191,7 +1191,7 @@ export default function MiningAlpha() {
             {isDemoMode && (
               <span
                 className="text-[10px] font-semibold px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 cursor-help"
-                title="后端无数据 — 显示静态示例。要看真实结果需 self-hosted backend 跑过 pipeline。"
+                title={t("后端无数据 — 显示静态示例。要看真实结果需 self-hosted backend 跑过 pipeline。")}
               >
                 {t('DEMO 模式')}
               </span>

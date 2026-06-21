@@ -253,7 +253,7 @@ export default function TenxItemEditor({ open, item, candidate, supertrends, onC
           <button
             onClick={onClose}
             className="text-[#a0aec0] hover:text-white transition-colors p-1 rounded hover:bg-white/10"
-            aria-label="关闭"
+            aria-label={t("关闭")}
           >
             <X size={16} />
           </button>
@@ -398,7 +398,7 @@ export default function TenxItemEditor({ open, item, candidate, supertrends, onC
                 value={form.target_price}
                 onChange={(e) => setField("target_price", e.target.value)}
                 className="input-base"
-                placeholder="例如 50"
+                placeholder={t("例如 50")}
               />
             </Field>
             <Field label="止损位（可选）">
@@ -408,7 +408,7 @@ export default function TenxItemEditor({ open, item, candidate, supertrends, onC
                 value={form.stop_loss}
                 onChange={(e) => setField("stop_loss", e.target.value)}
                 className="input-base"
-                placeholder="例如 25"
+                placeholder={t("例如 25")}
               />
             </Field>
           </div>
@@ -420,7 +420,7 @@ export default function TenxItemEditor({ open, item, candidate, supertrends, onC
               value={form.tags}
               onChange={(e) => setField("tags", e.target.value)}
               className="input-base"
-              placeholder="例如：AI算力, 光通信, 小市值"
+              placeholder={t("例如：AI算力, 光通信, 小市值")}
             />
           </Field>
 

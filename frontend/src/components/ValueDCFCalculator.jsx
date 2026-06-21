@@ -75,7 +75,7 @@ export default function ValueDCFCalculator({ currentPrice, onApplyTarget }) {
               label="每股 FCF"
               value={inputs.fcfPerShare}
               onChange={(v) => set('fcfPerShare', v)}
-              placeholder="如 3.5"
+              placeholder={t("如 3.5")}
               hint="自由现金流 / 流通股数；从年报算（运营现金流 - capex）"
               required
             />
@@ -170,7 +170,7 @@ export default function ValueDCFCalculator({ currentPrice, onApplyTarget }) {
                   type="button"
                   onClick={() => onApplyTarget(Math.round(result.intrinsicValue * 100) / 100)}
                   className="w-full flex items-center justify-center gap-1 px-2 py-1 text-[10px] rounded bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-200 border border-indigo-500/30 transition"
-                  title="把内在价值填到「目标价」字段"
+                  title={t("把内在价值填到「目标价」字段")}
                 >
                   <Check size={10} /> 应用到目标价：{result.intrinsicValue.toFixed(2)}
                 </button>

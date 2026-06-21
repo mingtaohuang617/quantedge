@@ -1191,14 +1191,14 @@ ${angleQuestion}
           {/* A6: 录入交易（结构化 → SQLite transactions） */}
           <button onClick={() => setShowAddTx(true)}
             className="px-3 py-2.5 rounded-xl text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 flex items-center gap-1.5"
-            title="结构化录入买卖交易，自动算持仓和浮盈"
+            title={t("结构化录入买卖交易，自动算持仓和浮盈")}
           >
             <Briefcase size={13} /> 交易
           </button>
           {/* B7: 月度复盘 */}
           <button onClick={() => setShowMonthlyReview(true)}
             className="px-3 py-2.5 rounded-xl text-xs font-semibold bg-violet-500/10 text-violet-400 border border-violet-500/20 hover:bg-violet-500/20 flex items-center gap-1.5"
-            title="DeepSeek 基于本月交易自动撰写复盘"
+            title={t("DeepSeek 基于本月交易自动撰写复盘")}
           >
             <FileText size={13} /> 复盘
           </button>
@@ -1265,7 +1265,7 @@ ${angleQuestion}
                 type="button"
                 onClick={handleAIOrganize}
                 disabled={aiOrganizing || !addThesis.trim()}
-                title="DeepSeek 把一句话拆成结构化字段"
+                title={t("DeepSeek 把一句话拆成结构化字段")}
                 className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded-md text-[10px] flex items-center gap-1 bg-violet-500/15 hover:bg-violet-500/25 text-violet-200 border border-violet-500/30 transition disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {aiOrganizing ? <Loader size={10} className="animate-spin" /> : <Sparkles size={10} />}

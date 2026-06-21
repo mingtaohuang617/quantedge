@@ -822,7 +822,7 @@ export default function SmartBeta() {
               {isDemoMode && (
                 <span
                   className="px-1.5 py-0.5 rounded text-[9px] font-mono uppercase tracking-wider bg-amber-500/15 text-amber-300 border border-amber-500/40"
-                  title="后端未连接，展示静态示例快照。启动 backend/server.py 后点「重新计算」可拉真实数据。"
+                  title={t("后端未连接，展示静态示例快照。启动 backend/server.py 后点「重新计算」可拉真实数据。")}
                 >
                   {t('DEMO 模式')}
                 </span>
@@ -878,7 +878,7 @@ export default function SmartBeta() {
           <div>
             <label className="text-[10px] text-[#a0aec0] mb-1 flex items-center gap-1">
               {t('当前持仓行业 ETF')}
-              <span className="text-[#6b7280]" title="逗号分隔，如 XLK,XLF,XLV — 用于缓冲带判断">
+              <span className="text-[#6b7280]" title={t("逗号分隔，如 XLK,XLF,XLV — 用于缓冲带判断")}>
                 <Info size={9} />
               </span>
             </label>

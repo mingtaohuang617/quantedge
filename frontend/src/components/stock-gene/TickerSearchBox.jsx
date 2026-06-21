@@ -76,7 +76,7 @@ export function TickerSearchBox({ ticker, onTickerChange, market, onMarketChange
             onChange={(e) => onTickerChange(e.target.value)}
             onFocus={() => results.length > 0 && setOpen(true)}
             onKeyDown={handleKey}
-            placeholder="ticker / 中文名 / 港股代码"
+            placeholder={t("ticker / 中文名 / 港股代码")}
             className="w-full pl-5 pr-7 py-1 text-[10px] bg-white/5 border border-white/10 rounded text-white placeholder-[#7a8497] focus:outline-none focus:border-emerald-500/50"
             autoFocus
             autoComplete="off"
