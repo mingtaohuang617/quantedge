@@ -190,6 +190,7 @@ export function PeersTable({ result, onAdd, engine = "trend" }) {
 
 // ─── NotesBlock — 备注卡（hover 编辑铅笔，空态"添加备注"）──────────
 export function NotesBlock({ item, editing, draft, onDraftChange, onEdit, onSave, onCancel, saving }) {
+  const { t } = useLang();
   if (editing) {
     return (
       <div className="mt-2 px-2 py-1.5 bg-amber-500/5 border border-amber-500/30 rounded space-y-1">
@@ -214,7 +215,7 @@ export function NotesBlock({ item, editing, draft, onDraftChange, onEdit, onSave
             disabled={saving}
             className="px-2 py-0.5 text-[10px] rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] border border-white/10 disabled:opacity-40"
           >
-            取消
+            {t('取消')}
           </button>
         </div>
       </div>
@@ -248,6 +249,7 @@ export function NotesBlock({ item, editing, draft, onDraftChange, onEdit, onSave
 
 // ─── TagsRow — 详情面板的紧凑 tags 行（直接增删，自动 PUT 保存）─────
 export function TagsRow({ tags, onChange }) {
+  const { t } = useLang();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(tags);
   useEffect(() => { setDraft(tags); }, [tags]);
@@ -277,7 +279,7 @@ export function TagsRow({ tags, onChange }) {
             onClick={() => { setDraft(tags); setEditing(false); }}
             className="px-2 py-0.5 text-[10px] rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] border border-white/10"
           >
-            取消
+            {t('取消')}
           </button>
         </div>
       </div>

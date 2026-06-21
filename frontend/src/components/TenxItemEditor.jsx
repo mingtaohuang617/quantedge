@@ -377,7 +377,7 @@ export default function TenxItemEditor({ open, item, candidate, supertrends, onC
               }
             />
             <div className="text-[9px] text-[#7a8497] mt-1">
-              💡 写明退出条件能避免持仓时把假设当信仰（Druckenmiller pre-mortem）
+              {t('💡 写明退出条件能避免持仓时把假设当信仰（Druckenmiller pre-mortem）')}
             </div>
           </Field>
 
@@ -438,7 +438,7 @@ export default function TenxItemEditor({ open, item, candidate, supertrends, onC
             onClick={onClose}
             className="px-3 py-1.5 text-[11px] rounded-md bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white transition border border-white/10"
           >
-            取消
+            {t('取消')}
           </button>
           <button
             onClick={handleSave}

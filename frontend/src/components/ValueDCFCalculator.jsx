@@ -179,8 +179,7 @@ export default function ValueDCFCalculator({ currentPrice, onApplyTarget }) {
           )}
 
           <div className="text-[9px] text-[#7a8497] leading-relaxed">
-            ⓘ DCF 适合现金流稳定的票（消费/公用/银行），不适合周期股或纯成长股。
-            数字略变化会放大终值差异 — 多跑几组参数试敏感性。
+            {t('ⓘ DCF 适合现金流稳定的票（消费/公用/银行），不适合周期股或纯成长股。数字略变化会放大终值差异 — 多跑几组参数试敏感性。')}
           </div>
         </div>
       )}

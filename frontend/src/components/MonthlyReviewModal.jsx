@@ -122,8 +122,8 @@ export default function MonthlyReviewModal({ open, onClose }) {
 
         {!result && !loading && !error && (
           <div className="text-[10px] text-[#778] py-3 text-center">
-            选择月份 → 点"生成复盘"<br />
-            DeepSeek 会基于该月 SQLite transactions + 持仓 自动撰写 1000 字结构化复盘
+            {t('选择月份 → 点"生成复盘"')}<br />
+            {t('DeepSeek 会基于该月 SQLite transactions + 持仓 自动撰写 1000 字结构化复盘')}
           </div>
         )}
       </div>

@@ -1022,7 +1022,7 @@ export default function SmartBeta() {
 
             {btLoading && !btResult && (
               <div className="text-[10px] text-[#a0aec0] py-4 text-center">
-                首次回测开销大（拉 ETF 历史 + 月度滚动重算）— 预计 30-60s，缓存后秒回
+                {t('首次回测开销大（拉 ETF 历史 + 月度滚动重算）— 预计 30-60s，缓存后秒回')}
               </div>
             )}
 
