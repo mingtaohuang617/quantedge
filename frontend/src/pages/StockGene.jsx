@@ -998,13 +998,13 @@ export default function StockGene() {
         <div className="h-full flex flex-col" style={{ background: "var(--bg-0)" }}>
           <MobileAppBar
             onBack={() => setMDrillStock(null)}
-            title="股性档案"
+            title={t("股性档案")}
             chips={chips}
             actions={
               <button
                 onClick={() => setMRadarFs(true)}
                 style={{ color: "var(--fg-2)", padding: 4 }}
-                aria-label="全屏雷达"
+                aria-label={t("全屏雷达")}
               >
                 <Maximize2 size={18} />
               </button>
@@ -1338,7 +1338,7 @@ export default function StockGene() {
                 background: "rgba(30,211,149,.14)", border: "1px solid rgba(30,211,149,.35)",
                 color: "var(--up)",
               }}
-              aria-label="添加观察"
+              aria-label={t("添加观察")}
             >
               <Plus size={17} />
             </button>
@@ -1409,7 +1409,7 @@ export default function StockGene() {
         <BottomSheet
           open={mAddOpen}
           onClose={() => { setMAddOpen(false); setMNewTicker(""); setMAddErr(null); }}
-          title="添加观察"
+          title={t("添加观察")}
           footer={
             <button
               onClick={handleMAdd}
@@ -1489,7 +1489,7 @@ export default function StockGene() {
           {isDemoMode && (
             <span
               className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 cursor-help"
-              title="当前是示例数据（Vercel 等无后端部署）。要看真实评分: cd backend && python server.py 后访问 localhost:5173"
+              title={t("当前是示例数据（Vercel 等无后端部署）。要看真实评分: cd backend && python server.py 后访问 localhost:5173")}
             >
               {t('DEMO 模式')}
             </span>
@@ -1509,9 +1509,9 @@ export default function StockGene() {
           <button
             onClick={handleExport}
             disabled={isDemoMode || items.length === 0}
-            aria-label="导出股性检测 JSON 备份"
+            aria-label={t("导出股性检测 JSON 备份")}
             className="flex items-center justify-center w-7 h-7 rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white transition border border-white/10 disabled:opacity-40 disabled:cursor-not-allowed"
-            title="导出 JSON 备份（含所有观察项 + 双引擎评分 + 历史）"
+            title={t("导出 JSON 备份（含所有观察项 + 双引擎评分 + 历史）")}
           >
             <Download size={11} />
           </button>
@@ -1520,7 +1520,7 @@ export default function StockGene() {
             onClick={handleExportCsv}
             disabled={items.length === 0}
             className="flex items-center justify-center px-1.5 h-7 rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white transition border border-white/10 disabled:opacity-40 disabled:cursor-not-allowed text-[9px] font-mono"
-            title="导出 CSV（Excel 友好，含 trend/value 双评分 + 标签 + 备注）"
+            title={t("导出 CSV（Excel 友好，含 trend/value 双评分 + 标签 + 备注）")}
           >
             CSV
           </button>
@@ -1529,7 +1529,7 @@ export default function StockGene() {
             onClick={() => importInputRef.current?.click()}
             disabled={isDemoMode || importLoading}
             className="flex items-center justify-center w-7 h-7 rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white transition border border-white/10 disabled:opacity-40 disabled:cursor-not-allowed"
-            title="从备份恢复（merge / replace 可选）"
+            title={t("从备份恢复（merge / replace 可选）")}
           >
             {importLoading ? <Loader size={11} className="animate-spin" /> : <Upload size={11} />}
           </button>
@@ -1575,7 +1575,7 @@ export default function StockGene() {
           <button
             onClick={() => { reload(); reloadPositions(); reloadAlerts(); }}
             className="flex items-center gap-1 px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white transition border border-white/10"
-            title="刷新（快捷键：r）"
+            title={t("刷新（快捷键：r）")}
           >
             <RefreshCw size={10} /> 刷新
           </button>
@@ -1591,7 +1591,7 @@ export default function StockGene() {
           <button
             onClick={() => setShowShortcuts(true)}
             className="flex items-center justify-center w-7 h-7 rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white transition border border-white/10 font-mono text-[11px]"
-            title="键盘快捷键（?）"
+            title={t("键盘快捷键（?）")}
           >
             ?
           </button>
@@ -1614,7 +1614,7 @@ export default function StockGene() {
           <button
             onClick={() => setDismissedScoringBanner(true)}
             className="ml-auto text-amber-300/70 hover:text-amber-100"
-            title="本次会话不再显示"
+            title={t("本次会话不再显示")}
           >
             <X size={10} />
           </button>
@@ -1635,7 +1635,7 @@ export default function StockGene() {
           <button
             onClick={handleAddAllHoldings}
             className="ml-auto flex items-center gap-1 px-2 py-1 rounded bg-amber-500/15 hover:bg-amber-500/25 text-amber-100 border border-amber-500/40 transition text-[10px]"
-            title="把全部持仓加入股性检测 + 跑 4 引擎评分"
+            title={t("把全部持仓加入股性检测 + 跑 4 引擎评分")}
           >
             <Plus size={10} /> 全部加入 + 评分
           </button>
@@ -1743,7 +1743,7 @@ export default function StockGene() {
               {sortedItems.length}{sortedItems.length !== items.length ? `/${items.length}` : ""} 只
             </span>
             {/* 排序选择器 */}
-            <div className="ml-auto flex items-center gap-1" title="排序方式">
+            <div className="ml-auto flex items-center gap-1" title={t("排序方式")}>
               <ArrowUpDown size={9} className="text-[#7a8497]" />
               <select
                 value={sortBy}
@@ -1766,14 +1766,14 @@ export default function StockGene() {
                 <input
                   value={filterText}
                   onChange={(e) => setFilterText(e.target.value)}
-                  placeholder="过滤：ticker / 名称 / 行业"
+                  placeholder={t("过滤：ticker / 名称 / 行业")}
                   className="w-full pl-5 pr-2 py-1 text-[10px] bg-white/5 border border-white/10 rounded text-white placeholder-[#7a8497] focus:outline-none focus:border-emerald-500/50"
                 />
                 {filterText && (
                   <button
                     onClick={() => setFilterText("")}
                     className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[#7a8497] hover:text-white"
-                    title="清空"
+                    title={t("清空")}
                   >
                     <X size={9} />
                   </button>
@@ -1831,7 +1831,7 @@ export default function StockGene() {
                   <button
                     onClick={() => setMinComposite(0)}
                     className="text-[#7a8497] hover:text-white"
-                    title="清空阈值"
+                    title={t("清空阈值")}
                   >
                     <X size={9} />
                   </button>
@@ -1980,27 +1980,27 @@ export default function StockGene() {
                 <input
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  placeholder="名称（搜索选中后自动填）"
+                  placeholder={t("名称（搜索选中后自动填）")}
                   className="w-full px-2 py-1 text-[10px] bg-white/5 border border-white/10 rounded text-white placeholder-[#7a8497] focus:outline-none focus:border-emerald-500/50"
                 />
                 <input
                   value={newSector}
                   onChange={(e) => setNewSector(e.target.value)}
-                  placeholder="行业（搜索选中后自动填）"
+                  placeholder={t("行业（搜索选中后自动填）")}
                   className="w-full px-2 py-1 text-[10px] bg-white/5 border border-white/10 rounded text-white placeholder-[#7a8497] focus:outline-none focus:border-emerald-500/50"
-                  title="用于『行业走强』特征判断，可填中文或 yfinance 英文"
+                  title={t("用于『行业走强』特征判断，可填中文或 yfinance 英文")}
                 />
                 <textarea
                   value={newNotes}
                   onChange={(e) => setNewNotes(e.target.value)}
-                  placeholder="备注（可选）"
+                  placeholder={t("备注（可选）")}
                   rows={2}
                   className="w-full px-2 py-1 text-[10px] bg-white/5 border border-white/10 rounded text-white placeholder-[#7a8497] focus:outline-none focus:border-emerald-500/50 resize-none"
                 />
                 <TagsInput
                   tags={newTags}
                   onChange={setNewTags}
-                  placeholder="标签：核心 / 投机 / 长持 …"
+                  placeholder={t("标签：核心 / 投机 / 长持 …")}
                 />
                 {addError && (
                   <div className="text-[10px] text-red-300">{addError}</div>
@@ -2039,7 +2039,7 @@ export default function StockGene() {
                 <textarea
                   value={batchInput}
                   onChange={(e) => setBatchInput(e.target.value)}
-                  placeholder="一行一个 ticker（或逗号/空格分隔），最多 30 个"
+                  placeholder={t("一行一个 ticker（或逗号/空格分隔），最多 30 个")}
                   rows={4}
                   disabled={!!batchProgress}
                   className="w-full px-2 py-1 text-[10px] bg-white/5 border border-white/10 rounded text-white placeholder-[#7a8497] focus:outline-none focus:border-emerald-500/50 resize-none font-mono disabled:opacity-50"
@@ -2083,7 +2083,7 @@ export default function StockGene() {
                   onClick={() => setShowBatchForm(true)}
                   disabled={isDemoMode}
                   className="flex items-center justify-center gap-1 px-2 py-1.5 text-[11px] rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white border border-white/10 transition disabled:opacity-40 disabled:cursor-not-allowed"
-                  title="批量粘贴 ticker 列表，一键加入 + 双引擎评分"
+                  title={t("批量粘贴 ticker 列表，一键加入 + 双引擎评分")}
                 >
                   <Layers size={11} />
                 </button>

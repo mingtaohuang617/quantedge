@@ -1301,7 +1301,7 @@ export default function Screener10x() {
                   ? "bg-cyan-500/20 text-cyan-100 font-medium"
                   : "text-[#a0aec0] hover:text-white"
               }`}
-              title="成长型：超级趋势 + 双层瓶颈 + 卡位公司"
+              title={t("成长型：超级趋势 + 双层瓶颈 + 卡位公司")}
             >
               成长型
             </button>
@@ -1312,7 +1312,7 @@ export default function Screener10x() {
                   ? "bg-amber-500/20 text-amber-100 font-medium"
                   : "text-[#a0aec0] hover:text-white"
               }`}
-              title="价值型：Graham 安全边际 + 估值点位 + 护城河"
+              title={t("价值型：Graham 安全边际 + 估值点位 + 护城河")}
             >
               价值型
             </button>
@@ -1320,7 +1320,7 @@ export default function Screener10x() {
           {isDemoMode && (
             <span
               className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30"
-              title="后端不可用：仅展示内置赛道；筛选 / 添加观察 / AI 草稿需 self-hosted backend"
+              title={t("后端不可用：仅展示内置赛道；筛选 / 添加观察 / AI 草稿需 self-hosted backend")}
             >
               演示模式
             </span>
@@ -1330,7 +1330,7 @@ export default function Screener10x() {
           <button
             onClick={() => { reloadWatchlist(); reloadUniverseStats(); runScreen(); }}
             className="flex items-center gap-1 px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white transition border border-white/10"
-            title="刷新"
+            title={t("刷新")}
           >
             <RefreshCw size={10} /> 刷新
           </button>
@@ -1420,11 +1420,11 @@ export default function Screener10x() {
             <div className="flex flex-wrap items-center gap-1.5">
               {presets.map(p => (
                 <span key={p.id} className={`group/preset inline-flex items-center gap-1 px-2 py-1 rounded-lg border text-[10px] transition ${p.id === activePresetId ? "bg-indigo-500/20 border-indigo-400/40 text-indigo-100" : "bg-white/[0.03] border-white/10 text-[#a0aec0] hover:bg-white/[0.06]"}`}>
-                  <button onClick={() => applyPreset(p)} className="font-medium" title="应用此预设">{p.name}</button>
-                  <button onClick={() => deletePreset(p.id)} className="opacity-0 group-hover/preset:opacity-60 hover:opacity-100 transition" title="删除预设">×</button>
+                  <button onClick={() => applyPreset(p)} className="font-medium" title={t("应用此预设")}>{p.name}</button>
+                  <button onClick={() => deletePreset(p.id)} className="opacity-0 group-hover/preset:opacity-60 hover:opacity-100 transition" title={t("删除预设")}>×</button>
                 </span>
               ))}
-              <button onClick={saveCurrentPreset} className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-dashed border-white/15 text-[10px] text-[#7a8497] hover:text-white hover:border-white/30 transition" title="把当前赛道 + 筛选条件存为预设">
+              <button onClick={saveCurrentPreset} className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-dashed border-white/15 text-[10px] text-[#7a8497] hover:text-white hover:border-white/30 transition" title={t("把当前赛道 + 筛选条件存为预设")}>
                 <Plus size={10} /> 存为预设
               </button>
             </div>
@@ -1508,7 +1508,7 @@ export default function Screener10x() {
               <button
                 onClick={clearSort}
                 className="text-[9px] px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-200 border border-cyan-500/30 hover:bg-cyan-500/25 transition flex items-center gap-0.5"
-                title="清除排序 — 回到默认（市值升序 + AI 排序覆盖）"
+                title={t("清除排序 — 回到默认（市值升序 + AI 排序覆盖）")}
               >
                 <X size={9} /> 排序：{sortKey}{sortDir === "desc" ? "↓" : "↑"}
               </button>
@@ -1536,7 +1536,7 @@ export default function Screener10x() {
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="搜索 ticker / 名称"
+                placeholder={t("搜索 ticker / 名称")}
                 className="pl-5 pr-2 py-1 text-[10px] bg-white/5 border border-white/10 rounded text-white placeholder-[#7a8497] focus:outline-none focus:border-indigo-500/50"
               />
             </div>
@@ -1586,7 +1586,7 @@ export default function Screener10x() {
 
             {/* 筛选条件：成长型 = 市值上限；价值型 = 5 维财务 */}
             {activeStrategy === "growth" ? (
-              <label className="flex items-center gap-1 text-[10px] text-[#a0aec0]" title="市值上限（B）— 成长型偏小市值卡位">
+              <label className="flex items-center gap-1 text-[10px] text-[#a0aec0]" title={t("市值上限（B）— 成长型偏小市值卡位")}>
                 max
                 <input
                   type="number"
@@ -1614,7 +1614,7 @@ export default function Screener10x() {
             {/* 精严 toggle */}
             <label
               className="flex items-center gap-1 text-[10px] text-[#a0aec0] cursor-pointer"
-              title="精严：仅匹配明确赛道关键词（光通信/硅光/AI/HBM）。宽泛（默认）：扩展到通讯设备/应用软件等大池，覆盖广但有噪音。"
+              title={t("精严：仅匹配明确赛道关键词（光通信/硅光/AI/HBM）。宽泛（默认）：扩展到通讯设备/应用软件等大池，覆盖广但有噪音。")}
             >
               <input
                 type="checkbox"
@@ -1675,7 +1675,7 @@ export default function Screener10x() {
                 onClick={handleAiPipeline}
                 disabled={aiPipelineState.loading || aiRankingState.loading || isDemoMode || selectedTrends.length === 0 || candidates.length === 0}
                 className="text-[10px] px-2 py-1 rounded bg-violet-500/20 border border-violet-400/35 text-violet-200 hover:bg-violet-500/30 transition disabled:opacity-40"
-                title="重新运行 AI Pipeline"
+                title={t("重新运行 AI Pipeline")}
               >
                 {t('重新运行 →')}
               </button>
@@ -1741,7 +1741,7 @@ export default function Screener10x() {
                   <button
                     onClick={() => setAiMatchResult(null)}
                     className="ml-auto text-[#7a8497] hover:text-white p-0.5 rounded hover:bg-white/5 transition"
-                    title="关闭"
+                    title={t("关闭")}
                   >
                     <X size={11} />
                   </button>
@@ -1790,7 +1790,7 @@ export default function Screener10x() {
                     <button
                       onClick={() => setMaxMcapInput(5000)}
                       className="px-2 py-0.5 text-[10px] rounded bg-cyan-500/15 text-cyan-200 border border-cyan-500/30 hover:bg-cyan-500/25 transition"
-                      title="把市值上限放到 5000B（含全部大市值）"
+                      title={t("把市值上限放到 5000B（含全部大市值）")}
                     >
                       市值放宽到 5000B
                     </button>
@@ -1799,7 +1799,7 @@ export default function Screener10x() {
                     <button
                       onClick={() => setPrecise(false)}
                       className="px-2 py-0.5 text-[10px] rounded bg-cyan-500/15 text-cyan-200 border border-cyan-500/30 hover:bg-cyan-500/25 transition"
-                      title="关闭精严模式（用宽泛关键词扩大候选池）"
+                      title={t("关闭精严模式（用宽泛关键词扩大候选池）")}
                     >
                       关闭精严模式
                     </button>
@@ -1808,7 +1808,7 @@ export default function Screener10x() {
                     <button
                       onClick={() => setIncludeETF(true)}
                       className="px-2 py-0.5 text-[10px] rounded bg-cyan-500/15 text-cyan-200 border border-cyan-500/30 hover:bg-cyan-500/25 transition"
-                      title="包含 ETF（如 SOXX、SMH 等行业 ETF）"
+                      title={t("包含 ETF（如 SOXX、SMH 等行业 ETF）")}
                     >
                       包含 ETF
                     </button>
@@ -1817,7 +1817,7 @@ export default function Screener10x() {
                     <button
                       onClick={() => setValueFilters(DEFAULT_VALUE_FILTERS)}
                       className="px-2 py-0.5 text-[10px] rounded bg-cyan-500/15 text-cyan-200 border border-cyan-500/30 hover:bg-cyan-500/25 transition"
-                      title="清空 5 维筛选保留赛道"
+                      title={t("清空 5 维筛选保留赛道")}
                     >
                       清空 5 维筛选
                     </button>
@@ -1826,7 +1826,7 @@ export default function Screener10x() {
                     <button
                       onClick={() => setMarkets(["US", "HK", "CN"])}
                       className="px-2 py-0.5 text-[10px] rounded bg-cyan-500/15 text-cyan-200 border border-cyan-500/30 hover:bg-cyan-500/25 transition"
-                      title="启用全部 3 个市场（US / HK / CN）"
+                      title={t("启用全部 3 个市场（US / HK / CN）")}
                     >
                       启用全部市场
                     </button>
@@ -1854,7 +1854,7 @@ export default function Screener10x() {
                       <>
                         <SortHeader label="PE" sortKey="pe" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} />
                         <SortHeader label="PB" sortKey="pb" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} />
-                        <SortHeader label="股息" sortKey="dividend_yield" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} title="按股息率排序" />
+                        <SortHeader label="股息" sortKey="dividend_yield" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} title={t("按股息率排序")} />
                         <SortHeader label="ROE" sortKey="roe" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} />
                       </>
                     )}
@@ -1869,7 +1869,7 @@ export default function Screener10x() {
                     {Object.keys(aiMatchMap).length > 0 && (
                       <th
                         className="text-center px-2 py-1.5 text-amber-300"
-                        title="AI 一键校验：是否真的属于勾选的赛道（绿=是 / 红=否）"
+                        title={t("AI 一键校验：是否真的属于勾选的赛道（绿=是 / 红=否）")}
                       >AI {t('校验')}</th>
                     )}
                     <th className="text-left px-2 py-1.5">{t('命中')}</th>
@@ -1899,7 +1899,7 @@ export default function Screener10x() {
                             <button
                               onClick={() => setDetailItem(c)}
                               className="hover:text-cyan-300 hover:underline focus:outline-none focus:text-cyan-300"
-                              title="点击查看详情"
+                              title={t("点击查看详情")}
                             >
                               {c.ticker}
                             </button>
@@ -1991,7 +1991,7 @@ export default function Screener10x() {
                             <button
                               onClick={() => openAdd(c)}
                               className="flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] rounded bg-indigo-500/15 hover:bg-indigo-500/30 text-indigo-200 border border-indigo-500/40 transition"
-                              title="加入 10x 猎手观察列表（带 thesis / 卡位 / 目标价）"
+                              title={t("加入 10x 猎手观察列表（带 thesis / 卡位 / 目标价）")}
                             >
                               <Plus size={9} /> 观察
                             </button>
@@ -1999,7 +1999,7 @@ export default function Screener10x() {
                               onClick={() => handleAddToGene(c)}
                               disabled={geneAdding === c.ticker}
                               className="flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] rounded bg-emerald-500/15 hover:bg-emerald-500/30 text-emerald-200 border border-emerald-500/40 transition disabled:opacity-40 disabled:cursor-not-allowed"
-                              title="加入股性检测：自动跑 4 引擎评分（趋势/价值/短期/风险）+ 带赛道标签"
+                              title={t("加入股性检测：自动跑 4 引擎评分（趋势/价值/短期/风险）+ 带赛道标签")}
                             >
                               {geneAdding === c.ticker
                                 ? <Loader size={9} className="animate-spin" />
@@ -2061,9 +2061,9 @@ export default function Screener10x() {
               <button
                 onClick={handleExport}
                 disabled={isDemoMode}
-                aria-label="导出观察列表 JSON"
+                aria-label={t("导出观察列表 JSON")}
                 className="flex items-center justify-center w-5 h-5 text-[#a0aec0] hover:text-white hover:bg-white/10 rounded transition disabled:opacity-30 disabled:cursor-not-allowed"
-                title="导出 JSON 备份（含所有观察项 + 自定义赛道）"
+                title={t("导出 JSON 备份（含所有观察项 + 自定义赛道）")}
               >
                 <Download size={11} />
               </button>
@@ -2071,7 +2071,7 @@ export default function Screener10x() {
                 onClick={handleExportCsv}
                 disabled={isDemoMode}
                 className="flex items-center justify-center px-1 h-5 text-[9px] font-mono text-[#a0aec0] hover:text-white hover:bg-white/10 rounded transition disabled:opacity-30 disabled:cursor-not-allowed"
-                title="导出 CSV（Excel 友好，含 BOM 中文不乱码）"
+                title={t("导出 CSV（Excel 友好，含 BOM 中文不乱码）")}
               >
                 CSV
               </button>
@@ -2079,7 +2079,7 @@ export default function Screener10x() {
                 onClick={() => importInputRef.current?.click()}
                 disabled={isDemoMode || importLoading}
                 className="flex items-center justify-center w-5 h-5 text-[#a0aec0] hover:text-white hover:bg-white/10 rounded transition disabled:opacity-30 disabled:cursor-not-allowed"
-                title="从备份文件恢复（merge / replace 可选）"
+                title={t("从备份文件恢复（merge / replace 可选）")}
               >
                 {importLoading ? <Loader size={11} className="animate-spin" /> : <Upload size={11} />}
               </button>
