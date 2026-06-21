@@ -24,7 +24,9 @@ function bestSeries(stock) {
 }
 
 /** 真实派生六维性格 + 标签 + 行为统计。返回 null 表示数据完全不足。 */
-export function deriveCharacter(stock) {
+// t / lang 用于动态拼装文案的 i18n（hint / paragraph 含实时数字，必须在有 t 的地方拼）。
+// label / fit / trait.n / behavioral 保持中文 key，由渲染处 t()（fit 还要中文 includes 判断）。
+export function deriveCharacter(stock, t, lang) {
   if (!stock) return null;
   const prices = bestSeries(stock);
   const beta = Number.isFinite(stock.beta) ? stock.beta : null;
@@ -46,36 +48,42 @@ export function deriveCharacter(stock) {
     {
       k: "vol", n: "波动性",
       v: (betaV != null && rangeV != null) ? clamp01(0.5 * betaV + 0.5 * rangeV) : (betaV != null ? betaV : rangeV),
-      hint: rangeW != null ? `52周振幅 ${(rangeW * 100).toFixed(0)}%${beta != null ? ` · β ${beta.toFixed(2)}` : ""}` : (beta != null ? `β ${beta.toFixed(2)} 推估` : "数据有限"),
+      hint: rangeW != null
+        ? (beta != null
+            ? t('52周振幅 {r}% · β {b}', { r: (rangeW * 100).toFixed(0), b: beta.toFixed(2) })
+            : t('52周振幅 {r}%', { r: (rangeW * 100).toFixed(0) }))
+        : (beta != null ? t('β {b} 推估', { b: beta.toFixed(2) }) : t('数据有限')),
     },
     {
       k: "trend", n: "趋势性",
       v: pos52 != null ? clamp01(0.22 + pos52 * 0.6 + (momentum != null ? Math.sign(momentum) * 0.1 : 0)) : (momentum != null ? clamp01(0.5 + Math.sign(momentum) * 0.2) : null),
-      hint: pos52 != null ? `52周位置 ${Math.round(pos52 * 100)}% · ${pos52 >= 0.7 ? "贴近高位/上行" : pos52 <= 0.3 ? "贴近低位/下行" : "区间中部"}` : (momentum != null ? `动量 ${momentum >= 0 ? "+" : ""}${momentum.toFixed(0)}` : "数据有限"),
+      hint: pos52 != null
+        ? t('52周位置 {p}% · {s}', { p: Math.round(pos52 * 100), s: pos52 >= 0.7 ? t('贴近高位/上行') : pos52 <= 0.3 ? t('贴近低位/下行') : t('区间中部') })
+        : (momentum != null ? t('动量 {m}', { m: (momentum >= 0 ? "+" : "") + momentum.toFixed(0) }) : t('数据有限')),
     },
     {
       k: "liq", n: "流动性",
       v: dollarVol > 0 ? clamp01((Math.log10(dollarVol) - 6) / 4) : null,
-      hint: dollarVol > 0 ? `日均成交 ~$${dollarVol >= 1e9 ? (dollarVol / 1e9).toFixed(1) + "B" : (dollarVol / 1e6).toFixed(0) + "M"}` : "成交额未知",
+      hint: dollarVol > 0 ? t('日均成交 ~${v}', { v: dollarVol >= 1e9 ? (dollarVol / 1e9).toFixed(1) + "B" : (dollarVol / 1e6).toFixed(0) + "M" }) : t('成交额未知'),
     },
     {
       k: "rev", n: "均值回归",
       v: pos52 != null ? clamp01(0.72 - Math.abs(pos52 - 0.5) * 1.25) : null,
-      hint: pos52 != null ? (Math.abs(pos52 - 0.5) <= 0.18 ? "区间震荡为主" : "趋势单边、少回补") : "数据有限",
+      hint: pos52 != null ? (Math.abs(pos52 - 0.5) <= 0.18 ? t('区间震荡为主') : t('趋势单边、少回补')) : t('数据有限'),
     },
     {
       k: "event", n: "事件敏感",
       v: (rangeW != null && beta != null) ? clamp01(0.3 + (rangeW - beta * 0.35) * 0.8) : rangeV,
-      hint: (rangeW != null && beta != null) ? `振幅超 β 预期 ${((rangeW - beta * 0.35) * 100).toFixed(0)}pp · ${rangeW - beta * 0.35 > 0.3 ? "个股事件多" : "随大盘为主"}` : "数据有限",
+      hint: (rangeW != null && beta != null) ? t('振幅超 β 预期 {pp}pp · {s}', { pp: ((rangeW - beta * 0.35) * 100).toFixed(0), s: rangeW - beta * 0.35 > 0.3 ? t('个股事件多') : t('随大盘为主') }) : t('数据有限'),
     },
     {
       k: "beta", n: "β 弹性",
       v: betaV,
-      hint: beta != null ? `β ${beta.toFixed(2)} · ${beta >= 1.3 ? "放大市场波动" : beta <= 0.8 ? "防御抗跌" : "贴近大盘"}` : "β 未知",
+      hint: beta != null ? t('β {b} · {s}', { b: beta.toFixed(2), s: beta >= 1.3 ? t('放大市场波动') : beta <= 0.8 ? t('防御抗跌') : t('贴近大盘') }) : t('β 未知'),
     },
   ];
 
-  const get = (k) => traits.find((t) => t.k === k)?.v;
+  const get = (k) => traits.find((tr) => tr.k === k)?.v;
   const vol = get("vol"), trend = get("trend"), rev = get("rev"), event = get("event"), bta = get("beta");
 
   // ── 性格标签（结论先行）──
@@ -91,12 +99,15 @@ export function deriveCharacter(stock) {
   else if ((rev ?? 0) >= 0.55) { label = "区间 · 震荡型"; tone = "#5EE6E6"; fit = "适合高抛低吸 / 网格"; }
   else { label = "均衡 · 中性型"; tone = "#A0AEC0"; fit = "无明显偏向 · 顺大盘"; }
 
-  // ── 画像段落（由真实字段拼装）──
+  // ── 画像段落（由真实字段拼装；t 模板化以支持英文）──
+  // fit 仍是中文 key（下面 includes 判断依赖中文），渲染处再 t()
   const parts = [];
-  if (rangeW != null) parts.push(`52 周振幅约 ${(rangeW * 100).toFixed(0)}%`);
-  if (beta != null) parts.push(`β ${beta.toFixed(2)}`);
-  if (pos52 != null) parts.push(pos52 >= 0.7 ? "现价贴近 52 周高位、趋势偏强" : pos52 <= 0.3 ? "现价贴近 52 周低位" : "处于 52 周区间中部");
-  const paragraph = `${parts.join("，") || "可用数据有限"}。${fit.includes("止损") ? "适合顺势 + 严格止损，不适合网格抄底。" : (fit.includes("网格") || fit.includes("区间") || fit.includes("高抛低吸")) ? "适合区间 / 网格，趋势单边段需谨慎。" : "依市场风格灵活应对。"}`;
+  if (rangeW != null) parts.push(t('52 周振幅约 {r}%', { r: (rangeW * 100).toFixed(0) }));
+  if (beta != null) parts.push(t('β {b}', { b: beta.toFixed(2) }));
+  if (pos52 != null) parts.push(pos52 >= 0.7 ? t('现价贴近 52 周高位、趋势偏强') : pos52 <= 0.3 ? t('现价贴近 52 周低位') : t('处于 52 周区间中部'));
+  const tail = fit.includes("止损") ? t('适合顺势 + 严格止损，不适合网格抄底。') : (fit.includes("网格") || fit.includes("区间") || fit.includes("高抛低吸")) ? t('适合区间 / 网格，趋势单边段需谨慎。') : t('依市场风格灵活应对。');
+  const body = parts.join(lang === 'en' ? ', ' : '，') || t('可用数据有限');
+  const paragraph = lang === 'en' ? `${body}. ${tail}` : `${body}。${tail}`;
 
   // ── 行为统计卡 ──
   const behavioral = [
@@ -127,8 +138,9 @@ function cheapVector(s) {
 
 /** 六维性格雷达 SVG */
 function TraitRadar({ traits, tone }) {
+  const { t } = useLang();
   const cx = 130, cy = 120, R = 88;
-  const vals = traits.map((t) => (t.v == null ? 0 : t.v));
+  const vals = traits.map((tr) => (tr.v == null ? 0 : tr.v));
   const pt = (i, r) => {
     const a = -Math.PI / 2 + (i * Math.PI) / 3;
     return [cx + Math.cos(a) * R * r, cy + Math.sin(a) * R * r];
@@ -139,17 +151,19 @@ function TraitRadar({ traits, tone }) {
       {[0.25, 0.5, 0.75, 1].map((r) => (
         <polygon key={r} points={poly([r, r, r, r, r, r])} fill="none" stroke="rgba(255,255,255,.06)" strokeWidth="1" />
       ))}
-      {traits.map((t, i) => { const [x, y] = pt(i, 1); return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="rgba(255,255,255,.06)" />; })}
+      {traits.map((tr, i) => { const [x, y] = pt(i, 1); return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="rgba(255,255,255,.06)" />; })}
       <polygon points={poly(vals)} fill={`${tone}28`} stroke={tone} strokeWidth="1.8" />
-      {traits.map((t, i) => { const [x, y] = pt(i, t.v == null ? 0 : t.v); return <circle key={i} cx={x} cy={y} r="3" fill={tone} stroke="#08090E" strokeWidth="1" />; })}
-      {traits.map((t, i) => { const [x, y] = pt(i, 1.22); return <text key={i} x={x} y={y} textAnchor="middle" dominantBaseline="middle" fontSize="9.5" fontWeight="600" fill="#C9CDDA">{t.n}</text>; })}
+      {traits.map((tr, i) => { const [x, y] = pt(i, tr.v == null ? 0 : tr.v); return <circle key={i} cx={x} cy={y} r="3" fill={tone} stroke="#08090E" strokeWidth="1" />; })}
+      {traits.map((tr, i) => { const [x, y] = pt(i, 1.22); return <text key={i} x={x} y={y} textAnchor="middle" dominantBaseline="middle" fontSize="9.5" fontWeight="600" fill="#C9CDDA">{t(tr.n)}</text>; })}
     </svg>
   );
 }
 
 export default function CharacterProfile({ stock, allStocks, onPick }) {
-  const { t } = useLang();
-  const char = useMemo(() => deriveCharacter(stock), [stock]);
+  const { t, lang } = useLang();
+  // 动态拼装的 hint / paragraph 已在 deriveCharacter 内用 t 模板化；
+  // lang 进 deps 以便切换语言时重算（t 随 lang 同步变化）。
+  const char = useMemo(() => deriveCharacter(stock, t, lang), [stock, lang]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 相似性格标的：用轻量向量在全池找最近
   const peers = useMemo(() => {
@@ -169,7 +183,7 @@ export default function CharacterProfile({ stock, allStocks, onPick }) {
   if (!stock) {
     return (
       <div className="p-3 text-[10px] text-[#7a8497] border-b border-white/8">
-        性格档案需行情数据 — 该标的不在已加载的行情池中
+        {t('性格档案需行情数据 — 该标的不在已加载的行情池中')}
       </div>
     );
   }
@@ -186,7 +200,7 @@ export default function CharacterProfile({ stock, allStocks, onPick }) {
         </span>
         <span className="text-[10px] px-2 py-1 rounded-md border" style={{ color: char.tone, background: `${char.tone}14`, borderColor: `${char.tone}33` }}>{t(char.fit)}</span>
       </div>
-      <p className="font-serif text-[12.5px] leading-relaxed text-[#c9cdda] mb-3" style={{ maxWidth: 600 }}>{t(char.paragraph)}</p>
+      <p className="font-serif text-[12.5px] leading-relaxed text-[#c9cdda] mb-3" style={{ maxWidth: 600 }}>{char.paragraph}</p>
 
       {/* 雷达 + 人话解读 */}
       <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-3 mb-3">
@@ -202,7 +216,7 @@ export default function CharacterProfile({ stock, allStocks, onPick }) {
                 <div className="h-[5px] bg-white/[0.05] rounded-full overflow-hidden mb-1">
                   {tr.v != null && <div className="h-full rounded-full" style={{ width: `${tr.v * 100}%`, background: tr.v >= 0.7 ? "linear-gradient(90deg,#F5B53C,#FFD580)" : tr.v >= 0.4 ? "linear-gradient(90deg,#6366F1,#818CF8)" : "linear-gradient(90deg,#1ED395,#5EE6E6)" }} />}
                 </div>
-                <span className="text-[9px] text-[#7a8497]">{t(tr.hint)}</span>
+                <span className="text-[9px] text-[#7a8497]">{tr.hint}</span>
               </div>
               <span className="text-[13px] font-mono font-bold text-right" style={{ color: tr.v == null ? "#5a6477" : tr.v >= 0.7 ? "#F5B53C" : "#c9cdda" }}>{tr.v == null ? "—" : Math.round(tr.v * 100)}</span>
             </div>

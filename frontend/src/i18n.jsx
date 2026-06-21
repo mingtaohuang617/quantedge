@@ -70,6 +70,33 @@ const toTW = (text) => {
 
 // ─── English Translation Dictionary ─────────────────────────
 const EN = {
+  // ── i18n 盲区 B：性格档案动态文案（CharacterProfile / StockGene 移动端档案）──
+  // 含 {占位符} 的为模板键，t(key, params) 注入实时数字；$ 为字面货币符。
+  '52周振幅 {r}% · β {b}': '52w range {r}% · β {b}',
+  '52周振幅 {r}%': '52w range {r}%',
+  'β {b} 推估': 'β {b} (est.)',
+  '52周位置 {p}% · {s}': '52w position {p}% · {s}',
+  '贴近高位/上行': 'Near highs / uptrend',
+  '贴近低位/下行': 'Near lows / downtrend',
+  '动量 {m}': 'Momentum {m}',
+  '日均成交 ~${v}': 'Avg turnover ~${v}',
+  '振幅超 β 预期 {pp}pp · {s}': 'Range exceeds β-implied by {pp}pp · {s}',
+  'β {b} · {s}': 'β {b} · {s}',
+  '52 周振幅约 {r}%': '52-week range ≈ {r}%',
+  'β {b}': 'β {b}',
+  '现价贴近 52 周高位、趋势偏强': 'Price near 52-week high, trend leaning strong',
+  '现价贴近 52 周低位': 'Price near 52-week low',
+  '处于 52 周区间中部': 'Mid-range within the 52-week band',
+  '适合顺势 + 严格止损，不适合网格抄底。': 'Suits trend-following + tight stops; not grid bottom-fishing.',
+  '适合区间 / 网格，趋势单边段需谨慎。': 'Suits range / grid; caution in one-way trend legs.',
+  '依市场风格灵活应对。': 'Adapt flexibly to the market regime.',
+  '可用数据有限': 'Limited data available',
+  '性格档案需行情数据 — 该标的不在已加载的行情池中': 'Character profile needs market data — this ticker isn’t in the loaded quote pool',
+  '评分中…': 'Scoring…',
+  '重新评分': 'Re-score',
+  '未找到该标的': 'Ticker not found',
+  '性格相似的标的 · 横滑': 'Similar-character tickers · swipe',
+  '匹配 {n}%': 'Match {n}%',
   // ── a11y A2：其余组件 title / aria / placeholder + default props ──
   '清空 5 维筛选（保留赛道）': 'Clear the 5-factor filters (keep trends)',
   'PE 上限（< 0 视为亏损一律剔除）': 'PE ceiling (< 0 treated as loss, always excluded)',
