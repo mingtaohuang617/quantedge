@@ -285,6 +285,8 @@
 .light .bg-\[\#0f1019\] { background-color: var(--bg-overlay) !important; }
 /* v7 浅色：渐变"金属数字"（白→浅色 + 透明填充）在白底会看不见 → 浅色下改回实色深字（保持可读） */
 .light .num-gradient { background: none !important; -webkit-text-fill-color: var(--fg-0) !important; color: var(--fg-0) !important; }
+/* v7 浅色：语义色渐变数字（绿/红/温度）—— 浅色下去掉透明填充、显示元素自身的实色 color（语义色），不丢色 */
+.light .num-gradient-keep { background: none !important; -webkit-text-fill-color: currentColor !important; }
 /* 半透明白文字（玻璃反色） */
 .light .text-white\/80 { color: var(--text-primary) !important; }
 .light .text-white\/10 { color: rgba(15, 23, 42, 0.15) !important; }
