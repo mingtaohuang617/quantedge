@@ -829,7 +829,7 @@ export default function MacroDashboard() {
             return (
               <span
                 className={`text-[10px] px-2 py-0.5 rounded-full border font-mono ${st.cls}`}
-                title={`线上为静态 snapshot · 生成于 ${macroSnapshot.generated_at.slice(0,10)}${st.days != null ? `（${st.days} 天前）` : ""}。\n本地跑 backend/export_macro_snapshot.py 重新打包后 commit + push 才会更新。`}
+                title={t('线上为静态 snapshot · 生成于 {date}{ago}。\n本地跑 backend/export_macro_snapshot.py 重新打包后 commit + push 才会更新。', { date: macroSnapshot.generated_at.slice(0,10), ago: st.days != null ? t('（{n} 天前）', { n: st.days }) : "" })}
               >
                 <span className="mr-1">{st.icon}</span>
                 snapshot · {macroSnapshot.generated_at.slice(0, 10)} · {t(st.label)}

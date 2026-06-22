@@ -124,8 +124,18 @@ _EN_DIRECTIVE = (
     "verbatim (do NOT translate, rename, or remove keys or markers) — only the natural-language "
     "text inside them must be in English."
 )
+_TW_DIRECTIVE = (
+    "\n\n[輸出語言＝繁體中文] 請用繁體中文（台灣用語）輸出所有自然語言內容，"
+    "但保持輸出結構不變：JSON 鍵名與【主要矛盾】【關鍵觀察】【風險/機會】等結構標記一律原樣保留"
+    "（不要翻譯或刪除鍵名與標記），只翻譯其中的文字內容。"
+)
 def _lang_wrap(prompt: str, lang: str) -> str:
-    return prompt + _EN_DIRECTIVE if (lang or "zh").lower().startswith("en") else prompt
+    l = (lang or "zh").lower()
+    if l.startswith("en"):
+        return prompt + _EN_DIRECTIVE
+    if l.startswith("zh-tw") or l.startswith("zh-hant") or l == "zh_tw":
+        return prompt + _TW_DIRECTIVE
+    return prompt
 
 
 def summary(stock: dict, ttl_seconds: int = 3600, lang: str = "zh", force: bool = False) -> dict:

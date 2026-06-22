@@ -844,7 +844,7 @@ export default function StockGene() {
       if (inField) return;
       if (e.key === "/") {
         e.preventDefault();
-        document.querySelector('input[placeholder*="过滤"]')?.focus();
+        document.querySelector('input[data-sg-filter]')?.focus();
         return;
       }
       if (e.key === "j" || e.key === "k" || e.key === "ArrowDown" || e.key === "ArrowUp") {
@@ -1584,7 +1584,7 @@ export default function StockGene() {
           <button
             onClick={() => setShowWeightsPanel(true)}
             className="flex items-center justify-center w-7 h-7 rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white transition border border-white/10"
-            title={`综合分权重：${ENGINE_IDS.map(id => `${eng(id).short}${weights[id]}`).join("/")}`}
+            title={t('综合分权重：{w}', { w: ENGINE_IDS.map(id => `${eng(id).short}${weights[id]}`).join("/") })}
           >
             <Sliders size={11} />
           </button>
@@ -1765,6 +1765,7 @@ export default function StockGene() {
               <div className="relative">
                 <Search size={9} className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[#7a8497]" />
                 <input
+                  data-sg-filter
                   value={filterText}
                   onChange={(e) => setFilterText(e.target.value)}
                   placeholder={t("过滤：ticker / 名称 / 行业")}
@@ -1884,11 +1885,13 @@ export default function StockGene() {
                     {positions[it.ticker] && (
                       <span
                         className="text-[9px] px-1 py-px rounded bg-amber-500/15 text-amber-200 border border-amber-500/40 flex items-center gap-0.5"
-                        title={`持仓 ${positions[it.ticker].net_qty} 股 @ $${positions[it.ticker].avg_cost}（${
-                          positions[it.ticker].unrealized_pnl_pct != null
-                            ? `浮${positions[it.ticker].unrealized_pnl_pct >= 0 ? "盈" : "亏"} ${positions[it.ticker].unrealized_pnl_pct.toFixed(1)}%`
-                            : "—"
-                        }）`}
+                        title={t('持仓 {qty} 股 @ ${cost}（{pnl}）', {
+                          qty: positions[it.ticker].net_qty,
+                          cost: positions[it.ticker].avg_cost,
+                          pnl: positions[it.ticker].unrealized_pnl_pct != null
+                            ? t('浮{d} {pct}%', { d: positions[it.ticker].unrealized_pnl_pct >= 0 ? t('盈') : t('亏'), pct: positions[it.ticker].unrealized_pnl_pct.toFixed(1) })
+                            : "—",
+                        })}
                       >
                         <Briefcase size={8} />
                         {t('持仓')}
@@ -1926,7 +1929,7 @@ export default function StockGene() {
                   {composite != null && (
                     <div className="flex items-center gap-1 mt-0.5">
                       <span className={`text-[9px] px-1 py-px rounded border font-mono font-semibold ${cStyle.bg} ${cStyle.border} ${cStyle.text}`}
-                        title={`综合分（按权重 ${ENGINE_IDS.map(id => `${eng(id).short}${weights[id]}`).join("/")}，${scored}/${ENGINE_IDS.length} 引擎有评分）`}>
+                        title={t('综合分（按权重 {w}，{s}/{n} 引擎有评分）', { w: ENGINE_IDS.map(id => `${eng(id).short}${weights[id]}`).join("/"), s: scored, n: ENGINE_IDS.length })}>
                         {t('综合')} {composite}
                       </span>
                       {scored < ENGINE_IDS.length && (
