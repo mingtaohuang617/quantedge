@@ -146,14 +146,14 @@ export default function ValueDCFCalculator({ currentPrice, onApplyTarget }) {
                   }`}
                   title={
                     safety >= 0.33
-                      ? 'Graham 安全边际充足（≥ 33%）'
+                      ? t('Graham 安全边际充足（≥ 33%）')
                       : safety >= 0
-                      ? '当前价 < 内在价值，但安全边际偏薄'
-                      : '当前价 > 内在价值，高估'
+                      ? t('当前价 < 内在价值，但安全边际偏薄')
+                      : t('当前价 > 内在价值，高估')
                   }
                 >
                   <span className="text-[10px]">
-                    {safety >= 0 ? '安全边际' : '高估幅度'}
+                    {safety >= 0 ? t('安全边际') : t('高估幅度')}
                     <span className="text-[9px] text-[#7a8497] ml-1">
                       (当前 {Number(currentPrice).toFixed(2)})
                     </span>

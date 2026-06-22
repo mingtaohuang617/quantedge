@@ -1477,7 +1477,7 @@ export default function StockGene() {
                   className={`px-2 py-0.5 text-[10px] rounded transition ${
                     active ? `${cfg.activeBg} ${cfg.activeText} font-medium` : "text-[#a0aec0] hover:text-white"
                   }`}
-                  title={`${cfg.framework}（${cfg.featureCount} 维）`}
+                  title={t('{fw}（{n} 维）', { fw: cfg.framework, n: cfg.featureCount })}
                 >
                   {cfg.label}
                 </button>
@@ -1501,7 +1501,7 @@ export default function StockGene() {
             onClick={handleScoreAll}
             disabled={isDemoMode || batchScoring || items.length === 0}
             className="flex items-center gap-1 px-2 py-1 rounded bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-200 border border-emerald-500/40 transition disabled:opacity-40 disabled:cursor-not-allowed"
-            title={`对所有观察项跑${eng(engine).framework}评分`}
+            title={t('对所有观察项跑 {fw} 评分', { fw: eng(engine).framework })}
           >
             {batchScoring ? <Loader size={11} className="animate-spin" /> : <Sparkles size={11} />}
             {t('批量评分')}
@@ -1564,7 +1564,7 @@ export default function StockGene() {
           <button
             onClick={handleOpenAlerts}
             className="relative flex items-center justify-center w-7 h-7 rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white transition border border-white/10"
-            title={`评分变化预警（${alerts.length} 条，${unreadAlertsCount} 未读）`}
+            title={t('评分变化预警（{n} 条，{u} 未读）', { n: alerts.length, u: unreadAlertsCount })}
           >
             <Bell size={11} />
             {unreadAlertsCount > 0 && (

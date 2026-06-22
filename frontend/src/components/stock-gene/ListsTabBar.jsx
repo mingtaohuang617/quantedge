@@ -23,7 +23,7 @@ export function ListsTabBar({ lists, activeId, onSelect, onCreate, onRename, onD
                   ? `${c.active} ${c.border}`
                   : "bg-white/[0.02] border-white/8 text-[#a0aec0] hover:text-white hover:bg-white/5"
               }`}
-              title={`切换到 ${l.name}（${count} 只）`}
+              title={t('切换到 {name}（{n} 只）', { name: l.name, n: count })}
             >
               <span>{l.name}</span>
               <span className="text-[9px] opacity-70 font-mono">{count}</span>

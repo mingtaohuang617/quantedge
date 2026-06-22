@@ -70,7 +70,7 @@ export function ScoreDetail({
             onClick={onRescore}
             disabled={scoring}
             className={`flex items-center gap-1 px-2 py-1 text-[10px] rounded border transition disabled:opacity-40 disabled:cursor-not-allowed ${cfg.btnBg}`}
-            title={`重新跑${engineLabel}评分（${cfg.featureCount} 个特征）`}
+            title={t('重新跑 {engine} 评分（{n} 个特征）', { engine: engineLabel, n: cfg.featureCount })}
           >
             {scoring ? <Loader size={10} className="animate-spin" /> : <Sparkles size={10} />}
             {r ? `重新评分（${engineLabel}）` : `立即评分（${engineLabel}）`}
