@@ -5,7 +5,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, useContext } from "react";
 import { LineChart, Line, AreaChart, Area, Bar, Brush, Customized, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ComposedChart, ReferenceLine } from "recharts";
 import { Activity, ArrowDownRight, ArrowUpRight, Briefcase, Calendar, Check, ChevronDown, ChevronRight, Clock, Database, Eye, Filter, GripVertical, Info, Layers, Loader, Maximize2, Minus, Plus, RefreshCw, Search, Settings, Star, Trash2, TrendingUp, X, Zap, ArrowLeftRight } from "lucide-react";
-import { searchTickers as standaloneSearch, fetchRangePrices, STOCK_CN_NAMES, STOCK_CN_DESCS } from "../standalone.js";
+import { searchTickers as standaloneSearch, fetchRangePrices, STOCK_CN_NAMES, STOCK_CN_DESCS, STOCK_EN_DESCS } from "../standalone.js";
 import { Z_ELEVATED } from "../lib/zIndex.js";
 import { useLang, isZh, localeFor, hasCJK, enFallback } from "../i18n.jsx";
 import { STOCKS } from "../data.js";
@@ -477,7 +477,7 @@ const CompareModal = ({ open, onClose, stocks }) => {
             <h2 className="text-sm font-semibold text-white">{t('标的对比')}</h2>
             <span className="text-[10px] text-[#a0aec0]">{stocks.length}</span>
           </div>
-          <button onClick={onClose} aria-label="关闭对比" className="text-[#a0aec0] hover:text-white transition-colors p-1 rounded hover:bg-white/10">
+          <button onClick={onClose} aria-label={t("关闭对比")} className="text-[#a0aec0] hover:text-white transition-colors p-1 rounded hover:bg-white/10">
             <X size={16} />
           </button>
         </div>
@@ -2542,8 +2542,9 @@ const ScoringDashboard = () => {
               </div>
               <p className="text-xs text-[#a0aec0] leading-relaxed mb-2 border-l-2 border-indigo-500/30 pl-2">{(() => {
                 if (isZh(lang)) return t(STOCK_CN_DESCS[sel.ticker] || sel.descriptionCN || sel.description);
-                // 英文模式：如果 description 是中文（data.js 里很多 ETF 描述只有中文），用英文公司名兜底
-                const enDesc = sel.descriptionEN || sel.description;
+                // 英文模式：优先用 STOCK_EN_DESCS（与 STOCK_CN_DESCS 一一对应的英文描述），
+                // 否则退到 data 自带英文描述；都没有再用英文公司名兜底（不显示中文）。
+                const enDesc = STOCK_EN_DESCS[sel.ticker] || sel.descriptionEN || sel.description;
                 if (enDesc && !hasCJK(enDesc)) return enDesc;
                 return sel.name || sel.ticker;
               })()}</p>

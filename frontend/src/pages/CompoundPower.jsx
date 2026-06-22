@@ -143,7 +143,7 @@ function ButtonGroup({ options, value, onChange, getLabel, getKey, warningOf, ar
             title={warn || ""}
           >
             {getLabel(opt)}
-            {warn && <span className="ml-1 text-amber-400" aria-label="风险警示">⚠</span>}
+            {warn && <span className="ml-1 text-amber-400" aria-label={t("风险警示")}>⚠</span>}
           </button>
         );
       })}
@@ -589,7 +589,7 @@ export default function CompoundPower({ onOneClickBacktest = null }) {
           {/* ── 滑块：调整你的计划 ── */}
           <div style={{ padding: "4px 16px" }}>
             <div style={{ fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--fg-3)", marginBottom: 14 }}>
-              调整你的计划
+              {t('调整你的计划')}
             </div>
             {sliderRows.map(({ label, displayValue, sub, value, min, max, step, onChange, lo, hi }) => {
               const pct = max > min ? ((value - min) / (max - min)) * 100 : 0;
@@ -672,7 +672,7 @@ export default function CompoundPower({ onOneClickBacktest = null }) {
                 </ComposedChart>
               </ResponsiveContainer>
               <div style={{ fontSize: 8, textAlign: "center", marginTop: 4, color: "var(--fg-3)" }}>
-                注意后段的陡峭加速 — 这就是复利
+                {t('注意后段的陡峭加速 — 这就是复利')}
               </div>
             </div>
           </div>
@@ -681,7 +681,7 @@ export default function CompoundPower({ onOneClickBacktest = null }) {
           {milestones.length > 0 && (
             <div style={{ padding: "0 16px" }}>
               <div style={{ fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--fg-3)", marginBottom: 12 }}>
-                里程碑
+                {t('里程碑')}
               </div>
               {milestones.map((m, i) => {
                 const isFirst = i === 0;
@@ -961,7 +961,7 @@ export default function CompoundPower({ onOneClickBacktest = null }) {
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-[11px] font-semibold text-white/90 flex items-center gap-1.5">
               <Shield size={13} className="text-sky-400" />
-              风险等级对照（点击切换查看对应策略）
+              {t('风险等级对照（点击切换查看对应策略）')}
             </h3>
             <span className="text-[10px] text-[#a0aec0]">
               当前自动匹配 <span className={ACCENT_CLASS[tierMeta.accent].text}>{tierMeta.label}</span>
@@ -970,7 +970,7 @@ export default function CompoundPower({ onOneClickBacktest = null }) {
                   onClick={() => setTierOverride(null)}
                   className="ml-2 underline hover:text-white"
                 >
-                  恢复自动
+                  {t('恢复自动')}
                 </button>
               )}
             </span>

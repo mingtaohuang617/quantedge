@@ -2,8 +2,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Loader, Search } from "lucide-react";
 import { apiFetch } from "../../quant-platform.jsx";
+import { useLang } from "../../i18n.jsx";
 
 export function TickerSearchBox({ ticker, onTickerChange, market, onMarketChange, onPick, existingTickers }) {
+  const { t } = useLang();
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
@@ -74,7 +76,7 @@ export function TickerSearchBox({ ticker, onTickerChange, market, onMarketChange
             onChange={(e) => onTickerChange(e.target.value)}
             onFocus={() => results.length > 0 && setOpen(true)}
             onKeyDown={handleKey}
-            placeholder="ticker / 中文名 / 港股代码"
+            placeholder={t("ticker / 中文名 / 港股代码")}
             className="w-full pl-5 pr-7 py-1 text-[10px] bg-white/5 border border-white/10 rounded text-white placeholder-[#7a8497] focus:outline-none focus:border-emerald-500/50"
             autoFocus
             autoComplete="off"
@@ -111,7 +113,7 @@ export function TickerSearchBox({ ticker, onTickerChange, market, onMarketChange
                   <span className="font-mono text-[11px] text-white">{r.symbol}</span>
                   <span className="text-[9px] text-[#7a8497]">{r.market}</span>
                   {already && (
-                    <span className="text-[9px] px-1 py-px rounded bg-amber-500/15 text-amber-300 border border-amber-500/30">已在观察</span>
+                    <span className="text-[9px] px-1 py-px rounded bg-amber-500/15 text-amber-300 border border-amber-500/30">{t('已在观察')}</span>
                   )}
                   {r.price > 0 && (
                     <span className="ml-auto text-[9px] font-mono text-[#a0aec0]">

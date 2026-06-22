@@ -1976,9 +1976,9 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
           style={{ zIndex: Z_ELEVATED }}
         >
           <Sparkles size={12} className="text-indigo-300" />
-          <span className="font-medium">已从复利模块加载组合：</span>
+          <span className="font-medium">{t('已从复利模块加载组合：')}</span>
           <span className="font-mono text-indigo-200">
-            {Object.entries(preloadHint).map(([t, w]) => `${t} ${w}%`).join(" · ")}
+            {Object.entries(preloadHint).map(([tk, w]) => `${tk} ${w}%`).join(" · ")}
           </span>
         </div>
       )}
@@ -2435,7 +2435,7 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
               <div className="rounded-lg px-3 py-2 border border-amber-500/40 bg-amber-500/10 flex items-start gap-2">
                 <AlertTriangle size={14} className="text-amber-400 shrink-0 mt-0.5" />
                 <div className="text-[11px] text-amber-200 leading-relaxed">
-                  <span className="font-semibold">指标异常 · 数据可能有问题</span> —
+                  <span className="font-semibold">{t('指标异常 · 数据可能有问题')}</span> —
                   {' '}{[
                     m.sharpe > 4 && `夏普 ${m.sharpe}`,
                     m.calmar > 20 && `Calmar ${m.calmar}`,

@@ -110,13 +110,13 @@ function FactorCard({ f, onSelect, isStarred, onToggleStar, alert }) {
         </span>
         {missing && (
           <span className="text-[9px] px-1.5 py-0.5 rounded border bg-red-500/10 border-red-400/30 text-red-300"
-                title="无最新数据 — 同步未完成或上游数据源异常">
+                title={t("无最新数据 — 同步未完成或上游数据源异常")}>
             {t("无数据")}
           </span>
         )}
         {insufficientSample && (
           <span className="text-[9px] px-1.5 py-0.5 rounded border bg-slate-500/10 border-slate-400/30 text-slate-300"
-                title="样本不足以计算分位（rolling_window 内有效观测过少）">
+                title={t("样本不足以计算分位（rolling_window 内有效观测过少）")}>
             {t("样本不足")}
           </span>
         )}

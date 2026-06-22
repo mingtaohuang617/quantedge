@@ -10,12 +10,14 @@ import { EngineRadar, ScoreSparkline } from "./viz.jsx";
 import {
   VerdictBadge, FeatureRow, PositionCard, NotesBlock, TagsRow,
 } from "./cards.jsx";
+import { useLang } from "../../i18n.jsx";
 
 export function ScoreDetail({
   item, engine, onRescore, onDelete, scoring, onExplain, explainLoading, narrative,
   editingNotes, notesDraft, setNotesDraft, onEditNotes, onSaveNotes, onCancelNotes, notesSaving,
   onSaveTags, weights, position, lists, onMove,
 }) {
+  const { t } = useLang();
   const cfg = eng(engine);
   const r = engResult(item, engine);
   const engineLabel = cfg.framework;
@@ -52,7 +54,7 @@ export function ScoreDetail({
                 </div>
                 {composite != null && (
                   <div className="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded border bg-white/5 border-white/15">
-                    <span className="text-[9px] text-[#7a8497]">综合</span>
+                    <span className="text-[9px] text-[#7a8497]">{t('综合')}</span>
                     <span className={`text-[11px] font-mono font-bold ${compositeStyle(composite).text}`}>
                       {composite}
                     </span>
@@ -78,10 +80,10 @@ export function ScoreDetail({
               onClick={onExplain}
               disabled={explainLoading}
               className="flex items-center gap-1 px-2 py-1 text-[10px] rounded bg-violet-500/15 hover:bg-violet-500/25 text-violet-200 border border-violet-500/40 transition disabled:opacity-40 disabled:cursor-not-allowed"
-              title="让 DeepSeek 用一段话解读这只票的强项 / 弱项 / 建议"
+              title={t("让 DeepSeek 用一段话解读这只票的强项 / 弱项 / 建议")}
             >
               {explainLoading ? <Loader size={10} className="animate-spin" /> : <Sparkles size={10} />}
-              AI 解读
+              {t('AI 解读')}
             </button>
           )}
           {lists && lists.length > 1 && onMove && (
@@ -89,7 +91,7 @@ export function ScoreDetail({
               value={item.list_id || "default"}
               onChange={(e) => onMove(e.target.value)}
               className="px-1.5 py-1 text-[10px] rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white border border-white/10 transition cursor-pointer"
-              title="移动到其它分组"
+              title={t("移动到其它分组")}
             >
               {lists.map(l => (
                 <option key={l.id} value={l.id}>→ {l.name}</option>
@@ -152,7 +154,7 @@ export function ScoreDetail({
         )}
         {r && r.features && r.features.length === 0 && (
           <div className="p-3 text-[11px] text-[#7a8497] text-center">
-            无法获取历史数据，请检查 ticker 是否正确
+            {t('无法获取历史数据，请检查 ticker 是否正确')}
           </div>
         )}
         {r && r.features && r.features.map((f, idx) => (

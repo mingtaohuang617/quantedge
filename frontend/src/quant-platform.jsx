@@ -1052,8 +1052,8 @@ const UserProfilePanel = ({ open, onClose, theme, toggleTheme, accent, setAccent
                 <input type="text" value={editName} onChange={e => setEditName(e.target.value)} autoFocus
                   onKeyDown={e => { if (e.key === "Enter") handleSaveName(); if (e.key === "Escape") setEditing(false); }}
                   className="bg-white/5 border border-indigo-500/30 rounded-md px-2 py-1 text-sm text-white outline-none focus:border-indigo-500/50 w-36 text-center" />
-                <button onClick={handleSaveName} aria-label="保存名称" className="p-1 rounded text-up hover:bg-up/10"><Check size={14} /></button>
-                <button onClick={() => setEditing(false)} aria-label="取消编辑" className="p-1 rounded text-[#778] hover:bg-white/10"><X size={14} /></button>
+                <button onClick={handleSaveName} aria-label={t("保存名称")} className="p-1 rounded text-up hover:bg-up/10"><Check size={14} /></button>
+                <button onClick={() => setEditing(false)} aria-label={t("取消编辑")} className="p-1 rounded text-[#778] hover:bg-white/10"><X size={14} /></button>
               </div>
             ) : (
               <button onClick={() => { setEditing(true); setEditName(user.name); }}
@@ -1488,7 +1488,7 @@ const TickerManager = ({ open, onClose }) => {
               : <span className="text-[10px] text-down">{t('API 离线 — 使用静态数据')}</span>
             }
           </div>
-          <button onClick={onClose} aria-label="关闭命令面板" className="p-1 rounded-lg hover:bg-white/5 text-[#a0aec0] hover:text-white transition-colors"><X size={16} /></button>
+          <button onClick={onClose} aria-label={t("关闭命令面板")} className="p-1 rounded-lg hover:bg-white/5 text-[#a0aec0] hover:text-white transition-colors"><X size={16} /></button>
         </div>
 
         {/* Tab bar */}
@@ -2626,7 +2626,7 @@ function QuantPlatformInner() {
           <div className="flex items-center gap-2.5 md:gap-3">
             <div className="relative w-7 h-7 md:w-8 md:h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-indigo-500/30">
               <Briefcase size={14} className="text-white drop-shadow-sm" />
-              <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-up border border-deep-base" title="系统在线" />
+              <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-up border border-deep-base" title={t("系统在线")} />
             </div>
             <div className="flex items-center gap-2">
               <div>
@@ -2645,7 +2645,7 @@ function QuantPlatformInner() {
               <Database size={12} />
               <span>{stocks.length}</span>
             </button>
-            <button onClick={() => setShowProfile(true)} className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-white text-[10px] font-bold shadow-sm ring-1 ring-white/10 active:scale-95" title="账户信息">
+            <button onClick={() => setShowProfile(true)} className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-white text-[10px] font-bold shadow-sm ring-1 ring-white/10 active:scale-95" title={t("账户信息")}>
               {(user.name || "U").charAt(0).toUpperCase()}
             </button>
           </div>
@@ -2742,7 +2742,7 @@ function QuantPlatformInner() {
             onRefresh={quickPriceRefresh}
           />
           {/* 用户头像按钮 */}
-          <button onClick={() => setShowProfile(true)} className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-white text-[10px] font-bold shadow-sm hover:shadow-indigo-500/30 hover:shadow-md transition-all btn-tactile ring-1 ring-white/10" title="账户信息">
+          <button onClick={() => setShowProfile(true)} className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-white text-[10px] font-bold shadow-sm hover:shadow-indigo-500/30 hover:shadow-md transition-all btn-tactile ring-1 ring-white/10" title={t("账户信息")}>
             {(user.name || "U").charAt(0).toUpperCase()}
           </button>
         </div>
@@ -2924,7 +2924,7 @@ function QuantPlatformInner() {
             onClick={quickPriceRefresh}
             disabled={priceRefreshing}
             className="flex items-center gap-1 px-2.5 py-1.5 md:px-2 md:py-0.5 rounded-lg md:rounded-md bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white transition-all disabled:opacity-50 active:scale-95 border border-white/5"
-            title="快速刷新价格（Yahoo Finance 直接获取）"
+            title={t("快速刷新价格（Yahoo Finance 直接获取）")}
           >
             <RefreshCw size={10} className={priceRefreshing ? "animate-spin" : ""} />
             {priceRefreshing ? t("刷新中...") : t("刷新")}

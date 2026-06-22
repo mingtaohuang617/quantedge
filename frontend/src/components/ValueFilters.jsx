@@ -17,6 +17,7 @@
 //   - Quick preset chips：一键切常用组合（深度低估 / 高股息 / 质量价值）
 // ─────────────────────────────────────────────────────────────
 import React from "react";
+import { useLang } from "../i18n.jsx";
 
 // 常用价值型筛选预设（数据驱动 UI，便于扩展 / 测试）
 export const VALUE_PRESETS = [
@@ -56,6 +57,7 @@ export function matchesPreset(value, presetFilters) {
 }
 
 export default function ValueFilters({ value, onChange }) {
+  const { t } = useLang();
   const set = (k, v) => onChange({ ...value, [k]: v === "" ? null : v });
   // 通用 numeric input，支持空值清除
   const Input = ({ k, placeholder, title, step }) => (
@@ -91,22 +93,22 @@ export default function ValueFilters({ value, onChange }) {
       })}
       <button
         onClick={() => onChange({ ...EMPTY_FILTERS })}
-        title="清空 5 维筛选（保留赛道）"
+        title={t("清空 5 维筛选（保留赛道）")}
         className="px-1.5 py-0.5 rounded text-[9px] text-[#7a8497] hover:text-white hover:bg-white/10 transition border border-transparent"
       >
-        清空
+        {t('清空')}
       </button>
       <span className="text-[#5a6477]">|</span>
-      <span title="PE 上限（< 0 视为亏损一律剔除）">PE≤</span>
-      <Input k="max_pe" placeholder="25" title="PE 上限" />
-      <span title="PB 上限">PB≤</span>
-      <Input k="max_pb" placeholder="—" title="PB 上限" />
-      <span title="ROE 下限（小数；输入 0.15 = 15%）">ROE≥</span>
-      <Input k="min_roe" placeholder="—" title="ROE 下限（0.15 = 15%）" step="0.01" />
-      <span title="股息率下限（小数；输入 0.04 = 4%）">息≥</span>
-      <Input k="min_dividend_yield" placeholder="—" title="股息率下限（0.04 = 4%）" step="0.005" />
-      <span title="资产负债率上限（A 股）/ 负债权益比上限（美/港股）">D/E≤</span>
-      <Input k="max_debt_to_equity" placeholder="—" title="债务比例上限" />
+      <span title={t("PE 上限（< 0 视为亏损一律剔除）")}>PE≤</span>
+      <Input k="max_pe" placeholder="25" title={t("PE 上限")} />
+      <span title={t("PB 上限")}>PB≤</span>
+      <Input k="max_pb" placeholder="—" title={t("PB 上限")} />
+      <span title={t("ROE 下限（小数；输入 0.15 = 15%）")}>ROE≥</span>
+      <Input k="min_roe" placeholder="—" title={t("ROE 下限（0.15 = 15%）")} step="0.01" />
+      <span title={t('股息率下限（小数；输入 0.04 = 4%）')}>{t('息≥')}</span>
+      <Input k="min_dividend_yield" placeholder="—" title={t("股息率下限（0.04 = 4%）")} step="0.005" />
+      <span title={t("资产负债率上限（A 股）/ 负债权益比上限（美/港股）")}>D/E≤</span>
+      <Input k="max_debt_to_equity" placeholder="—" title={t("债务比例上限")} />
     </div>
   );
 }

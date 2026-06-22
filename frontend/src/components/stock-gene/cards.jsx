@@ -158,7 +158,7 @@ export function PeersTable({ result, onAdd, engine = "trend" }) {
               <button
                 onClick={() => onAdd(it.ticker, "", it.market || "US", it.sector || "")}
                 className="p-0.5 rounded hover:bg-white/10 text-[#a0aec0] hover:text-white transition"
-                title="加入观察列表"
+                title={t("加入观察列表")}
               >
                 <Plus size={11} />
               </button>
@@ -190,13 +190,14 @@ export function PeersTable({ result, onAdd, engine = "trend" }) {
 
 // ─── NotesBlock — 备注卡（hover 编辑铅笔，空态"添加备注"）──────────
 export function NotesBlock({ item, editing, draft, onDraftChange, onEdit, onSave, onCancel, saving }) {
+  const { t } = useLang();
   if (editing) {
     return (
       <div className="mt-2 px-2 py-1.5 bg-amber-500/5 border border-amber-500/30 rounded space-y-1">
         <textarea
           value={draft}
           onChange={(e) => onDraftChange(e.target.value)}
-          placeholder="备注（空字符串可清除）"
+          placeholder={t("备注（空字符串可清除）")}
           rows={3}
           autoFocus
           className="w-full px-1.5 py-1 text-[10px] bg-white/5 border border-white/10 rounded text-[#d0d7e2] focus:outline-none focus:border-amber-500/50 resize-none leading-relaxed"
@@ -214,7 +215,7 @@ export function NotesBlock({ item, editing, draft, onDraftChange, onEdit, onSave
             disabled={saving}
             className="px-2 py-0.5 text-[10px] rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] border border-white/10 disabled:opacity-40"
           >
-            取消
+            {t('取消')}
           </button>
         </div>
       </div>
@@ -226,9 +227,9 @@ export function NotesBlock({ item, editing, draft, onDraftChange, onEdit, onSave
         <span className="whitespace-pre-line">{item.notes}</span>
         <button
           onClick={onEdit}
-          aria-label="编辑备注"
+          aria-label={t("编辑备注")}
           className="absolute top-1 right-1 opacity-0 group-hover/notes:opacity-100 p-0.5 rounded hover:bg-white/10 text-[#a0aec0] hover:text-white transition"
-          title="编辑备注"
+          title={t("编辑备注")}
         >
           <Edit2 size={9} />
         </button>
@@ -239,7 +240,7 @@ export function NotesBlock({ item, editing, draft, onDraftChange, onEdit, onSave
     <button
       onClick={onEdit}
       className="mt-2 px-2 py-1 text-[9px] text-[#7a8497] hover:text-white hover:bg-white/5 rounded transition flex items-center gap-1"
-      title="添加备注"
+      title={t("添加备注")}
     >
       <Edit2 size={9} /> 添加备注
     </button>
@@ -248,6 +249,7 @@ export function NotesBlock({ item, editing, draft, onDraftChange, onEdit, onSave
 
 // ─── TagsRow — 详情面板的紧凑 tags 行（直接增删，自动 PUT 保存）─────
 export function TagsRow({ tags, onChange }) {
+  const { t } = useLang();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(tags);
   useEffect(() => { setDraft(tags); }, [tags]);
@@ -256,7 +258,7 @@ export function TagsRow({ tags, onChange }) {
       <button
         onClick={() => { setDraft([]); setEditing(true); }}
         className="mt-2 px-2 py-1 text-[9px] text-[#7a8497] hover:text-violet-300 hover:bg-violet-500/10 rounded transition flex items-center gap-1"
-        title="添加标签"
+        title={t("添加标签")}
       >
         <Plus size={9} /> 添加标签
       </button>
@@ -265,7 +267,7 @@ export function TagsRow({ tags, onChange }) {
   if (editing) {
     return (
       <div className="mt-2 space-y-1">
-        <TagsInput tags={draft} onChange={setDraft} placeholder="回车 / 逗号 / 空格添加" />
+        <TagsInput tags={draft} onChange={setDraft} placeholder={t("回车 / 逗号 / 空格添加")} />
         <div className="flex items-center gap-1">
           <button
             onClick={async () => { await onChange(draft); setEditing(false); }}
@@ -277,7 +279,7 @@ export function TagsRow({ tags, onChange }) {
             onClick={() => { setDraft(tags); setEditing(false); }}
             className="px-2 py-0.5 text-[10px] rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] border border-white/10"
           >
-            取消
+            {t('取消')}
           </button>
         </div>
       </div>
@@ -293,7 +295,7 @@ export function TagsRow({ tags, onChange }) {
       <button
         onClick={() => { setDraft(tags); setEditing(true); }}
         className="opacity-0 group-hover/tags:opacity-100 transition p-0.5 rounded hover:bg-white/10 text-[#7a8497] hover:text-white"
-        title="编辑标签"
+        title={t("编辑标签")}
       >
         <Edit2 size={9} />
       </button>
