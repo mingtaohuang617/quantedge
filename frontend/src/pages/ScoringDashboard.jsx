@@ -2682,7 +2682,7 @@ const ScoringDashboard = () => {
                 <div className="flex items-center gap-1.5 mb-1">
                   {maSignal && (
                     <span
-                      title={`MA20 = 最近 20 个交易日收盘均价 ${currencySymbol(sel.currency)}${maSignal.ma.toFixed(2)}；现价${maSignal.above ? '在 20 日均线上方' : '在 20 日均线下方'} ${maSignal.gap >= 0 ? '+' : ''}${maSignal.gap.toFixed(1)}%`}
+                      title={t('MA20 = 最近 20 个交易日收盘均价 {sym}{ma}；现价{pos} {gap}', { sym: currencySymbol(sel.currency), ma: maSignal.ma.toFixed(2), pos: maSignal.above ? t('在 20 日均线上方') : t('在 20 日均线下方'), gap: `${maSignal.gap >= 0 ? '+' : ''}${maSignal.gap.toFixed(1)}%` })}
                       className={`inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border ${maSignal.above ? 'text-warn bg-warn/10 border-warn/30' : 'text-[#a0aec0] bg-white/5 border-white/10'}`}
                     >
                       <span className="inline-block w-3" style={{ borderTop: '2px dashed #F5B53C' }} />

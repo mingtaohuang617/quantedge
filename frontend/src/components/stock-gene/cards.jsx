@@ -168,7 +168,7 @@ export function PeersTable({ result, onAdd, engine = "trend" }) {
               {(it.features || []).map((f) => (
                 <div
                   key={f.id}
-                  title={`${f.label}: ${f.pass ? "PASS" : (f.available === false ? "N/A" : "FAIL")} — ${f.value || ""}`}
+                  title={`${t(f.label)}: ${f.pass ? "PASS" : (f.available === false ? "N/A" : "FAIL")} — ${f.value || ""}`}
                   className={`w-3.5 h-3.5 rounded-sm flex items-center justify-center text-[9px] ${
                     f.pass
                       ? "bg-emerald-500/30 text-emerald-200"
