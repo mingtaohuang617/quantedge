@@ -82,6 +82,11 @@ const EN = {
   "合成 IC": "Blended IC",
   "合成 ICIR 超过单因子最佳 {x}": "Blended ICIR beats best single factor {x}",
   "未超过单因子最佳 {x}": "Doesn't beat best single factor {x}",
+  // 含内嵌引号的 UI 串（首批 JSON 翻译被引号截断漏掉的）
+  "点\"生成解读\"让 DeepSeek 用 3 句话总结看点 / 风险 / 估值": "Click \"Generate\" for DeepSeek to summarize highlights / risks / valuation in 3 sentences",
+  "还没有交易记录。点\"录入\"开始追踪持仓。": "No trades yet. Click \"Add\" to start tracking positions.",
+  "还没有观察项 — 从中间候选列表点击 \"观察\" 加入": "No watch items yet — click \"Watch\" in the candidate list to add",
+  "还没有观察项 — 下方\"添加\"按钮加入第一只": "No watch items yet — use the \"Add\" button below to add your first",
   "请先填赛道名": "Please fill in the track name first",
   "后端无响应（DEEPSEEK_API_KEY 未配置或网络问题）": "Backend not responding (DEEPSEEK_API_KEY not configured or network issue)",
   "LLM 生成失败": "LLM generation failed",

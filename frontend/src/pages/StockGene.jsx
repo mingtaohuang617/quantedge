@@ -1851,7 +1851,7 @@ export default function StockGene() {
             {!error && items.length === 0 && !loading && (
               <EmptyState
                 className="h-full flex items-center justify-center text-[11px] text-[#7a8497] p-4 text-center"
-                message='还没有观察项 — 下方"添加"按钮加入第一只'
+                message={t('还没有观察项 — 下方"添加"按钮加入第一只')}
               />
             )}
             {!error && items.length > 0 && sortedItems.length === 0 && (
