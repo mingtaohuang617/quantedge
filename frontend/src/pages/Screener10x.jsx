@@ -2099,7 +2099,7 @@ export default function Screener10x() {
             {items.length === 0 && (
               <EmptyState
                 className="h-full flex items-center justify-center text-[11px] text-[#7a8497] p-4 text-center"
-                message='还没有观察项 — 从中间候选列表点击 "观察" 加入'
+                message={t('还没有观察项 — 从中间候选列表点击 "观察" 加入')}
               />
             )}
             {items.map((it) => (
