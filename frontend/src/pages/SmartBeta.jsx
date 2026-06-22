@@ -566,7 +566,7 @@ export default function SmartBeta() {
                       <span className="flex items-center gap-2">
                         <span style={{ width: 8, height: 8, borderRadius: 2, background: factor.color, display: "inline-block", flexShrink: 0 }} />
                         <span className="font-semibold" style={{ fontSize: 13.5, color: "var(--fg-0)" }}>{t(factor.label)}</span>
-                        <span className="text-[10px]" style={{ color: "var(--fg-3)" }}>{factor.desc}</span>
+                        <span className="text-[10px]" style={{ color: "var(--fg-3)" }}>{t(factor.desc)}</span>
                       </span>
                       <span className="flex items-baseline gap-2">
                         <span className="font-mono text-[9px]" style={{ color: "var(--fg-3)" }}>t {factor.tStat}</span>
@@ -624,7 +624,7 @@ export default function SmartBeta() {
                     <div className="flex justify-between mt-1">
                       <span className="font-mono text-[9px]" style={{ color: "var(--fg-4)" }}>β {beta}</span>
                       <span className="font-mono text-[9px]" style={{ color: tStatNum > 2 ? "var(--up)" : "var(--fg-3)" }}>
-                        {tStatNum > 2 ? "✓ 显著" : "—"}
+                        {tStatNum > 2 ? t("✓ 显著") : "—"}
                       </span>
                     </div>
                   </div>
@@ -852,7 +852,7 @@ export default function SmartBeta() {
               onChange={(e) => setConfig(c => ({ ...c, core_preset: e.target.value }))}
               className="w-full bg-white/[0.03] border border-white/10 rounded px-2 py-1 text-[11px] text-white focus:outline-none focus:border-indigo-500/50"
             >
-              {CORE_PRESETS.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
+              {CORE_PRESETS.map(p => <option key={p.id} value={p.id}>{t(p.label)}</option>)}
             </select>
           </div>
           <div>
@@ -872,7 +872,7 @@ export default function SmartBeta() {
               onChange={(e) => setConfig(c => ({ ...c, weight_mode: e.target.value }))}
               className="w-full bg-white/[0.03] border border-white/10 rounded px-2 py-1 text-[11px] text-white"
             >
-              {WEIGHT_MODES.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
+              {WEIGHT_MODES.map(m => <option key={m.id} value={m.id}>{t(m.label)}</option>)}
             </select>
           </div>
           <div>
