@@ -287,8 +287,11 @@
 .light .num-gradient { background: none !important; -webkit-text-fill-color: var(--fg-0) !important; color: var(--fg-0) !important; }
 /* v7 浅色：语义色渐变数字（绿/红/温度）—— 浅色下去掉透明填充、显示元素自身的实色 color（语义色），不丢色 */
 .light .num-gradient-keep { background: none !important; -webkit-text-fill-color: currentColor !important; }
-/* 半透明白文字（玻璃反色） */
+/* 半透明白文字（玻璃反色）—— /90 /70 /60 之前漏映射，浅色下是白底白字（cr≈1.0 不可见） */
+.light .text-white\/90 { color: var(--text-heading) !important; }
 .light .text-white\/80 { color: var(--text-primary) !important; }
+.light .text-white\/70 { color: var(--text-secondary) !important; }
+.light .text-white\/60 { color: var(--text-muted) !important; }
 .light .text-white\/10 { color: rgba(15, 23, 42, 0.15) !important; }
 
 /* Override white-opacity borders */
@@ -319,64 +322,71 @@
 
 /* Chart tooltip light override done via JS */
 
-/* ── Light mode: accent colors → 400 shade ── */
+/* ── Light mode: accent TEXT → AA 达标的 600/700 暗色（批2）──
+   过去映射到 400-亮色（为深底调校），浅纸背景上对比仅 1.5–3.0:1，远低于 WCAG AA 4.5。
+   text- 改深（保留色相辨识）；bg-/border- 仍用 400 淡 tint 不变，与深字相配。 */
 
-/* Up/Down */
-.light .text-up { color: #34d399 !important; }
-.light .text-down { color: #f87171 !important; }
+/* Up/Down（全站涨跌数字）*/
+.light .text-up { color: #047857 !important; }   /* emerald-700 ≈5.5:1 */
+.light .text-down { color: #dc2626 !important; }  /* red-600 ≈4.8:1 */
 .light .bg-up\/10 { background-color: rgba(52, 211, 153, 0.12) !important; }
 .light .bg-down\/10 { background-color: rgba(248, 113, 113, 0.12) !important; }
 .light .border-up\/20 { border-color: rgba(52, 211, 153, 0.25) !important; }
 .light .border-down\/20 { border-color: rgba(248, 113, 113, 0.25) !important; }
 
-/* Indigo */
-.light .text-indigo-400 { color: #818cf8 !important; }
-.light .text-indigo-300 { color: #818cf8 !important; }
+/* Indigo（含 200/300 及 /80 透明变体）*/
+.light .text-indigo-400,
+.light .text-indigo-400\/80,
+.light .text-indigo-300,
+.light .text-indigo-300\/80,
+.light .text-indigo-200 { color: #4f46e5 !important; }  /* indigo-600 ≈6.8:1 */
 .light .bg-indigo-500\/10,
 .light .bg-indigo-500\/15 { background-color: rgba(129, 140, 248, 0.12) !important; }
 .light .border-indigo-500\/20 { border-color: rgba(129, 140, 248, 0.30) !important; }
 .light .hover\:bg-indigo-500\/5:hover { background-color: rgba(129, 140, 248, 0.08) !important; }
 .light .hover\:bg-indigo-500\/30:hover { background-color: rgba(129, 140, 248, 0.20) !important; }
-.light .hover\:text-indigo-200:hover { color: #818cf8 !important; }
+.light .hover\:text-indigo-200:hover { color: #4f46e5 !important; }
 .light .hover\:border-indigo-500\/30:hover { border-color: rgba(129, 140, 248, 0.35) !important; }
 
-/* Amber */
-.light .text-amber-400 { color: #fbbf24 !important; }
+/* Amber / Orange */
+.light .text-amber-400 { color: #b45309 !important; }   /* amber-700 ≈5.0:1 */
+.light .text-orange-300 { color: #c2410c !important; }  /* orange-700 ≈4.9:1 */
 .light .bg-amber-500\/10 { background-color: rgba(251, 191, 36, 0.12) !important; }
 .light .border-amber-500\/20 { border-color: rgba(251, 191, 36, 0.30) !important; }
 
 /* Sky */
-.light .text-sky-400 { color: #38bdf8 !important; }
+.light .text-sky-400 { color: #0369a1 !important; }   /* sky-700 ≈5.9:1 */
 .light .bg-sky-500\/10 { background-color: rgba(56, 189, 248, 0.12) !important; }
 .light .border-sky-500\/20 { border-color: rgba(56, 189, 248, 0.30) !important; }
 
 /* Cyan */
-.light .text-cyan-400 { color: #22d3ee !important; }
+.light .text-cyan-400 { color: #0e7490 !important; }   /* cyan-700 ≈5.2:1 */
 .light .bg-cyan-500\/10 { background-color: rgba(34, 211, 238, 0.12) !important; }
 .light .border-cyan-500\/20 { border-color: rgba(34, 211, 238, 0.30) !important; }
 
 /* Violet */
-.light .text-violet-400 { color: #a78bfa !important; }
+.light .text-violet-400 { color: #7c3aed !important; }   /* violet-600 ≈5.6:1 */
 .light .bg-violet-500\/10 { background-color: rgba(167, 139, 250, 0.12) !important; }
 .light .border-violet-500\/20 { border-color: rgba(167, 139, 250, 0.30) !important; }
 
 /* Fuchsia */
-.light .text-fuchsia-400 { color: #e879f9 !important; }
+.light .text-fuchsia-400 { color: #c026d3 !important; }   /* fuchsia-600 ≈4.7:1 */
 .light .bg-fuchsia-500\/10 { background-color: rgba(232, 121, 249, 0.12) !important; }
 .light .border-fuchsia-500\/20 { border-color: rgba(232, 121, 249, 0.30) !important; }
 
 /* Blue */
-.light .text-blue-400 { color: #60a5fa !important; }
+.light .text-blue-400 { color: #2563eb !important; }   /* blue-600 ≈5.7:1 */
 .light .bg-blue-500\/10 { background-color: rgba(96, 165, 250, 0.12) !important; }
 .light .border-blue-500\/20 { border-color: rgba(96, 165, 250, 0.30) !important; }
 
 /* Emerald */
-.light .text-emerald-400 { color: #34d399 !important; }
+.light .text-emerald-400 { color: #047857 !important; }   /* emerald-700 ≈5.5:1 */
 .light .bg-emerald-500\/10 { background-color: rgba(52, 211, 153, 0.12) !important; }
 .light .border-emerald-500\/20 { border-color: rgba(52, 211, 153, 0.30) !important; }
 
-/* Red */
-.light .text-red-400 { color: #f87171 !important; }
+/* Red / Rose */
+.light .text-red-400 { color: #dc2626 !important; }   /* red-600 ≈4.8:1 */
+.light .text-rose-400 { color: #e11d48 !important; }  /* rose-600 ≈4.9:1 */
 .light .bg-red-500\/10 { background-color: rgba(248, 113, 113, 0.12) !important; }
 .light .border-red-500\/20 { border-color: rgba(248, 113, 113, 0.30) !important; }
 
@@ -1232,6 +1242,14 @@ select:focus-visible {
   color: var(--pillar-color, var(--text-heading));
   font-variant-numeric: tabular-nums;
 }
+/* v7 浅色：头部分数（质量靛蓝 / 时机琥珀）在白底对比仅 1.6–2.7:1 →
+   与深 navy 混合加深、保留色相辨识；色条 fill 仍用原亮色不变。 */
+.light .pillar-card__num {
+  color: color-mix(in srgb, var(--pillar-color, var(--text-heading)) 55%, #0f172a) !important;
+}
+/* v7 浅色：内联强调色分数（MPillar / ETF 四维 —— color 内联无法 class remap）
+   用 filter 在浅色下统一压暗+补饱和，对 indigo/violet/cyan/amber 四色通用；深色模式不受影响。 */
+.light .score-accent-num { filter: brightness(0.58) saturate(1.4); }
 .pillar-card__bar {
   height: 5px;
   background: rgba(255, 255, 255, 0.04);
