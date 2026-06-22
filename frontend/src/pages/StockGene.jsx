@@ -40,15 +40,18 @@ import { ScoreDetail } from "../components/stock-gene/ScoreDetail.jsx";
 import { TickerSearchBox } from "../components/stock-gene/TickerSearchBox.jsx";
 import EmptyState from "../components/EmptyState.jsx";
 import { MobileAppBar, BottomSheet, FullscreenChart, useIsMobile } from "../components/mobile/index.js";
+import { useLang } from "../i18n.jsx";
 
 
 // ── 模块级辅助：移动端性格派生（包装 deriveCharacter，stock 可为 null）──
-function driveCharacterForMobile(stock) {
+// t / lang 透传给 deriveCharacter，使 hint / paragraph 随语言切换（详见 CharacterProfile）。
+function driveCharacterForMobile(stock, t, lang) {
   if (!stock) return null;
-  try { return deriveCharacter(stock); } catch { return null; }
+  try { return deriveCharacter(stock, t, lang); } catch { return null; }
 }
 
 export default function StockGene() {
+  const { t, lang } = useLang();
   // ── 移动端检测（hooks 必须在任何 early return 前声明）──────
   const isMobile = useIsMobile();
   // 移动端专用 state
@@ -870,7 +873,7 @@ export default function StockGene() {
     const drillSelStock = mDrillStock && Array.isArray(mktStocks)
       ? mktStocks.find(s => s.ticker === mDrillStock)
       : null;
-    const drillChar = driveCharacterForMobile(drillSelStock);
+    const drillChar = driveCharacterForMobile(drillSelStock, t, lang);
 
     // 快速添加 ticker（仅 ticker 字段，后台评分）
     const handleMAdd = async () => {
@@ -960,16 +963,16 @@ export default function StockGene() {
             </svg>
           </div>
           <div style={{ width: 240, display: "flex", flexDirection: "column", gap: 9 }}>
-            <div style={{ fontSize: 9, color: "var(--fg-3)", marginBottom: 2 }}>维度明细 · vs 板块中位</div>
-            {traits.map(t => (
-              <div key={t.k} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontSize: 11.5, color: "var(--fg-1)", width: 58, flexShrink: 0 }}>{t.n}</span>
+            <div style={{ fontSize: 9, color: "var(--fg-3)", marginBottom: 2 }}>{t('维度明细 · vs 板块中位')}</div>
+            {traits.map(tr => (
+              <div key={tr.k} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 11.5, color: "var(--fg-1)", width: 58, flexShrink: 0 }}>{t(tr.n)}</span>
                 <div style={{ flex: 1, height: 6, background: "rgba(255,255,255,.05)", borderRadius: 3, position: "relative" }}>
-                  <div style={{ width: `${(t.v ?? 0) * 100}%`, height: "100%", background: "linear-gradient(90deg,var(--indigo),var(--cyan))", borderRadius: 3 }} />
+                  <div style={{ width: `${(tr.v ?? 0) * 100}%`, height: "100%", background: "linear-gradient(90deg,var(--indigo),var(--cyan))", borderRadius: 3 }} />
                   <div style={{ position: "absolute", left: "50%", top: -2, bottom: -2, width: 1, background: "var(--fg-3)" }} />
                 </div>
-                <span style={{ fontSize: 11, color: (t.v ?? 0) > 0.5 ? "var(--up)" : "var(--fg-3)", width: 20, textAlign: "right", fontWeight: 600 }}>
-                  {t.v == null ? "—" : Math.round(t.v * 100)}
+                <span style={{ fontSize: 11, color: (tr.v ?? 0) > 0.5 ? "var(--up)" : "var(--fg-3)", width: 20, textAlign: "right", fontWeight: 600 }}>
+                  {tr.v == null ? "—" : Math.round(tr.v * 100)}
                 </span>
               </div>
             ))}
@@ -988,7 +991,7 @@ export default function StockGene() {
               fontSize: 11, padding: "2px 8px", borderRadius: 6,
               background: `${char.tone}20`, color: char.tone,
               border: `1px solid ${char.tone}44`,
-            }}>{char.label}</span>
+            }}>{t(char.label)}</span>
           )}
         </>
       );
@@ -996,13 +999,13 @@ export default function StockGene() {
         <div className="h-full flex flex-col" style={{ background: "var(--bg-0)" }}>
           <MobileAppBar
             onBack={() => setMDrillStock(null)}
-            title="股性档案"
+            title={t("股性档案")}
             chips={chips}
             actions={
               <button
                 onClick={() => setMRadarFs(true)}
                 style={{ color: "var(--fg-2)", padding: 4 }}
-                aria-label="全屏雷达"
+                aria-label={t("全屏雷达")}
               >
                 <Maximize2 size={18} />
               </button>
@@ -1019,7 +1022,7 @@ export default function StockGene() {
                 fontSize: 11, padding: "2px 8px", borderRadius: 6,
                 background: `${char.tone}20`, color: char.tone,
                 border: `1px solid ${char.tone}44`,
-              }}>{char.label}</span>
+              }}>{t(char.label)}</span>
             }
           >
             <RadarFullscreen traits={char.traits} tone={char.tone} label={char.label} />
@@ -1041,7 +1044,7 @@ export default function StockGene() {
                 letterSpacing: "-0.01em", color: "var(--fg-0)",
                 fontFamily: "Georgia, 'Noto Serif SC', serif",
               }}>
-                {char.label}
+                {t(char.label)}
               </div>
               <div style={{ display: "flex", gap: 6, justifyContent: "center", flexWrap: "wrap", marginBottom: 14 }}>
                 {char.fit && (
@@ -1049,7 +1052,7 @@ export default function StockGene() {
                     fontSize: 10, padding: "3px 9px", borderRadius: 20,
                     background: `${char.tone}18`, color: char.tone,
                     border: `1px solid ${char.tone}33`,
-                  }}>{char.fit}</span>
+                  }}>{t(char.fit)}</span>
                 )}
                 {drillItem?.sector && (
                   <span style={{
@@ -1078,7 +1081,7 @@ export default function StockGene() {
                 border: "1px solid var(--line)",
               }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: "var(--fg-1)" }}>六维性格雷达</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: "var(--fg-1)" }}>{t('六维性格雷达')}</span>
                   <button
                     onClick={() => setMRadarFs(true)}
                     style={{
@@ -1089,24 +1092,24 @@ export default function StockGene() {
                       borderRadius: 7, fontSize: 10, color: "var(--indigo-2)", fontWeight: 600,
                     }}
                   >
-                    <Maximize2 size={11} />全屏
+                    <Maximize2 size={11} />{t('全屏')}
                   </button>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <RadarInline traits={char.traits} tone={char.tone} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    {char.traits.map(t => (
-                      <div key={t.k} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                        <span style={{ fontSize: 10.5, color: "var(--fg-2)", width: 50, flexShrink: 0 }}>{t.n}</span>
+                    {char.traits.map(tr => (
+                      <div key={tr.k} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                        <span style={{ fontSize: 10.5, color: "var(--fg-2)", width: 50, flexShrink: 0 }}>{t(tr.n)}</span>
                         <div style={{ flex: 1, height: 4, background: "rgba(255,255,255,.05)", borderRadius: 2, overflow: "hidden" }}>
                           <div style={{
-                            width: `${(t.v ?? 0) * 100}%`, height: "100%",
+                            width: `${(tr.v ?? 0) * 100}%`, height: "100%",
                             background: "linear-gradient(90deg,var(--indigo),var(--cyan))",
                             borderRadius: 2,
                           }} />
                         </div>
                         <span style={{ fontSize: 10, color: "var(--fg-1)", width: 18, textAlign: "right", fontFamily: "var(--font-mono, monospace)" }}>
-                          {t.v == null ? "—" : Math.round(t.v * 100)}
+                          {tr.v == null ? "—" : Math.round(tr.v * 100)}
                         </span>
                       </div>
                     ))}
@@ -1125,9 +1128,9 @@ export default function StockGene() {
                       background: "rgba(255,255,255,.022)",
                       border: "1px solid var(--line)",
                     }}>
-                      <div style={{ fontSize: 8.5, color: "var(--fg-3)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>{b.l}</div>
+                      <div style={{ fontSize: 8.5, color: "var(--fg-3)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>{t(b.l)}</div>
                       <div style={{ fontSize: 20, fontWeight: 700, color: b.c || "var(--fg-0)", lineHeight: 1, fontFamily: "var(--font-mono, monospace)" }}>{b.v}</div>
-                      <div style={{ fontSize: 10, color: "var(--fg-3)", marginTop: 4 }}>{b.sub}</div>
+                      <div style={{ fontSize: 10, color: "var(--fg-3)", marginTop: 4 }}>{t(b.sub)}</div>
                     </div>
                   ))}
                 </div>
@@ -1143,7 +1146,7 @@ export default function StockGene() {
                   background: "rgba(255,255,255,.022)",
                   border: "1px solid var(--line)",
                 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: "var(--fg-1)", marginBottom: 10 }}>引擎评分</div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: "var(--fg-1)", marginBottom: 10 }}>{t('引擎评分')}</div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                     {ENGINE_IDS.map(id => {
                       const cfg = eng(id);
@@ -1167,7 +1170,7 @@ export default function StockGene() {
                               )}
                             </>
                           ) : (
-                            <div style={{ fontSize: 13, color: "var(--fg-4)" }}>未评分</div>
+                            <div style={{ fontSize: 13, color: "var(--fg-4)" }}>{t('未评分')}</div>
                           )}
                         </div>
                       );
@@ -1175,7 +1178,7 @@ export default function StockGene() {
                   </div>
                   {scoringTicker === mDrillStock && (
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 10, fontSize: 11, color: "var(--indigo-2)" }}>
-                      <Loader size={12} className="animate-spin" />评分中…
+                      <Loader size={12} className="animate-spin" />{t('评分中…')}
                     </div>
                   )}
                   {!isDemoMode && (
@@ -1191,7 +1194,7 @@ export default function StockGene() {
                         display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
                       }}
                     >
-                      <Sparkles size={13} />重新评分
+                      <Sparkles size={13} />{t('重新评分')}
                     </button>
                   )}
                 </div>
@@ -1216,7 +1219,7 @@ export default function StockGene() {
               return (
                 <div style={{ paddingBottom: 8 }}>
                   <div style={{ fontSize: 9, color: "var(--fg-3)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10, padding: "0 16px" }}>
-                    性格相似的标的 · 横滑
+                    {t('性格相似的标的 · 横滑')}
                   </div>
                   <div style={{ display: "flex", gap: 10, overflowX: "auto", padding: "0 16px", WebkitOverflowScrolling: "touch" }}>
                     {peers.map(({ s, sim }) => (
@@ -1237,7 +1240,7 @@ export default function StockGene() {
                           border: "1px solid rgba(99,102,241,.25)",
                           color: "var(--indigo-2)",
                         }}>
-                          匹配 {Math.round(sim * 100)}%
+                          {t('匹配 {n}%', { n: Math.round(sim * 100) })}
                         </span>
                       </button>
                     ))}
@@ -1278,7 +1281,7 @@ export default function StockGene() {
                             {r.verdict && <div style={{ fontSize: 9, marginTop: 3, color: "var(--fg-2)" }}>{r.verdict.label}</div>}
                           </>
                         ) : (
-                          <div style={{ fontSize: 13, color: "var(--fg-4)" }}>未评分</div>
+                          <div style={{ fontSize: 13, color: "var(--fg-4)" }}>{t('未评分')}</div>
                         )}
                       </div>
                     );
@@ -1296,13 +1299,13 @@ export default function StockGene() {
                     }}
                   >
                     {scoringTicker === mDrillStock ? <Loader size={13} className="animate-spin" /> : <Sparkles size={13} />}
-                    重新评分
+                    {t('重新评分')}
                   </button>
                 )}
               </div>
             ) : (
               <div style={{ padding: 32, textAlign: "center", color: "var(--fg-3)", fontSize: 13 }}>
-                未找到该标的
+                {t('未找到该标的')}
               </div>
             )}
           </div>
@@ -1321,7 +1324,7 @@ export default function StockGene() {
           background: "color-mix(in srgb, var(--bg-1) 78%, transparent)",
         }}>
           <Activity size={18} style={{ color: "var(--up)" }} />
-          <span style={{ flex: 1, fontSize: 18, fontWeight: 700, color: "var(--fg-0)" }}>股性检测</span>
+          <span style={{ flex: 1, fontSize: 18, fontWeight: 700, color: "var(--fg-0)" }}>{t('股性检测')}</span>
           {isDemoMode && (
             <span style={{ fontSize: 9, padding: "2px 7px", borderRadius: 6, background: "rgba(245,181,60,.14)", color: "var(--warn)", border: "1px solid rgba(245,181,60,.3)" }}>
               DEMO
@@ -1336,7 +1339,7 @@ export default function StockGene() {
                 background: "rgba(30,211,149,.14)", border: "1px solid rgba(30,211,149,.35)",
                 color: "var(--up)",
               }}
-              aria-label="添加观察"
+              aria-label={t("添加观察")}
             >
               <Plus size={17} />
             </button>
@@ -1347,14 +1350,14 @@ export default function StockGene() {
         <div className="flex-1 overflow-y-auto overscroll-contain" style={{ paddingBottom: 16 }}>
           {loading && items.length === 0 && (
             <div style={{ padding: 40, textAlign: "center", color: "var(--fg-3)", fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-              <Loader size={14} className="animate-spin" />加载中…
+              <Loader size={14} className="animate-spin" />{t('加载中…')}
             </div>
           )}
           {!loading && items.length === 0 && (
             <div style={{ padding: "40px 24px", textAlign: "center" }}>
               <Activity size={36} style={{ color: "var(--fg-4)", margin: "0 auto 12px" }} />
-              <div style={{ fontSize: 14, color: "var(--fg-2)", marginBottom: 8 }}>还没有观察项</div>
-              <div style={{ fontSize: 12, color: "var(--fg-3)" }}>点右上角 + 添加第一只</div>
+              <div style={{ fontSize: 14, color: "var(--fg-2)", marginBottom: 8 }}>{t('还没有观察项')}</div>
+              <div style={{ fontSize: 12, color: "var(--fg-3)" }}>{t('点右上角 + 添加第一只')}</div>
             </div>
           )}
           {sortedItems.map(it => {
@@ -1407,7 +1410,7 @@ export default function StockGene() {
         <BottomSheet
           open={mAddOpen}
           onClose={() => { setMAddOpen(false); setMNewTicker(""); setMAddErr(null); }}
-          title="添加观察"
+          title={t("添加观察")}
           footer={
             <button
               onClick={handleMAdd}
@@ -1422,13 +1425,13 @@ export default function StockGene() {
               }}
             >
               {mAddLoading ? <Loader size={15} className="animate-spin" /> : <Check size={15} />}
-              加入 + 评分
+              {t('加入 + 评分')}
             </button>
           }
         >
           <div style={{ paddingBottom: 8 }}>
             <div style={{ fontSize: 12, color: "var(--fg-3)", marginBottom: 12 }}>
-              输入 ticker（如 NVDA / 00700.HK / 600519.SH）
+              {t('输入 ticker（如 NVDA / 00700.HK / 600519.SH）')}
             </div>
             <input
               value={mNewTicker}
@@ -1461,7 +1464,7 @@ export default function StockGene() {
       <div className="flex items-center justify-between px-3 py-2 glass-card border border-white/10">
         <div className="flex items-center gap-3">
           <Activity size={16} className="text-emerald-400" />
-          <span className="text-sm font-semibold text-white">股性检测 · Stock Gene</span>
+          <span className="text-sm font-semibold text-white">{t('股性检测 · Stock Gene')}</span>
           {/* 引擎切换：动态从 ENGINES 渲染 */}
           <div className="flex items-center gap-0.5 bg-white/5 rounded border border-white/10 p-0.5">
             {ENGINE_IDS.map(id => {
@@ -1487,9 +1490,9 @@ export default function StockGene() {
           {isDemoMode && (
             <span
               className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 cursor-help"
-              title="当前是示例数据（Vercel 等无后端部署）。要看真实评分: cd backend && python server.py 后访问 localhost:5173"
+              title={t("当前是示例数据（Vercel 等无后端部署）。要看真实评分: cd backend && python server.py 后访问 localhost:5173")}
             >
-              DEMO 模式
+              {t('DEMO 模式')}
             </span>
           )}
         </div>
@@ -1501,15 +1504,15 @@ export default function StockGene() {
             title={`对所有观察项跑${eng(engine).framework}评分`}
           >
             {batchScoring ? <Loader size={11} className="animate-spin" /> : <Sparkles size={11} />}
-            批量评分
+            {t('批量评分')}
           </button>
           {/* 导出 JSON 备份 */}
           <button
             onClick={handleExport}
             disabled={isDemoMode || items.length === 0}
-            aria-label="导出股性检测 JSON 备份"
+            aria-label={t("导出股性检测 JSON 备份")}
             className="flex items-center justify-center w-7 h-7 rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white transition border border-white/10 disabled:opacity-40 disabled:cursor-not-allowed"
-            title="导出 JSON 备份（含所有观察项 + 双引擎评分 + 历史）"
+            title={t("导出 JSON 备份（含所有观察项 + 双引擎评分 + 历史）")}
           >
             <Download size={11} />
           </button>
@@ -1518,7 +1521,7 @@ export default function StockGene() {
             onClick={handleExportCsv}
             disabled={items.length === 0}
             className="flex items-center justify-center px-1.5 h-7 rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white transition border border-white/10 disabled:opacity-40 disabled:cursor-not-allowed text-[9px] font-mono"
-            title="导出 CSV（Excel 友好，含 trend/value 双评分 + 标签 + 备注）"
+            title={t("导出 CSV（Excel 友好，含 trend/value 双评分 + 标签 + 备注）")}
           >
             CSV
           </button>
@@ -1527,7 +1530,7 @@ export default function StockGene() {
             onClick={() => importInputRef.current?.click()}
             disabled={isDemoMode || importLoading}
             className="flex items-center justify-center w-7 h-7 rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white transition border border-white/10 disabled:opacity-40 disabled:cursor-not-allowed"
-            title="从备份恢复（merge / replace 可选）"
+            title={t("从备份恢复（merge / replace 可选）")}
           >
             {importLoading ? <Loader size={11} className="animate-spin" /> : <Upload size={11} />}
           </button>
@@ -1573,7 +1576,7 @@ export default function StockGene() {
           <button
             onClick={() => { reload(); reloadPositions(); reloadAlerts(); }}
             className="flex items-center gap-1 px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white transition border border-white/10"
-            title="刷新（快捷键：r）"
+            title={t("刷新（快捷键：r）")}
           >
             <RefreshCw size={10} /> 刷新
           </button>
@@ -1589,7 +1592,7 @@ export default function StockGene() {
           <button
             onClick={() => setShowShortcuts(true)}
             className="flex items-center justify-center w-7 h-7 rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white transition border border-white/10 font-mono text-[11px]"
-            title="键盘快捷键（?）"
+            title={t("键盘快捷键（?）")}
           >
             ?
           </button>
@@ -1601,19 +1604,18 @@ export default function StockGene() {
         <div className="px-3 py-1.5 glass-card border border-amber-500/30 bg-amber-500/5 flex items-center gap-2 text-[10px]">
           <AlertCircle size={12} className="text-amber-400 shrink-0" />
           <span className="text-amber-100">
-            <span className="font-semibold">评分功能未启用</span>
-            ：当前部署是 Vercel serverless（无 pandas/numpy）。可以加股票、改标签、分组、备份，
-            但 4 引擎评分需 self-hosted backend。
+            <span className="font-semibold">{t('评分功能未启用')}</span>
+            {t('：当前部署是 Vercel serverless（无 pandas/numpy）。可以加股票、改标签、分组、备份，但 4 引擎评分需 self-hosted backend。')}
             <a
               href="https://github.com/mingtaohuang617/quantedge/blob/main/docs/STOCK_GENE_ONBOARDING.md"
               target="_blank" rel="noreferrer"
               className="ml-1 underline text-amber-300/90 hover:text-amber-200"
-            >上手指南 ↗</a>
+            >{t('上手指南 ↗')}</a>
           </span>
           <button
             onClick={() => setDismissedScoringBanner(true)}
             className="ml-auto text-amber-300/70 hover:text-amber-100"
-            title="本次会话不再显示"
+            title={t("本次会话不再显示")}
           >
             <X size={10} />
           </button>
@@ -1634,7 +1636,7 @@ export default function StockGene() {
           <button
             onClick={handleAddAllHoldings}
             className="ml-auto flex items-center gap-1 px-2 py-1 rounded bg-amber-500/15 hover:bg-amber-500/25 text-amber-100 border border-amber-500/40 transition text-[10px]"
-            title="把全部持仓加入股性检测 + 跑 4 引擎评分"
+            title={t("把全部持仓加入股性检测 + 跑 4 引擎评分")}
           >
             <Plus size={10} /> 全部加入 + 评分
           </button>
@@ -1737,22 +1739,22 @@ export default function StockGene() {
         <div className="glass-card border border-white/10 flex flex-col overflow-hidden">
           <div className="px-3 py-2 border-b border-white/8 flex items-center gap-2">
             <Layers size={12} className="text-emerald-300" />
-            <span className="text-[11px] font-semibold text-white">观察列表</span>
+            <span className="text-[11px] font-semibold text-white">{t('观察列表')}</span>
             <span className="text-[9px] text-[#a0aec0]">
               {sortedItems.length}{sortedItems.length !== items.length ? `/${items.length}` : ""} 只
             </span>
             {/* 排序选择器 */}
-            <div className="ml-auto flex items-center gap-1" title="排序方式">
+            <div className="ml-auto flex items-center gap-1" title={t("排序方式")}>
               <ArrowUpDown size={9} className="text-[#7a8497]" />
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
                 className="text-[9px] bg-white/5 border border-white/10 rounded px-1 py-0.5 text-[#d0d7e2] focus:outline-none focus:border-emerald-500/40"
               >
-                <option value="composite">按综合分</option>
-                <option value="score">按{eng(engine).short} 分</option>
-                <option value="added">按添加时间</option>
-                <option value="ticker">按代码</option>
+                <option value="composite">{t('按综合分')}</option>
+                <option value="score">{t('按 {n} 分', { n: eng(engine).short })}</option>
+                <option value="added">{t('按添加时间')}</option>
+                <option value="ticker">{t('按代码')}</option>
               </select>
             </div>
           </div>
@@ -1765,14 +1767,14 @@ export default function StockGene() {
                 <input
                   value={filterText}
                   onChange={(e) => setFilterText(e.target.value)}
-                  placeholder="过滤：ticker / 名称 / 行业"
+                  placeholder={t("过滤：ticker / 名称 / 行业")}
                   className="w-full pl-5 pr-2 py-1 text-[10px] bg-white/5 border border-white/10 rounded text-white placeholder-[#7a8497] focus:outline-none focus:border-emerald-500/50"
                 />
                 {filterText && (
                   <button
                     onClick={() => setFilterText("")}
                     className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[#7a8497] hover:text-white"
-                    title="清空"
+                    title={t("清空")}
                   >
                     <X size={9} />
                   </button>
@@ -1795,7 +1797,7 @@ export default function StockGene() {
               {Object.keys(positions).length > 0 && (
                 <div className="flex items-center gap-1 text-[9px] text-[#7a8497]">
                   <Briefcase size={9} className="text-amber-400" />
-                  <span>持仓</span>
+                  <span>{t('持仓')}</span>
                   <button
                     onClick={() => setOnlyHeld(!onlyHeld)}
                     className={`text-[9px] px-1.5 py-px rounded border transition ${
@@ -1805,15 +1807,15 @@ export default function StockGene() {
                     }`}
                     title={onlyHeld ? "点击取消，显示全部" : "只看我已购买的"}
                   >
-                    仅持仓
+                    {t('仅持仓')}
                   </button>
                   <span className="text-[#5a6477]">·</span>
-                  <span className="text-[#a0aec0]">{Object.keys(positions).length} 只持仓</span>
+                  <span className="text-[#a0aec0]">{t('{n} 只持仓', { n: Object.keys(positions).length })}</span>
                 </div>
               )}
               {/* 综合分阈值滑块 */}
               <div className="flex items-center gap-1.5 text-[9px] text-[#7a8497]">
-                <span className="shrink-0">综合分 ≥</span>
+                <span className="shrink-0">{t('综合分 ≥')}</span>
                 <input
                   type="range"
                   min={0}
@@ -1830,7 +1832,7 @@ export default function StockGene() {
                   <button
                     onClick={() => setMinComposite(0)}
                     className="text-[#7a8497] hover:text-white"
-                    title="清空阈值"
+                    title={t("清空阈值")}
                   >
                     <X size={9} />
                   </button>
@@ -1889,7 +1891,7 @@ export default function StockGene() {
                         }）`}
                       >
                         <Briefcase size={8} />
-                        持仓
+                        {t('持仓')}
                       </span>
                     )}
                     {/* 多引擎评分徽章：每个引擎一个，当前 engine 加 ring 高亮 */}
@@ -1925,15 +1927,15 @@ export default function StockGene() {
                     <div className="flex items-center gap-1 mt-0.5">
                       <span className={`text-[9px] px-1 py-px rounded border font-mono font-semibold ${cStyle.bg} ${cStyle.border} ${cStyle.text}`}
                         title={`综合分（按权重 ${ENGINE_IDS.map(id => `${eng(id).short}${weights[id]}`).join("/")}，${scored}/${ENGINE_IDS.length} 引擎有评分）`}>
-                        综合 {composite}
+                        {t('综合')} {composite}
                       </span>
                       {scored < ENGINE_IDS.length && (
-                        <span className="text-[9px] text-[#5a6477]" title="部分引擎未评分">部分</span>
+                        <span className="text-[9px] text-[#5a6477]" title={t('部分引擎未评分')}>{t('部分')}</span>
                       )}
                     </div>
                   )}
                   {it.sector && (
-                    <div className="text-[9px] text-[#7a8497] mt-0.5 truncate">行业：{it.sector}</div>
+                    <div className="text-[9px] text-[#7a8497] mt-0.5 truncate">{t('行业：')}{it.sector}</div>
                   )}
                   {/* 评分新鲜度：显示当前 engine 的最近评分时间 */}
                   {(activeR?.checked_at) && (
@@ -1979,27 +1981,27 @@ export default function StockGene() {
                 <input
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  placeholder="名称（搜索选中后自动填）"
+                  placeholder={t("名称（搜索选中后自动填）")}
                   className="w-full px-2 py-1 text-[10px] bg-white/5 border border-white/10 rounded text-white placeholder-[#7a8497] focus:outline-none focus:border-emerald-500/50"
                 />
                 <input
                   value={newSector}
                   onChange={(e) => setNewSector(e.target.value)}
-                  placeholder="行业（搜索选中后自动填）"
+                  placeholder={t("行业（搜索选中后自动填）")}
                   className="w-full px-2 py-1 text-[10px] bg-white/5 border border-white/10 rounded text-white placeholder-[#7a8497] focus:outline-none focus:border-emerald-500/50"
-                  title="用于『行业走强』特征判断，可填中文或 yfinance 英文"
+                  title={t("用于『行业走强』特征判断，可填中文或 yfinance 英文")}
                 />
                 <textarea
                   value={newNotes}
                   onChange={(e) => setNewNotes(e.target.value)}
-                  placeholder="备注（可选）"
+                  placeholder={t("备注（可选）")}
                   rows={2}
                   className="w-full px-2 py-1 text-[10px] bg-white/5 border border-white/10 rounded text-white placeholder-[#7a8497] focus:outline-none focus:border-emerald-500/50 resize-none"
                 />
                 <TagsInput
                   tags={newTags}
                   onChange={setNewTags}
-                  placeholder="标签：核心 / 投机 / 长持 …"
+                  placeholder={t("标签：核心 / 投机 / 长持 …")}
                 />
                 {addError && (
                   <div className="text-[10px] text-red-300">{addError}</div>
@@ -2015,7 +2017,7 @@ export default function StockGene() {
                     onClick={() => { setShowAddForm(false); setAddError(null); }}
                     className="px-2 py-1 text-[10px] rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] border border-white/10"
                   >
-                    取消
+                    {t('取消')}
                   </button>
                 </div>
               </div>
@@ -2023,7 +2025,7 @@ export default function StockGene() {
               <div className="space-y-1.5">
                 <div className="flex items-center gap-1 mb-1">
                   <Layers size={10} className="text-emerald-300" />
-                  <span className="text-[10px] font-semibold text-white">批量加入</span>
+                  <span className="text-[10px] font-semibold text-white">{t('批量加入')}</span>
                   <select
                     value={batchMarket}
                     onChange={(e) => setBatchMarket(e.target.value)}
@@ -2038,7 +2040,7 @@ export default function StockGene() {
                 <textarea
                   value={batchInput}
                   onChange={(e) => setBatchInput(e.target.value)}
-                  placeholder="一行一个 ticker（或逗号/空格分隔），最多 30 个"
+                  placeholder={t("一行一个 ticker（或逗号/空格分隔），最多 30 个")}
                   rows={4}
                   disabled={!!batchProgress}
                   className="w-full px-2 py-1 text-[10px] bg-white/5 border border-white/10 rounded text-white placeholder-[#7a8497] focus:outline-none focus:border-emerald-500/50 resize-none font-mono disabled:opacity-50"
@@ -2065,7 +2067,7 @@ export default function StockGene() {
                     disabled={!!batchProgress}
                     className="px-2 py-1 text-[10px] rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] border border-white/10 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
-                    取消
+                    {t('取消')}
                   </button>
                 </div>
               </div>
@@ -2082,7 +2084,7 @@ export default function StockGene() {
                   onClick={() => setShowBatchForm(true)}
                   disabled={isDemoMode}
                   className="flex items-center justify-center gap-1 px-2 py-1.5 text-[11px] rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white border border-white/10 transition disabled:opacity-40 disabled:cursor-not-allowed"
-                  title="批量粘贴 ticker 列表，一键加入 + 双引擎评分"
+                  title={t("批量粘贴 ticker 列表，一键加入 + 双引擎评分")}
                 >
                   <Layers size={11} />
                 </button>
@@ -2131,14 +2133,14 @@ export default function StockGene() {
         <div className="glass-card border border-white/10 flex flex-col overflow-hidden">
           <div className="px-3 py-2 border-b border-white/8 flex items-center gap-2">
             <BarChart3 size={12} className="text-cyan-300" />
-            <span className="text-[11px] font-semibold text-white">同行业横向对比</span>
+            <span className="text-[11px] font-semibold text-white">{t('同行业横向对比')}</span>
             <span className={`text-[9px] px-1 py-px rounded border ${eng(engine).btnBg}`}>
               {eng(engine).short} · {eng(engine).framework}
             </span>
           </div>
           <div className="px-3 py-2 border-b border-white/8 space-y-1.5">
             <div className="text-[10px] text-[#a0aec0]">
-              输入 2-10 个 ticker（逗号 / 空格分隔），按当前引擎和选中项的行业上下文打分
+              {t('输入 2-10 个 ticker（逗号 / 空格分隔），按当前引擎和选中项的行业上下文打分')}
               {selectedItem?.sector && (
                 <span className="text-emerald-300/80"> · 行业：{selectedItem.sector}</span>
               )}
@@ -2156,7 +2158,7 @@ export default function StockGene() {
               className="w-full flex items-center justify-center gap-1 px-2 py-1 text-[10px] rounded bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-200 border border-cyan-500/40 transition disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {peersLoading ? <Loader size={10} className="animate-spin" /> : <TrendingUp size={10} />}
-              对比评分
+              {t('对比评分')}
             </button>
             {peersError && (
               <div className="text-[10px] text-red-300 flex items-start gap-1">
@@ -2168,7 +2170,7 @@ export default function StockGene() {
           <div className="flex-1 overflow-auto p-2">
             {!peersResults && !peersLoading && (
               <div className="h-full flex items-center justify-center text-[11px] text-[#7a8497] p-4 text-center">
-                对比结果将在此显示
+                {t('对比结果将在此显示')}
               </div>
             )}
             {peersResults && <PeersTable result={peersResults} engine={engine} onAdd={(t, n, m, s) => {

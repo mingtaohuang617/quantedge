@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef, createContext
 // C1/C2: Recharts 已下沉到各 lazy page chunk（CompareModal 已迁至 ScoringDashboard），主文件不再直接依赖
 import { TrendingUp, TrendingDown, Search, Bell, BookOpen, BarChart3, Activity, Settings, ChevronRight, ChevronDown, ChevronLeft, Star, AlertTriangle, Clock, Target, Zap, Filter, ArrowUpRight, ArrowDownRight, Minus, RefreshCw, Plus, X, Check, Eye, EyeOff, Layers, Globe, Briefcase, Info, Database, Trash2, Loader, ExternalLink, Sun, Moon, Calendar, User, LogOut, Mail, Lock, Shield, KeyRound, UserCircle, Share2, GripVertical, Maximize2, AlertCircle, GraduationCap, Palette } from "lucide-react";
 import { searchTickers as standaloneSearch, fetchStockData, fetchBenchmarkPrices, fetchRangePrices, validateStockData, validateAllStocks, loadStandaloneStocks, saveStandaloneStocks, checkStandaloneMode, resolveSector, STOCK_CN_NAMES, STOCK_CN_DESCS } from "./standalone.js";
-import { LangProvider, useLang } from "./i18n.jsx";
+import { LangProvider, useLang, localeFor, isZh, tStatic, enFallback } from "./i18n.jsx";
 import { monteCarlo as mcSimulate, navToReturns as mcNavToReturns, hhi as hhiCalc, effectiveN as effN } from "./math/stats.ts";
 import { idbGet, idbSet } from "./lib/idb.js";
 import macroSnapshot from "./macroSnapshot.json";
@@ -772,9 +772,9 @@ export const fmtPrice = (price, currency = "USD", opts = {}) => {
 // 用于"近期财报、实时监控、投资日志"三处：港股以名称示人，更易识别。
 export const displayTicker = (ticker, stock, lang) => {
   if (!ticker || !ticker.endsWith(".HK")) return ticker;
-  const name = lang === 'zh'
-    ? (stock?.nameCN || STOCK_CN_NAMES[ticker] || stock?.name)
-    : (stock?.name || STOCK_CN_NAMES[ticker]);
+  const name = isZh(lang)
+    ? tStatic(stock?.nameCN || STOCK_CN_NAMES[ticker] || stock?.name, lang)
+    : enFallback(stock?.name, ticker);
   return name || ticker;
 };
 
@@ -952,6 +952,29 @@ const ACCENTS = [
   { id: "rose",    label: "玫瑰",   swatch: "#ec4899" },
 ];
 
+// 语言切换胶囊：简 / 繁 / EN，header 右侧与 UserProfile 共用
+const LangSwitcher = ({ compact = false }) => {
+  const { lang, setLang } = useLang();
+  const sizeBtn = compact
+    ? 'px-2 py-1 text-[10px]'
+    : 'px-2 py-0.5 text-[10px]';
+  const items = [
+    { code: 'zh-CN', label: '简' },
+    { code: 'zh-TW', label: '繁' },
+    { code: 'en',    label: 'EN' },
+  ];
+  return (
+    <div className="flex items-center gap-0.5 bg-white/5 rounded-md border border-white/5 p-0.5">
+      {items.map(({ code, label }) => (
+        <button key={code} onClick={() => setLang(code)}
+          className={`${sizeBtn} rounded font-medium transition-all ${lang === code ? 'bg-indigo-500 text-white shadow-sm' : 'text-[#a0aec0] hover:text-white'}`}>
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+};
+
 const UserProfilePanel = ({ open, onClose, theme, toggleTheme, accent, setAccent }) => {
   const { user, logout, updateProfile } = useAuth();
   const { stocks, apiOnline, priceUpdatedAt } = useData();
@@ -986,7 +1009,7 @@ const UserProfilePanel = ({ open, onClose, theme, toggleTheme, accent, setAccent
     keys.forEach(k => localStorage.removeItem(k));
     if (authBak) localStorage.setItem(AUTH_KEY, authBak);
     setClearConfirm(false);
-    setExportMsg(lang === 'en' ? "Cache cleared. Refresh to apply." : "缓存已清除，刷新后生效");
+    setExportMsg(t('缓存已清除，刷新后生效'));
     setTimeout(() => setExportMsg(""), 3000);
   };
 
@@ -1001,7 +1024,7 @@ const UserProfilePanel = ({ open, onClose, theme, toggleTheme, accent, setAccent
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a"); a.href = url; a.download = `quantedge-export-${new Date().toISOString().slice(0, 10)}.json`; a.click();
     URL.revokeObjectURL(url);
-    setExportMsg(lang === 'en' ? "Data exported" : "数据已导出");
+    setExportMsg(t('数据已导出'));
     setTimeout(() => setExportMsg(""), 3000);
   };
 
@@ -1029,8 +1052,8 @@ const UserProfilePanel = ({ open, onClose, theme, toggleTheme, accent, setAccent
                 <input type="text" value={editName} onChange={e => setEditName(e.target.value)} autoFocus
                   onKeyDown={e => { if (e.key === "Enter") handleSaveName(); if (e.key === "Escape") setEditing(false); }}
                   className="bg-white/5 border border-indigo-500/30 rounded-md px-2 py-1 text-sm text-white outline-none focus:border-indigo-500/50 w-36 text-center" />
-                <button onClick={handleSaveName} aria-label="保存名称" className="p-1 rounded text-up hover:bg-up/10"><Check size={14} /></button>
-                <button onClick={() => setEditing(false)} aria-label="取消编辑" className="p-1 rounded text-[#778] hover:bg-white/10"><X size={14} /></button>
+                <button onClick={handleSaveName} aria-label={t("保存名称")} className="p-1 rounded text-up hover:bg-up/10"><Check size={14} /></button>
+                <button onClick={() => setEditing(false)} aria-label={t("取消编辑")} className="p-1 rounded text-[#778] hover:bg-white/10"><X size={14} /></button>
               </div>
             ) : (
               <button onClick={() => { setEditing(true); setEditName(user.name); }}
@@ -1102,16 +1125,7 @@ const UserProfilePanel = ({ open, onClose, theme, toggleTheme, accent, setAccent
               <div className="flex-1 min-w-0">
                 <div className="text-xs font-medium text-white">{t('语言')}</div>
               </div>
-              <div className="flex items-center gap-0.5 bg-white/5 rounded-md border border-white/5 p-0.5">
-                <button onClick={() => setLang('zh')}
-                  className={`px-2 py-0.5 rounded text-[10px] font-medium transition-all ${lang === 'zh' ? 'bg-indigo-500 text-white shadow-sm' : 'text-[#a0aec0] hover:text-white'}`}>
-                  中文
-                </button>
-                <button onClick={() => setLang('en')}
-                  className={`px-2 py-0.5 rounded text-[10px] font-medium transition-all ${lang === 'en' ? 'bg-indigo-500 text-white shadow-sm' : 'text-[#a0aec0] hover:text-white'}`}>
-                  EN
-                </button>
-              </div>
+              <LangSwitcher />
             </div>
           </div>
 
@@ -1132,11 +1146,11 @@ const UserProfilePanel = ({ open, onClose, theme, toggleTheme, accent, setAccent
               <div className="flex items-center justify-between text-[10px]">
                 <span className="text-[#667]">{t('最近更新')}</span>
                 <span className="text-[#a0aec0] font-mono tabular-nums">
-                  {priceUpdatedAt ? new Date(priceUpdatedAt).toLocaleString(lang === 'en' ? "en-US" : "zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}
+                  {priceUpdatedAt ? new Date(priceUpdatedAt).toLocaleString(localeFor(lang), { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}
                 </span>
               </div>
               <div className="flex items-center justify-between text-[10px]">
-                <span className="text-[#667]">{lang === 'en' ? 'Mode' : '模式'}</span>
+                <span className="text-[#667]">{t('模式')}</span>
                 <span className="text-[#a0aec0]">{apiOnline ? t("API 直连") : t("独立模式 · 本地缓存")}</span>
               </div>
             </div>
@@ -1293,7 +1307,7 @@ export const ScoreBar = ({ score, max = 100 }) => {
       <div className="flex-1 h-1.5 rounded-full bg-white/5 overflow-hidden">
         <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: `linear-gradient(90deg, var(--accent-${varName}-soft), var(--accent-${varName}))` }} />
       </div>
-      <span className="text-xs font-mono tabular-nums w-8 text-right" style={{ color: `var(--accent-${varName})` }}>{s}</span>
+      <span className="text-sm font-mono font-bold tabular-nums w-10 text-right" style={{ color: `var(--accent-${varName})` }}>{Number.isFinite(score) ? s.toFixed(1) : "—"}</span>
     </div>
   );
 };
@@ -1474,7 +1488,7 @@ const TickerManager = ({ open, onClose }) => {
               : <span className="text-[10px] text-down">{t('API 离线 — 使用静态数据')}</span>
             }
           </div>
-          <button onClick={onClose} aria-label="关闭命令面板" className="p-1 rounded-lg hover:bg-white/5 text-[#a0aec0] hover:text-white transition-colors"><X size={16} /></button>
+          <button onClick={onClose} aria-label={t("关闭命令面板")} className="p-1 rounded-lg hover:bg-white/5 text-[#a0aec0] hover:text-white transition-colors"><X size={16} /></button>
         </div>
 
         {/* Tab bar */}
@@ -1545,7 +1559,7 @@ const TickerManager = ({ open, onClose }) => {
                           {item.price > 0 && <span className="text-[10px] font-mono tabular-nums text-[#a0aec0]">${item.price}</span>}
                           {item.change != null && safeChange(item.change) !== 0 && <span className={`text-[10px] font-mono tabular-nums ${safeChange(item.change) >= 0 ? "text-up" : "text-down"}`}>{safeChange(item.change) >= 0 ? "+" : ""}{fmtChange(item.change)}%</span>}
                         </div>
-                        <div className="text-[10px] text-[#a0aec0] truncate">{item.name} {item.sector ? `· ${item.sector}` : ""} {item.exchange ? `· ${item.exchange}` : ""}</div>
+                        <div className="text-[10px] text-[#a0aec0] truncate">{item.name} {item.sector ? `· ${isZh(lang) ? t(item.sector) : item.sector}` : ""} {item.exchange ? `· ${item.exchange}` : ""}</div>
                       </div>
                       <button
                         onClick={() => doAdd(item)}
@@ -1586,7 +1600,7 @@ const TickerManager = ({ open, onClose }) => {
                     <span className="text-xs font-semibold text-white">{s.ticker}</span>
                     <Badge variant="default">{s.market}</Badge>
                     {s.isETF && <Badge variant="accent">ETF</Badge>}
-                    <span className="text-[10px] text-[#a0aec0] truncate">{lang === 'zh' ? (s.nameCN || STOCK_CN_NAMES[s.ticker] || s.name) : s.name}</span>
+                    <span className="text-[10px] text-[#a0aec0] truncate">{isZh(lang) ? t(s.nameCN || STOCK_CN_NAMES[s.ticker] || s.name) : enFallback(s.name, s.ticker)}</span>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <span className="text-[10px] font-mono tabular-nums text-white">{s.currency === "HKD" ? "HK$" : "$"}{s.price}</span>
@@ -1653,7 +1667,7 @@ const WorkspaceSwitcher = () => {
         title={t("切换工作区 / 多组合管理")}
       >
         <span className="w-2 h-2 rounded-full" style={{ background: active.color }} />
-        <span className="text-white max-w-[90px] truncate">{active.name}</span>
+        <span className="text-white max-w-[90px] truncate">{t(active.name)}</span>
         <ChevronDown size={10} className="text-[#778]" />
       </button>
       {open && (
@@ -1694,7 +1708,7 @@ const WorkspaceSwitcher = () => {
                         <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: w.color }} />
                         <span className="flex flex-col min-w-0">
                           <span className="flex items-center gap-1">
-                            <span className={`text-xs truncate ${isActive ? 'text-white font-medium' : 'text-[#a0aec0]'}`}>{w.name}</span>
+                            <span className={`text-xs truncate ${isActive ? 'text-white font-medium' : 'text-[#a0aec0]'}`}>{t(w.name)}</span>
                             {isActive && <Check size={10} className="text-indigo-400 shrink-0" />}
                           </span>
                           <span className="flex items-center gap-2 text-[9px] text-[#667] font-mono mt-0.5">
@@ -1815,7 +1829,7 @@ const MobileBottomNav = React.memo(({ tab, setTab }) => {
               />
             )}
             <I size={21} strokeWidth={active ? 2.1 : 1.8} className={active ? 'drop-shadow-[0_0_5px_rgba(99,102,241,0.5)]' : ''} />
-            <span className="tracking-tight">{lang === 'zh' ? c.short : t(c.label)}</span>
+            <span className="tracking-tight">{isZh(lang) ? t(c.short) : t(c.label)}</span>
           </button>
         );
       })}
@@ -1986,7 +2000,7 @@ const CommandPalette = ({ open, onClose, stocks, onPickStock, onSwitchTab, curre
     }));
     const stockItems = (stocks || []).map(s => ({
       type: "stock", id: s.ticker, label: s.ticker,
-      sub: lang === 'zh' ? (s.nameCN || STOCK_CN_NAMES[s.ticker] || s.name) : s.name,
+      sub: isZh(lang) ? t(s.nameCN || STOCK_CN_NAMES[s.ticker] || s.name) : enFallback(s.name, s.ticker),
       score: s.score, change: safeChange(s.change), market: s.market, sector: s.sector,
       action: () => onPickStock(s),
     }));
@@ -2612,7 +2626,7 @@ function QuantPlatformInner() {
           <div className="flex items-center gap-2.5 md:gap-3">
             <div className="relative w-7 h-7 md:w-8 md:h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-indigo-500/30">
               <Briefcase size={14} className="text-white drop-shadow-sm" />
-              <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-up border border-deep-base" title="系统在线" />
+              <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-up border border-deep-base" title={t("系统在线")} />
             </div>
             <div className="flex items-center gap-2">
               <div>
@@ -2631,7 +2645,7 @@ function QuantPlatformInner() {
               <Database size={12} />
               <span>{stocks.length}</span>
             </button>
-            <button onClick={() => setShowProfile(true)} className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-white text-[10px] font-bold shadow-sm ring-1 ring-white/10 active:scale-95" title="账户信息">
+            <button onClick={() => setShowProfile(true)} className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-white text-[10px] font-bold shadow-sm ring-1 ring-white/10 active:scale-95" title={t("账户信息")}>
               {(user.name || "U").charAt(0).toUpperCase()}
             </button>
           </div>
@@ -2644,7 +2658,7 @@ function QuantPlatformInner() {
             const I = c.icon;
             const active = tab === c.id;
             // 中文 label 在 zh 模式下用 2 行 short 标签（量化/评分），英文 fallback 单行 t(label)
-            const useShort = lang === 'zh' && Array.isArray(c.short) && c.short.length === 2;
+            const useShort = isZh(lang) && Array.isArray(c.short) && c.short.length === 2;
             return (
               <button
                 key={c.id}
@@ -2657,8 +2671,8 @@ function QuantPlatformInner() {
                 <I size={12} className="shrink-0" />
                 {useShort ? (
                   <span className="flex flex-col items-center leading-[1.1] tracking-tight">
-                    <span>{c.short[0]}</span>
-                    <span>{c.short[1]}</span>
+                    <span>{t(c.short[0])}</span>
+                    <span>{t(c.short[1])}</span>
                   </span>
                 ) : (
                   <span>{t(c.label)}</span>
@@ -2683,6 +2697,8 @@ function QuantPlatformInner() {
           {/* C16: 工作区切换器 */}
           <WorkspaceSwitcher />
           <div className="w-px h-5 bg-white/8" />
+          {/* 语言切换：简 / 繁 / EN — 顶栏快捷胶囊 */}
+          <LangSwitcher compact />
           <button onClick={toggleTheme} className="p-1.5 rounded-lg bg-white/5 text-[#a0aec0] hover:text-white hover:bg-white/10 border border-white/5 transition-all btn-tactile" title={theme === "dark" ? t("切换浅色模式") : t("切换深色模式")}>
             {theme === "dark" ? <Sun size={14} /> : <Moon size={14} />}
           </button>
@@ -2726,7 +2742,7 @@ function QuantPlatformInner() {
             onRefresh={quickPriceRefresh}
           />
           {/* 用户头像按钮 */}
-          <button onClick={() => setShowProfile(true)} className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-white text-[10px] font-bold shadow-sm hover:shadow-indigo-500/30 hover:shadow-md transition-all btn-tactile ring-1 ring-white/10" title="账户信息">
+          <button onClick={() => setShowProfile(true)} className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-white text-[10px] font-bold shadow-sm hover:shadow-indigo-500/30 hover:shadow-md transition-all btn-tactile ring-1 ring-white/10" title={t("账户信息")}>
             {(user.name || "U").charAt(0).toUpperCase()}
           </button>
         </div>
@@ -2836,7 +2852,7 @@ function QuantPlatformInner() {
                             const asOfList = stocks.map(s => s.dataFreshness?.priceAsOf).filter(Boolean);
                             if (!asOfList.length) return '—';
                             const oldest = asOfList.sort()[0];
-                            return new Date(oldest).toLocaleDateString(lang === 'en' ? 'en-US' : 'zh-CN', { month: '2-digit', day: '2-digit' });
+                            return new Date(oldest).toLocaleDateString(localeFor(lang), { month: '2-digit', day: '2-digit' });
                           })()}
                         </span>
                       </div>
@@ -2908,7 +2924,7 @@ function QuantPlatformInner() {
             onClick={quickPriceRefresh}
             disabled={priceRefreshing}
             className="flex items-center gap-1 px-2.5 py-1.5 md:px-2 md:py-0.5 rounded-lg md:rounded-md bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white transition-all disabled:opacity-50 active:scale-95 border border-white/5"
-            title="快速刷新价格（Yahoo Finance 直接获取）"
+            title={t("快速刷新价格（Yahoo Finance 直接获取）")}
           >
             <RefreshCw size={10} className={priceRefreshing ? "animate-spin" : ""} />
             {priceRefreshing ? t("刷新中...") : t("刷新")}

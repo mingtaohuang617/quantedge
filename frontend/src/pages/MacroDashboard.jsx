@@ -485,9 +485,10 @@ export default function MacroDashboard() {
             ) : (
               <div className="flex items-end gap-4">
                 <span
-                  className="font-serif leading-none"
+                  className="num-gradient-keep font-serif leading-none"
                   style={{
                     fontSize: 80, fontWeight: 600, letterSpacing: "-0.02em", lineHeight: 0.85,
+                    color: tempColor,
                     background: `linear-gradient(180deg, ${tempColor}, color-mix(in srgb, ${tempColor} 70%, #000))`,
                     WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
                     fontFamily: "Fraunces, Georgia, serif",

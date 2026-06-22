@@ -5,9 +5,9 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, useContext } from "react";
 import { LineChart, Line, AreaChart, Area, Bar, Brush, Customized, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ComposedChart, ReferenceLine } from "recharts";
 import { Activity, ArrowDownRight, ArrowUpRight, Briefcase, Calendar, Check, ChevronDown, ChevronRight, Clock, Database, Eye, Filter, GripVertical, Info, Layers, Loader, Maximize2, Minus, Plus, RefreshCw, Search, Settings, Star, Trash2, TrendingUp, X, Zap, ArrowLeftRight } from "lucide-react";
-import { searchTickers as standaloneSearch, fetchRangePrices, STOCK_CN_NAMES, STOCK_CN_DESCS } from "../standalone.js";
+import { searchTickers as standaloneSearch, fetchRangePrices, STOCK_CN_NAMES, STOCK_CN_DESCS, STOCK_EN_DESCS } from "../standalone.js";
 import { Z_ELEVATED } from "../lib/zIndex.js";
-import { useLang } from "../i18n.jsx";
+import { useLang, isZh, localeFor, hasCJK, enFallback } from "../i18n.jsx";
 import { STOCKS } from "../data.js";
 import AIStockSummaryCard from "../components/AIStockSummaryCard.jsx";
 import ScoreExplainCard from "../components/ScoreExplainCard.jsx";
@@ -477,7 +477,7 @@ const CompareModal = ({ open, onClose, stocks }) => {
             <h2 className="text-sm font-semibold text-white">{t('标的对比')}</h2>
             <span className="text-[10px] text-[#a0aec0]">{stocks.length}</span>
           </div>
-          <button onClick={onClose} aria-label="关闭对比" className="text-[#a0aec0] hover:text-white transition-colors p-1 rounded hover:bg-white/10">
+          <button onClick={onClose} aria-label={t("关闭对比")} className="text-[#a0aec0] hover:text-white transition-colors p-1 rounded hover:bg-white/10">
             <X size={16} />
           </button>
         </div>
@@ -523,7 +523,7 @@ const CompareModal = ({ open, onClose, stocks }) => {
               <tbody className="font-mono tabular-nums">
                 {[
                   // 第 4 项 winner: "higher" | "lower" | null（null = 不评胜负，纯展示）
-                  [t("名称"), s => lang === 'zh' ? (s.nameCN || STOCK_CN_NAMES[s.ticker] || s.name) : s.name, "font-sans text-[10px] text-[#a0aec0]", null],
+                  [t("名称"), s => isZh(lang) ? t(s.nameCN || STOCK_CN_NAMES[s.ticker] || s.name) : enFallback(s.name, s.ticker), "font-sans text-[10px] text-[#a0aec0]", null],
                   [t("现价"), s => `${currencySymbol(s.currency)}${s.price}`, "text-white", null],
                   [t("涨跌"), s => `${safeChange(s.change) >= 0 ? "+" : ""}${fmtChange(s.change)}%`, s => safeChange(s.change) >= 0 ? "text-up" : "text-down", "higher"],
                   [t("评分"), s => s.score?.toFixed(1), "text-indigo-300 font-semibold", "higher"],
@@ -641,7 +641,8 @@ const ScoringDashboard = () => {
   const [mobileShowDetail, setMobileShowDetail] = useState(false); // mobile: toggle list vs detail
   const isMobile = useIsMobile();
   const [mFilterOpen, setMFilterOpen] = useState(false); // v6 移动端筛选 sheet
-  // 关注列表 — 持久化到 localStorage
+  // 关注列表 — localStorage + 服务端(KV/后端)双写持久化
+  // 服务端可读：GET /api/watchlist/favorites —— 让监控/AI/月度复盘脱离浏览器读到关注池
   const [favorites, setFavorites] = useState(() => {
     try { return new Set(JSON.parse(localStorage.getItem('quantedge_favorites') || '[]')); } catch { return new Set(); }
   });
@@ -654,6 +655,45 @@ const ScoringDashboard = () => {
       return next;
     });
   }, []);
+  // 服务端同步：整集 PUT（幂等）。失败时 apiFetch 返回 null，本地 localStorage 仍兜底。
+  const favSyncReady = useRef(false);   // 首挂载拉取完成前不回写，避免本地覆盖服务端
+  const favLastSynced = useRef(null);   // 去重：相同集合不重复 PUT
+  const pushFavorites = useCallback((set) => {
+    const arr = [...set].sort();
+    const key = JSON.stringify(arr);
+    if (key === favLastSynced.current) return;
+    favLastSynced.current = key;
+    apiFetch('/watchlist/favorites', { method: 'PUT', body: JSON.stringify({ tickers: arr }) });
+  }, []);
+  // 首挂载：服务端为权威。有数据→覆盖本地；服务端空且 KV 已启用→把本地星标种子上云。
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const resp = await apiFetch('/watchlist/favorites');
+      if (cancelled) return;
+      if (resp && Array.isArray(resp.tickers)) {
+        if (resp.tickers.length > 0) {
+          const serverSet = new Set(resp.tickers);
+          favLastSynced.current = JSON.stringify([...serverSet].sort());
+          setFavorites(serverSet);
+          try { localStorage.setItem('quantedge_favorites', JSON.stringify([...serverSet])); } catch {}
+        } else if (resp.kv !== false) {
+          let localArr = [];
+          try { localArr = JSON.parse(localStorage.getItem('quantedge_favorites') || '[]'); } catch {}
+          if (localArr.length > 0) pushFavorites(new Set(localArr));
+        }
+      }
+      favSyncReady.current = true;
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  // 变更时整集同步（跳过首挂载拉取完成前）
+  useEffect(() => {
+    if (!favSyncReady.current) return;
+    pushFavorites(favorites);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [favorites]);
   // 视图模式 — 列表 / 板块聚合
   const [viewMode, setViewMode] = useState("list"); // "list" | "sector"
   // 卡片密度 — 标准 / 紧凑
@@ -1587,7 +1627,7 @@ const ScoringDashboard = () => {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline gap-2">
                       <span className="font-mono text-[14px] font-semibold" style={{ color: "var(--fg-0)" }}>{stk.ticker}</span>
-                      <span className="text-[11px] truncate" style={{ color: "var(--fg-3)" }}>{lang === "zh" ? (stk.nameCN || STOCK_CN_NAMES[stk.ticker] || stk.name) : stk.name}</span>
+                      <span className="text-[11px] truncate" style={{ color: "var(--fg-3)" }}>{isZh(lang) ? t(stk.nameCN || STOCK_CN_NAMES[stk.ticker] || stk.name) : enFallback(stk.name, stk.ticker)}</span>
                     </div>
                     <div className="font-mono text-[11px] mt-1" style={{ color: up ? "var(--up)" : "var(--down)" }}>
                       {stk.price != null ? `${px(stk)} · ` : ""}{up ? "+" : ""}{fmtChange(stk.change)}%
@@ -1622,7 +1662,7 @@ const ScoringDashboard = () => {
                 )}
                 <div className="flex justify-between items-start mb-4">
                   <div className="min-w-0">
-                    <div className="text-[13px] mb-1 truncate" style={{ color: "var(--fg-2)" }}>{lang === "zh" ? (sel.nameCN || STOCK_CN_NAMES[sel.ticker] || sel.name) : sel.name}</div>
+                    <div className="text-[13px] mb-1 truncate" style={{ color: "var(--fg-2)" }}>{isZh(lang) ? t(sel.nameCN || STOCK_CN_NAMES[sel.ticker] || sel.name) : enFallback(sel.name, sel.ticker)}</div>
                     <div className="font-mono" style={{ fontSize: 36, fontWeight: 600, color: "var(--fg-0)", lineHeight: 1 }}>{px(sel)}</div>
                     <div className="mt-2">
                       <span className="font-mono text-[12px] px-2 py-1 rounded" style={{ background: safeChange(sel.change) >= 0 ? "rgba(30,211,149,.12)" : "rgba(255,107,107,.12)", color: safeChange(sel.change) >= 0 ? "var(--up)" : "var(--down)" }}>
@@ -1881,7 +1921,7 @@ const ScoringDashboard = () => {
       })()}
       <span className="ml-auto flex items-center gap-2 text-[9px] text-[#778] shrink-0">
         <Clock size={9} className="opacity-60" />
-        {indicesTime ? new Date(indicesTime).toLocaleTimeString(lang === 'zh' ? 'zh-CN' : 'en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '—'}
+        {indicesTime ? new Date(indicesTime).toLocaleTimeString(localeFor(lang), { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '—'}
         <button onClick={fetchIndices} disabled={indicesLoading} aria-label={t('刷新指数')} className="p-1 rounded hover:bg-white/10 active:scale-95 transition-all disabled:opacity-40" title={t('刷新')}>
           <RefreshCw size={10} className={`${indicesLoading ? 'animate-spin' : ''} text-[#a0aec0]`} />
         </button>
@@ -1900,7 +1940,7 @@ const ScoringDashboard = () => {
             <div className="flex items-baseline justify-between gap-2 mb-1">
               <div className="min-w-0 flex items-baseline gap-1.5">
                 <span className="font-mono font-bold text-sm text-white shrink-0">{pk.ticker}</span>
-                <span className="text-[10px] text-[#778] truncate">{lang === 'zh' ? (pk.nameCN || STOCK_CN_NAMES[pk.ticker] || pk.name) : pk.name}</span>
+                <span className="text-[10px] text-[#778] truncate">{isZh(lang) ? t(pk.nameCN || STOCK_CN_NAMES[pk.ticker] || pk.name) : enFallback(pk.name, pk.ticker)}</span>
               </div>
               <span className={`font-mono text-sm font-bold shrink-0 ${pk.score >= 75 ? 'text-up' : 'text-indigo-300'}`}>{pk.score != null ? pk.score.toFixed(0) : '—'}</span>
             </div>
@@ -2292,7 +2332,7 @@ const ScoringDashboard = () => {
                         <div className="flex items-center gap-1.5 min-w-0">
                           <span className="text-[9px] w-3 text-center text-[#667] font-mono">{j + 1}</span>
                           <span className="text-[11px] font-mono font-semibold text-white shrink-0">{stk.ticker}</span>
-                          <span className="text-[9px] text-[#a0aec0] truncate">{lang === 'zh' ? (stk.nameCN || STOCK_CN_NAMES[stk.ticker] || stk.name) : stk.name}</span>
+                          <span className="text-[9px] text-[#a0aec0] truncate">{isZh(lang) ? t(stk.nameCN || STOCK_CN_NAMES[stk.ticker] || stk.name) : enFallback(stk.name, stk.ticker)}</span>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                           <MiniSparkline data={get5DSparkData(stk)} w={40} h={12} />
@@ -2320,7 +2360,7 @@ const ScoringDashboard = () => {
                 <div className="flex items-center gap-2">
                   <span className="text-[9px] w-4 text-center text-[#667] font-mono shrink-0">{i + 1}</span>
                   <span className="font-semibold text-[11px] text-white shrink-0 font-mono"><Highlight text={stk.ticker} query={searchTerm} /></span>
-                  <span className="text-[9px] text-[#a0aec0] truncate flex-1"><Highlight text={lang === 'zh' ? (stk.nameCN || STOCK_CN_NAMES[stk.ticker] || stk.name) : stk.name} query={searchTerm} /></span>
+                  <span className="text-[9px] text-[#a0aec0] truncate flex-1"><Highlight text={isZh(lang) ? t(stk.nameCN || STOCK_CN_NAMES[stk.ticker] || stk.name) : enFallback(stk.name, stk.ticker)} query={searchTerm} /></span>
                   <MiniSparkline data={get5DSparkData(stk)} w={56} h={16} />
                   <span className="text-[10px] font-mono tabular-nums text-indigo-300 shrink-0">{stk.score?.toFixed(1)}</span>
                   <span className={`text-[10px] font-mono tabular-nums shrink-0 w-14 text-right ${safeChange(stk.change) >= 0 ? "text-up" : "text-down"}`}>
@@ -2361,7 +2401,7 @@ const ScoringDashboard = () => {
                 </div>
               </div>
               <div className="flex items-center justify-between gap-2">
-                <span className="text-[10px] text-[#b0b8c4] truncate flex-1 min-w-0"><Highlight text={lang === 'zh' ? (stk.nameCN || STOCK_CN_NAMES[stk.ticker] || stk.name) : stk.name} query={searchTerm} /></span>
+                <span className="text-[10px] text-[#b0b8c4] truncate flex-1 min-w-0"><Highlight text={isZh(lang) ? t(stk.nameCN || STOCK_CN_NAMES[stk.ticker] || stk.name) : enFallback(stk.name, stk.ticker)} query={searchTerm} /></span>
                 <MiniSparkline data={get5DSparkData(stk)} w={48} h={14} />
                 <div className="flex items-center gap-1 w-20 shrink-0">
                   <ScoreBar score={stk.score} />
@@ -2416,7 +2456,7 @@ const ScoringDashboard = () => {
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <h3 className="text-[34px] sm:text-[42px] font-serif font-semibold text-white leading-none tracking-tight" style={{ letterSpacing: '-0.02em' }}>{sel.ticker}</h3>
                     {/* PDF1 收敛：sector 从 accent Badge 改 neutral 文字（信息性，无需视觉权重） */}
-                    <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>{sel.market} · {sel.sector}</span>
+                    <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>{sel.market} · {isZh(lang) ? t(sel.sector) : sel.sector}</span>
                     {/* v5.2：下次财报倒计时 chip — 提前把加/减仓窗口与财报日对齐 */}
                     {(() => {
                       if (!sel.nextEarnings) return null;
@@ -2433,7 +2473,7 @@ const ScoringDashboard = () => {
                     })()}
                     {/* PDF1 P0 收敛：etfType（国家/主题/行业 ETF）是分类信息，不是 warning。
                         leverage 保留 danger（杠杆是真风险标记）；普通 ETF 用 default neutral。 */}
-                    {sel.isETF && <Badge variant={sel.leverage ? "danger" : "default"} size="sm">{sel.etfType}</Badge>}
+                    {sel.isETF && <Badge variant={sel.leverage ? "danger" : "default"} size="sm">{t(sel.etfType)}</Badge>}
                     {/* v5 编辑式：评分环抬到 40px（含中心数字）— 让评分作为视觉锚点而非小图标 */}
                     {sel.score != null && (() => {
                       const C = 100.53;  // 2π × r=16
@@ -2478,12 +2518,12 @@ const ScoringDashboard = () => {
                     )}
                     <MacroAdjustBadge stock={sel} temp={macroSnapshot?.composite?.market_temperature} size="sm" />
                   </div>
-                  <div className="text-xs text-[#a0aec0]">{lang === 'zh' ? (sel.nameCN || STOCK_CN_NAMES[sel.ticker] || sel.name) : sel.name}</div>
+                  <div className="text-xs text-[#a0aec0]">{isZh(lang) ? t(sel.nameCN || STOCK_CN_NAMES[sel.ticker] || sel.name) : enFallback(sel.name, sel.ticker)}</div>
                 </div>
                 <div className="sm:text-right flex sm:block items-center gap-2">
                   {/* PDF2 抛光 4.2：主价格抬到 24/28px + 渐变文字（白→slate-300）让数字有金属感 */}
                   <div
-                    className="text-[32px] sm:text-[40px] font-bold font-mono tabular-nums leading-none"
+                    className="num-gradient text-[32px] sm:text-[40px] font-bold font-mono tabular-nums leading-none"
                     style={{
                       background: 'linear-gradient(180deg, #ffffff 0%, #cbd5e1 100%)',
                       WebkitBackgroundClip: 'text',
@@ -2500,11 +2540,50 @@ const ScoringDashboard = () => {
                   </div>
                 </div>
               </div>
-              <p className="text-xs text-[#a0aec0] leading-relaxed mb-2 border-l-2 border-indigo-500/30 pl-2">{lang === 'zh' ? (STOCK_CN_DESCS[sel.ticker] || sel.descriptionCN || sel.description) : sel.description}</p>
+              <p className="text-xs text-[#a0aec0] leading-relaxed mb-2 border-l-2 border-indigo-500/30 pl-2">{(() => {
+                if (isZh(lang)) return t(STOCK_CN_DESCS[sel.ticker] || sel.descriptionCN || sel.description);
+                // 英文模式：优先用 STOCK_EN_DESCS（与 STOCK_CN_DESCS 一一对应的英文描述），
+                // 否则退到 data 自带英文描述；都没有再用英文公司名兜底（不显示中文）。
+                const enDesc = STOCK_EN_DESCS[sel.ticker] || sel.descriptionEN || sel.description;
+                if (enDesc && !hasCJK(enDesc)) return enDesc;
+                return sel.name || sel.ticker;
+              })()}</p>
               {/* PDF2 抛光：AI 评分解读卡前置 — 紧贴评分块，回答「为什么是这个分」（默认折叠） */}
               {sel.subScores && (
                 <div className="mb-2">
                   <ScoreExplainCard stock={sel} weights={weights} />
+                </div>
+              )}
+              {/* v7: ETF 评分归因前置 — 个股有「三大要素」(下方)，ETF 用成本/流动性/动量/风险四维，同样提到首屏，让「为什么是这个分」对 ETF 也可见（桌面；真实 subScores）*/}
+              {sel.subScores && sel.isETF && (
+                <div className="hidden md:block mb-3">
+                  <div className="flex items-baseline justify-between mb-1.5">
+                    <h3 className="text-[11px] font-medium text-white/90">{t('评分构成 · ETF 四维')}</h3>
+                    {sectorMedians?.score != null && (
+                      <span className="text-[9px] text-[#778] font-mono">{t('行业中位')} <span className="text-white/70">{sectorMedians.score.toFixed(0)}</span></span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      ['cost', t('成本效率'), '#818cf8'],
+                      ['liquidity', t('流动性'), '#8b5cf6'],
+                      ['momentum', t('动量趋势'), '#06b6d4'],
+                      ['risk', t('风险分散'), '#f5b53c'],
+                    ].filter(([k]) => Number.isFinite(sel.subScores[k])).map(([k, label, color]) => {
+                      const v = Number(sel.subScores[k]);
+                      return (
+                        <div key={k} className="rounded-lg border border-white/5 bg-white/[0.02] px-2.5 py-2">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-[10px] text-[#a0aec0]">{label}</span>
+                            <span className="text-[13px] font-mono font-bold tabular-nums" style={{ color }}>{Math.round(v)}</span>
+                          </div>
+                          <div className="h-1 rounded-full bg-white/[0.06] overflow-hidden">
+                            <div className="h-full rounded-full" style={{ width: `${Math.max(0, Math.min(100, v))}%`, background: color }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
               {/* v5 编辑式：三大要素 pillar cards — 把评分归因从深埋的 hover tooltip 提升为主视图
@@ -2607,7 +2686,7 @@ const ScoringDashboard = () => {
                       className={`inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border ${maSignal.above ? 'text-warn bg-warn/10 border-warn/30' : 'text-[#a0aec0] bg-white/5 border-white/10'}`}
                     >
                       <span className="inline-block w-3" style={{ borderTop: '2px dashed #F5B53C' }} />
-                      MA20 {maSignal.above ? `↗ 站上均线 +${maSignal.gap.toFixed(1)}%` : `↘ 跌破均线 ${maSignal.gap.toFixed(1)}%`}
+                      MA20 {maSignal.above ? `↗ ${t('站上均线')} +${maSignal.gap.toFixed(1)}%` : `↘ ${t('跌破均线')} ${maSignal.gap.toFixed(1)}%`}
                     </span>
                   )}
                   {periodReturn !== null && (
@@ -3166,7 +3245,7 @@ const ScoringDashboard = () => {
                     </div>
                     {sectorMedians && (
                       <div className="mt-2.5 pt-2 border-t border-white/5 flex items-center justify-between text-[9px] text-[#778]">
-                        <span>{t('vs 行业中位')} · <span className="font-mono">{sel.sector} · {sectorMedians.peerCount} {t('对比')}</span></span>
+                        <span>{t('vs 行业中位')} · <span className="font-mono">{isZh(lang) ? t(sel.sector) : sel.sector} · {sectorMedians.peerCount} {t('对比')}</span></span>
                         {/* PDF1 推荐：归因卡为主，雷达保留为可切换备选视图 */}
                         <button
                           onClick={() => document.getElementById('detail-radar')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
@@ -3189,7 +3268,7 @@ const ScoringDashboard = () => {
                         <span className="section-title">{t('ETF 核心指标')}</span>
                       </div>
                       {/* PDF1 P0 收敛：etfType 分类标签用 neutral，不抢 ETF 核心指标的视觉权重 */}
-                      <Badge variant={sel.leverage ? "danger" : "default"} size="sm">{sel.etfType}</Badge>
+                      <Badge variant={sel.leverage ? "danger" : "default"} size="sm">{t(sel.etfType)}</Badge>
                     </div>
                     <div className="space-y-2">
                       {/* 成本与费用 */}
@@ -3506,7 +3585,7 @@ const ScoringDashboard = () => {
                               {r.alreadyAdded && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-up/10 text-up border border-up/20 flex items-center gap-0.5"><Check size={8} /> {t('已添加')}</span>}
                               {r.price && <span className="text-[10px] font-mono tabular-nums text-[#a0aec0]">${r.price}</span>}
                             </div>
-                            <div className="text-[10px] text-[#778] truncate">{lang === 'zh' ? (STOCK_CN_NAMES[r.symbol] || r.name) : r.name}</div>
+                            <div className="text-[10px] text-[#778] truncate">{isZh(lang) ? t(STOCK_CN_NAMES[r.symbol] || r.name) : enFallback(r.name, r.symbol)}</div>
                           </div>
                           {r.alreadyAdded ? (
                             <button

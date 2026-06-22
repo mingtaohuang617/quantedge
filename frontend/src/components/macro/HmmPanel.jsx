@@ -29,7 +29,7 @@ export default function HmmPanel({ hmm, temp }) {
           <span className="text-[10px] text-white/45">{t("W5000 价格行为视角")}</span>
           {divergence && (
             <span className="text-[10px] px-1.5 py-0.5 rounded border bg-amber-500/10 border-amber-400/30 text-amber-200"
-                  title="HMM（短期价格行为）与 L3 温度（基本面+估值+情绪）方向分歧——常见于顶/底前期">
+                  title={t("HMM（短期价格行为）与 L3 温度（基本面+估值+情绪）方向分歧——常见于顶/底前期")}>
               {t("⚠ 与 L3 温度分歧")}
             </span>
           )}

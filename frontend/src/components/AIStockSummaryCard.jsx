@@ -15,11 +15,12 @@
 import React, { useState } from "react";
 import { Sparkles, AlertCircle, Loader, Zap } from "lucide-react";
 import { apiFetch } from "../quant-platform.jsx";
+import { useLang } from "../i18n.jsx";
 
-// 注意：apiFetch 内部已经拼 "/api" 前缀，且返回已 parse 的 JSON（不是 Response 对象）
 const LLM_ENDPOINT = "/llm/summary";
 
 export default function AIStockSummaryCard({ stock }) {
+  const { t } = useLang();
   const [state, setState] = useState({
     loading: false,
     data: null,           // { 看点, 风险, 估值 }
@@ -35,9 +36,9 @@ export default function AIStockSummaryCard({ stock }) {
   const relTime = (ts) => {
     if (!ts) return null;
     const mins = Math.floor((Date.now() - ts) / 60000);
-    if (mins < 1) return "刚刚";
-    if (mins < 60) return `${mins} 分钟前`;
-    return `${Math.floor(mins / 60)} 小时前`;
+    if (mins < 1) return t('刚刚');
+    if (mins < 60) return t('{n} 分钟前', { n: mins });
+    return t('{n} 小时前', { n: Math.floor(mins / 60) });
   };
 
   const handleGenerate = async () => {
@@ -92,13 +93,13 @@ export default function AIStockSummaryCard({ stock }) {
       <div className="flex items-center justify-between mb-2.5">
         <div className="flex items-center gap-1.5">
           <Sparkles size={12} className="text-violet-400" />
-          <span className="text-[10.5px] font-semibold tracking-wider uppercase text-violet-300/90">AI 解读 · 主导论点</span>
+          <span className="text-[10.5px] font-semibold tracking-wider uppercase text-violet-300/90">{t('AI 解读 · 主导论点')}</span>
           {state.cached && (
             <span
-              title="命中缓存（无 token 消耗）"
+              title={t('命中缓存（无 token 消耗）')}
               className="inline-flex items-center gap-0.5 text-[9px] text-amber-300/80 ml-1"
             >
-              <Zap size={9} /> 缓存
+              <Zap size={9} /> {t('缓存')}
             </span>
           )}
         </div>
@@ -107,7 +108,7 @@ export default function AIStockSummaryCard({ stock }) {
             onClick={handleGenerate}
             className="px-2.5 py-0.5 text-[10px] rounded-md bg-violet-500/20 hover:bg-violet-500/30 text-violet-200 border border-violet-500/40 transition"
           >
-            生成解读
+            {t('生成解读')}
           </button>
         )}
         {hasData && (
@@ -115,7 +116,7 @@ export default function AIStockSummaryCard({ stock }) {
             onClick={handleGenerate}
             className="text-[9px] text-violet-300/70 hover:text-violet-200 transition"
           >
-            重新生成
+            {t('重新生成')}
           </button>
         )}
       </div>
@@ -124,7 +125,7 @@ export default function AIStockSummaryCard({ stock }) {
       {state.loading && (
         <div className="flex items-center gap-2 text-[11px] text-[#a0aec0] py-1">
           <Loader size={11} className="animate-spin text-violet-400" />
-          <span>正在调用 DeepSeek...</span>
+          <span>{t('正在调用 DeepSeek...')}</span>
         </div>
       )}
 
@@ -139,40 +140,40 @@ export default function AIStockSummaryCard({ stock }) {
       {/* 数据态 — 编辑式 body：大字号 + 行高 1.7 + 三段并列 */}
       {hasData && !state.loading && (
         <div className="space-y-2">
-          <Row icon="📈" label="看点" text={state.data["看点"]} />
-          <Row icon="⚠️" label="风险" text={state.data["风险"]} />
-          <Row icon="💎" label="估值" text={state.data["估值"]} />
+          <Row icon="📈" label={t('看点')} text={state.data["看点"]} />
+          <Row icon="⚠️" label={t('风险')} text={state.data["风险"]} />
+          <Row icon="💎" label={t('估值')} text={state.data["估值"]} />
           {/* v5.3：模型置信度量表 — 由数据覆盖度诚实推导（6 因子覆盖越全，AI 判断越可信），
               把 AI 论点从"黑箱断言"变成"带可信度与鲜度的判断" */}
           {(() => {
             const factors = [stock.pe, stock.roe, stock.momentum, stock.rsi, stock.revenueGrowth, stock.profitMargin];
             const covered = factors.filter((v) => v != null && Number.isFinite(Number(v))).length;
             const pct = Math.round((covered / factors.length) * 100);
-            const level = pct >= 80 ? "高" : pct >= 50 ? "中" : "低";
+            const level = pct >= 80 ? t('高') : pct >= 50 ? t('中') : t('低');
             const lvColor = pct >= 80 ? "text-up" : pct >= 50 ? "text-amber-300" : "text-down";
             const segColor = pct >= 80 ? "#1ED395" : pct >= 50 ? "#F5B53C" : "#FF6B6B";
             const filled = Math.round(pct / 20); // 5 段量表
             return (
               <div className="flex items-center gap-2 flex-wrap pt-2 mt-0.5 border-t border-white/5">
-                <span className="text-[9px] text-[#778] uppercase tracking-wider shrink-0">模型置信度</span>
+                <span className="text-[9px] text-[#778] uppercase tracking-wider shrink-0">{t('模型置信度')}</span>
                 <div className="flex items-center gap-0.5" aria-hidden>
                   {[0, 1, 2, 3, 4].map((i) => (
                     <span key={i} className="w-3 h-1.5 rounded-sm transition-colors" style={{ background: i < filled ? segColor : "rgba(255,255,255,0.1)" }} />
                   ))}
                 </div>
                 <span className={`text-[10px] font-mono font-bold ${lvColor}`}>{pct}% · {level}</span>
-                <span className="text-[9px] text-[#778] ml-auto">数据覆盖 {covered}/{factors.length} 因子{covered === factors.length ? " · 无缺失" : ""}</span>
+                <span className="text-[9px] text-[#778] ml-auto">{t('数据覆盖 {c}/{n} 因子', { c: covered, n: factors.length })}{covered === factors.length ? ` · ${t('无缺失')}` : ""}</span>
               </div>
             );
           })()}
-          <div className="lead-paragraph__based-on">based on · PE · ROE · 营收 · RSI · 52W 区间{state.generatedAt ? ` · 更新于 ${relTime(state.generatedAt)}` : ""}</div>
+          <div className="lead-paragraph__based-on">{t('based on · PE · ROE · 营收 · RSI · 52W 区间')}{state.generatedAt ? ` · ${t('更新于 {ago}', { ago: relTime(state.generatedAt) })}` : ""}</div>
         </div>
       )}
 
       {/* 默认提示 */}
       {isCollapsed && !state.loading && !state.error && (
         <div className="text-[11px] text-[#a0aec0] py-0.5">
-          点"生成解读"让 DeepSeek 用 3 句话总结看点 / 风险 / 估值
+          {t('点"生成解读"让 DeepSeek 用 3 句话总结看点 / 风险 / 估值')}
         </div>
       )}
     </div>

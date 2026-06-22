@@ -9,10 +9,12 @@
 // 折叠默认；点 "AI 总结" 触发，缓存 30min（参数变化会自动 miss）
 // ─────────────────────────────────────────────────────────────
 import React, { useState, useEffect, useMemo } from "react";
+import { useLang } from "../i18n.jsx";
 import { Sparkles, AlertCircle, Loader, Zap } from "lucide-react";
 import { apiFetch } from "../quant-platform.jsx";
 
 export default function BacktestNarrationCard({ btResult, portfolio, benchMetrics }) {
+  const { t } = useLang();
   const [state, setState] = useState({
     loading: false,
     text: null,
@@ -89,10 +91,10 @@ export default function BacktestNarrationCard({ btResult, portfolio, benchMetric
       <div className="flex items-center justify-between mb-2.5">
         <div className="flex items-center gap-1.5">
           <Sparkles size={12} className="text-violet-400" />
-          <span className="text-[10.5px] font-semibold tracking-wider uppercase text-violet-300/90">AI 回测一句话总结</span>
+          <span className="text-[10.5px] font-semibold tracking-wider uppercase text-violet-300/90">{t('AI 回测一句话总结')}</span>
           {state.cached && (
-            <span title="命中缓存" className="inline-flex items-center gap-0.5 text-[9px] text-amber-300/80 ml-1">
-              <Zap size={9} /> 缓存
+            <span title={t('命中缓存')} className="inline-flex items-center gap-0.5 text-[9px] text-amber-300/80 ml-1">
+              <Zap size={9} /> {t('缓存')}
             </span>
           )}
         </div>
@@ -101,7 +103,7 @@ export default function BacktestNarrationCard({ btResult, portfolio, benchMetric
             onClick={handleGenerate}
             className="px-2.5 py-0.5 text-[10px] rounded-md bg-violet-500/20 hover:bg-violet-500/30 text-violet-200 border border-violet-500/40 transition"
           >
-            生成总结
+            {t('生成总结')}
           </button>
         )}
         {state.text && (
@@ -109,7 +111,7 @@ export default function BacktestNarrationCard({ btResult, portfolio, benchMetric
             onClick={handleGenerate}
             className="text-[9px] text-violet-300/70 hover:text-violet-200 transition"
           >
-            重新生成
+            {t('重新生成')}
           </button>
         )}
       </div>
@@ -117,7 +119,7 @@ export default function BacktestNarrationCard({ btResult, portfolio, benchMetric
       {state.loading && (
         <div className="flex items-center gap-2 text-[11px] text-[#a0aec0] py-1">
           <Loader size={11} className="animate-spin text-violet-400" />
-          <span>正在分析回测结果...</span>
+          <span>{t('正在分析回测结果...')}</span>
         </div>
       )}
 
@@ -131,7 +133,7 @@ export default function BacktestNarrationCard({ btResult, portfolio, benchMetric
       {state.text && !state.loading && (
         <>
           <p className="lead-paragraph__body whitespace-pre-line">{state.text}</p>
-          <div className="lead-paragraph__based-on">based on · NAV · Sharpe · 板块权重 · 回撤序列 · 单月最差</div>
+          <div className="lead-paragraph__based-on">{t('based on · NAV · Sharpe · 板块权重 · 回撤序列 · 单月最差')}</div>
         </>
       )}
 

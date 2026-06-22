@@ -9,8 +9,10 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Briefcase, Plus, Loader, RefreshCw, Trash2 } from "lucide-react";
 import { apiFetch } from "../quant-platform.jsx";
 import EmptyState from "./EmptyState.jsx";
+import { useLang } from "../i18n.jsx";
 
 export default function PositionsCard({ onAddClick }) {
+  const { t } = useLang();
   const [positions, setPositions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -58,24 +60,24 @@ export default function PositionsCard({ onAddClick }) {
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-1.5">
           <Briefcase size={12} className="text-emerald-400" />
-          <span className="text-[11px] font-medium text-emerald-300">我的持仓</span>
+          <span className="text-[11px] font-medium text-emerald-300">{t('我的持仓')}</span>
           {open.length > 0 && (
-            <span className="text-[9px] text-[#778]">· {open.length} 只在仓</span>
+            <span className="text-[9px] text-[#778]">· {t('{n} 只在仓', { n: open.length })}</span>
           )}
         </div>
         <div className="flex items-center gap-1.5">
           {onAddClick && (
             <button
               onClick={onAddClick}
-              title="录入交易"
+              title={t('录入交易')}
               className="px-1.5 py-0.5 text-[10px] rounded-md bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-200 border border-emerald-500/30 transition flex items-center gap-1"
             >
-              <Plus size={10} /> 录入
+              <Plus size={10} /> {t('录入')}
             </button>
           )}
           <button
             onClick={reload}
-            title="刷新"
+            title={t('刷新')}
             disabled={loading}
             className="p-0.5 text-[#a0aec0] hover:text-white transition disabled:opacity-40"
           >
@@ -91,7 +93,7 @@ export default function PositionsCard({ onAddClick }) {
       {!loading && positions.length === 0 && !error && (
         <EmptyState
           className="text-[10px] text-[#778] py-2"
-          message='还没有交易记录。点"录入"开始追踪持仓。'
+          message={t('还没有交易记录。点"录入"开始追踪持仓。')}
         />
       )}
 
@@ -111,7 +113,7 @@ export default function PositionsCard({ onAddClick }) {
                   <button
                     onClick={() => handleDelete(null, p.ticker)}
                     className="text-[#556] hover:text-down transition shrink-0"
-                    title="删除最新一笔交易"
+                    title={t('删除最新一笔交易')}
                   >
                     <Trash2 size={9} />
                   </button>
@@ -120,7 +122,7 @@ export default function PositionsCard({ onAddClick }) {
             })}
           </div>
           <div className="flex items-center justify-between pt-1.5 border-t border-emerald-500/10 text-[10px]">
-            <span className="text-[#778]">合计浮盈</span>
+            <span className="text-[#778]">{t('合计浮盈')}</span>
             <span className={`font-mono font-bold ${totalUnreal >= 0 ? 'text-up' : 'text-down'}`}>
               {totalUnreal >= 0 ? '+' : ''}{totalUnreal.toFixed(2)}
             </span>
@@ -130,7 +132,7 @@ export default function PositionsCard({ onAddClick }) {
 
       {closed.length > 0 && (
         <div className="mt-1.5 pt-1.5 border-t border-white/5 text-[9px] text-[#778]">
-          已平仓 {closed.length} 只 · 已实现盈亏 <span className={totalReal >= 0 ? 'text-up' : 'text-down'}>{totalReal >= 0 ? '+' : ''}{totalReal.toFixed(2)}</span>
+          {t('已平仓 {n} 只 · 已实现盈亏', { n: closed.length })} <span className={totalReal >= 0 ? 'text-up' : 'text-down'}>{totalReal >= 0 ? '+' : ''}{totalReal.toFixed(2)}</span>
         </div>
       )}
     </div>

@@ -5,6 +5,7 @@
 // 自动从后端拉本月 transactions + positions，生成 markdown 复盘文档
 // ─────────────────────────────────────────────────────────────
 import React, { useState } from "react";
+import { useLang } from "../i18n.jsx";
 import { X, Loader, FileText, Copy, Zap } from "lucide-react";
 import { apiFetch } from "../quant-platform.jsx";
 
@@ -17,6 +18,7 @@ function defaultMonth() {
 }
 
 export default function MonthlyReviewModal({ open, onClose }) {
+  const { t } = useLang();
   const [month, setMonth] = useState(defaultMonth());
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);  // { review, cached, month }
@@ -58,14 +60,14 @@ export default function MonthlyReviewModal({ open, onClose }) {
         <div className="flex items-center justify-between mb-3 shrink-0">
           <div className="flex items-center gap-1.5">
             <FileText size={14} className="text-violet-400" />
-            <span className="text-sm font-semibold text-violet-300">月度复盘（DeepSeek 生成）</span>
+            <span className="text-sm font-semibold text-violet-300">{t('月度复盘（DeepSeek 生成）')}</span>
             {result?.cached && (
               <span className="inline-flex items-center gap-0.5 text-[9px] text-amber-300/80">
-                <Zap size={9} /> 缓存
+                <Zap size={9} /> {t('缓存')}
               </span>
             )}
           </div>
-          <button onClick={onClose} className="p-1.5 -m-1 rounded text-[#778] hover:text-white hover:bg-white/10 transition-colors" aria-label="关闭"><X size={14} /></button>
+          <button onClick={onClose} className="p-1.5 -m-1 rounded text-[#778] hover:text-white hover:bg-white/10 transition-colors" aria-label={t('关闭')}><X size={14} /></button>
         </div>
 
         {/* 月份选择 + 生成 */}
@@ -82,15 +84,15 @@ export default function MonthlyReviewModal({ open, onClose }) {
             className="px-3 py-1.5 text-xs rounded bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white font-semibold flex items-center gap-1 disabled:opacity-40"
           >
             {loading ? <Loader size={11} className="animate-spin" /> : <FileText size={11} />}
-            {loading ? "正在生成..." : "生成复盘"}
+            {loading ? t('正在生成...') : t('生成复盘')}
           </button>
           {result && (
             <button
               onClick={handleCopy}
               className="px-2 py-1.5 text-[10px] rounded bg-white/5 text-[#a0aec0] hover:bg-white/10 hover:text-white transition flex items-center gap-1"
-              title="复制 markdown"
+              title={t('复制 markdown')}
             >
-              <Copy size={10} /> {copied ? "已复制" : "复制"}
+              <Copy size={10} /> {copied ? t('已复制') : t('复制')}
             </button>
           )}
         </div>
@@ -100,7 +102,7 @@ export default function MonthlyReviewModal({ open, onClose }) {
           <div className="text-[11px] text-amber-300/90 mb-2 shrink-0">⚠ {error}</div>
         )}
         {loading && (
-          <div className="text-[10px] text-[#a0aec0] py-1">分析本月交易和持仓中... (~5s)</div>
+          <div className="text-[10px] text-[#a0aec0] py-1">{t('分析本月交易和持仓中... (~5s)')}</div>
         )}
 
         {/* 复盘结果 · v5: 套 .lead-paragraph（紫色 3px 左边线 + 渐变 bg + 13.5px serif body）
@@ -120,8 +122,8 @@ export default function MonthlyReviewModal({ open, onClose }) {
 
         {!result && !loading && !error && (
           <div className="text-[10px] text-[#778] py-3 text-center">
-            选择月份 → 点"生成复盘"<br />
-            DeepSeek 会基于该月 SQLite transactions + 持仓 自动撰写 1000 字结构化复盘
+            {t('选择月份 → 点"生成复盘"')}<br />
+            {t('DeepSeek 会基于该月 SQLite transactions + 持仓 自动撰写 1000 字结构化复盘')}
           </div>
         )}
       </div>

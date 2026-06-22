@@ -12,7 +12,7 @@ import FullscreenChart from "../components/mobile/FullscreenChart.jsx";
 import { searchTickers as standaloneSearch, fetchStockData, fetchBenchmarkPrices, fetchRangePrices, fetchRangePricesEx, STOCK_CN_NAMES } from "../standalone.js";
 import { Z_ELEVATED } from "../lib/zIndex.js";
 import BacktestNarrationCard from "../components/BacktestNarrationCard.jsx";
-import { useLang } from "../i18n.jsx";
+import { useLang, isZh, enFallback } from "../i18n.jsx";
 import { monteCarlo as mcSimulate, navToReturns as mcNavToReturns, hhi as hhiCalc, effectiveN as effN } from "../math/stats.ts";
 import { STOCKS } from "../data.js";
 import {
@@ -1976,9 +1976,9 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
           style={{ zIndex: Z_ELEVATED }}
         >
           <Sparkles size={12} className="text-indigo-300" />
-          <span className="font-medium">已从复利模块加载组合：</span>
+          <span className="font-medium">{t('已从复利模块加载组合：')}</span>
           <span className="font-mono text-indigo-200">
-            {Object.entries(preloadHint).map(([t, w]) => `${t} ${w}%`).join(" · ")}
+            {Object.entries(preloadHint).map(([tk, w]) => `${tk} ${w}%`).join(" · ")}
           </span>
         </div>
       )}
@@ -1989,7 +1989,7 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
         <div className="glass-card p-2 border border-violet-500/20">
           <div className="flex items-center gap-1.5 mb-1.5">
             <Sparkles size={11} className="text-violet-400" />
-            <span className="text-[10px] font-medium text-violet-300">用一句话描述策略 (AI 自动选股)</span>
+            <span className="text-[10px] font-medium text-violet-300">{t('用一句话描述策略 (AI 自动选股)')}</span>
           </div>
           <div className="flex gap-1.5">
             <input
@@ -2128,7 +2128,7 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
                     <div className="flex items-center gap-2 min-w-0 flex-1">
                       <span className="font-semibold" style={{ color: r.alreadyInPortfolio ? "var(--text-muted)" : "var(--text-heading)" }}>{r.symbol}</span>
                       <span className="text-[9px] px-1 py-0.5 rounded" style={{ background: "rgba(99,102,241,0.12)", color: "var(--accent-indigo)" }}>{r.market || "US"}</span>
-                      <span className="truncate text-[10px]" style={{ color: "var(--text-secondary)" }}>{lang === 'zh' ? (STOCK_CN_NAMES[r.symbol] || r.name) : r.name}</span>
+                      <span className="truncate text-[10px]" style={{ color: "var(--text-secondary)" }}>{isZh(lang) ? t(STOCK_CN_NAMES[r.symbol] || r.name) : enFallback(r.name, r.symbol)}</span>
                     </div>
                     {r.alreadyInPortfolio ? (
                       <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-up/10 text-up border border-up/20 flex items-center gap-0.5 shrink-0 ml-1">
@@ -2435,7 +2435,7 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
               <div className="rounded-lg px-3 py-2 border border-amber-500/40 bg-amber-500/10 flex items-start gap-2">
                 <AlertTriangle size={14} className="text-amber-400 shrink-0 mt-0.5" />
                 <div className="text-[11px] text-amber-200 leading-relaxed">
-                  <span className="font-semibold">指标异常 · 数据可能有问题</span> —
+                  <span className="font-semibold">{t('指标异常 · 数据可能有问题')}</span> —
                   {' '}{[
                     m.sharpe > 4 && `夏普 ${m.sharpe}`,
                     m.calmar > 20 && `Calmar ${m.calmar}`,

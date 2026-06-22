@@ -9,6 +9,7 @@ import React, { useEffect, useState } from "react";
 import { X, Sparkles, Loader, AlertCircle, Save } from "lucide-react";
 import { apiFetch } from "../quant-platform.jsx";
 import { Z_ELEVATED } from "../lib/zIndex.js";
+import { useLang } from "../i18n.jsx";
 
 function emptyForm(strategy = "growth") {
   return { id: "", name: "", note: "", strategy, keywords_zh: "", keywords_en: "" };
@@ -22,6 +23,7 @@ function slugify(s) {
 // defaultStrategy 来自调用方当前 tab，保证用户从哪个 tab 进来就建对应 strategy 的赛道
 // —— 否则从 value tab 新建赛道会默认成 growth，不出现在当前 tab，造成困惑
 export default function AddSupertrendDialog({ open, onClose, onSaved, defaultStrategy = "growth" }) {
+  const { t } = useLang();
   const [form, setForm] = useState(emptyForm(defaultStrategy));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -120,7 +122,7 @@ export default function AddSupertrendDialog({ open, onClose, onSaved, defaultStr
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/8">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-white">添加自定义赛道</span>
+            <span className="text-sm font-semibold text-white">{t('添加自定义赛道')}</span>
             <span
               className={`text-[9px] px-1.5 py-0.5 rounded font-medium border ${
                 defaultStrategy === "value"
@@ -128,16 +130,16 @@ export default function AddSupertrendDialog({ open, onClose, onSaved, defaultStr
                   : "bg-indigo-500/15 text-indigo-200 border-indigo-500/40"
               }`}
               title={defaultStrategy === "value"
-                ? "新赛道会归到「价值型」tab"
-                : "新赛道会归到「成长型」tab"}
+                ? t('新赛道会归到「价值型」tab')
+                : t('新赛道会归到「成长型」tab')}
             >
-              {defaultStrategy === "value" ? "价值型" : "成长型"}
+              {defaultStrategy === "value" ? t('价值型') : t('成长型')}
             </span>
           </div>
           <button
             onClick={onClose}
             className="text-[#a0aec0] hover:text-white transition-colors p-1 rounded hover:bg-white/10"
-            aria-label="关闭"
+            aria-label={t('关闭')}
           >
             <X size={16} />
           </button>
@@ -145,42 +147,42 @@ export default function AddSupertrendDialog({ open, onClose, onSaved, defaultStr
 
         <div className="flex-1 overflow-auto px-4 py-3 space-y-3">
           <div className="grid grid-cols-2 gap-3">
-            <Field label="ID（slug，留空自动用名称）">
+            <Field label={t('ID（slug，留空自动用名称）')}>
               <input
                 type="text"
                 value={form.id}
                 onChange={(e) => setField("id", e.target.value)}
                 className="input-base"
-                placeholder="如 renewable"
+                placeholder={t('如 renewable')}
               />
             </Field>
-            <Field label="名称 *">
+            <Field label={t('名称 *')}>
               <input
                 type="text"
                 value={form.name}
                 onChange={(e) => setField("name", e.target.value)}
                 className="input-base"
-                placeholder="如 新能源"
+                placeholder={t('如 新能源')}
               />
             </Field>
           </div>
 
-          <Field label="描述（可选）">
+          <Field label={t('描述（可选）')}>
             <input
               type="text"
               value={form.note}
               onChange={(e) => setField("note", e.target.value)}
               className="input-base"
-              placeholder="如 光伏 / 储能 / 风电"
+              placeholder={t('如 光伏 / 储能 / 风电')}
             />
           </Field>
 
           {/* 策略归属：决定按 tab 过滤时归到哪一边，以及 AI 关键词生成的 prompt 框架 */}
-          <Field label="策略归属">
+          <Field label={t('策略归属')}>
             <div className="flex gap-2">
               {[
-                { value: "growth", label: "成长型", note: "AI 算力 / 半导体 / 光通信 等产业链" },
-                { value: "value", label: "价值型", note: "高股息 / 周期 / 必需消费 等价值赛道" },
+                { value: "growth", label: t('成长型'), note: t('AI 算力 / 半导体 / 光通信 等产业链') },
+                { value: "value", label: t('价值型'), note: t('高股息 / 周期 / 必需消费 等价值赛道') },
               ].map((o) => (
                 <label
                   key={o.value}
@@ -208,7 +210,7 @@ export default function AddSupertrendDialog({ open, onClose, onSaved, defaultStr
           </Field>
 
           <Field
-            label="中文关键词（逗号分隔）"
+            label={t('中文关键词（逗号分隔）')}
             right={
               <button
                 onClick={handleGenerateKeywords}
@@ -216,9 +218,9 @@ export default function AddSupertrendDialog({ open, onClose, onSaved, defaultStr
                 className="flex items-center gap-1 px-2 py-0.5 text-[10px] rounded-md bg-violet-500/20 hover:bg-violet-500/30 text-violet-200 border border-violet-500/40 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {llmState.loading ? (
-                  <><Loader size={10} className="animate-spin" /> 生成中</>
+                  <><Loader size={10} className="animate-spin" /> {t('生成中')}</>
                 ) : (
-                  <><Sparkles size={10} /> AI 生成</>
+                  <><Sparkles size={10} /> {t('AI 生成')}</>
                 )}
               </button>
             }
@@ -228,17 +230,17 @@ export default function AddSupertrendDialog({ open, onClose, onSaved, defaultStr
               onChange={(e) => setField("keywords_zh", e.target.value)}
               rows={3}
               className="input-base font-mono text-[11px]"
-              placeholder="如 光伏, 储能, 锂电池, 新型电力"
+              placeholder={t('如 光伏, 储能, 锂电池, 新型电力')}
             />
           </Field>
 
-          <Field label="英文关键词（逗号分隔）">
+          <Field label={t('英文关键词（逗号分隔）')}>
             <textarea
               value={form.keywords_en}
               onChange={(e) => setField("keywords_en", e.target.value)}
               rows={3}
               className="input-base font-mono text-[11px]"
-              placeholder="如 Solar, Battery, Renewable Energy"
+              placeholder={t('如 Solar, Battery, Renewable Energy')}
             />
           </Field>
 
@@ -257,8 +259,7 @@ export default function AddSupertrendDialog({ open, onClose, onSaved, defaultStr
           )}
 
           <div className="text-[10px] text-[#7a8497] leading-relaxed">
-            提示：关键词用于匹配股票的 sector / industry 字段（如富途/yfinance 返回的"光伏发电" / "Solar"）。
-            匹配越精准的词越好；过于宽泛的词（如"科技"）会带来噪音。
+            {t('提示：关键词用于匹配股票的 sector / industry 字段（如富途/yfinance 返回的"光伏发电" / "Solar"）。匹配越精准的词越好；过于宽泛的词（如"科技"）会带来噪音。')}
           </div>
         </div>
 
@@ -267,7 +268,7 @@ export default function AddSupertrendDialog({ open, onClose, onSaved, defaultStr
             onClick={onClose}
             className="px-3 py-1.5 text-[11px] rounded-md bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white transition border border-white/10"
           >
-            取消
+            {t('取消')}
           </button>
           <button
             onClick={handleSave}
@@ -275,7 +276,7 @@ export default function AddSupertrendDialog({ open, onClose, onSaved, defaultStr
             className="flex items-center gap-1 px-3 py-1.5 text-[11px] rounded-md bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-200 border border-indigo-500/40 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving ? <Loader size={11} className="animate-spin" /> : <Save size={11} />}
-            添加赛道
+            {t('添加赛道')}
           </button>
         </div>
 

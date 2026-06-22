@@ -2,9 +2,11 @@
 import React, { useState } from "react";
 import { AlertCircle, Bell, BellOff, Clock, Layers, Loader, RefreshCw, Sliders, X } from "lucide-react";
 import { ENGINE_IDS, eng, LIST_COLORS, formatFreshness } from "./helpers.js";
+import { useLang, localeFor } from "../../i18n.jsx";
 
 // ─── ConfirmDialog — 不可逆操作确认弹层（替代 window.confirm）─────────
 export function ConfirmDialog({ title, message, confirmLabel = "确认", danger = false, onConfirm, onCancel }) {
+  const { t } = useLang();
   const [busy, setBusy] = useState(false);
   const handle = async () => {
     setBusy(true);
@@ -31,7 +33,7 @@ export function ConfirmDialog({ title, message, confirmLabel = "确认", danger 
             onClick={onCancel}
             disabled={busy}
             className="px-3 py-1 text-[10px] rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white border border-white/10 disabled:opacity-40"
-          >取消</button>
+          >{t('取消')}</button>
           <button
             onClick={handle}
             disabled={busy}
@@ -43,7 +45,7 @@ export function ConfirmDialog({ title, message, confirmLabel = "确认", danger 
             autoFocus
           >
             {busy ? <Loader size={9} className="animate-spin" /> : null}
-            {confirmLabel}
+            {t(confirmLabel)}
           </button>
         </div>
       </div>
@@ -53,6 +55,7 @@ export function ConfirmDialog({ title, message, confirmLabel = "确认", danger 
 
 // ─── ShortcutsHelp — 快捷键 overlay ──────────────────────────────────
 export function ShortcutsHelp({ onClose }) {
+  const { t } = useLang();
   const rows = [
     { keys: ["j", "↓"], desc: "选择下一只" },
     { keys: ["k", "↑"], desc: "选择上一只" },
@@ -67,13 +70,13 @@ export function ShortcutsHelp({ onClose }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={onClose}>
       <div className="glass-card border border-white/15 rounded-lg p-4 min-w-[280px] shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-3">
-          <span className="text-[12px] font-semibold text-white">键盘快捷键</span>
-          <button onClick={onClose} className="p-1.5 -m-1 rounded text-[#a0aec0] hover:text-white hover:bg-white/10 transition-colors" title="关闭" aria-label="关闭"><X size={13} /></button>
+          <span className="text-[12px] font-semibold text-white">{t('键盘快捷键')}</span>
+          <button onClick={onClose} className="p-1.5 -m-1 rounded text-[#a0aec0] hover:text-white hover:bg-white/10 transition-colors" title={t('关闭')} aria-label={t('关闭')}><X size={13} /></button>
         </div>
         <div className="space-y-1.5">
           {rows.map(r => (
             <div key={r.desc} className="flex items-center justify-between text-[11px]">
-              <span className="text-[#d0d7e2]">{r.desc}</span>
+              <span className="text-[#d0d7e2]">{t(r.desc)}</span>
               <span className="flex items-center gap-1">
                 {r.keys.map(k => (
                   <kbd key={k} className="px-1.5 py-0.5 rounded bg-white/10 border border-white/15 text-[10px] font-mono text-white">{k}</kbd>
@@ -83,7 +86,7 @@ export function ShortcutsHelp({ onClose }) {
           ))}
         </div>
         <div className="mt-3 pt-2 border-t border-white/10 text-[9px] text-[#7a8497]">
-          ⓘ 焦点在输入框 / 弹层内时快捷键不触发
+          {t('ⓘ 焦点在输入框 / 弹层内时快捷键不触发')}
         </div>
       </div>
     </div>
@@ -92,6 +95,7 @@ export function ShortcutsHelp({ onClose }) {
 
 // ─── WeightsPanel — 综合分权重 ───────────────────────────────────────
 export function WeightsPanel({ weights, onChange, onReset, onClose }) {
+  const { t } = useLang();
   const total = ENGINE_IDS.reduce((s, id) => s + (weights[id] || 0), 0);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={onClose}>
@@ -99,12 +103,12 @@ export function WeightsPanel({ weights, onChange, onReset, onClose }) {
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <Sliders size={13} className="text-indigo-300" />
-            <span className="text-[12px] font-semibold text-white">综合分权重</span>
+            <span className="text-[12px] font-semibold text-white">{t('综合分权重')}</span>
           </div>
-          <button onClick={onClose} className="p-1.5 -m-1 rounded text-[#a0aec0] hover:text-white hover:bg-white/10 transition-colors" title="关闭" aria-label="关闭"><X size={13} /></button>
+          <button onClick={onClose} className="p-1.5 -m-1 rounded text-[#a0aec0] hover:text-white hover:bg-white/10 transition-colors" title={t('关闭')} aria-label={t('关闭')}><X size={13} /></button>
         </div>
         <div className="text-[10px] text-[#7a8497] mb-3 leading-relaxed">
-          各引擎在综合分里的权重（总和不需等于 100，会自动归一化）。调整会立即重算所有综合分 + 重新排序。
+          {t('各引擎在综合分里的权重（总和不需等于 100，会自动归一化）。调整会立即重算所有综合分 + 重新排序。')}
         </div>
         <div className="space-y-2.5">
           {ENGINE_IDS.map(id => {
@@ -130,11 +134,11 @@ export function WeightsPanel({ weights, onChange, onReset, onClose }) {
         <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between">
           <button onClick={onReset}
             className="px-2 py-1 text-[10px] rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white border border-white/10">
-            恢复默认
+            {t('恢复默认')}
           </button>
           <button onClick={onClose}
             className="px-3 py-1 text-[10px] rounded bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-200 border border-indigo-500/40">
-            完成
+            {t('完成')}
           </button>
         </div>
       </div>
@@ -144,12 +148,13 @@ export function WeightsPanel({ weights, onChange, onReset, onClose }) {
 
 // ─── ListDialog — 创建 / 重命名 / 删除 list 三态弹层 ─────────────────
 export function ListDialog({ mode, list, onCreate, onRename, onDelete, onCancel }) {
+  const { t } = useLang();
   const [name, setName] = useState(list?.name || "");
   const [color, setColor] = useState(list?.color || "slate");
   const [busy, setBusy] = useState(false);
   const isDelete = mode === "delete";
-  const title = isDelete ? `删除分组「${list?.name}」` :
-                mode === "rename" ? "重命名分组" : "新建分组";
+  const title = isDelete ? t('删除分组「{n}」', { n: list?.name }) :
+                mode === "rename" ? t('重命名分组') : t('新建分组');
   const handleSubmit = async () => {
     if (isDelete) {
       setBusy(true);
@@ -172,27 +177,26 @@ export function ListDialog({ mode, list, onCreate, onRename, onDelete, onCancel 
             {isDelete ? <AlertCircle size={13} className="text-rose-400" /> : <Layers size={13} className="text-emerald-300" />}
             <span className="text-[12px] font-semibold text-white">{title}</span>
           </div>
-          <button onClick={onCancel} className="p-1.5 -m-1 rounded text-[#a0aec0] hover:text-white hover:bg-white/10 transition-colors" title="取消" aria-label="取消"><X size={13} /></button>
+          <button onClick={onCancel} className="p-1.5 -m-1 rounded text-[#a0aec0] hover:text-white hover:bg-white/10 transition-colors" title={t('取消')} aria-label={t('取消')}><X size={13} /></button>
         </div>
         {isDelete ? (
           <div className="text-[11px] text-[#d0d7e2] mb-3 leading-relaxed">
-            该分组下的所有 items 会被自动移到「默认」分组，评分历史 / tags / notes 全部保留。<br/>
-            分组本身会被删除，操作不可撤销。
+            {t('该分组下的所有 items 会被自动移到「默认」分组，评分历史 / tags / notes 全部保留。分组本身会被删除，操作不可撤销。')}
           </div>
         ) : (
           <div className="space-y-2.5">
             <div>
-              <div className="text-[9px] text-[#7a8497] mb-1">名称</div>
+              <div className="text-[9px] text-[#7a8497] mb-1">{t('名称')}</div>
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="如：核心仓 / 投机仓 / 长持..."
+                placeholder={t('如：核心仓 / 投机仓 / 长持...')}
                 autoFocus
                 className="w-full px-2 py-1 text-[11px] bg-white/5 border border-white/10 rounded text-white placeholder-[#7a8497] focus:outline-none focus:border-emerald-500/50"
               />
             </div>
             <div>
-              <div className="text-[9px] text-[#7a8497] mb-1">颜色</div>
+              <div className="text-[9px] text-[#7a8497] mb-1">{t('颜色')}</div>
               <div className="flex flex-wrap gap-1">
                 {LIST_COLORS.map(c => (
                   <button
@@ -213,7 +217,7 @@ export function ListDialog({ mode, list, onCreate, onRename, onDelete, onCancel 
             onClick={onCancel}
             disabled={busy}
             className="px-3 py-1 text-[10px] rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white border border-white/10 disabled:opacity-40"
-          >取消</button>
+          >{t('取消')}</button>
           <button
             onClick={handleSubmit}
             disabled={busy || (!isDelete && !name.trim())}
@@ -225,7 +229,7 @@ export function ListDialog({ mode, list, onCreate, onRename, onDelete, onCancel 
             autoFocus={isDelete}
           >
             {busy ? <Loader size={9} className="animate-spin" /> : null}
-            {isDelete ? "删除" : (mode === "create" ? "创建" : "保存")}
+            {isDelete ? t('删除') : (mode === "create" ? t('创建') : t('保存'))}
           </button>
         </div>
       </div>
@@ -235,6 +239,7 @@ export function ListDialog({ mode, list, onCreate, onRename, onDelete, onCancel 
 
 // ─── AlertsPanel — 评分变化预警弹层 ─────────────────────────────────
 export function AlertsPanel({ alerts, onSelect, onClose, onRequestNotify }) {
+  const { t } = useLang();
   const notifPerm = typeof Notification !== "undefined" ? Notification.permission : "unsupported";
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 bg-black/40 backdrop-blur-sm" onClick={onClose}>
@@ -245,38 +250,38 @@ export function AlertsPanel({ alerts, onSelect, onClose, onRequestNotify }) {
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
           <div className="flex items-center gap-2">
             <Bell size={13} className="text-amber-400" />
-            <span className="text-[12px] font-semibold text-white">评分变化预警</span>
-            <span className="text-[10px] text-[#7a8497]">近 30 天 · {alerts.length} 条</span>
+            <span className="text-[12px] font-semibold text-white">{t('评分变化预警')}</span>
+            <span className="text-[10px] text-[#7a8497]">{t('近 30 天')} · {t('{n} 条', { n: alerts.length })}</span>
           </div>
           <div className="flex items-center gap-2">
             {notifPerm === "default" && (
               <button
                 onClick={onRequestNotify}
                 className="flex items-center gap-1 px-2 py-0.5 text-[10px] rounded bg-amber-500/15 hover:bg-amber-500/25 text-amber-200 border border-amber-500/40"
-                title="允许浏览器在评分变化时主动推送"
+                title={t('允许浏览器在评分变化时主动推送')}
               >
-                <Bell size={10} /> 启用桌面通知
+                <Bell size={10} /> {t('启用桌面通知')}
               </button>
             )}
             {notifPerm === "granted" && (
-              <span className="flex items-center gap-1 px-2 py-0.5 text-[10px] rounded bg-emerald-500/10 text-emerald-300/80 border border-emerald-500/20" title="桌面通知已启用">
-                <Bell size={10} /> 已启用
+              <span className="flex items-center gap-1 px-2 py-0.5 text-[10px] rounded bg-emerald-500/10 text-emerald-300/80 border border-emerald-500/20" title={t('桌面通知已启用')}>
+                <Bell size={10} /> {t('已启用')}
               </span>
             )}
             {notifPerm === "denied" && (
-              <span className="flex items-center gap-1 px-2 py-0.5 text-[10px] rounded bg-rose-500/10 text-rose-300/80 border border-rose-500/20" title="浏览器已拒绝通知权限。需要到浏览器设置手动开启">
-                <BellOff size={10} /> 已拒绝
+              <span className="flex items-center gap-1 px-2 py-0.5 text-[10px] rounded bg-rose-500/10 text-rose-300/80 border border-rose-500/20" title={t('浏览器已拒绝通知权限。需要到浏览器设置手动开启')}>
+                <BellOff size={10} /> {t('已拒绝')}
               </span>
             )}
-            <button onClick={onClose} aria-label="关闭预警面板" className="text-[#a0aec0] hover:text-white"><X size={12} /></button>
+            <button onClick={onClose} aria-label={t('关闭预警面板')} className="text-[#a0aec0] hover:text-white"><X size={12} /></button>
           </div>
         </div>
         <div className="flex-1 overflow-auto p-2">
           {alerts.length === 0 && (
             <div className="flex flex-col items-center justify-center py-10 text-[11px] text-[#7a8497]">
               <Bell size={20} className="text-[#5a6477] mb-2" />
-              <span>暂无评分变化</span>
-              <span className="text-[9px] mt-1">每次评分会跟历史比对，分差 ≥1 时生成预警</span>
+              <span>{t('暂无评分变化')}</span>
+              <span className="text-[9px] mt-1">{t('每次评分会跟历史比对，分差 ≥1 时生成预警')}</span>
             </div>
           )}
           {alerts.map((a, idx) => {
@@ -324,6 +329,7 @@ export function AlertsPanel({ alerts, onSelect, onClose, onRequestNotify }) {
 
 // ─── SchedulerPanel — 评分定时刷新设置 ──────────────────────────────
 export function SchedulerPanel({ status, onToggle, onSetSchedule, onRunNow, onClose }) {
+  const { t, lang } = useLang();
   const enabled = status?.enabled || false;
   const sched = status?.schedule || { hour_utc: 6, minute_utc: 0 };
   const [hour, setHour] = useState(sched.hour_utc);
@@ -331,7 +337,7 @@ export function SchedulerPanel({ status, onToggle, onSetSchedule, onRunNow, onCl
   const [running, setRunning] = useState(false);
   // UTC → Beijing 时区显示提示（北京 = UTC+8）
   const beijingHour = (hour + 8) % 24;
-  const beijingDayShift = hour + 8 >= 24 ? "+1 天" : "";
+  const beijingDayShift = hour + 8 >= 24 ? t('+1 天') : "";
   const lastRun = status?.last_run_at;
   const nextRun = status?.next_run_at;
   const lastSummary = status?.last_summary;
@@ -341,23 +347,23 @@ export function SchedulerPanel({ status, onToggle, onSetSchedule, onRunNow, onCl
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Clock size={13} className="text-cyan-300" />
-            <span className="text-[12px] font-semibold text-white">评分定时刷新</span>
+            <span className="text-[12px] font-semibold text-white">{t('评分定时刷新')}</span>
           </div>
-          <button onClick={onClose} aria-label="关闭定时刷新设置" className="text-[#a0aec0] hover:text-white"><X size={12} /></button>
+          <button onClick={onClose} aria-label={t('关闭定时刷新设置')} className="text-[#a0aec0] hover:text-white"><X size={12} /></button>
         </div>
 
         {/* 开关 */}
         <div className="flex items-center justify-between p-2 rounded bg-white/5 border border-white/10 mb-3">
           <div>
-            <div className="text-[11px] text-white font-semibold">每日自动评分</div>
+            <div className="text-[11px] text-white font-semibold">{t('每日自动评分')}</div>
             <div className="text-[10px] text-[#7a8497] mt-0.5">
-              {enabled ? "已启用 — 后台每天定时跑所有 4 个引擎" : "已关闭 — 仅手动评分"}
+              {enabled ? t('已启用 — 后台每天定时跑所有 4 个引擎') : t('已关闭 — 仅手动评分')}
             </div>
           </div>
           <button
             onClick={() => onToggle(!enabled)}
             className={`relative w-9 h-5 rounded-full transition ${enabled ? "bg-emerald-500/60" : "bg-white/15"}`}
-            title={enabled ? "点击关闭" : "点击开启"}
+            title={enabled ? t('点击关闭') : t('点击开启')}
           >
             <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition ${enabled ? "left-4" : "left-0.5"}`} />
           </button>
@@ -365,7 +371,7 @@ export function SchedulerPanel({ status, onToggle, onSetSchedule, onRunNow, onCl
 
         {/* 时刻设置 */}
         <div className="space-y-2 mb-3">
-          <div className="text-[10px] text-[#7a8497]">每天 UTC 时刻（默认 06:00 = 北京 14:00 美股盘后）</div>
+          <div className="text-[10px] text-[#7a8497]">{t('每天 UTC 时刻（默认 06:00 = 北京 14:00 美股盘后）')}</div>
           <div className="flex items-center gap-2">
             <input
               type="number" min={0} max={23}
@@ -386,31 +392,31 @@ export function SchedulerPanel({ status, onToggle, onSetSchedule, onRunNow, onCl
               disabled={hour === sched.hour_utc && minute === sched.minute_utc}
               className="ml-auto px-2 py-1 text-[10px] rounded bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-200 border border-cyan-500/40 transition disabled:opacity-40"
             >
-              保存时间
+              {t('保存时间')}
             </button>
           </div>
           <div className="text-[9px] text-cyan-300/80">
-            北京时间 {String(beijingHour).padStart(2, "0")}:{String(minute).padStart(2, "0")} {beijingDayShift}
+            {t('北京时间')} {String(beijingHour).padStart(2, "0")}:{String(minute).padStart(2, "0")} {beijingDayShift}
           </div>
         </div>
 
         {/* 状态显示 */}
         <div className="space-y-1 mb-3 text-[10px]">
           <div className="flex justify-between">
-            <span className="text-[#7a8497]">下次运行</span>
+            <span className="text-[#7a8497]">{t('下次运行')}</span>
             <span className="font-mono text-cyan-300">
-              {nextRun ? new Date(nextRun).toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}
+              {nextRun ? new Date(nextRun).toLocaleString(localeFor(lang), { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-[#7a8497]">上次运行</span>
+            <span className="text-[#7a8497]">{t('上次运行')}</span>
             <span className="font-mono text-[#a0aec0]">
-              {lastRun ? `${formatFreshness(lastRun)}（${new Date(lastRun).toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}）` : "从未"}
+              {lastRun ? `${formatFreshness(lastRun)}（${new Date(lastRun).toLocaleString(localeFor(lang), { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}）` : t('从未')}
             </span>
           </div>
           {lastSummary?.engines && (
             <div className="pt-1 mt-1 border-t border-white/8">
-              <div className="text-[9px] text-[#7a8497] mb-0.5">上次结果（{lastSummary.items_scanned} 只）</div>
+              <div className="text-[9px] text-[#7a8497] mb-0.5">{t('上次结果（{n} 只）', { n: lastSummary.items_scanned })}</div>
               <div className="flex flex-wrap gap-1">
                 {Object.entries(lastSummary.engines).map(([id, r]) => (
                   <span key={id} className="text-[9px] px-1 py-px rounded bg-white/5 border border-white/10 font-mono">
@@ -434,11 +440,11 @@ export function SchedulerPanel({ status, onToggle, onSetSchedule, onRunNow, onCl
             className="flex items-center gap-1 px-3 py-1 text-[10px] rounded bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-200 border border-emerald-500/40 transition disabled:opacity-40"
           >
             {running ? <Loader size={10} className="animate-spin" /> : <RefreshCw size={10} />}
-            立即跑一次
+            {t('立即跑一次')}
           </button>
           <button onClick={onClose}
             className="px-3 py-1 text-[10px] rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white border border-white/10">
-            完成
+            {t('完成')}
           </button>
         </div>
       </div>

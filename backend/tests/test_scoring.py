@@ -67,6 +67,16 @@ def test_trend_insufficient_neutral():
     assert trend_score([100, 101]) == 50.0
 
 
+def test_trend_score_continuous_strength():
+    # 连续化：强多头仍接近顶，"勉强站上均线"不再顶格(旧阶跃版会给满分 100)，且强弱可分
+    strong = [100 * (1.01 ** i) for i in range(250)]   # 陡升强多头
+    barely = [100.0] * 249 + [101.0]                   # 几乎平、刚冒头
+    s_strong, s_barely = trend_score(strong), trend_score(barely)
+    assert s_strong >= 90
+    assert s_barely < 70        # 旧版此处会 = 100
+    assert s_strong > s_barely
+
+
 # ── rsi_timing_score ─────────────────────────────────────
 def test_rsi_healthy_peak():
     assert rsi_timing_score(55) == 100.0

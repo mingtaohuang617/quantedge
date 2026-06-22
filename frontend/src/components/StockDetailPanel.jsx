@@ -13,6 +13,7 @@
 //   - 与 WatchlistCard 视觉风格一致（glass-card + 8/9/10 字号纪律）
 // ─────────────────────────────────────────────────────────────
 import React, { useEffect, useState } from "react";
+import { useLang } from "../i18n.jsx";
 import { X, Plus, Activity, TrendingUp, TrendingDown, ExternalLink } from "lucide-react";
 import { fmtMcap, fmtNum, fmtPct } from "../lib/formatters.js";
 import { tickerToYahoo, fetchPriceHistory } from "../lib/yahoo.js";
@@ -57,6 +58,7 @@ export default function StockDetailPanel({
   onClose,
   onAddObservation,
 }) {
+  const { t } = useLang();
   // 30 天价格历史（lazy fetch，仅 modal 打开 + ticker 变化时拉一次）
   const [priceHistory, setPriceHistory] = useState({ prices: null, loading: false });
   useEffect(() => {
@@ -115,9 +117,9 @@ export default function StockDetailPanel({
                   href={`https://finance.yahoo.com/quote/${encodeURIComponent(yfSym)}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  title="在 Yahoo Finance 打开（新标签页）"
+                  title={t("在 Yahoo Finance 打开（新标签页）")}
                   className="text-[#7a8497] hover:text-cyan-300 transition-colors p-0.5 rounded hover:bg-white/5"
-                  aria-label="在 Yahoo Finance 打开"
+                  aria-label={t("在 Yahoo Finance 打开")}
                 >
                   <ExternalLink size={10} />
                 </a>
@@ -130,7 +132,7 @@ export default function StockDetailPanel({
           <button
             onClick={onClose}
             className="text-[#a0aec0] hover:text-white transition-colors p-1 rounded hover:bg-white/10"
-            aria-label="关闭"
+            aria-label={t("关闭")}
           >
             <X size={14} />
           </button>
@@ -150,16 +152,16 @@ export default function StockDetailPanel({
           <div className="border border-white/10 rounded p-2 bg-white/[0.02]">
             <div className="flex items-center justify-between mb-1 gap-2">
               <div className="flex items-baseline gap-2 min-w-0">
-                <span className="text-[9px] text-[#a0aec0]">近 30 天</span>
+                <span className="text-[9px] text-[#a0aec0]">{t('近 30 天')}</span>
                 {lastPrice != null && (
                   <span className="text-[10px] font-mono text-white">{lastPrice.toFixed(2)}</span>
                 )}
                 {dayChange != null && (
                   <span
                     className={`text-[9px] font-mono ${dayChange >= 0 ? "text-emerald-400" : "text-red-400"}`}
-                    title="今日变化（最近一根 K 线）"
+                    title={t('今日变化（最近一根 K 线）')}
                   >
-                    今日 {dayChange >= 0 ? "+" : ""}{(dayChange * 100).toFixed(2)}%
+                    {t('今日')} {dayChange >= 0 ? "+" : ""}{(dayChange * 100).toFixed(2)}%
                   </span>
                 )}
               </div>
@@ -168,7 +170,7 @@ export default function StockDetailPanel({
                   className={`text-[10px] font-mono flex items-center gap-0.5 whitespace-nowrap ${
                     monthChange >= 0 ? "text-emerald-400" : "text-red-400"
                   }`}
-                  title="30 天累计变化"
+                  title={t("30 天累计变化")}
                 >
                   {monthChange >= 0 ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
                   {(monthChange >= 0 ? "+" : "")}{(monthChange * 100).toFixed(2)}%
@@ -177,7 +179,7 @@ export default function StockDetailPanel({
             </div>
             {priceHistory.loading && (
               <div className="h-[50px] flex items-center justify-center text-[9px] text-[#5a6477]">
-                加载中…
+                {t('加载中…')}
               </div>
             )}
             {!priceHistory.loading && validPrices.length >= 2 && (
@@ -185,7 +187,7 @@ export default function StockDetailPanel({
             )}
             {!priceHistory.loading && validPrices.length < 2 && (
               <div className="h-[50px] flex items-center justify-center text-[9px] text-[#5a6477]">
-                价格数据不可用
+                {t('价格数据不可用')}
               </div>
             )}
           </div>
@@ -194,7 +196,7 @@ export default function StockDetailPanel({
           {hasAnyFinancial && (
             <div className="border border-emerald-500/20 rounded p-2 bg-emerald-500/[0.02]">
               <div className="text-[9px] text-emerald-300 font-medium mb-1 flex items-center gap-1">
-                <Activity size={9} /> 财务指标
+                <Activity size={9} /> {t('财务指标')}
               </div>
               <div className="grid grid-cols-5 gap-1">
                 {financialRows.map((r) => (
@@ -207,7 +209,7 @@ export default function StockDetailPanel({
                 ))}
               </div>
               <div className="text-[8px] text-[#5a6477] mt-1">
-                ⓘ 缺数据显示 — ；可跑 Finnhub enrich 补齐
+                {t('ⓘ 缺数据显示 — ；可跑 Finnhub enrich 补齐')}
               </div>
             </div>
           )}
@@ -215,7 +217,7 @@ export default function StockDetailPanel({
           {/* 命中赛道 */}
           {Array.isArray(item.matched_supertrends) && item.matched_supertrends.length > 0 && (
             <div>
-              <div className="text-[9px] text-[#a0aec0] mb-1">命中赛道</div>
+              <div className="text-[9px] text-[#a0aec0] mb-1">{t('命中赛道')}</div>
               <div className="flex flex-wrap gap-1">
                 {item.matched_supertrends.map((tid) => (
                   <span
@@ -232,7 +234,7 @@ export default function StockDetailPanel({
           {/* match_reasons 诊断（如有）*/}
           {item.match_reasons && Object.keys(item.match_reasons).length > 0 && (
             <details className="text-[9px] text-[#7a8497]">
-              <summary className="cursor-pointer hover:text-[#a0aec0]">查看命中诊断</summary>
+              <summary className="cursor-pointer hover:text-[#a0aec0]">{t('查看命中诊断')}</summary>
               <div className="mt-1 space-y-1 pl-2">
                 {Object.entries(item.match_reasons).map(([tid, reasons]) => (
                   <div key={tid}>
@@ -256,7 +258,7 @@ export default function StockDetailPanel({
             onClick={onClose}
             className="px-3 py-1 text-[11px] rounded bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white transition border border-white/10"
           >
-            关闭
+            {t('关闭')}
           </button>
           {onAddObservation && (
             <button
@@ -266,7 +268,7 @@ export default function StockDetailPanel({
               }}
               className="flex items-center gap-1 px-3 py-1 text-[11px] rounded bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-200 border border-indigo-500/40 transition"
             >
-              <Plus size={11} /> 加入观察
+              <Plus size={11} /> {t('加入观察')}
             </button>
           )}
         </div>
