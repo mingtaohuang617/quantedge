@@ -853,7 +853,7 @@ export default function CompoundPower({ onOneClickBacktest = null }) {
               {years} 年后 · 从 {fmtMoney(principal)} 起步{monthly > 0 ? ` · 每月 +${fmtMoney(monthly)}` : ""}
             </div>
             <div className="flex items-end gap-4 flex-wrap mb-1">
-              <span className="font-serif font-semibold leading-none" style={{ fontSize: "clamp(48px,7vw,76px)", letterSpacing: "-0.03em", background: "linear-gradient(135deg,#fff 20%,#1ED395 90%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+              <span className="num-gradient-keep font-serif font-semibold leading-none" style={{ fontSize: "clamp(48px,7vw,76px)", letterSpacing: "-0.03em", color: "var(--up)", background: "linear-gradient(135deg,#fff 20%,#1ED395 90%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
                 {fmtMoney(story.finalTotal)}
               </span>
               <div className="pb-2">

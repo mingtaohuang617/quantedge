@@ -670,8 +670,9 @@ ${angleQuestion}
             {heroGain != null ? (
               <div className="flex items-end gap-3">
                 <span
-                  className="t-hero-display font-serif tabular-nums"
+                  className="num-gradient-keep t-hero-display font-serif tabular-nums"
                   style={{
+                    color: heroUp ? "var(--up)" : "var(--down)",
                     background: heroUp
                       ? "linear-gradient(180deg, #6EE7B7, #1ED395)"
                       : "linear-gradient(180deg, #FCA5A5, #EF4444)",

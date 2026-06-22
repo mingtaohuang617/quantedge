@@ -1307,7 +1307,7 @@ export const ScoreBar = ({ score, max = 100 }) => {
       <div className="flex-1 h-1.5 rounded-full bg-white/5 overflow-hidden">
         <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: `linear-gradient(90deg, var(--accent-${varName}-soft), var(--accent-${varName}))` }} />
       </div>
-      <span className="text-xs font-mono tabular-nums w-8 text-right" style={{ color: `var(--accent-${varName})` }}>{s}</span>
+      <span className="text-sm font-mono font-bold tabular-nums w-10 text-right" style={{ color: `var(--accent-${varName})` }}>{Number.isFinite(score) ? s.toFixed(1) : "—"}</span>
     </div>
   );
 };
