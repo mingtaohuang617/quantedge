@@ -61,6 +61,14 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 export const apiFetch = async (path, opts = {}) => {
   const { noRetry, ...fetchOpts } = opts;
+  // i18n：EN 模式下给「AI 实时生成」类端点带上 lang=en，让后端让模型直接产出英文
+  // （后端 prompt 随之不同 → EN/ZH 自动分开缓存）。zh 默认不带，保持原缓存与行为。
+  if (/^\/(llm\/|macro\/narrative|stock-gene\/explain)/.test(path)) {
+    const _lang = localStorage.getItem("quantedge_lang");
+    if (_lang && _lang.startsWith("en")) {
+      path += (path.includes("?") ? "&" : "?") + "lang=en";
+    }
+  }
   const isGet = !fetchOpts.method || fetchOpts.method.toUpperCase() === "GET";
   const shouldRetry = isGet && !noRetry;
 
