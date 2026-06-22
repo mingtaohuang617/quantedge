@@ -117,7 +117,7 @@ export default function WatchlistCard({
               const fresh = days <= 7;
               return (
                 <span className={`text-[9px] font-mono px-1 py-px rounded border ${fresh ? "bg-cyan-500/15 text-cyan-200 border-cyan-500/40" : "bg-white/[0.03] text-[#7a8497] border-white/10"}`}
-                  title={`加入观察 ${days} 天`}>
+                  title={t('加入观察 {n} 天', { n: days })}>
                   {fresh ? t('新') + " " : ""}{days}d
                 </span>
               );
@@ -232,7 +232,7 @@ export default function WatchlistCard({
       {item.falsification_condition && (
         <div
           className="text-[10px] text-amber-200/90 leading-relaxed mb-1 flex items-start gap-1 px-1.5 py-1 bg-amber-500/8 border border-amber-500/25 rounded"
-          title={`证伪条件：${item.falsification_condition}`}
+          title={t('证伪条件：{x}', { x: item.falsification_condition })}
         >
           <span className="text-amber-400 shrink-0">⚠</span>
           <span className="break-words line-clamp-2">{item.falsification_condition}</span>
@@ -265,14 +265,14 @@ export default function WatchlistCard({
                       top: "50%",
                       transform: "translate(-50%, -50%)",
                     }}
-                    title={`当前 ${priceAlerts.current.toFixed(2)} · 区间内 ${progressPct.toFixed(0)}%`}
+                    title={t('当前 {p} · 区间内 {pct}%', { p: priceAlerts.current.toFixed(2), pct: progressPct.toFixed(0) })}
                   />
                 </div>
                 <div className="flex justify-between mt-0.5 text-[8.5px] font-mono">
-                  <span className="text-red-300/85" title={`距止损 ${distToStopPct.toFixed(1)}%`}>
+                  <span className="text-red-300/85" title={t('距止损 {x}%', { x: distToStopPct.toFixed(1) })}>
                     🛡 ${item.stop_loss}
                   </span>
-                  <span className="text-emerald-300/85" title={`距目标 ${distToTargetPct.toFixed(1)}%`}>
+                  <span className="text-emerald-300/85" title={t('距目标 {x}%', { x: distToTargetPct.toFixed(1) })}>
                     🎯 ${item.target_price}
                   </span>
                 </div>

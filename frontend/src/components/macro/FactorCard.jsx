@@ -122,7 +122,7 @@ function FactorCard({ f, onSelect, isStarred, onToggleStar, alert }) {
         )}
         {lagged && (
           <span className="text-[9px] px-1.5 py-0.5 rounded border bg-amber-500/10 border-amber-400/30 text-amber-300"
-                title={`数据滞后超过 ${f.freq} 频率阈值 ${lagThresh} 天 — 上游可能延迟`}>
+                title={t('数据滞后超过 {freq} 频率阈值 {th} 天 — 上游可能延迟', { freq: f.freq, th: lagThresh })}>
             {t("滞后")}
           </span>
         )}

@@ -756,7 +756,7 @@ export default function CompoundPower({ onOneClickBacktest = null }) {
         <FullscreenChart
           open={fsChart}
           onClose={() => setFsChart(false)}
-          title={`复利增长曲线 · ${years} 年`}
+          title={t('复利增长曲线 · {n} 年', { n: years })}
           meta={
             <span className="font-mono" style={{ fontSize: 16, fontWeight: 600, color: "var(--up)" }}>
               {fmtMoney(story.finalTotal)}

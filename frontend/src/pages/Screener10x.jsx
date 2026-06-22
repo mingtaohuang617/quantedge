@@ -1891,7 +1891,7 @@ export default function Screener10x() {
                             {isTop3 && (
                               <span
                                 className="text-[9px] font-mono font-bold text-violet-300 w-3.5 text-center shrink-0"
-                                title={`AI 已审过 top 3 之 #${idx + 1}`}
+                                title={t('AI 已审过 top 3 之 #{n}', { n: idx + 1 })}
                               >
                                 {idx + 1}
                               </span>
