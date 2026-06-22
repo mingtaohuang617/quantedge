@@ -90,7 +90,7 @@ function MPillar({ name, v, w, c, hl }) {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 5 }}>
           <span style={{ fontSize: 13, fontWeight: 600, color: "var(--fg-0)" }}>{name}<span style={{ fontSize: 10, color: "var(--fg-3)", fontWeight: 400, marginLeft: 6 }}>权重 {w}%</span></span>
-          <span className="font-mono" style={{ fontSize: 18, fontWeight: 700, color: c, lineHeight: 1 }}>{v != null ? Math.round(v) : "—"}</span>
+          <span className="font-mono score-accent-num" style={{ fontSize: 18, fontWeight: 700, color: c, lineHeight: 1 }}>{v != null ? Math.round(v) : "—"}</span>
         </div>
         <div style={{ height: 4, background: "rgba(255,255,255,.05)", borderRadius: 2, overflow: "hidden" }}>
           <div style={{ width: `${Math.max(0, Math.min(100, v || 0))}%`, height: "100%", background: `linear-gradient(90deg,${c}55,${c})`, borderRadius: 2 }} />
@@ -2575,7 +2575,7 @@ const ScoringDashboard = () => {
                         <div key={k} className="rounded-lg border border-white/5 bg-white/[0.02] px-2.5 py-2">
                           <div className="flex items-center justify-between mb-1">
                             <span className="text-[10px] text-[#a0aec0]">{label}</span>
-                            <span className="text-[13px] font-mono font-bold tabular-nums" style={{ color }}>{Math.round(v)}</span>
+                            <span className="text-[13px] font-mono font-bold tabular-nums score-accent-num" style={{ color }}>{Math.round(v)}</span>
                           </div>
                           <div className="h-1 rounded-full bg-white/[0.06] overflow-hidden">
                             <div className="h-full rounded-full" style={{ width: `${Math.max(0, Math.min(100, v))}%`, background: color }} />
