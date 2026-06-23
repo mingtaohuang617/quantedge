@@ -60,6 +60,7 @@
 - Recharts（图表）
 - Tailwind CSS + 自定义 CSS 变量（OKLCH 感知均匀色 / 5 语义 token / 5 字号档 + v5 编辑式 hero 第 6 层）
 - 字体：DM Sans（UI）+ JetBrains Mono（数字 tabular-nums）+ Noto Sans SC（中文）+ Fraunces serif（v5 编辑式 hero · OPT-IN）
+- 三语 i18n（简 / 繁 / 英）：简体作 key 穿透 + opencc 繁体 + EN 字典，详见 [I18N.md](I18N.md)。加 UI 文案前先读规范；改完跑 `npm run audit:i18n`
 - vitest + jsdom（组件测试）+ Playwright（E2E）
 - Vercel 部署（Hobby plan 12 函数硬上限，详见 CHANGELOG PR #104）
 

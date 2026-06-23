@@ -1,12 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
+import { useLang } from "../../i18n.jsx";
 
 /**
  * BottomSheet — 从底部升起的面板，替代移动端居中弹窗。
  * 设计原则（v6 移动端）：单手可达、可下滑关闭、不打断上下文。
  *
- *  <BottomSheet open={open} onClose={()=>setOpen(false)} title="筛选标的"
+ *  <BottomSheet open={open} onClose={()=>setOpen(false)} title={t("筛选标的")}
  *     footer={<button>显示 9 只标的</button>}>
  *     …内容…
  *  </BottomSheet>
@@ -28,6 +29,7 @@ export default function BottomSheet({
   ariaLabel,
   contentClassName = "",
 }) {
+  const { t } = useLang();
   const [mounted, setMounted] = useState(open);
   const [visible, setVisible] = useState(false);
   const [drag, setDrag] = useState(0);
@@ -84,7 +86,7 @@ export default function BottomSheet({
       className="fixed inset-0 z-50 flex flex-col justify-end"
       role="dialog"
       aria-modal="true"
-      aria-label={ariaLabel || (typeof title === "string" ? title : "面板")}
+      aria-label={ariaLabel || (typeof title === "string" ? title : t("面板"))}
     >
       <div
         onClick={closeOnBackdrop ? onClose : undefined}
@@ -119,7 +121,7 @@ export default function BottomSheet({
                 ? <span className="text-[16px] font-semibold" style={{ color: "var(--fg-0)" }}>{title}</span>
                 : title}
               {headerRight || (
-                <button onClick={onClose} aria-label="关闭" className="p-1 -mr-1 rounded active:scale-90 transition" style={{ color: "var(--fg-3)" }}>
+                <button onClick={onClose} aria-label={t("关闭")} className="p-1 -mr-1 rounded active:scale-90 transition" style={{ color: "var(--fg-3)" }}>
                   <X size={18} />
                 </button>
               )}

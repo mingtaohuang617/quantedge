@@ -1543,19 +1543,19 @@ class LLMJournalReq(BaseModel):
 
 
 @app.post("/api/llm/summary")
-def llm_summary(req: LLMSummaryReq, force: bool = False):
+def llm_summary(req: LLMSummaryReq, lang: str = "zh", force: bool = False):
     """B1: 个股 AI 摘要（看点 / 风险 / 估值）。命中缓存时 <50ms。?force=true 跳过缓存重生。"""
     if not HAS_LLM or _llm_mod is None:
         raise HTTPException(503, "llm 模块未加载（DEEPSEEK_API_KEY 未设？）")
-    return sanitize(_llm_mod.summary(req.dict(), force=force))
+    return sanitize(_llm_mod.summary(req.dict(), lang=lang, force=force))
 
 
 @app.post("/api/llm/journal-structure")
-def llm_journal_structure(req: LLMJournalReq, force: bool = False):
+def llm_journal_structure(req: LLMJournalReq, lang: str = "zh", force: bool = False):
     """B5: 一句话投资日志 → 结构化字段。?force=true 跳过缓存重生。"""
     if not HAS_LLM or _llm_mod is None:
         raise HTTPException(503, "llm 模块未加载（DEEPSEEK_API_KEY 未设？）")
-    return sanitize(_llm_mod.journal_structure(req.text, req.watchlist, force=force))
+    return sanitize(_llm_mod.journal_structure(req.text, req.watchlist, lang=lang, force=force))
 
 
 class LLMExplainScoreReq(BaseModel):
@@ -1568,7 +1568,7 @@ class LLMExplainScoreReq(BaseModel):
 
 
 @app.post("/api/llm/explain-score")
-def llm_explain_score(req: LLMExplainScoreReq, force: bool = False):
+def llm_explain_score(req: LLMExplainScoreReq, lang: str = "zh", force: bool = False):
     """B2: 解读综合评分（为什么 78.8 分）。?force=true 跳过缓存重生。"""
     if not HAS_LLM or _llm_mod is None:
         raise HTTPException(503, "llm 模块未加载（DEEPSEEK_API_KEY 未设？）")
@@ -1578,7 +1578,7 @@ def llm_explain_score(req: LLMExplainScoreReq, force: bool = False):
         "isETF": req.isETF,
         "subScores": req.subScores,
     }
-    return sanitize(_llm_mod.explain_score(stock, req.weights, force=force))
+    return sanitize(_llm_mod.explain_score(stock, req.weights, lang=lang, force=force))
 
 
 class LLMBacktestNarrateReq(BaseModel):
@@ -1595,11 +1595,11 @@ class LLMBacktestNarrateReq(BaseModel):
 
 
 @app.post("/api/llm/backtest-narrate")
-def llm_backtest_narrate(req: LLMBacktestNarrateReq, force: bool = False):
+def llm_backtest_narrate(req: LLMBacktestNarrateReq, lang: str = "zh", force: bool = False):
     """B4: 回测结果自然语言总结。?force=true 跳过缓存重生。"""
     if not HAS_LLM or _llm_mod is None:
         raise HTTPException(503, "llm 模块未加载（DEEPSEEK_API_KEY 未设？）")
-    return sanitize(_llm_mod.backtest_narrate(req.dict(), force=force))
+    return sanitize(_llm_mod.backtest_narrate(req.dict(), lang=lang, force=force))
 
 
 # ── 交易 / 持仓端点 (A6 - Sprint 3) ──────────────────────
@@ -1664,11 +1664,11 @@ class LLMParseStrategyReq(BaseModel):
 
 
 @app.post("/api/llm/parse-strategy")
-def llm_parse_strategy(req: LLMParseStrategyReq, force: bool = False):
+def llm_parse_strategy(req: LLMParseStrategyReq, lang: str = "zh", force: bool = False):
     """B3: 一句话策略 → portfolio dict。?force=true 跳过缓存重生。"""
     if not HAS_LLM or _llm_mod is None:
         raise HTTPException(503, "llm 模块未加载")
-    return sanitize(_llm_mod.parse_strategy(req.text, req.candidates, force=force))
+    return sanitize(_llm_mod.parse_strategy(req.text, req.candidates, lang=lang, force=force))
 
 
 # ── D P1: generate-keywords 后端实现（与 frontend/api/llm/ lambda 等价）─
@@ -1683,18 +1683,18 @@ class LLMGenerateKeywordsReq(BaseModel):
 
 
 @app.post("/api/llm/generate-keywords")
-def llm_generate_keywords(req: LLMGenerateKeywordsReq, force: bool = False):
+def llm_generate_keywords(req: LLMGenerateKeywordsReq, lang: str = "zh", force: bool = False):
     """根据赛道名 + 注释，LLM 起草 sector_mapping 关键词列表（中英双语）。?force=true 跳过缓存重生。"""
     if not HAS_LLM or _llm_mod is None:
         raise HTTPException(503, "llm 模块未加载（DEEPSEEK_API_KEY 未设？）")
     return sanitize(_llm_mod.generate_keywords(
-        req.name, req.note, req.strategy, force=force,
+        req.name, req.note, req.strategy, lang=lang, force=force,
     ))
 
 
 # ── B7: 月度复盘端点 ─────────────────────────────────────
 @app.post("/api/llm/monthly-review")
-def llm_monthly_review(month: str | None = None, force: bool = False):
+def llm_monthly_review(month: str | None = None, lang: str = "zh", force: bool = False):
     """B7: 自动从 db 拉数据生成月度复盘。month='YYYY-MM' 缺省取上月。?force=true 跳过缓存重生。"""
     if not HAS_LLM or _llm_mod is None or not HAS_DB:
         raise HTTPException(503, "llm 或 db 模块未加载")
@@ -1711,7 +1711,7 @@ def llm_monthly_review(month: str | None = None, force: bool = False):
         (f"{month}%",),
     )]
     positions = _db_mod.compute_positions()
-    return sanitize(_llm_mod.monthly_review(month, txs, positions, force=force))
+    return sanitize(_llm_mod.monthly_review(month, txs, positions, lang=lang, force=force))
 
 
 @app.get("/api/llm/stats")
@@ -1859,7 +1859,7 @@ def get_macro_composite_history(
 
 
 @app.get("/api/macro/narrative")
-def get_macro_narrative(market: str = "US", force: bool = False):
+def get_macro_narrative(market: str = "US", lang: str = "zh", force: bool = False):
     """每日 AI 市场画像（DeepSeek，缓存 12h）。
 
     force=true 跳过 12h 缓存，强制重新调用 LLM。用于 dev 调试或手动刷新。
@@ -1867,11 +1867,13 @@ def get_macro_narrative(market: str = "US", force: bool = False):
     if not HAS_LLM:
         return {"ok": False, "error": "llm 模块未加载"}
     composite = _fl.compute_composite(market)
-    return sanitize(_llm_mod.macro_narrative(composite, force=force))
+    return sanitize(_llm_mod.macro_narrative(composite, lang=lang, force=force))
 
 
 # ── 10x 猎手：Universe + Watchlist + LLM ───────────────────
 import watchlist_10x as _wl  # noqa: E402
+import favorites as _fav  # noqa: E402
+import anomaly_store as _anom  # noqa: E402
 from universe import universe_stats as _universe_stats  # noqa: E402
 
 
@@ -1962,6 +1964,44 @@ def delete_watchlist_10x(ticker: str):
     if _wl.remove_item(ticker):
         return {"ok": True, "ticker": ticker.upper()}
     raise HTTPException(404, f"{ticker} not in watchlist")
+
+
+# ── 自选股（评分页星标）—— 轻量 ticker 集合，全量替换 ────────
+class FavoritesPutReq(BaseModel):
+    tickers: list[str] = []
+
+
+@app.get("/api/watchlist/favorites")
+def get_favorites():
+    """读取自选股集合（评分页星标），供前端 / 监控 / AI 复盘读取关注池。"""
+    return sanitize(_fav.load_favorites())
+
+
+@app.put("/api/watchlist/favorites")
+def put_favorites(req: FavoritesPutReq):
+    """全量替换自选股集合（前端持有完整 Set，整集 PUT → 幂等、无合并冲突）。"""
+    return sanitize({"ok": True, **_fav.save_favorites(req.tickers)})
+
+
+# ── 关注股异动扫描结果 —— 本地脚本写、监控页读，整快照替换 ────────
+class AnomalyScanReq(BaseModel):
+    scanned_at: str | None = None
+    time_range: int = 7
+    items: list = []
+    skipped: list = []
+    errors: list = []
+
+
+@app.get("/api/anomaly/scan")
+def get_anomaly_scan():
+    """读取最近一次关注股异动扫描快照，供「实时监控」页展示。"""
+    return sanitize(_anom.load_scan())
+
+
+@app.put("/api/anomaly/scan")
+def put_anomaly_scan(req: AnomalyScanReq):
+    """本地 futu_anomaly_scan.py 跑完写入整快照（幂等替换）。"""
+    return sanitize({"ok": True, **_anom.save_scan(req.dict())})
 
 
 @app.get("/api/watchlist/10x/export")
@@ -2087,7 +2127,7 @@ class TenxThesisReq(BaseModel):
 
 
 @app.post("/api/llm/10x-thesis")
-def llm_tenx_thesis(req: TenxThesisReq, force: bool = False):
+def llm_tenx_thesis(req: TenxThesisReq, lang: str = "zh", force: bool = False):
     """LLM 生成卡位分析草稿（5 段：超级趋势 / 瓶颈层 / 卡位逻辑 / 风险 / 推演结论）。?force=true 跳过缓存重生。"""
     if not HAS_LLM or _llm_mod is None:
         raise HTTPException(503, "llm 模块未加载（DEEPSEEK_API_KEY 未设？）")
@@ -2099,7 +2139,7 @@ def llm_tenx_thesis(req: TenxThesisReq, force: bool = False):
     if not supertrend:
         raise HTTPException(400, f"unknown supertrend_id: {req.supertrend_id}")
     stock = req.dict(exclude={"supertrend_id"})
-    return sanitize(_llm_mod.tenx_thesis(stock, supertrend, force=force))
+    return sanitize(_llm_mod.tenx_thesis(stock, supertrend, lang=lang, force=force))
 
 
 class ValueThesisReq(BaseModel):
@@ -2120,7 +2160,7 @@ class ValueThesisReq(BaseModel):
 
 
 @app.post("/api/llm/value-thesis")
-def llm_value_thesis(req: ValueThesisReq, force: bool = False):
+def llm_value_thesis(req: ValueThesisReq, lang: str = "zh", force: bool = False):
     """LLM 生成价值型分析草稿（Graham 安全边际，含估值点位 + 内在价值 + 护城河 + 风险 + 结论）。?force=true 跳过缓存重生。"""
     if not HAS_LLM or _llm_mod is None:
         raise HTTPException(503, "llm 模块未加载（DEEPSEEK_API_KEY 未设？）")
@@ -2131,7 +2171,7 @@ def llm_value_thesis(req: ValueThesisReq, force: bool = False):
     if not supertrend:
         raise HTTPException(400, f"unknown supertrend_id: {req.supertrend_id}")
     stock = req.dict(exclude={"supertrend_id"})
-    return sanitize(_llm_mod.value_thesis(stock, supertrend, force=force))
+    return sanitize(_llm_mod.value_thesis(stock, supertrend, lang=lang, force=force))
 
 
 # ─────────────────────────────────────────────────────────────
@@ -3187,11 +3227,11 @@ class StockGeneExplainReq(BaseModel):
 
 
 @app.post("/api/stock-gene/explain")
-def stock_gene_explain(req: StockGeneExplainReq, force: bool = False):
+def stock_gene_explain(req: StockGeneExplainReq, lang: str = "zh", force: bool = False):
     """让 LLM 用一段话解读这只票的 8/6 维评分画像。命中缓存时 < 50ms。?force=true 跳过缓存重生。"""
     if not HAS_LLM or _llm_mod is None:
         raise HTTPException(503, "llm 模块未加载（DEEPSEEK_API_KEY 未设？）")
-    return sanitize(_llm_mod.explain_gene_score(req.dict(), force=force))
+    return sanitize(_llm_mod.explain_gene_score(req.dict(), lang=lang, force=force))
 
 
 if __name__ == "__main__":

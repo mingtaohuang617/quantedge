@@ -22,6 +22,7 @@ import {
 } from "../math/compound.ts";
 import useIsMobile from "../hooks/useIsMobile";
 import { FullscreenChart, ThumbActionBar } from "../components/mobile";
+import { useLang } from "../i18n.jsx";
 
 // ─── 常量 ────────────────────────────────────────────────
 
@@ -142,7 +143,7 @@ function ButtonGroup({ options, value, onChange, getLabel, getKey, warningOf, ar
             title={warn || ""}
           >
             {getLabel(opt)}
-            {warn && <span className="ml-1 text-amber-400" aria-label="风险警示">⚠</span>}
+            {warn && <span className="ml-1 text-amber-400" aria-label={t("风险警示")}>⚠</span>}
           </button>
         );
       })}
@@ -198,14 +199,15 @@ function StatCard({ label, value, hint, accent = "indigo", warning }) {
 
 /** 风险等级卡 */
 function RiskTierCard({ tierId, active, onClick }) {
-  const t = RISK_TIERS[tierId];
-  const c = ACCENT_CLASS[t.accent];
-  const Icon = t.icon;
+  const { t } = useLang();
+  const tier = RISK_TIERS[tierId];
+  const c = ACCENT_CLASS[tier.accent];
+  const Icon = tier.icon;
   return (
     <button
       onClick={onClick}
       aria-pressed={active}
-      aria-label={`${t.label}：目标年化 ${fmtPct(t.targetReturn[0], 0)}–${fmtPct(t.targetReturn[1], 0)}，历史波动 ${fmtPct(t.volatility, 0)}`}
+      aria-label={`${t(tier.label)}：${t('目标年化')} ${fmtPct(tier.targetReturn[0], 0)}–${fmtPct(tier.targetReturn[1], 0)}，${t('历史波动')} ${fmtPct(tier.volatility, 0)}`}
       className={`text-left rounded-lg border p-2.5 transition w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
         active
           ? `${c.bg} ${c.border} ring-1 ring-current ${c.text}`
@@ -214,12 +216,12 @@ function RiskTierCard({ tierId, active, onClick }) {
     >
       <div className="flex items-center gap-1.5 mb-1">
         <Icon size={12} className={c.text} />
-        <span className={`text-[11px] font-semibold ${c.text}`}>{t.label}</span>
+        <span className={`text-[11px] font-semibold ${c.text}`}>{t(tier.label)}</span>
       </div>
       <div className="text-[10px] text-[#a0aec0] space-y-0.5 font-mono">
-        <div>目标年化 <span className="text-white/80">{fmtPct(t.targetReturn[0], 0)}–{fmtPct(t.targetReturn[1], 0)}</span></div>
-        <div>历史波动 <span className="text-white/80">{fmtPct(t.volatility, 0)}</span></div>
-        <div>最大回撤 <span className="text-white/80">~{fmtPct(t.maxDD, 0)}</span></div>
+        <div>{t('目标年化')} <span className="text-white/80">{fmtPct(tier.targetReturn[0], 0)}–{fmtPct(tier.targetReturn[1], 0)}</span></div>
+        <div>{t('历史波动')} <span className="text-white/80">{fmtPct(tier.volatility, 0)}</span></div>
+        <div>{t('最大回撤')} <span className="text-white/80">~{fmtPct(tier.maxDD, 0)}</span></div>
       </div>
     </button>
   );
@@ -227,6 +229,7 @@ function RiskTierCard({ tierId, active, onClick }) {
 
 /** 策略组合卡 */
 function StrategyCard({ strategy, onOneClickBacktest }) {
+  const { t } = useLang();
   const isWarn = strategy.warning;
   const tickers = Object.entries(strategy.weights || {});
   const canBacktest = tickers.length > 0 && typeof onOneClickBacktest === "function";
@@ -236,22 +239,22 @@ function StrategyCard({ strategy, onOneClickBacktest }) {
     }`}>
       <div className="flex items-center justify-between mb-2">
         <span className={`text-[11px] font-semibold ${isWarn ? "text-amber-300" : "text-white/90"}`}>
-          {strategy.name}
+          {t(strategy.name)}
         </span>
         {isWarn && <AlertTriangle size={11} className="text-amber-400" />}
       </div>
       {tickers.length > 0 ? (
         <div className="flex flex-wrap gap-1 mb-2">
-          {tickers.map(([t, w]) => (
-            <span key={t} className="px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-200 border border-indigo-500/30 text-[10px] font-mono">
-              {t} <span className="text-indigo-400">{fmtPct(w, 0)}</span>
+          {tickers.map(([tk, w]) => (
+            <span key={tk} className="px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-200 border border-indigo-500/30 text-[10px] font-mono">
+              {tk} <span className="text-indigo-400">{fmtPct(w, 0)}</span>
             </span>
           ))}
         </div>
       ) : (
-        <div className="text-[10px] text-[#a0aec0] mb-2">无可推荐组合</div>
+        <div className="text-[10px] text-[#a0aec0] mb-2">{t('无可推荐组合')}</div>
       )}
-      <p className="text-[10px] text-[#a0aec0] leading-relaxed">{strategy.rationale}</p>
+      <p className="text-[10px] text-[#a0aec0] leading-relaxed">{t(strategy.rationale)}</p>
       <button
         disabled={!canBacktest}
         onClick={canBacktest ? () => onOneClickBacktest(strategy.weights) : undefined}
@@ -260,9 +263,9 @@ function StrategyCard({ strategy, onOneClickBacktest }) {
             ? "border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/10 hover:border-indigo-500/70 cursor-pointer"
             : "border-white/10 text-[#6b7280] cursor-not-allowed"
         }`}
-        title={canBacktest ? "跳转到组合回测并填入此组合" : "此档位无可回测组合"}
+        title={canBacktest ? t('跳转到组合回测并填入此组合') : t('此档位无可回测组合')}
       >
-        {canBacktest ? "一键回测 →" : "无可回测组合"}
+        {canBacktest ? t('一键回测 →') : t('无可回测组合')}
       </button>
     </div>
   );
@@ -270,6 +273,7 @@ function StrategyCard({ strategy, onOneClickBacktest }) {
 
 /** 复利曲线图：确定值 + 蒙特卡洛区间 + SPY + 通胀 */
 function GrowthChart({ data, showSpy = true, useLogScale = false }) {
+  const { t } = useLang();
   // 对数轴 + 0 起点会断（log 0 = -Infinity），所以最小值用第一年（principal > 0）
   const minDataValue = data.length > 0 ? data[0].nominal : 1;
   return (
@@ -278,7 +282,7 @@ function GrowthChart({ data, showSpy = true, useLogScale = false }) {
         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
         <XAxis
           dataKey="year" stroke="#6b7280" fontSize={10}
-          label={{ value: "年", position: "insideBottom", offset: -2, fill: "#6b7280", fontSize: 10 }}
+          label={{ value: t("年"), position: "insideBottom", offset: -2, fill: "#6b7280", fontSize: 10 }}
         />
         <YAxis
           stroke="#6b7280" fontSize={10}
@@ -292,28 +296,28 @@ function GrowthChart({ data, showSpy = true, useLogScale = false }) {
           contentStyle={{ background: "#0d1117", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6, fontSize: 11 }}
           labelStyle={{ color: "#a0aec0", fontSize: 10 }}
           formatter={(v, name) => [fmtMoney(v), name]}
-          labelFormatter={(y) => `第 ${y} 年`}
+          labelFormatter={(y) => t('第 {y} 年', { y })}
         />
         <Legend wrapperStyle={{ fontSize: 10, paddingTop: 4 }} />
         {/* 蒙特卡洛 5%-95% 区间（range area） */}
         <Area
           type="monotone" dataKey="mcBand"
           stroke="none" fill="#6366f1" fillOpacity={0.12}
-          name="蒙特卡洛 5%-95% 区间" legendType="rect"
+          name={t("蒙特卡洛 5%-95% 区间")} legendType="rect"
           isAnimationActive={false}
         />
         {/* 蒙特卡洛中位数 */}
         <Line
           type="monotone" dataKey="mcMedian"
           stroke="#6366f1" strokeWidth={1.5} strokeDasharray="3 3"
-          dot={false} name="蒙特卡洛中位数"
+          dot={false} name={t("蒙特卡洛中位数")}
           isAnimationActive={false}
         />
         {/* 名义确定值 */}
         <Line
           type="monotone" dataKey="nominal"
           stroke="#10b981" strokeWidth={2}
-          dot={false} name="名义复利"
+          dot={false} name={t("名义复利")}
           isAnimationActive={false}
         />
         {/* SPY 基准 — rate=10% 时与名义完全重合，隐藏避免视觉混淆 */}
@@ -321,7 +325,7 @@ function GrowthChart({ data, showSpy = true, useLogScale = false }) {
           <Line
             type="monotone" dataKey="spy"
             stroke="#f59e0b" strokeWidth={1.5} strokeDasharray="5 3"
-            dot={false} name="SPY 基准 (10%)"
+            dot={false} name={t("SPY 基准 (10%)")}
             isAnimationActive={false}
           />
         )}
@@ -329,7 +333,7 @@ function GrowthChart({ data, showSpy = true, useLogScale = false }) {
         <Line
           type="monotone" dataKey="real"
           stroke="#a0aec0" strokeWidth={1.5} strokeDasharray="2 2"
-          dot={false} name="实际购买力 (扣 3% 通胀)"
+          dot={false} name={t("实际购买力 (扣 3% 通胀)")}
           isAnimationActive={false}
         />
       </ComposedChart>
@@ -341,6 +345,7 @@ function GrowthChart({ data, showSpy = true, useLogScale = false }) {
 //  主组件
 // ═════════════════════════════════════════════════════════
 export default function CompoundPower({ onOneClickBacktest = null }) {
+  const { t } = useLang();
   const isMobile = useIsMobile();
   const [selectedRate, setSelectedRate] = useState(0.10);
   const [years, setYears] = useState(20);
@@ -472,30 +477,30 @@ export default function CompoundPower({ onOneClickBacktest = null }) {
     // 滑块行：label / displayValue / value / min / max / step / onChange / loLabel / hiLabel
     const sliderRows = [
       {
-        label: "初始本金", displayValue: fmtMoney(principal), sub: "",
+        label: t("初始本金"), displayValue: fmtMoney(principal), sub: "",
         value: Math.min(500_000, principal), min: 0, max: 500_000, step: 5_000,
         onChange: (v) => setPrincipalStr(String(v)),
         lo: "$0", hi: "$500K",
       },
       {
-        label: "每月定投", displayValue: fmtMoney(monthly), sub: "/月",
+        label: t("每月定投"), displayValue: fmtMoney(monthly), sub: t("/月"),
         value: Math.min(10_000, monthly), min: 0, max: 10_000, step: 250,
         onChange: (v) => setMonthlyStr(String(v)),
         lo: "$0", hi: "$10K",
       },
       {
-        label: "年化收益", displayValue: fmtPct(selectedRate, 0), sub: "",
+        label: t("年化收益"), displayValue: fmtPct(selectedRate, 0), sub: "",
         value: Math.max(0, RETURN_OPTIONS.findIndex((o) => o.rate === selectedRate)),
         min: 0, max: RETURN_OPTIONS.length - 1, step: 1,
         onChange: (i) => { setSelectedRate(RETURN_OPTIONS[i].rate); setTierOverride(null); },
         lo: RETURN_OPTIONS[0].label, hi: RETURN_OPTIONS[RETURN_OPTIONS.length - 1].label,
       },
       {
-        label: "投资年限", displayValue: `${years}`, sub: "年",
+        label: t("投资年限"), displayValue: `${years}`, sub: t("年"),
         value: Math.max(0, YEAR_OPTIONS.indexOf(years)),
         min: 0, max: YEAR_OPTIONS.length - 1, step: 1,
         onChange: (i) => setYears(YEAR_OPTIONS[i]),
-        lo: `${YEAR_OPTIONS[0]}年`, hi: `${YEAR_OPTIONS[YEAR_OPTIONS.length - 1]}年`,
+        lo: `${YEAR_OPTIONS[0]}${t('年')}`, hi: `${YEAR_OPTIONS[YEAR_OPTIONS.length - 1]}${t('年')}`,
       },
     ];
 
@@ -506,13 +511,13 @@ export default function CompoundPower({ onOneClickBacktest = null }) {
     const fsIndicators = (
       <>
         <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10.5, color: "var(--fg-2)" }}>
-          <span style={{ width: 14, height: 2, background: "#1ED395", display: "inline-block" }} />账户总值
+          <span style={{ width: 14, height: 2, background: "#1ED395", display: "inline-block" }} />{t('账户总值')}
         </span>
         <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10.5, color: "var(--fg-3)" }}>
-          <span style={{ width: 14, height: 2, background: "#5A5E76", borderStyle: "dashed", display: "inline-block" }} />累计本金
+          <span style={{ width: 14, height: 2, background: "#5A5E76", borderStyle: "dashed", display: "inline-block" }} />{t('累计本金')}
         </span>
         <span style={{ marginLeft: "auto", fontSize: 10, padding: "4px 10px", borderRadius: 7, background: "rgba(30,211,149,.12)", border: "1px solid rgba(30,211,149,.3)", color: "var(--up)", fontWeight: 600 }}>
-          后 {Math.round(years / 3)} 年贡献多数增长
+          {t('后 {n} 年贡献多数增长', { n: Math.round(years / 3) })}
         </span>
       </>
     );
@@ -526,7 +531,7 @@ export default function CompoundPower({ onOneClickBacktest = null }) {
           {/* ── 导航栏 ── */}
           <div style={{ padding: "4px 16px 0", display: "flex", alignItems: "center", gap: 10 }}>
             <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="var(--fg-1)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-            <span style={{ flex: 1, fontSize: 15, fontWeight: 600, color: "var(--fg-0)" }}>复利的力量</span>
+            <span style={{ flex: 1, fontSize: 15, fontWeight: 600, color: "var(--fg-0)" }}>{t('复利的力量')}</span>
           </div>
           {/* ── Hero: 终值大字 ── */}
           <div
@@ -585,7 +590,7 @@ export default function CompoundPower({ onOneClickBacktest = null }) {
           {/* ── 滑块：调整你的计划 ── */}
           <div style={{ padding: "4px 16px" }}>
             <div style={{ fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--fg-3)", marginBottom: 14 }}>
-              调整你的计划
+              {t('调整你的计划')}
             </div>
             {sliderRows.map(({ label, displayValue, sub, value, min, max, step, onChange, lo, hi }) => {
               const pct = max > min ? ((value - min) / (max - min)) * 100 : 0;
@@ -632,7 +637,7 @@ export default function CompoundPower({ onOneClickBacktest = null }) {
             {rateOpt.warning && (
               <div style={{ borderRadius: 8, background: "rgba(245,158,11,.1)", border: "1px solid rgba(245,158,11,.3)", padding: "8px 12px", fontSize: 11, color: "#FCD34D", display: "flex", gap: 8, alignItems: "flex-start", marginBottom: 8 }}>
                 <AlertTriangle size={12} style={{ flexShrink: 0, marginTop: 1 }} />
-                <span>{rateOpt.warning}</span>
+                <span>{t(rateOpt.warning)}</span>
               </div>
             )}
           </div>
@@ -641,7 +646,7 @@ export default function CompoundPower({ onOneClickBacktest = null }) {
           <div style={{ padding: "8px 16px 14px" }}>
             <div style={{ borderRadius: 14, border: "1px solid var(--line)", background: "rgba(255,255,255,.022)", padding: "14px 14px 10px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--fg-0)" }}>增长曲线</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--fg-0)" }}>{t('增长曲线')}</span>
                 <button
                   onClick={() => setFsChart(true)}
                   style={{
@@ -668,7 +673,7 @@ export default function CompoundPower({ onOneClickBacktest = null }) {
                 </ComposedChart>
               </ResponsiveContainer>
               <div style={{ fontSize: 8, textAlign: "center", marginTop: 4, color: "var(--fg-3)" }}>
-                注意后段的陡峭加速 — 这就是复利
+                {t('注意后段的陡峭加速 — 这就是复利')}
               </div>
             </div>
           </div>
@@ -677,7 +682,7 @@ export default function CompoundPower({ onOneClickBacktest = null }) {
           {milestones.length > 0 && (
             <div style={{ padding: "0 16px" }}>
               <div style={{ fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--fg-3)", marginBottom: 12 }}>
-                里程碑
+                {t('里程碑')}
               </div>
               {milestones.map((m, i) => {
                 const isFirst = i === 0;
@@ -685,18 +690,18 @@ export default function CompoundPower({ onOneClickBacktest = null }) {
                 // design: first milestone dot is highlighted green; rest are dim
                 const hl = isFirst;
                 const desc = isFirst
-                  ? "第一个十万最难，坚持是关键"
+                  ? t("第一个十万最难，坚持是关键")
                   : isLast
-                  ? `${years} 年复利旅程终值`
+                  ? t('{n} 年复利旅程终值', { n: years })
                   : m.target >= 1_000_000
-                  ? "百万达成，加速度显现"
-                  : "加速度显现，见证复利力量";
+                  ? t("百万达成，加速度显现")
+                  : t("加速度显现，见证复利力量");
                 return (
                   <div key={m.label} style={{ display: "flex", gap: 14, marginBottom: 4 }}>
                     {/* 年份标签 */}
                     <div style={{ width: 46, textAlign: "right", paddingTop: 11, flexShrink: 0 }}>
                       <span className="font-mono" style={{ fontSize: 11, color: "var(--fg-2)", fontWeight: 600 }}>
-                        第 {m.year} 年
+                        {t('第 {y} 年', { y: m.year })}
                       </span>
                     </div>
                     {/* 时间线竖轨 */}
@@ -737,7 +742,7 @@ export default function CompoundPower({ onOneClickBacktest = null }) {
           primary={
             typeof onOneClickBacktest === "function"
               ? {
-                  label: "一键回测当前档位 →",
+                  label: t("一键回测当前档位 →"),
                   onClick: () => {
                     const strats = STRATEGY_LIBRARY[currentTier] || [];
                     const best = strats.find((s) => !s.warning && Object.keys(s.weights || {}).length > 0);
@@ -752,14 +757,14 @@ export default function CompoundPower({ onOneClickBacktest = null }) {
         <FullscreenChart
           open={fsChart}
           onClose={() => setFsChart(false)}
-          title={`复利增长曲线 · ${years} 年`}
+          title={t('复利增长曲线 · {n} 年', { n: years })}
           meta={
             <span className="font-mono" style={{ fontSize: 16, fontWeight: 600, color: "var(--up)" }}>
               {fmtMoney(story.finalTotal)}
             </span>
           }
           indicators={fsIndicators}
-          footerNote={`初始 ${fmtMoney(principal)}${monthly > 0 ? ` · 月供 ${fmtMoney(monthly)}` : ""} · 年化 ${fmtPct(selectedRate, 0)} · ${years} 年`}
+          footerNote={`${t('初始')} ${fmtMoney(principal)}${monthly > 0 ? ` · ${t('月供')} ${fmtMoney(monthly)}` : ""} · ${t('年化')} ${fmtPct(selectedRate, 0)} · ${years} ${t('年')}`}
         >
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={story.chart} margin={{ left: 12, right: 20, top: 10, bottom: 4 }}>
@@ -770,19 +775,19 @@ export default function CompoundPower({ onOneClickBacktest = null }) {
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,.05)" />
-              <XAxis dataKey="year" stroke="#667" fontSize={10} tickFormatter={(y) => `${y}年`} tickLine={false} axisLine={false} />
+              <XAxis dataKey="year" stroke="#667" fontSize={10} tickFormatter={(y) => t('{y}年', { y })} tickLine={false} axisLine={false} />
               <YAxis stroke="#667" fontSize={10} width={52} tickFormatter={(v) => formatBigNumber(v, 0)} tickLine={false} axisLine={false} />
               <Tooltip
                 contentStyle={{ background: "#0d1117", border: "1px solid rgba(255,255,255,.1)", borderRadius: 6, fontSize: 11 }}
                 labelStyle={{ color: "#a0aec0", fontSize: 10 }}
                 formatter={(v, n) => [fmtMoney(v), n]}
-                labelFormatter={(y) => `第 ${y} 年`}
+                labelFormatter={(y) => t('第 {y} 年', { y })}
               />
-              <Area type="monotone" dataKey="total" name="账户总值" stroke="#1ED395" strokeWidth={2.4} fill="url(#fsCpTot)" dot={false} isAnimationActive={false} />
-              <Line type="monotone" dataKey="principal" name="累计本金" stroke="#5A5E76" strokeWidth={1.4} strokeDasharray="4 3" dot={false} isAnimationActive={false} />
+              <Area type="monotone" dataKey="total" name={t("账户总值")} stroke="#1ED395" strokeWidth={2.4} fill="url(#fsCpTot)" dot={false} isAnimationActive={false} />
+              <Line type="monotone" dataKey="principal" name={t("累计本金")} stroke="#5A5E76" strokeWidth={1.4} strokeDasharray="4 3" dot={false} isAnimationActive={false} />
               {story.crossoverYear != null && (
                 <ReferenceLine x={story.crossoverYear} stroke="rgba(245,181,60,.5)" strokeDasharray="3 3"
-                  label={{ value: `第 ${story.crossoverYear} 年·复利超本金`, position: "insideTopLeft", fontSize: 9, fill: "#F5B53C" }} />
+                  label={{ value: t('第 {y} 年·复利超本金', { y: story.crossoverYear }), position: "insideTopLeft", fontSize: 9, fill: "#F5B53C" }} />
               )}
             </ComposedChart>
           </ResponsiveContainer>
@@ -798,10 +803,10 @@ export default function CompoundPower({ onOneClickBacktest = null }) {
       <div className="sticky top-0 z-10 backdrop-blur border-b border-white/8 px-4 py-2.5" style={{ background: "color-mix(in srgb, var(--bg-base) 92%, transparent)" }}>
         <div className="flex items-center gap-2">
           <Sparkles size={16} className="text-indigo-400" />
-          <h2 className="text-sm font-semibold tracking-tight" style={{ color: "var(--text-heading)" }}>复利的力量 · The Power of Compounding</h2>
+          <h2 className="text-sm font-semibold tracking-tight" style={{ color: "var(--text-heading)" }}>{t('复利的力量 · The Power of Compounding')}</h2>
         </div>
         <p className="text-[10px] mt-0.5" style={{ color: "var(--text-secondary)" }}>
-          "时间是投资人最好的朋友" — 输入年化收益率、年限、本金，看复利曲线，并对照同档风险下的可行组合。
+          {t('"时间是投资人最好的朋友" — 输入年化收益率、年限、本金，看复利曲线，并对照同档风险下的可行组合。')}
         </p>
       </div>
 
@@ -811,34 +816,34 @@ export default function CompoundPower({ onOneClickBacktest = null }) {
         <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-3">
           {/* 左：假设滑块 + 72 法则 */}
           <div className="glass-card p-4 flex flex-col">
-            <div className="text-[10px] uppercase tracking-wider text-[#778] mb-3">假设条件</div>
-            <AssumptionSlider label="初始本金" displayValue={fmtMoney(principal)}
+            <div className="text-[10px] uppercase tracking-wider text-[#778] mb-3">{t('假设条件')}</div>
+            <AssumptionSlider label={t('初始本金')} displayValue={fmtMoney(principal)}
               value={Math.min(500000, principal)} min={0} max={500000} step={5000}
               onChange={(v) => setPrincipalStr(String(v))} loLabel="$0" hiLabel="$500k" />
-            <AssumptionSlider label="每月定投" displayValue={fmtMoney(monthly)}
+            <AssumptionSlider label={t('每月定投')} displayValue={fmtMoney(monthly)}
               value={Math.min(10000, monthly)} min={0} max={10000} step={250}
               onChange={(v) => setMonthlyStr(String(v))} loLabel="$0" hiLabel="$10k" />
-            <AssumptionSlider label="年化收益" displayValue={fmtPct(selectedRate, 0)}
+            <AssumptionSlider label={t('年化收益')} displayValue={fmtPct(selectedRate, 0)}
               value={Math.max(0, RETURN_OPTIONS.findIndex((o) => o.rate === selectedRate))}
               min={0} max={RETURN_OPTIONS.length - 1} step={1}
               onChange={(i) => { setSelectedRate(RETURN_OPTIONS[i].rate); setTierOverride(null); }}
               loLabel={RETURN_OPTIONS[0].label} hiLabel={RETURN_OPTIONS[RETURN_OPTIONS.length - 1].label} />
-            <AssumptionSlider label="投资年限" displayValue={`${years} 年`}
+            <AssumptionSlider label={t('投资年限')} displayValue={t('{n} 年', { n: years })}
               value={Math.max(0, YEAR_OPTIONS.indexOf(years))}
               min={0} max={YEAR_OPTIONS.length - 1} step={1}
               onChange={(i) => setYears(YEAR_OPTIONS[i])}
               loLabel={`${YEAR_OPTIONS[0]} 年`} hiLabel={`${YEAR_OPTIONS[YEAR_OPTIONS.length - 1]} 年`} />
             {rateOpt.warning && (
               <div className="rounded-md bg-amber-500/10 border border-amber-500/30 px-2.5 py-1.5 text-[10px] text-amber-300 flex items-start gap-1.5 mt-1">
-                <AlertTriangle size={11} className="shrink-0 mt-0.5" /><span>{rateOpt.warning}</span>
+                <AlertTriangle size={11} className="shrink-0 mt-0.5" /><span>{t(rateOpt.warning)}</span>
               </div>
             )}
             <div className="mt-auto pt-3 border-t border-white/8">
-              <div className="text-[9px] uppercase tracking-wider text-[#778] mb-1.5">72 法则</div>
+              <div className="text-[9px] uppercase tracking-wider text-[#778] mb-1.5">{t('72 法则')}</div>
               <p className="text-[11px] text-[#a0aec0] leading-relaxed">
-                年化 <span className="font-mono text-up">{fmtPct(selectedRate, 0)}</span> → 资产翻倍约需{" "}
-                <span className="font-mono text-cyan-300 font-semibold">{story.doublingYears ? story.doublingYears.toFixed(1) : "—"} 年</span>。
-                {years} 年里本金大约翻 <span className="font-mono text-white font-semibold">{fmtMult(story.mult)}</span>。
+                {t('年化')} <span className="font-mono text-up">{fmtPct(selectedRate, 0)}</span> → {t('资产翻倍约需')}{" "}
+                <span className="font-mono text-cyan-300 font-semibold">{story.doublingYears ? story.doublingYears.toFixed(1) : "—"} {t('年')}</span>{t('。')}
+                {t('{n} 年里本金大约翻', { n: years })} <span className="font-mono text-white font-semibold">{fmtMult(story.mult)}</span>{t('。')}
               </p>
             </div>
           </div>
@@ -846,15 +851,15 @@ export default function CompoundPower({ onOneClickBacktest = null }) {
           {/* 右：增长叙事 */}
           <div className="glass-card p-4" style={{ background: "radial-gradient(ellipse 600px 360px at 85% 0%, rgba(30,211,149,0.06), transparent)" }}>
             <div className="text-[10px] uppercase tracking-wider text-[#778] mb-2">
-              {years} 年后 · 从 {fmtMoney(principal)} 起步{monthly > 0 ? ` · 每月 +${fmtMoney(monthly)}` : ""}
+              {t('{n} 年后 · 从 {p} 起步', { n: years, p: fmtMoney(principal) })}{monthly > 0 ? t(' · 每月 +{m}', { m: fmtMoney(monthly) }) : ""}
             </div>
             <div className="flex items-end gap-4 flex-wrap mb-1">
-              <span className="font-serif font-semibold leading-none" style={{ fontSize: "clamp(48px,7vw,76px)", letterSpacing: "-0.03em", background: "linear-gradient(135deg,#fff 20%,#1ED395 90%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+              <span className="num-gradient-keep font-serif font-semibold leading-none" style={{ fontSize: "clamp(48px,7vw,76px)", letterSpacing: "-0.03em", color: "var(--up)", background: "linear-gradient(135deg,#fff 20%,#1ED395 90%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
                 {fmtMoney(story.finalTotal)}
               </span>
               <div className="pb-2">
-                <span className="inline-flex items-center gap-1 text-[13px] font-bold font-mono px-2.5 py-1 rounded-md bg-up/15 text-up border border-up/30">▲ {fmtMult(story.mult)} 本金</span>
-                <div className="text-[12px] text-[#778] mt-1.5">其中 <span className="font-mono text-up">{fmtMoney(story.finalGrowth)}</span> 是复利赚来的</div>
+                <span className="inline-flex items-center gap-1 text-[13px] font-bold font-mono px-2.5 py-1 rounded-md bg-up/15 text-up border border-up/30">▲ {fmtMult(story.mult)} {t('本金')}</span>
+                <div className="text-[12px] text-[#778] mt-1.5">{t('其中')} <span className="font-mono text-up">{fmtMoney(story.finalGrowth)}</span> {t('是复利赚来的')}</div>
               </div>
             </div>
             {/* 本金 vs 复利增值 拆分条 */}
@@ -863,15 +868,15 @@ export default function CompoundPower({ onOneClickBacktest = null }) {
               <div style={{ width: `${story.growthPct * 100}%`, background: "linear-gradient(90deg,#1ED395,#5EE6E6)", boxShadow: "0 0 10px rgba(30,211,149,.4)" }} className="rounded-r-full" />
             </div>
             <div className="flex justify-between text-[11px] mb-4">
-              <span className="text-[#778]"><span className="text-white/90">本金 {fmtMoney(story.finalPrincipal)}</span> · {((1 - story.growthPct) * 100).toFixed(0)}%</span>
-              <span className="text-up font-semibold">复利增值 {fmtMoney(story.finalGrowth)} · {(story.growthPct * 100).toFixed(0)}%</span>
+              <span className="text-[#778]"><span className="text-white/90">{t('本金')} {fmtMoney(story.finalPrincipal)}</span> · {((1 - story.growthPct) * 100).toFixed(0)}%</span>
+              <span className="text-up font-semibold">{t('复利增值')} {fmtMoney(story.finalGrowth)} · {(story.growthPct * 100).toFixed(0)}%</span>
             </div>
             {/* 双层增长曲线 + 交叉点 */}
             <div className="flex items-baseline justify-between mb-1">
-              <h3 className="text-[12px] font-semibold text-white/90">本金 vs 复利增值</h3>
+              <h3 className="text-[12px] font-semibold text-white/90">{t('本金 vs 复利增值')}</h3>
               <div className="flex gap-3 text-[10px] text-[#a0aec0]">
-                <span className="inline-flex items-center gap-1"><span className="inline-block w-3.5 h-0.5 bg-[#5A5E76]" />累计本金</span>
-                <span className="inline-flex items-center gap-1"><span className="inline-block w-3.5 h-0.5 bg-up" />账户总值</span>
+                <span className="inline-flex items-center gap-1"><span className="inline-block w-3.5 h-0.5 bg-[#5A5E76]" />{t('累计本金')}</span>
+                <span className="inline-flex items-center gap-1"><span className="inline-block w-3.5 h-0.5 bg-up" />{t('账户总值')}</span>
               </div>
             </div>
             <ResponsiveContainer width="100%" height={220}>
@@ -881,14 +886,14 @@ export default function CompoundPower({ onOneClickBacktest = null }) {
                   <linearGradient id="cpPrin" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#5A5E76" stopOpacity={0.3} /><stop offset="100%" stopColor="#5A5E76" stopOpacity={0} /></linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                <XAxis dataKey="year" stroke="#667" fontSize={9} tickFormatter={(y) => `${y}年`} tickLine={false} axisLine={false} />
+                <XAxis dataKey="year" stroke="#667" fontSize={9} tickFormatter={(y) => t('{y}年', { y })} tickLine={false} axisLine={false} />
                 <YAxis stroke="#667" fontSize={9} width={44} tickFormatter={(v) => formatBigNumber(v, 0)} tickLine={false} axisLine={false} />
-                <Tooltip contentStyle={{ background: "#0d1117", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6, fontSize: 11 }} labelStyle={{ color: "#a0aec0", fontSize: 10 }} formatter={(v, n) => [fmtMoney(v), n]} labelFormatter={(y) => `第 ${y} 年`} />
-                <Area type="monotone" dataKey="total" name="账户总值" stroke="#1ED395" strokeWidth={2.4} fill="url(#cpTot)" dot={false} isAnimationActive={false} />
-                <Area type="monotone" dataKey="principal" name="累计本金" stroke="#5A5E76" strokeWidth={1.4} strokeDasharray="4 3" fill="url(#cpPrin)" dot={false} isAnimationActive={false} />
+                <Tooltip contentStyle={{ background: "#0d1117", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6, fontSize: 11 }} labelStyle={{ color: "#a0aec0", fontSize: 10 }} formatter={(v, n) => [fmtMoney(v), n]} labelFormatter={(y) => t('第 {y} 年', { y })} />
+                <Area type="monotone" dataKey="total" name={t("账户总值")} stroke="#1ED395" strokeWidth={2.4} fill="url(#cpTot)" dot={false} isAnimationActive={false} />
+                <Area type="monotone" dataKey="principal" name={t("累计本金")} stroke="#5A5E76" strokeWidth={1.4} strokeDasharray="4 3" fill="url(#cpPrin)" dot={false} isAnimationActive={false} />
                 {story.crossoverYear != null && (
                   <ReferenceLine x={story.crossoverYear} stroke="rgba(245,181,60,0.5)" strokeDasharray="3 3"
-                    label={{ value: `第 ${story.crossoverYear} 年 · 复利超过本金`, position: "insideTopLeft", fontSize: 9, fill: "#F5B53C" }} />
+                    label={{ value: t('第 {y} 年 · 复利超过本金', { y: story.crossoverYear }), position: "insideTopLeft", fontSize: 9, fill: "#F5B53C" }} />
                 )}
               </ComposedChart>
             </ResponsiveContainer>
@@ -896,17 +901,17 @@ export default function CompoundPower({ onOneClickBacktest = null }) {
             {/* 情景对比 + 早开始 5 年 */}
             <div className="grid grid-cols-1 md:grid-cols-[1.4fr_1fr] gap-3 mt-4">
               <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3">
-                <h3 className="text-[12px] font-semibold text-white/90 mb-3">不同年化的 {years} 年终值</h3>
+                <h3 className="text-[12px] font-semibold text-white/90 mb-3">{t('不同年化的 {n} 年终值', { n: years })}</h3>
                 {story.scenarios.map((s) => {
                   const c = s.r === 0.06 ? "#a0aec0" : s.r === 0.14 ? "#5EE6E6" : "#1ED395";
-                  const label = s.r === 0.06 ? "保守 6%" : s.r === 0.14 ? "进取 14%" : "基准 10%";
+                  const label = s.r === 0.06 ? t("保守 6%") : s.r === 0.14 ? t("进取 14%") : t("基准 10%");
                   // v7: vs 基准(10%) diff — 对齐设计稿 SECTION 10「情景队列 diff」
                   const baseFv = story.scenarios.find(x => x.r === 0.10)?.fv;
                   const diffPct = (baseFv && s.r !== 0.10) ? (s.fv / baseFv - 1) * 100 : null;
                   return (
                     <div key={s.r} className="mb-2.5">
                       <div className="flex justify-between mb-1 items-baseline">
-                        <span className="text-[11px] text-[#a0aec0]">{label}{diffPct != null && <span className="ml-1.5 font-mono text-[9px]" style={{ color: c }}>{diffPct >= 0 ? "+" : ""}{diffPct.toFixed(0)}% vs 基准</span>}</span>
+                        <span className="text-[11px] text-[#a0aec0]">{label}{diffPct != null && <span className="ml-1.5 font-mono text-[9px]" style={{ color: c }}>{diffPct >= 0 ? "+" : ""}{diffPct.toFixed(0)}% {t('vs 基准')}</span>}</span>
                         <span className="font-mono font-serif text-[15px] font-semibold" style={{ color: c }}>{fmtMoney(s.fv)}</span>
                       </div>
                       <div className="h-1.5 rounded-full bg-white/[0.05] overflow-hidden">
@@ -917,11 +922,11 @@ export default function CompoundPower({ onOneClickBacktest = null }) {
                 })}
               </div>
               <div className="rounded-lg border border-amber-500/25 p-3" style={{ background: "linear-gradient(135deg, rgba(245,181,60,0.08), transparent 70%)" }}>
-                <div className="flex items-center gap-1.5 mb-2"><Flame size={13} className="text-amber-400" /><span className="text-[10px] uppercase tracking-wider text-amber-200/90">早开始 5 年</span></div>
+                <div className="flex items-center gap-1.5 mb-2"><Flame size={13} className="text-amber-400" /><span className="text-[10px] uppercase tracking-wider text-amber-200/90">{t('早开始 5 年')}</span></div>
                 <div className="font-serif font-semibold text-amber-300 leading-none mb-2" style={{ fontSize: 32, letterSpacing: "-0.02em" }}>+{fmtMoney(story.earlyDelta)}</div>
                 <p className="text-[11px] text-[#a0aec0] leading-relaxed">
-                  同样的定投，只要<b className="text-white">早 5 年</b>开始，{years + 5} 年终值达 <span className="font-mono text-amber-300">{fmtMoney(story.fvEarly)}</span> —— 多出的几乎全是复利。
-                  <span className="block mt-2 text-[#778]">时间是复利唯一无法补救的变量。</span>
+                  {t('同样的定投，只要')}<b className="text-white">{t('早 5 年')}</b>{t('开始，{y} 年终值达', { y: years + 5 })} <span className="font-mono text-amber-300">{fmtMoney(story.fvEarly)}</span> {t('—— 多出的几乎全是复利。')}
+                  <span className="block mt-2 text-[#778]">{t('时间是复利唯一无法补救的变量。')}</span>
                 </p>
               </div>
             </div>
@@ -931,23 +936,23 @@ export default function CompoundPower({ onOneClickBacktest = null }) {
         {/* 进阶分析：蒙特卡洛 / 通胀 / SPY（基于初始本金，不含月定投）— 折叠 */}
         <details className="glass-card p-3">
           <summary className="cursor-pointer text-[11px] font-semibold text-white/80 flex items-center gap-1.5 select-none">
-            <Info size={13} className="text-indigo-400" /> 进阶分析 · 蒙特卡洛 / 通胀 / SPY 对照
-            <span className="text-[9px] text-[#778] font-normal ml-1">（基于初始本金 {fmtMoney(principal)}，不含月定投）</span>
+            <Info size={13} className="text-indigo-400" /> {t('进阶分析 · 蒙特卡洛 / 通胀 / SPY 对照')}
+            <span className="text-[9px] text-[#778] font-normal ml-1">{t('（基于初始本金 {p}，不含月定投）', { p: fmtMoney(principal) })}</span>
           </summary>
           <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-2.5">
-            <StatCard label="名义终值" value={fmtMoney(finalNominal)} hint={`本金 ${formatBigNumber(principal, 2)} · ${fmtMult(multiplier)}`} accent="emerald" />
-            <StatCard label="实际购买力" value={fmtMoney(finalReal)} hint={`扣 ${fmtPct(INFLATION_RATE, 0)} 通胀 × ${years} 年`} accent="sky" />
-            <StatCard label="SPY 基准对照" value={fmtMoney(finalSpy)} hint={isSPYRate ? "= 名义" : `年化 ${fmtPct(SPY_LONG_RUN, 0)} × ${years} 年`} accent="amber" />
-            <StatCard label="蒙特卡洛中位数" value={fmtMoney(mc.summary.p50)} hint={`区间 ${fmtMoney(mc.summary.p05)} – ${fmtMoney(mc.summary.p95)}`} accent={tierMeta.accent} warning={mc.summary.ruinProb > 0.05 ? `${fmtPct(mc.summary.ruinProb, 1)} 路径终值不到本金一半` : null} />
+            <StatCard label={t("名义终值")} value={fmtMoney(finalNominal)} hint={`${t('本金')} ${formatBigNumber(principal, 2)} · ${fmtMult(multiplier)}`} accent="emerald" />
+            <StatCard label={t("实际购买力")} value={fmtMoney(finalReal)} hint={t('扣 {r} 通胀 × {y} 年', { r: fmtPct(INFLATION_RATE, 0), y: years })} accent="sky" />
+            <StatCard label={t("SPY 基准对照")} value={fmtMoney(finalSpy)} hint={isSPYRate ? t("= 名义") : t('年化 {r} × {y} 年', { r: fmtPct(SPY_LONG_RUN, 0), y: years })} accent="amber" />
+            <StatCard label={t("蒙特卡洛中位数")} value={fmtMoney(mc.summary.p50)} hint={t('区间 {a} – {b}', { a: fmtMoney(mc.summary.p05), b: fmtMoney(mc.summary.p95) })} accent={tierMeta.accent} warning={mc.summary.ruinProb > 0.05 ? t('{p} 路径终值不到本金一半', { p: fmtPct(mc.summary.ruinProb, 1) }) : null} />
           </div>
           {showDivergenceBanner && (
             <div className="mt-3 rounded-md bg-indigo-500/10 border border-indigo-500/30 px-3 py-2 text-[11px] text-indigo-200 flex items-start gap-2">
               <Info size={12} className="shrink-0 mt-0.5" />
-              <span><strong>波动放大：</strong>名义复利 <span className="font-mono mx-1">{fmtMoney(finalNominal)}</span> 是"运气一直在线"的上限；蒙特卡洛中位数 <span className="font-mono mx-1">{fmtMoney(mc.summary.p50)}</span> 才是 50% 概率水平 — 名义是中位数的 <span className="font-mono mx-1">{formatBigNumber(divergenceRatio, 1)} 倍</span>。σ 越高、年限越长，差距越极端（lognormal 偏度）。</span>
+              <span><strong>{t('波动放大：')}</strong>{t('名义复利')} <span className="font-mono mx-1">{fmtMoney(finalNominal)}</span> {t('是"运气一直在线"的上限；蒙特卡洛中位数')} <span className="font-mono mx-1">{fmtMoney(mc.summary.p50)}</span> {t('才是 50% 概率水平 — 名义是中位数的')} <span className="font-mono mx-1">{formatBigNumber(divergenceRatio, 1)} {t('倍')}</span>{t('。σ 越高、年限越长，差距越极端（lognormal 偏度）。')}</span>
             </div>
           )}
           <div className="mt-3">
-            <div className="text-[10px] text-[#a0aec0] font-mono mb-2">σ = {fmtPct(RISK_TIERS[autoTier].volatility, 0)} · 1000 路径{useLogScale ? " · 对数 Y 轴" : ""}{isSPYRate ? " · SPY 重叠已隐藏" : ""}</div>
+            <div className="text-[10px] text-[#a0aec0] font-mono mb-2">σ = {fmtPct(RISK_TIERS[autoTier].volatility, 0)} · 1000 {t('路径')}{useLogScale ? ` · ${t('对数 Y 轴')}` : ""}{isSPYRate ? ` · ${t('SPY 重叠已隐藏')}` : ""}</div>
             <GrowthChart data={chartData} showSpy={!isSPYRate} useLogScale={useLogScale} />
           </div>
         </details>
@@ -957,16 +962,16 @@ export default function CompoundPower({ onOneClickBacktest = null }) {
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-[11px] font-semibold text-white/90 flex items-center gap-1.5">
               <Shield size={13} className="text-sky-400" />
-              风险等级对照（点击切换查看对应策略）
+              {t('风险等级对照（点击切换查看对应策略）')}
             </h3>
             <span className="text-[10px] text-[#a0aec0]">
-              当前自动匹配 <span className={ACCENT_CLASS[tierMeta.accent].text}>{tierMeta.label}</span>
+              {t('当前自动匹配')} <span className={ACCENT_CLASS[tierMeta.accent].text}>{t(tierMeta.label)}</span>
               {tierOverride && (
                 <button
                   onClick={() => setTierOverride(null)}
                   className="ml-2 underline hover:text-white"
                 >
-                  恢复自动
+                  {t('恢复自动')}
                 </button>
               )}
             </span>
@@ -1006,8 +1011,7 @@ export default function CompoundPower({ onOneClickBacktest = null }) {
             <div className="mt-3 rounded-md bg-down/10 border border-down/30 px-3 py-2 text-[11px] text-down flex items-start gap-2">
               <AlertTriangle size={12} className="shrink-0 mt-0.5" />
               <span>
-                <strong>提醒：</strong>50%+ 持续年化在任何成熟资产类别上都不可持续。
-                若历史回测显示这种收益，多半是过拟合或样本期偏差，请勿当作可执行策略。
+                <strong>{t('提醒：')}</strong>{t('50%+ 持续年化在任何成熟资产类别上都不可持续。若历史回测显示这种收益，多半是过拟合或样本期偏差，请勿当作可执行策略。')}
               </span>
             </div>
           )}
@@ -1016,13 +1020,10 @@ export default function CompoundPower({ onOneClickBacktest = null }) {
         {/* 底部脚注 */}
         <div className="text-[10px] text-[#6b7280] leading-relaxed px-1 py-2">
           <p>
-            <strong>方法论：</strong>名义复利 = 本金 ×(1+r)^n；
-            实际购买力 = 名义值 / (1+通胀)^n（通胀取美元长期 3%）；
-            蒙特卡洛 = 几何布朗运动，对数收益 ~ N(ln(1+μ) - σ²/2, σ²)，1000 路径取分位。
+            <strong>{t('方法论：')}</strong>{t('名义复利 = 本金 ×(1+r)^n；实际购买力 = 名义值 / (1+通胀)^n（通胀取美元长期 3%）；蒙特卡洛 = 几何布朗运动，对数收益 ~ N(ln(1+μ) - σ²/2, σ²)，1000 路径取分位。')}
           </p>
           <p className="mt-1">
-            <strong>免责：</strong>本页所有"策略组合"为教育性示例，基于历史经验的资产配置范式，
-            非实盘推荐。"蒙特卡洛区间"假设收益独立同分布，**严重低估**长尾风险（黑天鹅、流动性危机、再平衡成本等）。
+            <strong>{t('免责：')}</strong>{t('本页所有"策略组合"为教育性示例，基于历史经验的资产配置范式，非实盘推荐。"蒙特卡洛区间"假设收益独立同分布，**严重低估**长尾风险（黑天鹅、流动性危机、再平衡成本等）。')}
           </p>
         </div>
       </div>

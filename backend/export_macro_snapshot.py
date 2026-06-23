@@ -124,6 +124,88 @@ def _validate(snapshot: dict) -> list[str]:
     return warns
 
 
+_EN_FIELDS = ("name", "description", "title", "summary", "action", "label")
+
+
+def _has_cjk(s) -> bool:
+    return isinstance(s, str) and any("一" <= c <= "鿿" for c in s)
+
+
+def _augment_en(snapshot: dict, composite: dict) -> dict:
+    """给 snapshot 补 *_en 双语字段。narrative_en 复用 macro_narrative(lang='en')；
+    因子/告警的 name/description/title/summary/action 批量翻译。任一步失败仅告警、不阻断。"""
+    import json as _json
+    try:
+        import llm as _llm
+    except Exception as e:
+        print(f"  [warn] _en 跳过（llm 不可用）: {e}")
+        return snapshot
+
+    # 1) narrative_en
+    try:
+        nar_en = _llm.macro_narrative(composite, lang="en")
+        if nar_en.get("ok") and nar_en.get("narrative"):
+            snapshot["narrative_en"] = nar_en["narrative"]
+            print(f"  [ok] narrative_en: {len(snapshot['narrative_en'])} chars")
+    except Exception as e:
+        print(f"  [warn] narrative_en 跳过: {e}")
+
+    # 2) 收集 target 字段中文 → 批量翻译 → 写回 *_en
+    seen: dict[str, None] = {}
+
+    def collect(node):
+        if isinstance(node, list):
+            for x in node:
+                collect(x)
+        elif isinstance(node, dict):
+            for k, v in node.items():
+                if k in _EN_FIELDS and _has_cjk(v):
+                    seen[v] = None
+                else:
+                    collect(v)
+
+    collect(snapshot)
+    texts = list(seen.keys())
+    if not texts:
+        return snapshot
+    prompt = (
+        "把下面 JSON 数组里每条中文金融因子名/描述/告警翻译成简洁专业的英文，"
+        "保留英文专名/代码/指标名/数字/符号原样。输出同长度、顺序对应的 JSON 数组，"
+        "只输出数组本体（[...]），不要解释。\n\n" + _json.dumps(texts, ensure_ascii=False)
+    )
+    try:
+        content, _, _ = _llm._chat(
+            [{"role": "user", "content": prompt}], json_mode=False, max_tokens=4000, temperature=0.2
+        )
+        content = content.strip()
+        if content.startswith("```"):
+            content = content.strip("`")
+            content = content[content.find("[") :]
+        arr = _json.loads(content)
+        if len(arr) != len(texts):
+            print(f"  [warn] _en 长度不一致 {len(arr)}≠{len(texts)}，跳过字段翻译")
+            return snapshot
+        m = dict(zip(texts, arr))
+
+        def apply(node):
+            if isinstance(node, list):
+                for x in node:
+                    apply(x)
+            elif isinstance(node, dict):
+                for k in list(node.keys()):
+                    v = node[k]
+                    if k in _EN_FIELDS and _has_cjk(v) and v in m:
+                        node[k + "_en"] = m[v]
+                    else:
+                        apply(v)
+
+        apply(snapshot)
+        print(f"  [ok] _en 字段: {len(texts)} 条")
+    except Exception as e:
+        print(f"  [warn] 字段 _en 翻译跳过: {e}")
+    return snapshot
+
+
 def main() -> int:
     db.init_db()
     print("生成 snapshot…")
@@ -164,6 +246,10 @@ def main() -> int:
         "narrative": narrative,
     }
     snapshot = _sanitize(snapshot)
+
+    # 双语：补 *_en 字段（narrative_en + 因子/告警 name/description/title/summary/action），
+    # 供前端 EN 模式直接读（见 MacroDashboard.localizeMacro）。失败不阻断导出。
+    snapshot = _augment_en(snapshot, composite)
 
     # 校验
     warns = _validate(snapshot)

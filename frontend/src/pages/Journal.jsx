@@ -15,7 +15,7 @@ import { TEMP_TEXT, TEMP_LABEL } from "../components/macro/shared.js";
 import { macroDelta, macroAdjustExplain, macroAdjustedScore } from "../lib/macroAdjust.js";
 import { buildDigest } from "../components/macro/digestBuilder.js";
 import { searchTickers as standaloneSearch, fetchStockData, STOCK_CN_NAMES } from "../standalone.js";
-import { useLang } from "../i18n.jsx";
+import { useLang, isZh, enFallback } from "../i18n.jsx";
 import useIsMobile from "../hooks/useIsMobile";
 import { BottomSheet, ThumbActionBar, MobileAppBar } from "../components/mobile";
 import {
@@ -670,8 +670,9 @@ ${angleQuestion}
             {heroGain != null ? (
               <div className="flex items-end gap-3">
                 <span
-                  className="t-hero-display font-serif tabular-nums"
+                  className="num-gradient-keep t-hero-display font-serif tabular-nums"
                   style={{
+                    color: heroUp ? "var(--up)" : "var(--down)",
                     background: heroUp
                       ? "linear-gradient(180deg, #6EE7B7, #1ED395)"
                       : "linear-gradient(180deg, #FCA5A5, #EF4444)",
@@ -722,7 +723,7 @@ ${angleQuestion}
               const hasPos = (e.shares || 0) > 0;
               const isHK = e.ticker?.endsWith(".HK");
               const mainLabel = isHK
-                ? (lang === "zh" ? (stk?.nameCN || STOCK_CN_NAMES[e.ticker] || stk?.name || e.name) : (stk?.name || e.name)) || e.ticker
+                ? (isZh(lang) ? t(stk?.nameCN || STOCK_CN_NAMES[e.ticker] || stk?.name || e.name) : enFallback(stk?.name || e.name, e.ticker)) || e.ticker
                 : e.ticker;
 
               return (
@@ -857,7 +858,7 @@ ${angleQuestion}
                     <span className="font-mono font-semibold" style={{ color: "var(--fg-0)" }}>{r.symbol}</span>
                     <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: "rgba(99,102,241,.12)", color: "var(--indigo-2)" }}>{r.market || "US"}</span>
                     <span className="truncate flex-1 text-[11px]" style={{ color: "var(--fg-2)" }}>
-                      {lang === "zh" ? (STOCK_CN_NAMES[r.symbol] || r.name) : r.name}
+                      {isZh(lang) ? t(STOCK_CN_NAMES[r.symbol] || r.name) : enFallback(r.name, r.symbol)}
                     </span>
                   </button>
                 ))}
@@ -1004,7 +1005,7 @@ ${angleQuestion}
           const retUp = Number(ret) >= 0;
           const isHK = e.ticker?.endsWith(".HK");
           const mainLabel = isHK
-            ? (lang === "zh" ? (stk?.nameCN || STOCK_CN_NAMES[e.ticker] || stk?.name || e.name) : (stk?.name || e.name)) || e.ticker
+            ? (isZh(lang) ? t(stk?.nameCN || STOCK_CN_NAMES[e.ticker] || stk?.name || e.name) : enFallback(stk?.name || e.name, e.ticker)) || e.ticker
             : e.ticker;
           const days = Math.max(0, Math.floor((Date.now() - new Date(e.anchorDate).getTime()) / 86400000));
           return (
@@ -1191,14 +1192,14 @@ ${angleQuestion}
           {/* A6: 录入交易（结构化 → SQLite transactions） */}
           <button onClick={() => setShowAddTx(true)}
             className="px-3 py-2.5 rounded-xl text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 flex items-center gap-1.5"
-            title="结构化录入买卖交易，自动算持仓和浮盈"
+            title={t("结构化录入买卖交易，自动算持仓和浮盈")}
           >
             <Briefcase size={13} /> 交易
           </button>
           {/* B7: 月度复盘 */}
           <button onClick={() => setShowMonthlyReview(true)}
             className="px-3 py-2.5 rounded-xl text-xs font-semibold bg-violet-500/10 text-violet-400 border border-violet-500/20 hover:bg-violet-500/20 flex items-center gap-1.5"
-            title="DeepSeek 基于本月交易自动撰写复盘"
+            title={t("DeepSeek 基于本月交易自动撰写复盘")}
           >
             <FileText size={13} /> 复盘
           </button>
@@ -1244,7 +1245,7 @@ ${angleQuestion}
                     >
                       <span className="font-semibold" style={{ color: "var(--text-heading)" }}>{r.symbol}</span>
                       <span className="text-[9px] px-1 py-0.5 rounded" style={{ background: "rgba(99,102,241,0.12)", color: "var(--accent-indigo)" }}>{r.market || "US"}</span>
-                      <span className="truncate text-[10px] flex-1" style={{ color: "var(--text-secondary)" }}>{lang === 'zh' ? (STOCK_CN_NAMES[r.symbol] || r.name) : r.name}</span>
+                      <span className="truncate text-[10px] flex-1" style={{ color: "var(--text-secondary)" }}>{isZh(lang) ? t(STOCK_CN_NAMES[r.symbol] || r.name) : enFallback(r.name, r.symbol)}</span>
                       {r.price && <span className="text-[10px] font-mono" style={{ color: "var(--text-muted)" }}>${r.price}</span>}
                     </button>
                   ))}
@@ -1265,7 +1266,7 @@ ${angleQuestion}
                 type="button"
                 onClick={handleAIOrganize}
                 disabled={aiOrganizing || !addThesis.trim()}
-                title="DeepSeek 把一句话拆成结构化字段"
+                title={t("DeepSeek 把一句话拆成结构化字段")}
                 className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded-md text-[10px] flex items-center gap-1 bg-violet-500/15 hover:bg-violet-500/25 text-violet-200 border border-violet-500/30 transition disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {aiOrganizing ? <Loader size={10} className="animate-spin" /> : <Sparkles size={10} />}
@@ -1427,7 +1428,7 @@ ${angleQuestion}
             const hasPos = (e.shares || 0) > 0;
             const isHK = e.ticker?.endsWith(".HK");
             const mainLabel = isHK
-              ? (lang === 'zh' ? (stk?.nameCN || STOCK_CN_NAMES[e.ticker] || stk?.name || e.name) : (stk?.name || e.name || STOCK_CN_NAMES[e.ticker])) || e.ticker
+              ? (isZh(lang) ? t(stk?.nameCN || STOCK_CN_NAMES[e.ticker] || stk?.name || e.name) : enFallback(stk?.name || e.name, e.ticker)) || e.ticker
               : e.ticker;
             const subLabel = isHK ? e.ticker : e.name;
             return (
@@ -1503,7 +1504,7 @@ ${angleQuestion}
                     <span className="text-xs font-medium" style={{ color: "var(--text-heading)" }}>
                       {t('投资论点')} — {sel.ticker?.endsWith(".HK")
                         ? displayTicker(sel.ticker, stk, lang)
-                        : <>{sel.ticker} {lang === 'zh' ? (STOCK_CN_NAMES[sel.ticker] || sel.name) : sel.name}</>}
+                        : <>{sel.ticker} {isZh(lang) ? t(STOCK_CN_NAMES[sel.ticker] || sel.name) : enFallback(sel.name, sel.ticker)}</>}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 md:gap-3 flex-wrap">
@@ -1768,10 +1769,10 @@ ${angleQuestion}
                     <div className="glass-card p-2">
                       <div className="text-[9px] text-cyan-300 mb-1 font-semibold">{t('支持的列名')}</div>
                       <div className="text-[#a0aec0] space-y-0.5">
-                        <div><span className="text-[#778]">代码:</span> symbol / ticker / 代码 / 股票代码</div>
-                        <div><span className="text-[#778]">数量:</span> quantity / shares / qty / 数量 / 持仓</div>
-                        <div><span className="text-[#778]">成本:</span> price / cost / avg / 成本 / 均价 / 买入价</div>
-                        <div><span className="text-[#778]">日期:</span> date / 日期 / 时间 / 买入日期</div>
+                        <div><span className="text-[#778]">{t('代码:')}</span> symbol / ticker / 代码 / 股票代码</div>
+                        <div><span className="text-[#778]">{t('数量:')}</span> quantity / shares / qty / 数量 / 持仓</div>
+                        <div><span className="text-[#778]">{t('成本:')}</span> price / cost / avg / 成本 / 均价 / 买入价</div>
+                        <div><span className="text-[#778]">{t('日期:')}</span> date / 日期 / 时间 / 买入日期</div>
                       </div>
                     </div>
                     <div className="glass-card p-2">

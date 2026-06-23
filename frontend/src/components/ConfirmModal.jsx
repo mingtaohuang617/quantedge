@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { AlertTriangle, X } from "lucide-react";
+import { useLang } from "../i18n.jsx";
 
 /**
  * ConfirmModal — 替代 window.confirm() 的统一确认对话框
@@ -32,6 +33,7 @@ export default function ConfirmModal({
   onConfirm,
   onCancel,
 }) {
+  const { t } = useLang();
   const cancelRef = useRef(null);
 
   useEffect(() => {
@@ -72,19 +74,19 @@ export default function ConfirmModal({
             </span>
           )}
           <h2 id="confirm-title" className="text-[13px] font-semibold text-white flex-1">
-            {title}
+            {t(title)}
           </h2>
           <button
             onClick={onCancel}
             className="p-1 rounded text-[#a0aec0] hover:text-white hover:bg-white/10 transition"
-            aria-label="关闭"
+            aria-label={t('关闭')}
           >
             <X size={13} />
           </button>
         </div>
         {/* Body */}
         <div className="px-4 py-3.5 text-[12px] text-[#d0d7e2] leading-relaxed">
-          {message}
+          {t(message)}
         </div>
         {/* Footer */}
         <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-white/8 bg-white/[0.02]">
@@ -93,13 +95,13 @@ export default function ConfirmModal({
             onClick={onCancel}
             className="px-3 py-1.5 text-[11px] rounded-md text-[#a0aec0] hover:text-white hover:bg-white/5 border border-white/10 transition"
           >
-            {cancelLabel}
+            {t(cancelLabel)}
           </button>
           <button
             onClick={onConfirm}
             className={`px-3 py-1.5 text-[11px] font-medium rounded-md border transition ${confirmCls}`}
           >
-            {confirmLabel}
+            {t(confirmLabel)}
           </button>
         </div>
       </div>

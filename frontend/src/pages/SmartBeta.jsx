@@ -53,6 +53,7 @@ const riskColor = (r) => {
 
 // ─── 风险评分 dial（SVG）─────────────────────────────────
 const RiskDial = ({ score, components }) => {
+  const { t } = useLang();
   const r = score ?? 0.5;
   const angle = -Math.PI + Math.PI * r;
   const cx = 90, cy = 90, rad = 64;
@@ -82,15 +83,15 @@ const RiskDial = ({ score, components }) => {
           {(r * 100).toFixed(0)}
         </text>
         <text x={cx} y={cy + 8} textAnchor="middle" fill="#a0aec0" fontSize={10}>
-          风险偏好
+          {t('风险偏好')}
         </text>
       </svg>
       {components && (
         <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[10px] font-mono mt-1">
           <span className="text-[#a0aec0]">VIX:     <span className="text-white">{fmtNum(components.vix, 2)}</span></span>
-          <span className="text-[#a0aec0]">趋势:    <span className="text-white">{fmtNum(components.trend, 2)}</span></span>
-          <span className="text-[#a0aec0]">信用:    <span className="text-white">{fmtNum(components.credit, 2)}</span></span>
-          <span className="text-[#a0aec0]">实际利率:<span className="text-white">{fmtNum(components.real_rate, 2)}</span></span>
+          <span className="text-[#a0aec0]">{t('趋势:')}    <span className="text-white">{fmtNum(components.trend, 2)}</span></span>
+          <span className="text-[#a0aec0]">{t('信用:')}    <span className="text-white">{fmtNum(components.credit, 2)}</span></span>
+          <span className="text-[#a0aec0]">{t('实际利率:')}<span className="text-white">{fmtNum(components.real_rate, 2)}</span></span>
         </div>
       )}
     </div>
@@ -136,24 +137,25 @@ const CoreSectorPie = ({ coreWeight, sectorWeight }) => {
 
 // ─── 持仓 diff 提示 ─────────────────────────────────────
 const RebalanceHint = ({ selected, currentHoldings }) => {
+  const { t } = useLang();
   const cur = (currentHoldings || "").split(",").map(s => s.trim().toUpperCase()).filter(Boolean);
   const sel = selected || [];
-  const added = sel.filter(t => !cur.includes(t));
-  const removed = cur.filter(t => !sel.includes(t));
-  const kept = sel.filter(t => cur.includes(t));
+  const added = sel.filter(x => !cur.includes(x));
+  const removed = cur.filter(x => !sel.includes(x));
+  const kept = sel.filter(x => cur.includes(x));
 
   if (!cur.length) {
     return (
       <div className="text-[11px] text-[#a0aec0] leading-relaxed">
-        <p className="mb-1">推荐持仓（首次配置）：</p>
+        <p className="mb-1">{t('推荐持仓（首次配置）：')}</p>
         <div className="flex flex-wrap gap-1">
-          {sel.map(t => (
-            <span key={t} className="px-1.5 py-0.5 rounded bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 font-mono">
-              {t}
+          {sel.map(x => (
+            <span key={x} className="px-1.5 py-0.5 rounded bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 font-mono">
+              {x}
             </span>
           ))}
         </div>
-        <p className="mt-2 text-[10px] opacity-70">在上方输入"当前持仓"可看到换仓建议</p>
+        <p className="mt-2 text-[10px] opacity-70">{t('在上方输入"当前持仓"可看到换仓建议')}</p>
       </div>
     );
   }
@@ -161,10 +163,10 @@ const RebalanceHint = ({ selected, currentHoldings }) => {
     <div className="text-[11px] space-y-1.5">
       {kept.length > 0 && (
         <div>
-          <span className="text-[#a0aec0]">保留：</span>
-          {kept.map(t => (
-            <span key={t} className="ml-1 px-1.5 py-0.5 rounded bg-white/[0.04] text-white/80 border border-white/10 font-mono">
-              {t}
+          <span className="text-[#a0aec0]">{t('保留：')}</span>
+          {kept.map(x => (
+            <span key={x} className="ml-1 px-1.5 py-0.5 rounded bg-white/[0.04] text-white/80 border border-white/10 font-mono">
+              {x}
             </span>
           ))}
         </div>
@@ -173,10 +175,10 @@ const RebalanceHint = ({ selected, currentHoldings }) => {
         <div className="flex items-start gap-1">
           <TrendingUp size={11} className="text-up mt-0.5 shrink-0" />
           <div>
-            <span className="text-up">买入：</span>
-            {added.map(t => (
-              <span key={t} className="ml-1 px-1.5 py-0.5 rounded bg-up/10 text-up border border-up/30 font-mono">
-                {t}
+            <span className="text-up">{t('买入：')}</span>
+            {added.map(x => (
+              <span key={x} className="ml-1 px-1.5 py-0.5 rounded bg-up/10 text-up border border-up/30 font-mono">
+                {x}
               </span>
             ))}
           </div>
@@ -186,17 +188,17 @@ const RebalanceHint = ({ selected, currentHoldings }) => {
         <div className="flex items-start gap-1">
           <TrendingDown size={11} className="text-down mt-0.5 shrink-0" />
           <div>
-            <span className="text-down">卖出：</span>
-            {removed.map(t => (
-              <span key={t} className="ml-1 px-1.5 py-0.5 rounded bg-down/10 text-down border border-down/30 font-mono">
-                {t}
+            <span className="text-down">{t('卖出：')}</span>
+            {removed.map(x => (
+              <span key={x} className="ml-1 px-1.5 py-0.5 rounded bg-down/10 text-down border border-down/30 font-mono">
+                {x}
               </span>
             ))}
           </div>
         </div>
       )}
       {!added.length && !removed.length && (
-        <div className="text-[#a0aec0]">无变化 — 当前持仓符合策略</div>
+        <div className="text-[#a0aec0]">{t('无变化 — 当前持仓符合策略')}</div>
       )}
     </div>
   );
@@ -204,9 +206,10 @@ const RebalanceHint = ({ selected, currentHoldings }) => {
 
 // ─── 行业 ETF 排名表 ────────────────────────────────────
 const SectorRankTable = ({ ranked, selected }) => {
+  const { t } = useLang();
   const selSet = new Set(selected || []);
   if (!ranked || !ranked.length) {
-    return <div className="text-[#a0aec0] text-xs">无数据</div>;
+    return <div className="text-[#a0aec0] text-xs">{t('无数据')}</div>;
   }
   return (
     <div className="overflow-x-auto">
@@ -215,14 +218,14 @@ const SectorRankTable = ({ ranked, selected }) => {
           <tr className="border-b border-white/10">
             <th className="px-2 py-1.5 text-left">#</th>
             <th className="px-2 py-1.5 text-left">ETF</th>
-            <th className="px-2 py-1.5 text-left">名称</th>
-            <th className="px-2 py-1.5 text-right">总分</th>
-            <th className="px-2 py-1.5 text-right">趋势</th>
-            <th className="px-2 py-1.5 text-right">相对</th>
-            <th className="px-2 py-1.5 text-right">资金</th>
-            <th className="px-2 py-1.5 text-right">夏普</th>
+            <th className="px-2 py-1.5 text-left">{t('名称')}</th>
+            <th className="px-2 py-1.5 text-right">{t('总分')}</th>
+            <th className="px-2 py-1.5 text-right">{t('趋势')}</th>
+            <th className="px-2 py-1.5 text-right">{t('相对')}</th>
+            <th className="px-2 py-1.5 text-right">{t('资金')}</th>
+            <th className="px-2 py-1.5 text-right">{t('夏普')}</th>
             <th className="px-2 py-1.5 text-right">RSI</th>
-            <th className="px-2 py-1.5 text-right">费率</th>
+            <th className="px-2 py-1.5 text-right">{t('费率')}</th>
           </tr>
         </thead>
         <tbody>
@@ -563,7 +566,7 @@ export default function SmartBeta() {
                       <span className="flex items-center gap-2">
                         <span style={{ width: 8, height: 8, borderRadius: 2, background: factor.color, display: "inline-block", flexShrink: 0 }} />
                         <span className="font-semibold" style={{ fontSize: 13.5, color: "var(--fg-0)" }}>{t(factor.label)}</span>
-                        <span className="text-[10px]" style={{ color: "var(--fg-3)" }}>{factor.desc}</span>
+                        <span className="text-[10px]" style={{ color: "var(--fg-3)" }}>{t(factor.desc)}</span>
                       </span>
                       <span className="flex items-baseline gap-2">
                         <span className="font-mono text-[9px]" style={{ color: "var(--fg-3)" }}>t {factor.tStat}</span>
@@ -621,7 +624,7 @@ export default function SmartBeta() {
                     <div className="flex justify-between mt-1">
                       <span className="font-mono text-[9px]" style={{ color: "var(--fg-4)" }}>β {beta}</span>
                       <span className="font-mono text-[9px]" style={{ color: tStatNum > 2 ? "var(--up)" : "var(--fg-3)" }}>
-                        {tStatNum > 2 ? "✓ 显著" : "—"}
+                        {tStatNum > 2 ? t("✓ 显著") : "—"}
                       </span>
                     </div>
                   </div>
@@ -812,48 +815,48 @@ export default function SmartBeta() {
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             {/* v5 编辑式：eyebrow + serif 标题（套设计视觉语言；真实轮动功能不动） */}
-            <div className="t-eyebrow mb-0.5">SMART BETA ENGINE · 三层动态轮动</div>
+            <div className="t-eyebrow mb-0.5">{t('SMART BETA ENGINE · 三层动态轮动')}</div>
             <div className="flex items-center gap-2 flex-wrap">
               <Layers size={16} className="text-indigo-400" />
-              <h2 className="font-serif text-base sm:text-lg font-semibold tracking-tight" style={{ color: "var(--text-heading)", letterSpacing: "-0.02em" }}>指数 + 行业 ETF 动态轮动</h2>
+              <h2 className="font-serif text-base sm:text-lg font-semibold tracking-tight" style={{ color: "var(--text-heading)", letterSpacing: "-0.02em" }}>{t('指数 + 行业 ETF 动态轮动')}</h2>
               {isDemoMode && (
                 <span
                   className="px-1.5 py-0.5 rounded text-[9px] font-mono uppercase tracking-wider bg-amber-500/15 text-amber-300 border border-amber-500/40"
-                  title="后端未连接，展示静态示例快照。启动 backend/server.py 后点「重新计算」可拉真实数据。"
+                  title={t("后端未连接，展示静态示例快照。启动 backend/server.py 后点「重新计算」可拉真实数据。")}
                 >
-                  DEMO 模式
+                  {t('DEMO 模式')}
                 </span>
               )}
             </div>
             <p className="text-[10px] mt-0.5" style={{ color: "var(--text-secondary)" }}>
-              三层：风险层（VIX/趋势/信用利差/实际利率）→ Core ETF 配比 → 行业 ETF 评分轮动
-              {snapshot?.as_of && <span className="ml-2 font-mono">· 基准日 {snapshot.as_of.slice(0, 10)}</span>}
+              {t('三层：风险层（VIX/趋势/信用利差/实际利率）→ Core ETF 配比 → 行业 ETF 评分轮动')}
+              {snapshot?.as_of && <span className="ml-2 font-mono">· {t('基准日 {d}', { d: snapshot.as_of.slice(0, 10) })}</span>}
             </p>
           </div>
           <button
             onClick={fetchSnapshot}
             disabled={loading}
-            aria-label={loading ? "正在计算" : "重新计算 Smart Beta 快照"}
+            aria-label={loading ? t("正在计算") : t("重新计算 Smart Beta 快照")}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 border border-indigo-500/30 disabled:opacity-50"
           >
             {loading ? <Loader size={12} className="animate-spin" /> : <RefreshCw size={12} />}
-            {loading ? "计算中…" : "重新计算"}
+            {loading ? t('计算中…') : t('重新计算')}
           </button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-2.5 mt-2.5">
           <div>
-            <label className="text-[10px] text-[#a0aec0] mb-1 block">Core 预设</label>
+            <label className="text-[10px] text-[#a0aec0] mb-1 block">{t('Core 预设')}</label>
             <select
               value={config.core_preset}
               onChange={(e) => setConfig(c => ({ ...c, core_preset: e.target.value }))}
               className="w-full bg-white/[0.03] border border-white/10 rounded px-2 py-1 text-[11px] text-white focus:outline-none focus:border-indigo-500/50"
             >
-              {CORE_PRESETS.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
+              {CORE_PRESETS.map(p => <option key={p.id} value={p.id}>{t(p.label)}</option>)}
             </select>
           </div>
           <div>
-            <label className="text-[10px] text-[#a0aec0] mb-1 block">行业 ETF 选 K 只</label>
+            <label className="text-[10px] text-[#a0aec0] mb-1 block">{t('行业 ETF 选 K 只')}</label>
             <select
               value={config.k}
               onChange={(e) => setConfig(c => ({ ...c, k: Number(e.target.value) }))}
@@ -863,19 +866,19 @@ export default function SmartBeta() {
             </select>
           </div>
           <div>
-            <label className="text-[10px] text-[#a0aec0] mb-1 block">权重模式</label>
+            <label className="text-[10px] text-[#a0aec0] mb-1 block">{t('权重模式')}</label>
             <select
               value={config.weight_mode}
               onChange={(e) => setConfig(c => ({ ...c, weight_mode: e.target.value }))}
               className="w-full bg-white/[0.03] border border-white/10 rounded px-2 py-1 text-[11px] text-white"
             >
-              {WEIGHT_MODES.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
+              {WEIGHT_MODES.map(m => <option key={m.id} value={m.id}>{t(m.label)}</option>)}
             </select>
           </div>
           <div>
             <label className="text-[10px] text-[#a0aec0] mb-1 flex items-center gap-1">
-              当前持仓行业 ETF
-              <span className="text-[#6b7280]" title="逗号分隔，如 XLK,XLF,XLV — 用于缓冲带判断">
+              {t('当前持仓行业 ETF')}
+              <span className="text-[#6b7280]" title={t("逗号分隔，如 XLK,XLF,XLV — 用于缓冲带判断")}>
                 <Info size={9} />
               </span>
             </label>
@@ -894,7 +897,7 @@ export default function SmartBeta() {
         <div className="m-4 p-3 rounded-md bg-down/10 border border-down/30 text-down text-[11px] flex items-start gap-2">
           <AlertCircle size={14} className="shrink-0 mt-0.5" />
           <div>
-            <div className="font-semibold mb-0.5">加载失败</div>
+            <div className="font-semibold mb-0.5">{t('加载失败')}</div>
             <div className="font-mono">{error}</div>
           </div>
         </div>
@@ -906,7 +909,7 @@ export default function SmartBeta() {
             <div className="glass-card p-3">
               <div className="flex items-center gap-2 mb-2">
                 <Compass size={13} className="text-amber-400" />
-                <h3 className="text-[11px] font-semibold text-white/90">L1 · 风险评分</h3>
+                <h3 className="text-[11px] font-semibold text-white/90">{t('L1 · 风险评分')}</h3>
               </div>
               <RiskDial score={riskScore} components={riskComponents} />
             </div>
@@ -914,7 +917,7 @@ export default function SmartBeta() {
             <div className="glass-card p-3">
               <div className="flex items-center gap-2 mb-2">
                 <Layers size={13} className="text-indigo-400" />
-                <h3 className="text-[11px] font-semibold text-white/90">L1 → 总比例</h3>
+                <h3 className="text-[11px] font-semibold text-white/90">{t('L1 → 总比例')}</h3>
               </div>
               <CoreSectorPie coreWeight={coreWeight} sectorWeight={sectorWeight} />
             </div>
@@ -922,7 +925,7 @@ export default function SmartBeta() {
             <div className="glass-card p-3">
               <div className="flex items-center gap-2 mb-2">
                 <ArrowRight size={13} className="text-up" />
-                <h3 className="text-[11px] font-semibold text-white/90">L3 · 调仓建议</h3>
+                <h3 className="text-[11px] font-semibold text-white/90">{t('L3 · 调仓建议')}</h3>
               </div>
               <RebalanceHint selected={selected} currentHoldings={config.current_holdings} />
             </div>
@@ -931,7 +934,7 @@ export default function SmartBeta() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
             <div className="glass-card p-3">
               <h3 className="text-[11px] font-semibold text-white/90 mb-1.5">
-                L2 Core 内部配置 <span className="text-[#a0aec0] font-normal">· {config.core_preset}</span>
+                {t('L2 Core 内部配置')} <span className="text-[#a0aec0] font-normal">· {config.core_preset}</span>
               </h3>
               <div className="flex flex-wrap gap-1.5 text-[11px] font-mono">
                 {Object.entries(coreAlloc).map(([t, w]) => (
@@ -943,7 +946,7 @@ export default function SmartBeta() {
             </div>
             <div className="glass-card p-3">
               <h3 className="text-[11px] font-semibold text-white/90 mb-1.5">
-                L3 Sector 选中 ETF <span className="text-[#a0aec0] font-normal">· {config.weight_mode}</span>
+                {t('L3 Sector 选中 ETF')} <span className="text-[#a0aec0] font-normal">· {config.weight_mode}</span>
               </h3>
               <div className="flex flex-wrap gap-1.5 text-[11px] font-mono">
                 {Object.entries(sectorAlloc).map(([t, w]) => (
@@ -960,10 +963,10 @@ export default function SmartBeta() {
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-[11px] font-semibold text-white/90 flex items-center gap-1.5">
                 <Activity size={13} className="text-cyan-400" />
-                行业 ETF 评分排名（蓝底为选中）
+                {t('行业 ETF 评分排名（蓝底为选中）')}
               </h3>
               <span className="text-[10px] text-[#a0aec0]">
-                {ranked.length} 只候选 · 选 Top {config.k}
+                {ranked.length} {t('只候选 · 选 Top')} {config.k}
               </span>
             </div>
             <SectorRankTable ranked={ranked} selected={selected} />
@@ -973,10 +976,10 @@ export default function SmartBeta() {
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-[11px] font-semibold text-white/90 flex items-center gap-1.5">
                 <Settings size={13} className="text-indigo-400" />
-                最终推荐权重 = Core × {fmtPct(coreWeight, 0)} + Sector × {fmtPct(sectorWeight, 0)}
+                {t('最终推荐权重 = Core × {c} + Sector × {s}', { c: fmtPct(coreWeight, 0), s: fmtPct(sectorWeight, 0) })}
               </h3>
               <span className="text-[10px] text-[#a0aec0] font-mono">
-                合计 {fmtPct(Object.values(finalWeights).reduce((a, b) => a + b, 0), 1)}
+                {t('合计')} {fmtPct(Object.values(finalWeights).reduce((a, b) => a + b, 0), 1)}
               </span>
             </div>
             <FinalWeightsChart weights={finalWeights} />
@@ -987,11 +990,11 @@ export default function SmartBeta() {
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-2">
                 <Play size={13} className="text-emerald-400" />
-                <span className="text-[11px] font-semibold text-white/90">历史回测</span>
-                <span className="text-[10px] text-[#a0aec0]">月度再平衡 + K+2 缓冲带 vs SPY 100%</span>
+                <span className="text-[11px] font-semibold text-white/90">{t('历史回测')}</span>
+                <span className="text-[10px] text-[#a0aec0]">{t('月度再平衡 + K+2 缓冲带 vs SPY 100%')}</span>
               </div>
               <div className="flex items-center gap-2">
-                <label className="text-[10px] text-[#a0aec0]">起始日</label>
+                <label className="text-[10px] text-[#a0aec0]">{t('起始日')}</label>
                 <input
                   type="date"
                   value={btStart}
@@ -1005,7 +1008,7 @@ export default function SmartBeta() {
                   className="px-3 py-1 rounded bg-emerald-500/20 border border-emerald-500/40 text-[11px] text-emerald-200 hover:bg-emerald-500/30 disabled:opacity-40 flex items-center gap-1"
                 >
                   {btLoading ? <Loader size={11} className="animate-spin" /> : <Play size={11} />}
-                  {btLoading ? "回测中…" : "运行回测"}
+                  {btLoading ? t("回测中…") : t("运行回测")}
                 </button>
               </div>
             </div>
@@ -1019,7 +1022,7 @@ export default function SmartBeta() {
 
             {btLoading && !btResult && (
               <div className="text-[10px] text-[#a0aec0] py-4 text-center">
-                首次回测开销大（拉 ETF 历史 + 月度滚动重算）— 预计 30-60s，缓存后秒回
+                {t('首次回测开销大（拉 ETF 历史 + 月度滚动重算）— 预计 30-60s，缓存后秒回')}
               </div>
             )}
 
@@ -1093,14 +1096,14 @@ export default function SmartBeta() {
                 </div>
 
                 <div className="text-[10px] text-[#a0aec0] flex items-center gap-3 flex-wrap">
-                  <span>窗口：<span className="text-white/80 font-mono">{btResult.start_date} → {btResult.end_date}</span></span>
-                  <span>再平衡：<span className="text-white/80 font-mono">{btResult.rebalances.length} 次</span></span>
-                  <span>累计 alpha：
+                  <span>{t('窗口：')}<span className="text-white/80 font-mono">{btResult.start_date} → {btResult.end_date}</span></span>
+                  <span>{t('再平衡：')}<span className="text-white/80 font-mono">{btResult.rebalances.length} {t('次')}</span></span>
+                  <span>{t('累计 alpha：')}
                     <span className={`font-mono ml-1 ${btResult.alpha_total >= 0 ? "text-emerald-300" : "text-rose-300"}`}>
                       {btResult.alpha_total >= 0 ? "+" : ""}{fmtPct(btResult.alpha_total, 2)}
                     </span>
                   </span>
-                  {btResult._cached && <span className="text-amber-300">· 缓存命中</span>}
+                  {btResult._cached && <span className="text-amber-300">· {t('缓存命中')}</span>}
                 </div>
               </>
             )}
@@ -1108,8 +1111,8 @@ export default function SmartBeta() {
 
           {snapshot.fetch_errors && snapshot.fetch_errors.length > 0 && (
             <div className="rounded-md bg-amber-500/10 border border-amber-500/30 p-2 text-[10px] text-amber-300">
-              <span className="font-semibold">数据警告：</span>
-              以下 ETF 数据拉取失败，已从排名中排除：{snapshot.fetch_errors.join(", ")}
+              <span className="font-semibold">{t('数据警告：')}</span>
+              {t('以下 ETF 数据拉取失败，已从排名中排除：')}{snapshot.fetch_errors.join(", ")}
             </div>
           )}
         </div>
@@ -1119,7 +1122,7 @@ export default function SmartBeta() {
         <div className="flex items-center justify-center h-[60vh] text-[#a0aec0] text-xs">
           <div className="flex items-center gap-2">
             {loading ? <Loader size={14} className="animate-spin" /> : <Layers size={14} />}
-            {loading ? "首次计算需要 30-60s（拉取 SPY/VIX/行业 ETF 历史）…" : "点击「重新计算」开始"}
+            {loading ? t("首次计算需要 30-60s（拉取 SPY/VIX/行业 ETF 历史）…") : t("点击「重新计算」开始")}
           </div>
         </div>
       )}

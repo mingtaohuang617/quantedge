@@ -33,8 +33,23 @@ import { buildDigest } from "../components/macro/digestBuilder.js";
 
 const USE_SNAPSHOT = import.meta.env.PROD;
 
+// EN 模式：把 snapshot 里的 *_en 字段就地换上（深拷贝，不改原对象）；zh 原样返回。
+// 这样下游 macro 组件无需改动，照旧读 .name/.title/.summary 即拿到英文。
+const _MACRO_EN_FIELDS = ["name", "description", "title", "summary", "action", "label"];
+function localizeMacro(node, en) {
+  if (!en || node == null || typeof node !== "object") return node;
+  if (Array.isArray(node)) return node.map((x) => localizeMacro(x, en));
+  const out = {};
+  for (const [k, v] of Object.entries(node)) {
+    if (k.endsWith("_en")) continue;
+    const enVal = node[k + "_en"];
+    out[k] = (_MACRO_EN_FIELDS.includes(k) && typeof enVal === "string") ? enVal : localizeMacro(v, en);
+  }
+  return out;
+}
+
 export default function MacroDashboard() {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const isMobile = useIsMobile();
   const [factors, setFactors] = useState(null);
   const [composite, setComposite] = useState(null);
@@ -212,11 +227,12 @@ export default function MacroDashboard() {
     setLoading(true);
     setError(null);
     if (USE_SNAPSHOT) {
-      // 线上：直接吃打包进来的静态 snapshot
-      setFactors(macroSnapshot.factors || []);
-      setComposite(macroSnapshot.composite || null);
+      // 线上：直接吃打包进来的静态 snapshot（EN 模式换上 *_en 双语字段）
+      const en = lang === "en";
+      setFactors(localizeMacro(macroSnapshot.factors || [], en));
+      setComposite(localizeMacro(macroSnapshot.composite || null, en));
       setHistory(macroSnapshot.composite_history || null);
-      setNarrative(macroSnapshot.narrative || null);
+      setNarrative(en ? (macroSnapshot.narrative_en || macroSnapshot.narrative || null) : (macroSnapshot.narrative || null));
       setLoading(false);
       return;
     }
@@ -249,7 +265,7 @@ export default function MacroDashboard() {
     setNarrativeLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [lang]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const categories = useMemo(() => {
     if (!factors) return [];
@@ -485,9 +501,10 @@ export default function MacroDashboard() {
             ) : (
               <div className="flex items-end gap-4">
                 <span
-                  className="font-serif leading-none"
+                  className="num-gradient-keep font-serif leading-none"
                   style={{
                     fontSize: 80, fontWeight: 600, letterSpacing: "-0.02em", lineHeight: 0.85,
+                    color: tempColor,
                     background: `linear-gradient(180deg, ${tempColor}, color-mix(in srgb, ${tempColor} 70%, #000))`,
                     WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
                     fontFamily: "Fraunces, Georgia, serif",
@@ -828,7 +845,7 @@ export default function MacroDashboard() {
             return (
               <span
                 className={`text-[10px] px-2 py-0.5 rounded-full border font-mono ${st.cls}`}
-                title={`线上为静态 snapshot · 生成于 ${macroSnapshot.generated_at.slice(0,10)}${st.days != null ? `（${st.days} 天前）` : ""}。\n本地跑 backend/export_macro_snapshot.py 重新打包后 commit + push 才会更新。`}
+                title={t('线上为静态 snapshot · 生成于 {date}{ago}。\n本地跑 backend/export_macro_snapshot.py 重新打包后 commit + push 才会更新。', { date: macroSnapshot.generated_at.slice(0,10), ago: st.days != null ? t('（{n} 天前）', { n: st.days }) : "" })}
               >
                 <span className="mr-1">{st.icon}</span>
                 snapshot · {macroSnapshot.generated_at.slice(0, 10)} · {t(st.label)}

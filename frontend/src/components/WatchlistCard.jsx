@@ -21,6 +21,7 @@
 // ─────────────────────────────────────────────────────────────
 import React, { useMemo } from "react";
 import { Edit2, Trash2, Star, ChevronRight, Archive, ArchiveRestore, Check } from "lucide-react";
+import { useLang } from "../i18n.jsx";
 
 export default function WatchlistCard({
   item,
@@ -31,6 +32,7 @@ export default function WatchlistCard({
   onToggleArchive,
   onMarkReviewed,
 }) {
+  const { t } = useLang();
   const moat = item.moat_score || 0;
   const archived = !!item.archived;
   // strategy-aware：价值型和成长型 item 在同一 watchlist 里混合显示，
@@ -115,8 +117,8 @@ export default function WatchlistCard({
               const fresh = days <= 7;
               return (
                 <span className={`text-[9px] font-mono px-1 py-px rounded border ${fresh ? "bg-cyan-500/15 text-cyan-200 border-cyan-500/40" : "bg-white/[0.03] text-[#7a8497] border-white/10"}`}
-                  title={`加入观察 ${days} 天`}>
-                  {fresh ? "新 " : ""}{days}d
+                  title={t('加入观察 {n} 天', { n: days })}>
+                  {fresh ? t('新') + " " : ""}{days}d
                 </span>
               );
             })()}
@@ -129,10 +131,10 @@ export default function WatchlistCard({
               }`}
               title={isValue ? "价值型 — Graham 安全边际" : "成长型 — 双层瓶颈 / 卡位公司"}
             >
-              {isValue ? "值" : "成"}
+              {isValue ? t('值') : t('成')}
             </span>
             {archived && (
-              <span className="text-[9px] px-1 py-px rounded bg-white/5 text-[#a0aec0] border border-white/15">归档</span>
+              <span className="text-[9px] px-1 py-px rounded bg-white/5 text-[#a0aec0] border border-white/15">{t('归档')}</span>
             )}
             {item.bottleneck_layer === 2 && (
               <span
@@ -177,14 +179,14 @@ export default function WatchlistCard({
           {!archived && onMarkReviewed && (
             <button
               onClick={onMarkReviewed}
-              aria-label="标记已复盘"
+              aria-label={t("标记已复盘")}
               className="p-1 rounded hover:bg-emerald-500/20 text-[#a0aec0] hover:text-emerald-300"
-              title="标记已复盘 — 重置「N 天未复盘」badge（不必重新生成 AI 草稿）"
+              title={t("标记已复盘 — 重置「N 天未复盘」badge（不必重新生成 AI 草稿）")}
             >
               <Check size={10} />
             </button>
           )}
-          <button onClick={onEdit} aria-label="编辑观察项" className="p-1 rounded hover:bg-white/10 text-[#a0aec0] hover:text-white" title="编辑">
+          <button onClick={onEdit} aria-label={t("编辑观察项")} className="p-1 rounded hover:bg-white/10 text-[#a0aec0] hover:text-white" title={t("编辑")}>
             <Edit2 size={10} />
           </button>
           <button
@@ -195,7 +197,7 @@ export default function WatchlistCard({
           >
             {archived ? <ArchiveRestore size={10} /> : <Archive size={10} />}
           </button>
-          <button onClick={onDelete} aria-label="删除观察项" className="p-1 rounded hover:bg-red-500/20 text-[#a0aec0] hover:text-red-300" title="删除">
+          <button onClick={onDelete} aria-label={t("删除观察项")} className="p-1 rounded hover:bg-red-500/20 text-[#a0aec0] hover:text-red-300" title={t("删除")}>
             <Trash2 size={10} />
           </button>
         </div>
@@ -210,7 +212,7 @@ export default function WatchlistCard({
             className={n <= moat ? "text-amber-400 fill-amber-400" : "text-white/15"}
           />
         ))}
-        <span className="text-[9px] text-[#7a8497] ml-1">{isValue ? "护城河" : "卡位"}</span>
+        <span className="text-[9px] text-[#7a8497] ml-1">{isValue ? t('护城河') : t('卡位')}</span>
       </div>
 
       {item.bottleneck_tag && (
@@ -230,7 +232,7 @@ export default function WatchlistCard({
       {item.falsification_condition && (
         <div
           className="text-[10px] text-amber-200/90 leading-relaxed mb-1 flex items-start gap-1 px-1.5 py-1 bg-amber-500/8 border border-amber-500/25 rounded"
-          title={`证伪条件：${item.falsification_condition}`}
+          title={t('证伪条件：{x}', { x: item.falsification_condition })}
         >
           <span className="text-amber-400 shrink-0">⚠</span>
           <span className="break-words line-clamp-2">{item.falsification_condition}</span>
@@ -263,14 +265,14 @@ export default function WatchlistCard({
                       top: "50%",
                       transform: "translate(-50%, -50%)",
                     }}
-                    title={`当前 ${priceAlerts.current.toFixed(2)} · 区间内 ${progressPct.toFixed(0)}%`}
+                    title={t('当前 {p} · 区间内 {pct}%', { p: priceAlerts.current.toFixed(2), pct: progressPct.toFixed(0) })}
                   />
                 </div>
                 <div className="flex justify-between mt-0.5 text-[8.5px] font-mono">
-                  <span className="text-red-300/85" title={`距止损 ${distToStopPct.toFixed(1)}%`}>
+                  <span className="text-red-300/85" title={t('距止损 {x}%', { x: distToStopPct.toFixed(1) })}>
                     🛡 ${item.stop_loss}
                   </span>
-                  <span className="text-emerald-300/85" title={`距目标 ${distToTargetPct.toFixed(1)}%`}>
+                  <span className="text-emerald-300/85" title={t('距目标 {x}%', { x: distToTargetPct.toFixed(1) })}>
                     🎯 ${item.target_price}
                   </span>
                 </div>
@@ -344,8 +346,8 @@ export default function WatchlistCard({
 
       {item.tags && item.tags.length > 0 && (
         <div className="flex flex-wrap gap-0.5 mt-1">
-          {item.tags.map((t) => (
-            <span key={t} className="text-[9px] px-1 py-px rounded bg-white/5 text-[#a0aec0] border border-white/10">#{t}</span>
+          {item.tags.map((tg) => (
+            <span key={tg} className="text-[9px] px-1 py-px rounded bg-white/5 text-[#a0aec0] border border-white/10">#{tg}</span>
           ))}
         </div>
       )}

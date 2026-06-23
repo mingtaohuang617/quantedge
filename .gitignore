@@ -19,6 +19,8 @@ backend/tickers_custom.json
 
 # User-managed watchlist (local-only)
 backend/watchlist_10x.json
+backend/favorites.json
+backend/anomaly_scan.json
 backend/stock_gene.json
 backend/stock_gene_scheduler.json
 

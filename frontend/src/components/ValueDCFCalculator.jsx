@@ -13,6 +13,7 @@
 //                                  字段（点击「应用」按钮触发）
 // ─────────────────────────────────────────────────────────────
 import React, { useState, useMemo } from 'react';
+import { useLang } from '../i18n.jsx';
 import { Calculator, ChevronDown, ChevronRight, Check, AlertCircle } from 'lucide-react';
 import { calcDCF, marginOfSafety, DCF_DEFAULTS } from '../lib/dcf.js';
 
@@ -25,6 +26,7 @@ const INPUT_DEFAULTS = {
 };
 
 export default function ValueDCFCalculator({ currentPrice, onApplyTarget }) {
+  const { t } = useLang();
   const [expanded, setExpanded] = useState(false);
   const [inputs, setInputs] = useState(INPUT_DEFAULTS);
 
@@ -56,7 +58,7 @@ export default function ValueDCFCalculator({ currentPrice, onApplyTarget }) {
       >
         <div className="flex items-center gap-1.5 text-emerald-300">
           <Calculator size={11} />
-          <span className="font-medium">DCF 估算（两阶段，Gordon 终值）</span>
+          <span className="font-medium">{t('DCF 估算（两阶段，Gordon 终值）')}</span>
           {result && !result.error && (
             <span className="text-[10px] text-emerald-200/80 font-mono">
               · 内在 {result.intrinsicValue.toFixed(2)}
@@ -73,7 +75,7 @@ export default function ValueDCFCalculator({ currentPrice, onApplyTarget }) {
               label="每股 FCF"
               value={inputs.fcfPerShare}
               onChange={(v) => set('fcfPerShare', v)}
-              placeholder="如 3.5"
+              placeholder={t("如 3.5")}
               hint="自由现金流 / 流通股数；从年报算（运营现金流 - capex）"
               required
             />
@@ -122,7 +124,7 @@ export default function ValueDCFCalculator({ currentPrice, onApplyTarget }) {
               {/* 内在价值 */}
               <div className="flex items-center justify-between px-2 py-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded">
                 <div className="flex flex-col">
-                  <span className="text-[9px] text-[#a0aec0]">内在价值（每股）</span>
+                  <span className="text-[9px] text-[#a0aec0]">{t('内在价值（每股）')}</span>
                   <span className="text-[9px] text-[#7a8497]">
                     短期 {result.shortTermPV.toFixed(2)} + 终值 {result.terminalValuePV.toFixed(2)}
                   </span>
@@ -144,14 +146,14 @@ export default function ValueDCFCalculator({ currentPrice, onApplyTarget }) {
                   }`}
                   title={
                     safety >= 0.33
-                      ? 'Graham 安全边际充足（≥ 33%）'
+                      ? t('Graham 安全边际充足（≥ 33%）')
                       : safety >= 0
-                      ? '当前价 < 内在价值，但安全边际偏薄'
-                      : '当前价 > 内在价值，高估'
+                      ? t('当前价 < 内在价值，但安全边际偏薄')
+                      : t('当前价 > 内在价值，高估')
                   }
                 >
                   <span className="text-[10px]">
-                    {safety >= 0 ? '安全边际' : '高估幅度'}
+                    {safety >= 0 ? t('安全边际') : t('高估幅度')}
                     <span className="text-[9px] text-[#7a8497] ml-1">
                       (当前 {Number(currentPrice).toFixed(2)})
                     </span>
@@ -168,7 +170,7 @@ export default function ValueDCFCalculator({ currentPrice, onApplyTarget }) {
                   type="button"
                   onClick={() => onApplyTarget(Math.round(result.intrinsicValue * 100) / 100)}
                   className="w-full flex items-center justify-center gap-1 px-2 py-1 text-[10px] rounded bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-200 border border-indigo-500/30 transition"
-                  title="把内在价值填到「目标价」字段"
+                  title={t("把内在价值填到「目标价」字段")}
                 >
                   <Check size={10} /> 应用到目标价：{result.intrinsicValue.toFixed(2)}
                 </button>
@@ -177,8 +179,7 @@ export default function ValueDCFCalculator({ currentPrice, onApplyTarget }) {
           )}
 
           <div className="text-[9px] text-[#7a8497] leading-relaxed">
-            ⓘ DCF 适合现金流稳定的票（消费/公用/银行），不适合周期股或纯成长股。
-            数字略变化会放大终值差异 — 多跑几组参数试敏感性。
+            {t('ⓘ DCF 适合现金流稳定的票（消费/公用/银行），不适合周期股或纯成长股。数字略变化会放大终值差异 — 多跑几组参数试敏感性。')}
           </div>
         </div>
       )}

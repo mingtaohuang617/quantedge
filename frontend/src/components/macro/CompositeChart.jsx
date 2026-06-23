@@ -76,7 +76,7 @@ export default function CompositeChart({ history, range, setRange }) {
                 history.current_regime === "bull"
                   ? "text-emerald-300 bg-emerald-500/10 border-emerald-400/30"
                   : "text-red-300 bg-red-500/10 border-red-400/30"
-              }`} title="Lunde-Timmermann 20% 阈值机械标注">
+              }`} title={t("Lunde-Timmermann 20% 阈值机械标注")}>
                 {t("当前")} · {history.current_regime === "bull" ? t("牛 ↑") : t("熊 ↓")}
               </span>
             )}
