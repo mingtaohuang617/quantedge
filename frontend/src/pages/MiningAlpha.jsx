@@ -452,7 +452,7 @@ const RunPipelinePanel = ({ runId, onJobDone }) => {
       if (s) setJobState(s);
     } catch (e) {
       setActiveStep(null);
-      alert(`启动失败: ${e}`);
+      alert(t('启动失败: {e}', { e }));
     }
   };
 

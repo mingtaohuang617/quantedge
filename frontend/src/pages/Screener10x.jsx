@@ -655,7 +655,7 @@ export default function Screener10x() {
   }, [supertrends]);
 
   const handleDelete = async (ticker) => {
-    if (!window.confirm(`从观察列表删除 ${ticker}？此操作不可撤销。归档（左下"显示归档"按钮）可保留 thesis。`)) return;
+    if (!window.confirm(t('从观察列表删除 {ticker}？此操作不可撤销。归档（左下"显示归档"按钮）可保留 thesis。', { ticker }))) return;
     await apiFetch(`/watchlist/10x/${encodeURIComponent(ticker)}`, { method: "DELETE" });
     await reloadWatchlist();
     // 删除后让 ticker 重新进入候选列表
@@ -686,7 +686,7 @@ export default function Screener10x() {
   const handleExport = async () => {
     const json = await apiFetch("/watchlist/10x/export");
     if (!json) {
-      window.alert("导出失败：后端不可用（演示模式或网络问题）");
+      window.alert(t("导出失败：后端不可用（演示模式或网络问题）"));
       return;
     }
     const blob = new Blob([JSON.stringify(json, null, 2)], { type: "application/json" });
@@ -705,7 +705,7 @@ export default function Screener10x() {
   const handleExportCsv = async () => {
     const json = await apiFetch("/watchlist/10x/export");
     if (!json) {
-      window.alert("导出失败：后端不可用（演示模式或网络问题）");
+      window.alert(t("导出失败：后端不可用（演示模式或网络问题）"));
       return;
     }
     const csv = serializeWatchlistCsv(json.items);
@@ -728,11 +728,11 @@ export default function Screener10x() {
       const text = await file.text();
       payload = JSON.parse(text);
     } catch (e) {
-      window.alert(`文件解析失败：${e.message}`);
+      window.alert(t('文件解析失败：{e}', { e: e.message }));
       return;
     }
     if (!payload || typeof payload !== "object") {
-      window.alert("文件格式不对：应为 { items: [], user_supertrends: [] }");
+      window.alert(t("文件格式不对：应为 { items: [], user_supertrends: [] }"));
       return;
     }
 
@@ -761,7 +761,7 @@ export default function Screener10x() {
       );
       await reloadWatchlist();
     } else {
-      window.alert(`导入失败：${res?.detail || "未知错误"}`);
+      window.alert(t('导入失败：{e}', { e: res?.detail || t("未知错误") }));
     }
   };
 
