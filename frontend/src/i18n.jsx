@@ -137,6 +137,12 @@ const EN = {
   "{p} 路径终值不到本金一半": "{p} of paths end below half the principal",
   "路径": "paths",
   "当前自动匹配": "Auto-matched",
+  // ── A3：回测/SmartBeta 可见状态串 ──
+  "点\"生成总结\"让 DeepSeek 用 4-5 句话评价回测表现和风险": "Click \"Generate summary\" for DeepSeek to assess backtest performance and risk in 4-5 sentences",
+  "夏普 {x}": "Sharpe {x}",
+  "索提诺 {x}": "Sortino {x}",
+  "年化 {x}%": "Annual {x}%",
+  "远超正常区间（顶级策略夏普约 2–3、Calmar 通常 < 5）。常见原因：某只成分股价格数据异常（分拆复权 / 数据源返回极端值）。请核对各标的价格真实性后再参考此结果。": "far exceeds the normal range (top strategies: Sharpe ~2–3, Calmar usually < 5). Common cause: anomalous price data for a constituent (split/adjustment or extreme data-source values). Verify each ticker's price authenticity before relying on this result.",
   "请先填赛道名": "Please fill in the track name first",
   "后端无响应（DEEPSEEK_API_KEY 未配置或网络问题）": "Backend not responding (DEEPSEEK_API_KEY not configured or network issue)",
   "LLM 生成失败": "LLM generation failed",

@@ -2437,12 +2437,12 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
                 <div className="text-[11px] text-amber-200 leading-relaxed">
                   <span className="font-semibold">{t('指标异常 · 数据可能有问题')}</span> —
                   {' '}{[
-                    m.sharpe > 4 && `夏普 ${m.sharpe}`,
+                    m.sharpe > 4 && t('夏普 {x}', { x: m.sharpe }),
                     m.calmar > 20 && `Calmar ${m.calmar}`,
-                    m.sortino > 6 && `索提诺 ${m.sortino}`,
-                    m.annReturn > 200 && `年化 ${m.annReturn}%`,
+                    m.sortino > 6 && t('索提诺 {x}', { x: m.sortino }),
+                    m.annReturn > 200 && t('年化 {x}%', { x: m.annReturn }),
                   ].filter(Boolean).join(' · ')}
-                  {' '}远超正常区间（顶级策略夏普约 2–3、Calmar 通常 &lt; 5）。常见原因：某只成分股价格数据异常（分拆复权 / 数据源返回极端值）。请核对各标的价格真实性后再参考此结果。
+                  {' '}{t('远超正常区间（顶级策略夏普约 2–3、Calmar 通常 < 5）。常见原因：某只成分股价格数据异常（分拆复权 / 数据源返回极端值）。请核对各标的价格真实性后再参考此结果。')}
                 </div>
               </div>
             )}
