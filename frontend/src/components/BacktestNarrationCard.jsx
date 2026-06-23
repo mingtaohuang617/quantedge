@@ -139,7 +139,7 @@ export default function BacktestNarrationCard({ btResult, portfolio, benchMetric
 
       {!state.expanded && !state.loading && !state.error && (
         <div className="text-[11px] text-[#a0aec0]">
-          点"生成总结"让 DeepSeek 用 4-5 句话评价回测表现和风险
+          {t('点"生成总结"让 DeepSeek 用 4-5 句话评价回测表现和风险')}
         </div>
       )}
     </div>

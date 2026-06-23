@@ -836,7 +836,7 @@ export default function SmartBeta() {
           <button
             onClick={fetchSnapshot}
             disabled={loading}
-            aria-label={loading ? "正在计算" : "重新计算 Smart Beta 快照"}
+            aria-label={loading ? t("正在计算") : t("重新计算 Smart Beta 快照")}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 border border-indigo-500/30 disabled:opacity-50"
           >
             {loading ? <Loader size={12} className="animate-spin" /> : <RefreshCw size={12} />}
@@ -1008,7 +1008,7 @@ export default function SmartBeta() {
                   className="px-3 py-1 rounded bg-emerald-500/20 border border-emerald-500/40 text-[11px] text-emerald-200 hover:bg-emerald-500/30 disabled:opacity-40 flex items-center gap-1"
                 >
                   {btLoading ? <Loader size={11} className="animate-spin" /> : <Play size={11} />}
-                  {btLoading ? "回测中…" : "运行回测"}
+                  {btLoading ? t("回测中…") : t("运行回测")}
                 </button>
               </div>
             </div>
@@ -1122,7 +1122,7 @@ export default function SmartBeta() {
         <div className="flex items-center justify-center h-[60vh] text-[#a0aec0] text-xs">
           <div className="flex items-center gap-2">
             {loading ? <Loader size={14} className="animate-spin" /> : <Layers size={14} />}
-            {loading ? "首次计算需要 30-60s（拉取 SPY/VIX/行业 ETF 历史）…" : "点击「重新计算」开始"}
+            {loading ? t("首次计算需要 30-60s（拉取 SPY/VIX/行业 ETF 历史）…") : t("点击「重新计算」开始")}
           </div>
         </div>
       )}
