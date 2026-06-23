@@ -626,9 +626,9 @@ const EquityCurveChart = ({ strategy, benchmark, regimeSegments }) => {
             ifOverflow="extendDomain"
           />
         ))}
-        <Line type="monotone" dataKey="equity" stroke="#10b981" dot={false} strokeWidth={1.6} name="策略" />
+        <Line type="monotone" dataKey="equity" stroke="#10b981" dot={false} strokeWidth={1.6} name={t("策略")} />
         {benchmark?.length > 0 && (
-          <Line type="monotone" dataKey="bench" stroke="#6366f1" dot={false} strokeWidth={1.2} strokeDasharray="3 3" name="基准" />
+          <Line type="monotone" dataKey="bench" stroke="#6366f1" dot={false} strokeWidth={1.2} strokeDasharray="3 3" name={t("基准")} />
         )}
       </LineChart>
     </ResponsiveContainer>

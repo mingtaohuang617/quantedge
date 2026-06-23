@@ -149,6 +149,8 @@ const EN = {
   "文件解析失败：{e}": "File parsing failed: {e}",
   "导入失败：{e}": "Import failed: {e}",
   "未知错误": "Unknown error",
+  "重新评分（{e}）": "Re-score ({e})",
+  "立即评分（{e}）": "Score now ({e})",
   "导入成功（{mode}）\n新增 {added} · 跳过 {skipped}": "Import succeeded ({mode})\nAdded {added} · skipped {skipped}",
   "远超正常区间（顶级策略夏普约 2–3、Calmar 通常 < 5）。常见原因：某只成分股价格数据异常（分拆复权 / 数据源返回极端值）。请核对各标的价格真实性后再参考此结果。": "far exceeds the normal range (top strategies: Sharpe ~2–3, Calmar usually < 5). Common cause: anomalous price data for a constituent (split/adjustment or extreme data-source values). Verify each ticker's price authenticity before relying on this result.",
   "请先填赛道名": "Please fill in the track name first",

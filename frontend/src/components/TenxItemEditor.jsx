@@ -243,7 +243,7 @@ export default function TenxItemEditor({ open, item, candidate, supertrends, onC
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/8">
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold text-white">
-              {isNew ? "加入观察列表" : "编辑观察项"}
+              {isNew ? t("加入观察列表") : t("编辑观察项")}
             </span>
             <span className="text-[10px] font-mono text-[#a0aec0]">{ticker}</span>
             {displayName && displayName !== ticker && (
@@ -446,7 +446,7 @@ export default function TenxItemEditor({ open, item, candidate, supertrends, onC
             className="flex items-center gap-1 px-3 py-1.5 text-[11px] rounded-md bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-200 border border-indigo-500/40 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving ? <Loader size={11} className="animate-spin" /> : <Save size={11} />}
-            {isNew ? "加入观察" : "保存"}
+            {isNew ? t("加入观察") : t("保存")}
           </button>
         </div>
       </div>

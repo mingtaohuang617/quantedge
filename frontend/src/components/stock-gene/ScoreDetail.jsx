@@ -73,7 +73,7 @@ export function ScoreDetail({
             title={t('重新跑 {engine} 评分（{n} 个特征）', { engine: engineLabel, n: cfg.featureCount })}
           >
             {scoring ? <Loader size={10} className="animate-spin" /> : <Sparkles size={10} />}
-            {r ? `重新评分（${engineLabel}）` : `立即评分（${engineLabel}）`}
+            {r ? t('重新评分（{e}）', { e: engineLabel }) : t('立即评分（{e}）', { e: engineLabel })}
           </button>
           {r && onExplain && (
             <button

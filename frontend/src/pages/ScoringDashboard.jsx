@@ -3880,9 +3880,9 @@ const ScoringDashboard = () => {
                 )}
                 {/* 技术指标叠加：MA/EMA 各一条线；布林线 = 上/中/下三条（中轨虚线） */}
                 {activeIndList.flatMap((ind) => ind.type === "boll" ? [
-                  <Line key="boll_up" yAxisId="price" type="monotone" dataKey="boll_up" stroke={ind.color} strokeOpacity={0.55} strokeWidth={1.2} dot={false} connectNulls activeDot={false} isAnimationActive={false} name="BOLL 上轨" />,
-                  <Line key="boll_mid" yAxisId="price" type="monotone" dataKey="boll_mid" stroke={ind.color} strokeWidth={1.4} strokeDasharray="4 3" dot={false} connectNulls activeDot={false} isAnimationActive={false} name="BOLL 中轨" />,
-                  <Line key="boll_low" yAxisId="price" type="monotone" dataKey="boll_low" stroke={ind.color} strokeOpacity={0.55} strokeWidth={1.2} dot={false} connectNulls activeDot={false} isAnimationActive={false} name="BOLL 下轨" />,
+                  <Line key="boll_up" yAxisId="price" type="monotone" dataKey="boll_up" stroke={ind.color} strokeOpacity={0.55} strokeWidth={1.2} dot={false} connectNulls activeDot={false} isAnimationActive={false} name={t("BOLL 上轨")} />,
+                  <Line key="boll_mid" yAxisId="price" type="monotone" dataKey="boll_mid" stroke={ind.color} strokeWidth={1.4} strokeDasharray="4 3" dot={false} connectNulls activeDot={false} isAnimationActive={false} name={t("BOLL 中轨")} />,
+                  <Line key="boll_low" yAxisId="price" type="monotone" dataKey="boll_low" stroke={ind.color} strokeOpacity={0.55} strokeWidth={1.2} dot={false} connectNulls activeDot={false} isAnimationActive={false} name={t("BOLL 下轨")} />,
                 ] : [
                   <Line key={ind.key} yAxisId="price" type="monotone" dataKey={ind.key} stroke={ind.color} strokeWidth={2} strokeDasharray={ind.dash} dot={false} connectNulls activeDot={false} isAnimationActive={false} name={ind.label} />,
                 ])}
