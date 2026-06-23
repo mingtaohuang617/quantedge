@@ -1270,7 +1270,7 @@ ${angleQuestion}
                 className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded-md text-[10px] flex items-center gap-1 bg-violet-500/15 hover:bg-violet-500/25 text-violet-200 border border-violet-500/30 transition disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {aiOrganizing ? <Loader size={10} className="animate-spin" /> : <Sparkles size={10} />}
-                {aiOrganizing ? "整理中" : "AI 整理"}
+                {aiOrganizing ? t("整理中") : t("AI 整理")}
               </button>
             </div>
             {aiHint && (

@@ -87,7 +87,7 @@ export default function ValueFilters({ value, onChange }) {
                 : "bg-white/5 text-[#a0aec0] border-white/10 hover:bg-white/10 hover:text-white"
             }`}
           >
-            {p.label}
+            {t(p.label)}
           </button>
         );
       })}
