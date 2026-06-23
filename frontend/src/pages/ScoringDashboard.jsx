@@ -11,6 +11,7 @@ import { useLang, isZh, localeFor, hasCJK, enFallback } from "../i18n.jsx";
 import { STOCKS } from "../data.js";
 import AIStockSummaryCard from "../components/AIStockSummaryCard.jsx";
 import ScoreExplainCard from "../components/ScoreExplainCard.jsx";
+import ValuationReadCard from "../components/ValuationReadCard.jsx";
 import MacroAdjustBadge from "../components/MacroAdjustBadge.jsx";
 import macroSnapshot from "../macroSnapshot.json";
 import { TEMP_TEXT, TEMP_LABEL } from "../components/macro/shared.js";
@@ -1694,6 +1695,7 @@ const ScoringDashboard = () => {
                   </div>
                 )}
                 <div className="mb-4"><ScoreExplainCard stock={sel} weights={weights} /></div>
+                {!sel.isETF && <div className="mb-4"><ValuationReadCard stock={sel} /></div>}
                 <div className="rounded-[14px] border p-3.5 mb-2" style={{ borderColor: "var(--line)", background: "var(--bg-2)" }}>
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-[12px] font-semibold" style={{ color: "var(--fg-0)" }}>{t("价格走势")} · {chartRange}</span>

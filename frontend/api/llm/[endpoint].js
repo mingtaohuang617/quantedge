@@ -27,12 +27,14 @@ import generateKeywords from './_generate-keywords.js';
 import matchSupertrend from './_match-supertrend.js';
 import rankCandidates from './_rank-candidates.js';
 import tenXThesis from './_10x-thesis.js';
+import valuationRead from './_valuation-read.js';
 
 const KNOWN_HANDLERS = {
   'generate-keywords': generateKeywords,
   'match-supertrend': matchSupertrend,
   'rank-candidates': rankCandidates,
   '10x-thesis': tenXThesis,
+  'valuation-read': valuationRead,
 };
 
 export const config = {
