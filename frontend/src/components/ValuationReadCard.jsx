@@ -68,7 +68,7 @@ export default function ValuationReadCard({ stock }) {
   };
 
   const hasData = !!state.data;
-  const lean = hasData ? state.data["估值倾向_int"] : null;
+  const lean = hasData ? state.data["lean_int"] : null;
   const leanLabel = lean === 1 ? t("偏低估") : lean === 3 ? t("偏高估") : t("合理");
   const leanColor = lean === 1 ? "text-up bg-up/10 border-up/20"
     : lean === 3 ? "text-down bg-down/10 border-down/20"

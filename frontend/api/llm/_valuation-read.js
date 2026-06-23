@@ -46,7 +46,7 @@ function buildPrompt(stock) {
     '  "多空区间": "<乐观 vs 保守情形下估值大致如何移动，用倍数语言，不要伪造目标价，≤70 字>",',
     '  "待核验": "<最该核实的 2 个假设/数据点，≤50 字>",',
     '  "结论": "<一句话结论，不给买卖建议，≤40 字>",',
-    '  "估值倾向_int": <1=偏低估，2=合理，3=偏高估；不确定填 2>',
+    '  "lean_int": <1=偏低估，2=合理，3=偏高估；不确定填 2>',
     '}',
     "要求：客观、不夸张；数据缺失就明说不确定，不要编造精确数字；绝不给出买入/卖出/持有建议。",
   ].join('\n');
@@ -82,7 +82,7 @@ export default async function handler(req, res) {
     for (const k of ['估值定位', '倍数解读', '市场定价', '多空区间', '待核验', '结论']) {
       if (!(k in parsed)) parsed[k] = '';
     }
-    parsed['估值倾向_int'] = clampInt(parsed['估值倾向_int'], 1, 3, 2);
+    parsed['lean_int'] = clampInt(parsed['lean_int'], 1, 3, 2);
 
     await llmCachePut('valuation-read', DEFAULT_MODEL, prompt, parsed, TTL_SEC, {
       ticker, prompt_tokens, completion_tokens,
