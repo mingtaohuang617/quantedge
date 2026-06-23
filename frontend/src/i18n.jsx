@@ -70,6 +70,21 @@ const toTW = (text) => {
 
 // ─── English Translation Dictionary ─────────────────────────
 const EN = {
+  // ── B1: 估值速读卡 (Valuation Read — 借鉴 financial-services comps+dcf) ──
+  '估值速读': 'Valuation Read',
+  '生成估值速读': 'Generate Valuation Read',
+  '正在生成估值速读…': 'Generating valuation read…',
+  '估值定位': 'Valuation Stance',
+  '倍数解读': 'Multiples Read',
+  '市场定价': "What's Priced In",
+  '多空区间': 'Bull/Bear Range',
+  '待核验': 'To Verify',
+  '结论': 'Bottom Line',
+  '偏低估': 'Undervalued-leaning',
+  '偏高估': 'Overvalued-leaning',
+  '机构估值框架（comps + 简化 DCF）· AI 草稿 · 非投资建议': 'Institutional framework (comps + simplified DCF) · AI draft · not investment advice',
+  '点「生成估值速读」用机构估值框架做一份相对估值 + 隐含预期分析': 'Tap Generate Valuation Read for a relative-valuation + implied-expectations read using an institutional framework',
+  '⚠ 该标的基本面数据较少，结果可能不准': '⚠ This security has limited fundamentals; results may be unreliable',
   // ── 盲区 D：EN 全量扫盲（config 数组/状态串/校验文案等，audit 抓不到的 JS 表达式中文）──
   // 信号合成预估（MiningAlpha）JSX 文本节点
   "信号合成预估 · 等权两因子（真实月度 IC 序列派生）": "Signal blend estimate · equal-weight two-factor (from real monthly IC series)",
