@@ -292,12 +292,12 @@ export default function StockGene() {
   // 请求浏览器通知权限
   const handleRequestNotifyPermission = useCallback(async () => {
     if (typeof Notification === "undefined") {
-      window.alert("当前浏览器不支持桌面通知");
+      window.alert(t("当前浏览器不支持桌面通知"));
       return;
     }
     if (Notification.permission === "granted") return;
     if (Notification.permission === "denied") {
-      window.alert("通知权限已被拒绝。请到浏览器设置里手动开启。");
+      window.alert(t("通知权限已被拒绝。请到浏览器设置里手动开启。"));
       return;
     }
     const perm = await Notification.requestPermission();
@@ -589,7 +589,7 @@ export default function StockGene() {
   const handleExport = async () => {
     const json = await apiFetch("/stock-gene/export");
     if (!json) {
-      window.alert("导出失败：后端不可用");
+      window.alert(t("导出失败：后端不可用"));
       return;
     }
     const blob = new Blob([JSON.stringify(json, null, 2)], { type: "application/json" });
@@ -650,11 +650,11 @@ export default function StockGene() {
     try {
       payload = JSON.parse(await file.text());
     } catch (e) {
-      window.alert(`文件解析失败：${e.message}`);
+      window.alert(t('文件解析失败：{e}', { e: e.message }));
       return;
     }
     if (!payload?.items || !Array.isArray(payload.items)) {
-      window.alert("文件格式不对：应为 { items: [...], version }");
+      window.alert(t("文件格式不对：应为 { items: [...], version }"));
       return;
     }
     const mode = window.prompt(
@@ -669,10 +669,10 @@ export default function StockGene() {
     });
     setImportLoading(false);
     if (res?.ok) {
-      window.alert(`导入成功（${res.mode}）\n新增 ${res.items_added} · 跳过 ${res.items_skipped}`);
+      window.alert(t('导入成功（{mode}）\n新增 {added} · 跳过 {skipped}', { mode: res.mode, added: res.items_added, skipped: res.items_skipped }));
       await reload();
     } else {
-      window.alert(`导入失败：${res?.detail || "未知错误"}`);
+      window.alert(t('导入失败：{e}', { e: res?.detail || t("未知错误") }));
     }
   };
 
