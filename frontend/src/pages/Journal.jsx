@@ -296,7 +296,7 @@ const Journal = () => {
       if (s.qty) hints.push(`数量: ${s.qty}`);
       if (s.price) hints.push(`价格: ${s.price}`);
       if (s.sentiment) hints.push(`情绪: ${s.sentiment}`);
-      setAiHint(hints.length > 0 ? hints.join(" · ") : "已整理 thesis 和 tags");
+      setAiHint(hints.length > 0 ? hints.join(" · ") : t("已整理 thesis 和 tags"));
     } catch (e) {
       setAiHint(`AI 整理失败: ${String(e?.message || e)}`);
     } finally {

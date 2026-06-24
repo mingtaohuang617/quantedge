@@ -1644,7 +1644,7 @@ export default function Screener10x() {
                         setMarkets((cur) => on ? cur.filter((x) => x !== m) : [...cur, m]);
                       }
                     }}
-                    title={isOnlyOne ? "至少保留 1 个市场 — 点击恢复全选" : (on ? `点击取消 ${m}` : `点击启用 ${m}`)}
+                    title={isOnlyOne ? t("至少保留 1 个市场 — 点击恢复全选") : (on ? t('点击取消 {m}', { m }) : t('点击启用 {m}', { m }))}
                     className={`px-2 py-0.5 text-[9px] font-mono rounded border transition flex items-center gap-1 ${
                       on
                         ? "bg-indigo-500/40 border-indigo-400 text-white font-semibold shadow-sm shadow-indigo-500/20"

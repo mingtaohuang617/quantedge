@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Minimize2 } from "lucide-react";
+import { useLang } from "../../i18n.jsx";
 
 /**
  * FullscreenChart — 「图表双态」的横屏全屏态。
@@ -26,6 +27,7 @@ export default function FullscreenChart({
   footerNote,
   children,
 }) {
+  const { t } = useLang();
   const [portrait, setPortrait] = useState(false);
 
   useEffect(() => {
@@ -60,7 +62,7 @@ export default function FullscreenChart({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={typeof title === "string" ? `${title} 全屏图表` : "全屏图表"}
+      aria-label={typeof title === "string" ? t('{title} 全屏图表', { title }) : t("全屏图表")}
       style={{ zIndex: 90, background: "var(--bg-0)", ...rotor }}
     >
       <div className="w-full h-full flex flex-col px-5 py-3">
