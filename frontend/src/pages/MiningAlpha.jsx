@@ -122,7 +122,7 @@ const ICTable = ({ rows, onPickAlpha }) => {
               <td className="px-3 py-1.5 text-left">
                 <span className="inline-flex items-center gap-1.5">
                   {/* v7 信号质量色标 — 真实 ICIR 阈值（对齐设计稿 SECTION 07 在用/测试/衰减绿黄红）*/}
-                  <span className="w-1.5 h-1.5 rounded-full shrink-0" title={Math.abs(r.ic_ir) >= 0.5 ? "强信号" : Math.abs(r.ic_ir) >= 0.3 ? "中等" : "弱/衰减"} style={{ background: Math.abs(r.ic_ir) >= 0.5 ? "#1ED395" : Math.abs(r.ic_ir) >= 0.3 ? "#f59e0b" : "#FF6B6B" }} />
+                  <span className="w-1.5 h-1.5 rounded-full shrink-0" title={Math.abs(r.ic_ir) >= 0.5 ? t("强信号") : Math.abs(r.ic_ir) >= 0.3 ? t("中等") : t("弱/衰减")} style={{ background: Math.abs(r.ic_ir) >= 0.5 ? "#1ED395" : Math.abs(r.ic_ir) >= 0.3 ? "#f59e0b" : "#FF6B6B" }} />
                   <span className="text-cyan-300 underline-offset-2 hover:underline">α{r.alpha}</span>
                 </span>
               </td>
@@ -493,7 +493,7 @@ const RunPipelinePanel = ({ runId, onJobDone }) => {
       )}
       {jobState?.exit_code != null && (
         <div className={`text-[10px] ${jobState.exit_code === 0 ? "text-emerald-300" : "text-rose-300"}`}>
-          {jobState.exit_code === 0 ? "✓" : "✗"} 上次运行 {jobState.step} 退出码 {jobState.exit_code}
+          {jobState.exit_code === 0 ? "✓" : "✗"} {t('上次运行 {step} 退出码 {code}', { step: jobState.step, code: jobState.exit_code })}
         </div>
       )}
     </div>

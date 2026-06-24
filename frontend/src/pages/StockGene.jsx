@@ -578,7 +578,7 @@ export default function StockGene() {
         ...prev,
         [key]: res?.ok
           ? { text: res.narrative, cached: !!res.cached }
-          : { error: res?.error || res?.detail || "AI 解读失败" },
+          : { error: res?.error || res?.detail || t("AI 解读失败") },
       }));
     } finally {
       setAiLoading(null);
@@ -886,7 +886,7 @@ export default function StockGene() {
           method: "POST",
           body: JSON.stringify({ ticker, market: "US", list_id: activeListId }),
         });
-        if (!res?.ok) { setMAddErr(res?.detail || "添加失败"); return; }
+        if (!res?.ok) { setMAddErr(res?.detail || t("添加失败")); return; }
         setMNewTicker("");
         setMAddOpen(false);
         await reload();
@@ -1551,8 +1551,8 @@ export default function StockGene() {
             }`}
             title={
               schedulerStatus?.enabled
-                ? `每日 ${String(schedulerStatus.schedule?.hour_utc ?? 6).padStart(2, "0")}:${String(schedulerStatus.schedule?.minute_utc ?? 0).padStart(2, "0")} UTC 自动评分`
-                : "评分定时刷新（已关闭）"
+                ? t('每日 {time} UTC 自动评分', { time: `${String(schedulerStatus.schedule?.hour_utc ?? 6).padStart(2, "0")}:${String(schedulerStatus.schedule?.minute_utc ?? 0).padStart(2, "0")}` })
+                : t("评分定时刷新（已关闭）")
             }
           >
             <Clock size={11} />
@@ -1806,7 +1806,7 @@ export default function StockGene() {
                         ? "bg-amber-500/15 border-amber-500/40 text-amber-200"
                         : "bg-white/[0.02] border-white/10 text-[#7a8497] hover:text-white hover:border-white/20"
                     }`}
-                    title={onlyHeld ? "点击取消，显示全部" : "只看我已购买的"}
+                    title={onlyHeld ? t("点击取消，显示全部") : t("只看我已购买的")}
                   >
                     {t('仅持仓')}
                   </button>
@@ -2054,7 +2054,7 @@ export default function StockGene() {
                 {batchProgress && (
                   <div className="text-[10px] text-emerald-300/90 flex items-center gap-1">
                     <Loader size={10} className="animate-spin" />
-                    {batchProgress.phase === "adding" ? "加入" : "评分"} {batchProgress.done}/{batchProgress.total} ...
+                    {batchProgress.phase === "adding" ? t("加入") : t("评分")} {batchProgress.done}/{batchProgress.total} ...
                   </div>
                 )}
                 <div className="flex items-center gap-1">
