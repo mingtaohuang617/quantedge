@@ -324,7 +324,7 @@ export default function TenxItemEditor({ open, item, candidate, supertrends, onC
               value={form.bottleneck_tag}
               onChange={(e) => setField("bottleneck_tag", e.target.value)}
               className="input-base"
-              placeholder={form.strategy === "value" ? "一句话描述估值核心" : "一句话描述卡的是哪个瓶颈"}
+              placeholder={form.strategy === "value" ? t("一句话描述估值核心") : t("一句话描述卡的是哪个瓶颈")}
             />
           </Field>
 
