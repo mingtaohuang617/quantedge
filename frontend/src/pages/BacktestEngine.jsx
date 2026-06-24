@@ -2766,7 +2766,7 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
                     {btResult.stressBand && !zoomRange && !highlightRange && (
                       <ReferenceArea x1={btResult.stressBand.startDate} x2={btResult.stressBand.endDate}
                         fill="rgba(255,107,107,0.08)" stroke="rgba(255,107,107,0.25)" strokeDasharray="2 2"
-                        label={{ value: `压力 ${btResult.stressBand.dd}%`, position: "insideTopRight", fontSize: 9, fill: "#FF6B6B" }} />
+                        label={{ value: t('压力 {dd}%', { dd: btResult.stressBand.dd }), position: "insideTopRight", fontSize: 9, fill: "#FF6B6B" }} />
                     )}
                     {/* v5.3：再平衡点 — 季度/年度调仓位置（虚线竖标） */}
                     {rebalance !== "none" && !zoomRange && (btResult.rebalanceDates || []).map((d) => (

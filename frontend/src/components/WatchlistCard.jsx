@@ -129,7 +129,7 @@ export default function WatchlistCard({
                   ? "bg-emerald-500/15 text-emerald-200 border-emerald-500/40"
                   : "bg-indigo-500/15 text-indigo-200 border-indigo-500/40"
               }`}
-              title={isValue ? "价值型 — Graham 安全边际" : "成长型 — 双层瓶颈 / 卡位公司"}
+              title={isValue ? t("价值型 — Graham 安全边际") : t("成长型 — 双层瓶颈 / 卡位公司")}
             >
               {isValue ? t('值') : t('成')}
             </span>
@@ -139,13 +139,13 @@ export default function WatchlistCard({
             {item.bottleneck_layer === 2 && (
               <span
                 className={`text-[9px] px-1 py-px rounded border ${isValue ? normalTone : rareTone}`}
-                title={isValue ? "L2 合理估值 — 安全边际偏薄" : "L2 深度认知 — 跨界看到第二层瓶颈"}
+                title={isValue ? t("L2 合理估值 — 安全边际偏薄") : t("L2 深度认知 — 跨界看到第二层瓶颈")}
               >L2</span>
             )}
             {item.bottleneck_layer === 1 && (
               <span
                 className={`text-[9px] px-1 py-px rounded border ${isValue ? rareTone : normalTone}`}
-                title={isValue ? "L1 深度低估 — 显著低于内在价值" : "L1 共识层 — 主流认知层瓶颈"}
+                title={isValue ? t("L1 深度低估 — 显著低于内在价值") : t("L1 共识层 — 主流认知层瓶颈")}
               >L1</span>
             )}
             {/* 复盘提醒（≥7 天才显示）— 强提醒用户重看 thesis */}
@@ -191,9 +191,9 @@ export default function WatchlistCard({
           </button>
           <button
             onClick={onToggleArchive}
-            aria-label={archived ? "恢复观察项" : "归档观察项"}
+            aria-label={archived ? t("恢复观察项") : t("归档观察项")}
             className={`p-1 rounded hover:bg-amber-500/20 text-[#a0aec0] ${archived ? "hover:text-emerald-300" : "hover:text-amber-300"}`}
-            title={archived ? "恢复（取消归档）" : "归档（保留 thesis，不再显示）"}
+            title={archived ? t("恢复（取消归档）") : t("归档（保留 thesis，不再显示）")}
           >
             {archived ? <ArchiveRestore size={10} /> : <Archive size={10} />}
           </button>
@@ -295,7 +295,7 @@ export default function WatchlistCard({
               }`}
               title={priceAlerts
                 ? `当前价 ${priceAlerts.current.toFixed(2)} vs 目标 ${item.target_price}：${
-                    priceAlerts.target.gap >= 0 ? "已达 +" : "距 "
+                    priceAlerts.target.gap >= 0 ? t("已达 +") : t("距 ")
                   }${Math.abs(priceAlerts.target.gap * 100).toFixed(1)}%`
                 : "目标价"}
             >

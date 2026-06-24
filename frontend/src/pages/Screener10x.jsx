@@ -633,7 +633,7 @@ export default function Screener10x() {
         }),
       });
       if (!addRes?.ok) {
-        setGeneToast({ ticker: candidate.ticker, ok: false, msg: addRes?.detail || "加入失败" });
+        setGeneToast({ ticker: candidate.ticker, ok: false, msg: addRes?.detail || t("加入失败") });
         return;
       }
       // 并行跑 4 个引擎评分（注：trend / value / signal / risk 4 个路由）
@@ -855,8 +855,8 @@ export default function Screener10x() {
                 </>
               ) : (
                 <div style={{ fontSize: 12, color: "var(--fg-3)" }}>
-                  {anchor != null ? `锚点 $${anchor}` : "无锚点"}
-                  {target != null ? ` · 目标 $${target}` : " · 无目标价"}
+                  {anchor != null ? t('锚点 ${a}', { a: anchor }) : t("无锚点")}
+                  {target != null ? t(' · 目标 ${tg}', { tg: target }) : t(" · 无目标价")}
                   {now == null && " · 价格加载中"}
                 </div>
               )}
@@ -1045,8 +1045,8 @@ export default function Screener10x() {
                     </>
                   ) : (
                     <div style={{ fontSize: 11, color: "var(--fg-3)" }}>
-                      {anchor != null ? `锚 $${anchor}` : "无锚点"}
-                      {target != null ? ` → 目标 $${target}` : ""}
+                      {anchor != null ? t('锚 ${a}', { a: anchor }) : t("无锚点")}
+                      {target != null ? t(' → 目标 ${tg}', { tg: target }) : ""}
                     </div>
                   )}
                 </button>
@@ -1374,7 +1374,7 @@ export default function Screener10x() {
           {
             label: "你的观察",
             n: items.length || 0,
-            desc: items.length > 0 ? `${items.length} 个跟踪中` : "未加观察",
+            desc: items.length > 0 ? `${items.length} 个跟踪中` : t("未加观察"),
             color: "text-amber-200",
             border: "border-amber-400/25",
           },
@@ -1474,7 +1474,7 @@ export default function Screener10x() {
               onClick={() => setAddTrendOpen(true)}
               disabled={isDemoMode}
               className="flex items-center gap-1 px-2 py-1 text-[10px] rounded bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-200 border border-indigo-500/40 transition disabled:opacity-40 disabled:cursor-not-allowed"
-              title={isDemoMode ? "需后端 + KV 才能添加" : "添加自定义赛道（含 AI 关键词生成）"}
+              title={isDemoMode ? t("需后端 + KV 才能添加") : t("添加自定义赛道（含 AI 关键词生成）")}
             >
               <Plus size={10} /> {t('自定义赛道')}
             </button>
@@ -1519,7 +1519,7 @@ export default function Screener10x() {
               {[
                 ['赛道', candidates.length, 'text-[#a0aec0]'],
                 ['条件后', filteredCandidates.length, 'text-indigo-300'],
-                Object.keys(aiRanking).length > 0 ? ['AI审', Object.keys(aiRanking).length, 'text-violet-300'] : null,
+                Object.keys(aiRanking).length > 0 ? [t('AI审'), Object.keys(aiRanking).length, 'text-violet-300'] : null,
               ].filter(Boolean).map(([label, n, c], i, arr) => (
                 <span key={label} className="flex items-center gap-1.5">
                   <span className={c}><span className="font-bold">{n}</span> <span className="text-[#7a8497]">{label}</span></span>
@@ -1571,7 +1571,7 @@ export default function Screener10x() {
               className="flex items-center gap-1 px-2 py-0.5 text-[10px] rounded bg-violet-500/15 hover:bg-violet-500/25 text-violet-200 border border-violet-500/40 transition disabled:opacity-40 disabled:cursor-not-allowed"
               title={
                 isDemoMode ? "需要 DEEPSEEK_API_KEY" :
-                selectedTrends.length > 1 ? "用第一个勾选的赛道排序" :
+                selectedTrends.length > 1 ? t("用第一个勾选的赛道排序") :
                 activeStrategy === "value"
                   ? "对 top 10 候选用 LLM 打护城河 / 价值确信度 1-5 分（价值型）"
                   : "对 top 10 候选用 LLM 打卡位独特性 1-5 分（成长型）"
@@ -1861,7 +1861,7 @@ export default function Screener10x() {
                     {Object.keys(aiRanking).length > 0 && (
                       <th
                         className="text-center px-2 py-1.5 text-violet-300"
-                        title={activeStrategy === "value" ? "护城河强度 / 价值确信度" : "卡位独特性"}
+                        title={activeStrategy === "value" ? t("护城河强度 / 价值确信度") : t("卡位独特性")}
                       >
                         AI {activeStrategy === "value" ? t('护城河') : t('卡位')}
                       </th>
@@ -1919,7 +1919,7 @@ export default function Screener10x() {
                           </>
                         )}
                         {Object.keys(aiRanking).length > 0 && (
-                          <td className="px-2 py-1.5 text-center" title={ai?.reason || "未排序"}>
+                          <td className="px-2 py-1.5 text-center" title={ai?.reason || t("未排序")}>
                             {ai ? (
                               <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold ${
                                 ai.moat_score >= 4 ? "bg-violet-500/20 text-violet-200 border border-violet-500/40" :
@@ -2053,10 +2053,10 @@ export default function Screener10x() {
                     ? "bg-amber-500/20 text-amber-200 border-amber-500/40"
                     : "bg-white/5 text-[#a0aec0] border-white/15 hover:bg-white/10"
                 }`}
-                title={showArchived ? "当前显示含归档；点击隐藏" : "点击显示归档项"}
+                title={showArchived ? t("当前显示含归档；点击隐藏") : t("点击显示归档项")}
               >
                 <Archive size={9} />
-                {showArchived ? "含归档" : "显示归档"}
+                {showArchived ? t("含归档") : t("显示归档")}
               </button>
               <button
                 onClick={handleExport}
