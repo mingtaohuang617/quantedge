@@ -45,7 +45,7 @@ export default function AddSupertrendDialog({ open, onClose, onSaved, defaultStr
 
   const handleGenerateKeywords = async () => {
     if (!form.name.trim()) {
-      setLlmState({ loading: false, error: "请先填赛道名" });
+      setLlmState({ loading: false, error: t("请先填赛道名") });
       return;
     }
     setLlmState({ loading: true, error: null });
@@ -55,8 +55,8 @@ export default function AddSupertrendDialog({ open, onClose, onSaved, defaultStr
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: form.name, note: form.note, strategy: form.strategy }),
       });
-      if (!json) throw new Error("后端无响应（DEEPSEEK_API_KEY 未配置或网络问题）");
-      if (!json.ok) throw new Error(json.error || "LLM 生成失败");
+      if (!json) throw new Error(t("后端无响应（DEEPSEEK_API_KEY 未配置或网络问题）"));
+      if (!json.ok) throw new Error(json.error || t("LLM 生成失败"));
       setForm((f) => ({
         ...f,
         keywords_zh: (json.keywords_zh || []).join(", "),

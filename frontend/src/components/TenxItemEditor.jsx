@@ -119,7 +119,7 @@ export default function TenxItemEditor({ open, item, candidate, supertrends, onC
 
   const handleGenerateThesis = async () => {
     if (!form.supertrend_id) {
-      setLlmState({ loading: false, error: "请先选超级赛道", cached: false });
+      setLlmState({ loading: false, error: t("请先选超级赛道"), cached: false });
       return;
     }
     const stockMeta = candidate || item || {};
@@ -263,7 +263,7 @@ export default function TenxItemEditor({ open, item, candidate, supertrends, onC
         <div className="flex-1 overflow-auto px-4 py-3 space-y-3">
           {/* row: strategy + supertrend */}
           <div className="grid grid-cols-2 gap-3">
-            <Field label="策略">
+            <Field label={t("策略")}>
               <select
                 value={form.strategy}
                 onChange={(e) => setField("strategy", e.target.value)}
@@ -271,12 +271,12 @@ export default function TenxItemEditor({ open, item, candidate, supertrends, onC
               >
                 {STRATEGY_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value} disabled={o.disabled}>
-                    {o.label}
+                    {t(o.label)}
                   </option>
                 ))}
               </select>
             </Field>
-            <Field label="超级赛道 *">
+            <Field label={t("超级赛道 *")}>
               <select
                 value={form.supertrend_id}
                 onChange={(e) => setField("supertrend_id", e.target.value)}
@@ -294,18 +294,18 @@ export default function TenxItemEditor({ open, item, candidate, supertrends, onC
 
           {/* row: bottleneck layer + moat score（label 按 strategy 切换语义） */}
           <div className="grid grid-cols-2 gap-3">
-            <Field label={FIELD_LABELS_BY_STRATEGY[form.strategy].bottleneck}>
+            <Field label={t(FIELD_LABELS_BY_STRATEGY[form.strategy].bottleneck)}>
               <select
                 value={form.bottleneck_layer}
                 onChange={(e) => setField("bottleneck_layer", Number(e.target.value))}
                 className="input-base"
               >
                 {BOTTLENECK_OPTIONS_BY_STRATEGY[form.strategy].map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
+                  <option key={o.value} value={o.value}>{t(o.label)}</option>
                 ))}
               </select>
             </Field>
-            <Field label={`${FIELD_LABELS_BY_STRATEGY[form.strategy].moat} ${form.moat_score} / 5`}>
+            <Field label={`${t(FIELD_LABELS_BY_STRATEGY[form.strategy].moat)} ${form.moat_score} / 5`}>
               <input
                 type="range"
                 min="1"
@@ -318,7 +318,7 @@ export default function TenxItemEditor({ open, item, candidate, supertrends, onC
           </div>
 
           {/* bottleneck_tag */}
-          <Field label={FIELD_LABELS_BY_STRATEGY[form.strategy].bottleneckTag}>
+          <Field label={t(FIELD_LABELS_BY_STRATEGY[form.strategy].bottleneckTag)}>
             <input
               type="text"
               value={form.bottleneck_tag}
@@ -353,7 +353,7 @@ export default function TenxItemEditor({ open, item, candidate, supertrends, onC
               onChange={(e) => setField("thesis", e.target.value)}
               rows={6}
               className="input-base font-mono text-[11px] leading-relaxed"
-              placeholder={FIELD_LABELS_BY_STRATEGY[form.strategy].thesisPlaceholder}
+              placeholder={t(FIELD_LABELS_BY_STRATEGY[form.strategy].thesisPlaceholder)}
             />
             {llmState.error && (
               <div className="flex items-start gap-1.5 mt-1 text-[10px] text-amber-300/90">
@@ -364,7 +364,7 @@ export default function TenxItemEditor({ open, item, candidate, supertrends, onC
           </Field>
 
           {/* 假设证伪条件（pre-mortem 纪律：什么发生则减仓/退出） */}
-          <Field label="假设证伪条件（何时触发减仓/退出）">
+          <Field label={t("假设证伪条件（何时触发减仓/退出）")}>
             <textarea
               value={form.falsification_condition}
               onChange={(e) => setField("falsification_condition", e.target.value)}
@@ -391,7 +391,7 @@ export default function TenxItemEditor({ open, item, candidate, supertrends, onC
 
           {/* row: target / stop */}
           <div className="grid grid-cols-2 gap-3">
-            <Field label="目标价（可选）">
+            <Field label={t("目标价（可选）")}>
               <input
                 type="number"
                 step="any"
@@ -401,7 +401,7 @@ export default function TenxItemEditor({ open, item, candidate, supertrends, onC
                 placeholder={t("例如 50")}
               />
             </Field>
-            <Field label="止损位（可选）">
+            <Field label={t("止损位（可选）")}>
               <input
                 type="number"
                 step="any"
@@ -414,7 +414,7 @@ export default function TenxItemEditor({ open, item, candidate, supertrends, onC
           </div>
 
           {/* tags */}
-          <Field label="标签（逗号分隔）">
+          <Field label={t("标签（逗号分隔）")}>
             <input
               type="text"
               value={form.tags}

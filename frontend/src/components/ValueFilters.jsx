@@ -80,7 +80,7 @@ export default function ValueFilters({ value, onChange }) {
           <button
             key={p.id}
             onClick={() => onChange({ ...EMPTY_FILTERS, ...p.filters })}
-            title={p.title}
+            title={t(p.title)}
             className={`px-1.5 py-0.5 rounded text-[9px] border transition ${
               active
                 ? "bg-emerald-500/20 text-emerald-200 border-emerald-500/40"

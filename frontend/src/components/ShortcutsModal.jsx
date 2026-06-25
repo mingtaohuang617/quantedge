@@ -14,7 +14,8 @@ import { useLang } from "../i18n.jsx";
 export function buildShortcuts(tabs) {
   const tabRows = tabs.map((tab, i) => ({
     keys: [i < 9 ? String(i + 1) : "0"],
-    desc: `切换到 ${tab.label}`,
+    desc: "切换到 {name}",
+    name: tab.label,
   })).slice(0, 10);
   return [
     { keys: ["Ctrl", "K"], altKeys: ["⌘", "K"], desc: "打开命令面板（搜索 / 跳转）" },
@@ -89,7 +90,7 @@ export default function ShortcutsModal({ open, onClose, tabs = [] }) {
               const keys = isMac && s.altKeys ? s.altKeys : s.keys;
               return (
                 <li key={i} className="flex items-center justify-between gap-3 text-[12px]">
-                  <span className="text-[#d0d7e2]">{s.desc}</span>
+                  <span className="text-[#d0d7e2]">{t(s.desc, s.name ? { name: t(s.name) } : undefined)}</span>
                   <span className="flex items-center gap-1 shrink-0">
                     {keys.map((k, j) => (
                       <React.Fragment key={j}>

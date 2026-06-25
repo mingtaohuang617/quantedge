@@ -1996,7 +1996,7 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
               value={nlText}
               onChange={e => setNlText(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter" && !nlLoading) handleNLStrategy(); }}
-              placeholder="例: 半导体龙头 + 防御股 6:4"
+              placeholder={t('例: 半导体龙头 + 防御股 6:4')}
               className="flex-1 px-2 py-1 text-[11px] bg-[var(--bg-input)] border border-[var(--border-default)] rounded outline-none text-white"
             />
             <button
