@@ -993,7 +993,7 @@ export default function CompoundPower({ onOneClickBacktest = null }) {
           <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
             <h3 className="text-[11px] font-semibold text-white/90 flex items-center gap-1.5">
               <Sparkles size={13} className={ACCENT_CLASS[tierMeta.accent].text} />
-              {tierMeta.label} · 候选组合（{strategies.length}）
+              {t(tierMeta.label)} · {t('候选组合（{n}）', { n: strategies.length })}
             </h3>
             <span className="text-[10px] text-[#a0aec0]">
               目标年化 {fmtPct(tierMeta.targetReturn[0], 0)}–{fmtPct(tierMeta.targetReturn[1], 0)}

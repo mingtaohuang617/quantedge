@@ -27,16 +27,16 @@ describe('buildShortcuts', () => {
 
   it('前 9 个 tab 映射到数字键 1-9，标签来自 TAB_CFG（不再硬编码）', () => {
     const rows = buildShortcuts(TABS_10);
-    // rows[1..9] 是 tab 切换行
-    expect(rows[1]).toMatchObject({ keys: ['1'], desc: '切换到 量化评分' });
-    expect(rows[3]).toMatchObject({ keys: ['3'], desc: '切换到 Smart Beta' });   // 曾错写"实时监控"
-    expect(rows[4]).toMatchObject({ keys: ['4'], desc: '切换到 Mining Alpha' }); // 曾错写"投资日志"
-    expect(rows[9]).toMatchObject({ keys: ['9'], desc: '切换到 股性检测' });
+    // rows[1..9] 是 tab 切换行；desc 为 i18n 模板键 '切换到 {name}'，标签在 name 字段（渲染处 t() 插值）
+    expect(rows[1]).toMatchObject({ keys: ['1'], desc: '切换到 {name}', name: '量化评分' });
+    expect(rows[3]).toMatchObject({ keys: ['3'], desc: '切换到 {name}', name: 'Smart Beta' });   // 曾错写"实时监控"
+    expect(rows[4]).toMatchObject({ keys: ['4'], desc: '切换到 {name}', name: 'Mining Alpha' }); // 曾错写"投资日志"
+    expect(rows[9]).toMatchObject({ keys: ['9'], desc: '切换到 {name}', name: '股性检测' });
   });
 
   it('第 10 个 tab 映射到数字键 0（与 handler e.key==="0"→idx 9 一致）', () => {
     const rows = buildShortcuts(TABS_10);
-    expect(rows[10]).toMatchObject({ keys: ['0'], desc: '切换到 复利的力量' });
+    expect(rows[10]).toMatchObject({ keys: ['0'], desc: '切换到 {name}', name: '复利的力量' });
   });
 
   it('tab 数 < 10 时只生成对应行，不溢出', () => {

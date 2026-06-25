@@ -791,9 +791,9 @@ export default function Screener10x() {
       : 0;
     const funnelStages = [
       { label: t("全宇宙"),   value: totalUniverse > 0 ? totalUniverse : 2350, widthPct: 100, color: FUNNEL_COLORS[0], sub: "US+HK+CN" },
-      { label: t("匹配赛道"), value: candidates.length,                         widthPct: 46,  color: FUNNEL_COLORS[1], sub: selectedTrends.length > 0 ? `${selectedTrends.length} 个赛道` : "未选赛道" },
+      { label: t("匹配赛道"), value: candidates.length,                         widthPct: 46,  color: FUNNEL_COLORS[1], sub: selectedTrends.length > 0 ? t('{n} 个赛道', { n: selectedTrends.length }) : t("未选赛道") },
       { label: t("AI 已审"),  value: aiPipelineState.matched || 0,              widthPct: 22,  color: FUNNEL_COLORS[2], sub: "AI Pipeline" },
-      { label: t("观察名单"), value: items.length,                              widthPct: 9,   color: FUNNEL_COLORS[3], sub: `${items.length} 只跟踪中` },
+      { label: t("观察名单"), value: items.length,                              widthPct: 9,   color: FUNNEL_COLORS[3], sub: t('{n} 只跟踪中', { n: items.length }) },
     ];
 
     // 候选下钻卡内容（锚→当→目标轨迹）
@@ -818,7 +818,7 @@ export default function Screener10x() {
             actions={
               aiConf != null && (
                 <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold" style={{ background: "rgba(139,92,246,.18)", color: "#C4B5FD", border: "1px solid rgba(139,92,246,.3)" }}>
-                  信心 {Math.round(aiConf * 100)}
+                  {t('信心')} {Math.round(aiConf * 100)}
                 </span>
               )
             }
@@ -1357,8 +1357,8 @@ export default function Screener10x() {
             label: "匹配赛道",
             n: candidates.length || 0,
             desc: selectedTrends.length > 0
-              ? `${selectedTrends.length} 个赛道命中`
-              : "未选赛道",
+              ? t('{n} 个赛道命中', { n: selectedTrends.length })
+              : t("未选赛道"),
             color: "text-indigo-200",
             border: "border-indigo-400/25",
           },
@@ -1367,14 +1367,14 @@ export default function Screener10x() {
             n: aiPipelineState.matched || 0,
             desc: aiPipelineState.matched > 0
               ? `moat ≥ ${aiPipelineState.threshold || 54}`
-              : "AI Pipeline 未运行",
+              : t("AI Pipeline 未运行"),
             color: "text-violet-200",
             border: "border-violet-400/25",
           },
           {
             label: "你的观察",
             n: items.length || 0,
-            desc: items.length > 0 ? `${items.length} 个跟踪中` : t("未加观察"),
+            desc: items.length > 0 ? t('{n} 个跟踪中', { n: items.length }) : t("未加观察"),
             color: "text-amber-200",
             border: "border-amber-400/25",
           },
@@ -1384,7 +1384,7 @@ export default function Screener10x() {
             {steps.map((s, i) => (
               <React.Fragment key={s.label}>
                 <div className={`flex-1 px-3 py-2 rounded-lg border bg-white/[0.022] ${s.border}`}>
-                  <div className="text-[9px] uppercase tracking-wider text-[#778] mb-0.5">{s.label}</div>
+                  <div className="text-[9px] uppercase tracking-wider text-[#778] mb-0.5">{t(s.label)}</div>
                   <div className="flex items-baseline gap-1.5">
                     <span className={`font-serif text-2xl font-semibold tabular-nums leading-none ${s.color}`} style={{ letterSpacing: "-0.02em" }}>
                       {typeof s.n === "number" ? s.n.toLocaleString() : s.n}

@@ -602,7 +602,7 @@ export default function SmartBeta() {
                         }}
                         className="absolute inset-0 w-full opacity-0 cursor-pointer"
                         style={{ height: 44, margin: 0, padding: 0 }}
-                        aria-label={`${factor.label} ${t("权重")}`}
+                        aria-label={`${t(factor.label)} ${t("权重")}`}
                       />
                       {/* Visible thumb */}
                       <div
@@ -1038,14 +1038,14 @@ export default function SmartBeta() {
                   const cards = [
                     { l: "预期年化", v: m.annualized_return != null ? fmtPct(m.annualized_return, 1) : "—", c: "#1ED395" },
                     { l: "超额 α (vs SPY)", v: alpha != null ? `${alpha >= 0 ? "+" : ""}${fmtPct(alpha, 1)}` : "—", c: alpha != null && alpha >= 0 ? "#1ED395" : "#FF6B6B" },
-                    { l: "集中度", v: effN != null ? `${effN.toFixed(1)}` : "—", c: "#818CF8", sub: effN != null ? `有效持仓 · HHI ${(hhi * 100).toFixed(0)}` : "" },
+                    { l: "集中度", v: effN != null ? `${effN.toFixed(1)}` : "—", c: "#818CF8", sub: effN != null ? t('有效持仓 · HHI {h}', { h: (hhi * 100).toFixed(0) }) : "" },
                     { l: "Sharpe", v: m.sharpe != null ? fmtNum(m.sharpe, 2) : "—", c: "#5EE6E6" },
                   ];
                   return (
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-2">
                       {cards.map((c) => (
                         <div key={c.l} className="rounded-lg border border-white/10 bg-white/[0.02] p-2.5">
-                          <div className="text-[9px] uppercase tracking-wider text-[#778] mb-1">{c.l}</div>
+                          <div className="text-[9px] uppercase tracking-wider text-[#778] mb-1">{t(c.l)}</div>
                           <div className="font-serif font-semibold text-[22px] leading-none" style={{ color: c.c, letterSpacing: "-0.02em" }}>{c.v}</div>
                           {c.sub && <div className="text-[9px] text-[#778] mt-1">{c.sub}</div>}
                         </div>
@@ -1065,7 +1065,7 @@ export default function SmartBeta() {
                     const fmt = m.isPct ? fmtPct : fmtNum;
                     return (
                       <div key={m.label} className="rounded border border-white/10 bg-white/[0.02] p-2">
-                        <div className="text-[9px] text-[#a0aec0]">{m.label}</div>
+                        <div className="text-[9px] text-[#a0aec0]">{t(m.label)}</div>
                         <div className={`text-sm font-mono font-bold ${win ? "text-emerald-300" : "text-rose-300"}`}>
                           {fmt(m.val, 2)}
                         </div>
