@@ -98,6 +98,7 @@ function formatMatchReason(matchReasons, tid) {
 
 /** 可排序的 <th>。点击循环 asc → desc → 默认（清空 sortKey）。当列高亮时显示方向箭头。 */
 function SortHeader({ label, sortKey, currentKey, currentDir, onToggle, align = "right", title }) {
+  const { t } = useLang();
   const isActive = sortKey === currentKey;
   const Icon = !isActive ? ArrowUpDown : currentDir === "asc" ? ArrowUp : ArrowDown;
   const alignClass = align === "right" ? "text-right justify-end" : "text-left justify-start";
@@ -105,7 +106,7 @@ function SortHeader({ label, sortKey, currentKey, currentDir, onToggle, align = 
     <th className={`px-2 py-1.5 ${align === "right" ? "text-right" : "text-left"}`}>
       <button
         onClick={() => onToggle(sortKey)}
-        title={title || `按 ${label} 排序`}
+        title={title || t('按 {label} 排序', { label })}
         className={`inline-flex items-center gap-0.5 hover:text-white transition focus:outline-none ${alignClass} ${
           isActive ? "text-cyan-300" : "text-[#7a8497]"
         }`}
@@ -1491,7 +1492,7 @@ export default function Screener10x() {
             <span className="text-[11px] font-semibold text-white">{t('候选个股')}</span>
             <span
               className="text-[9px] text-[#a0aec0]"
-              title={`US: ${marketBreakdown.US} / HK: ${marketBreakdown.HK} / CN: ${marketBreakdown.CN}${marketBreakdown.other > 0 ? ` / 其他: ${marketBreakdown.other}` : ""}`}
+              title={`US: ${marketBreakdown.US} / HK: ${marketBreakdown.HK} / CN: ${marketBreakdown.CN}${marketBreakdown.other > 0 ? ` / ${t('其他')}: ${marketBreakdown.other}` : ""}`}
             >
               {filteredCandidates.length} / {candidates.length}
               {filteredCandidates.length > 0 && (

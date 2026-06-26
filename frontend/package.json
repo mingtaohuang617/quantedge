@@ -15,7 +15,8 @@
     "audit:imports": "node scripts/audit-imports.mjs",
     "audit:i18n": "node scripts/audit-i18n.mjs",
     "audit:i18n:keys": "node scripts/audit-i18n-keys.mjs",
-    "audit:i18n:all": "node scripts/audit-i18n.mjs && node scripts/audit-i18n-keys.mjs"
+    "audit:i18n:attrs": "node scripts/audit-i18n-attrs.mjs",
+    "audit:i18n:all": "node scripts/audit-i18n.mjs && node scripts/audit-i18n-keys.mjs && node scripts/audit-i18n-attrs.mjs"
   },
   "dependencies": {
     "@sentry/react": "^10.50.0",
