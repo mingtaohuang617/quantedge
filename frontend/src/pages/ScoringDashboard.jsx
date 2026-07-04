@@ -613,6 +613,8 @@ const ScoringDashboard = () => {
     return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey); };
   }, [mktOpen, typeOpen]);
   const [searchTerm, setSearchTerm] = useState("");
+  // jank-4: 搜索去抖 —— input 即时响应，543 项过滤/排序跟随 deferred 值（每空闲帧最多一次，不逐键卡）
+  const deferredSearch = React.useDeferredValue(searchTerm);
   const [sortBy, setSortBy] = useState("score"); // score | change | name
   // A2/C16: 评分权重 — 按 workspace 隔离 + 工作区切换响应式
   const wsCtx = useWorkspace();
@@ -1411,8 +1413,8 @@ const ScoringDashboard = () => {
     // 关注列表筛选
     if (showFavOnly) list = list.filter(s => favorites.has(s.ticker));
     // 搜索
-    if (searchTerm.trim()) {
-      const q = searchTerm.trim().toLowerCase();
+    if (deferredSearch.trim()) {
+      const q = deferredSearch.trim().toLowerCase();
       list = list.filter(s =>
         s.ticker.toLowerCase().includes(q) ||
         s.name.toLowerCase().includes(q) ||
@@ -1434,7 +1436,7 @@ const ScoringDashboard = () => {
       );
     }
     return [...list].sort((a, b) => b.score - a.score);
-  }, [liveStocks, mkt, typeFilter, searchTerm, sortBy, showFavOnly, favorites]);
+  }, [liveStocks, mkt, typeFilter, deferredSearch, sortBy, showFavOnly, favorites]);
 
   // J/K 导航 ref 同步（filtered/sel 变化时更新最新引用）
   navRefs.current.filtered = filtered;

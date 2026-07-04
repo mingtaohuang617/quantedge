@@ -3,8 +3,9 @@
  * 架构：简体中文作 key，英文查 EN 字典，繁体查 TW 字典并以 opencc(s2twp) 兜底
  * 旧值 'zh' 自动迁移为 'zh-CN'
  */
-import { createContext, useContext, useState, useCallback, useMemo } from 'react';
-import * as OpenCC from 'opencc-js';
+import { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
+// opencc-js（~500KB 繁体转换字典）改为按需动态加载：只有切到繁体(zh-TW)才拉，
+// 简体/英文首屏不再背这坨（原本它占 i18n chunk 的 ~500KB gz，是全站最大资源）。见 ensureTW()。
 
 // Provider 外的安全兜底：行为同 zh-CN（原文穿透 + 参数插值），
 // 避免组件在 LangProvider 外（如组件单测）渲染时 useLang() 取到 undefined 而崩溃。
@@ -51,7 +52,19 @@ export const tStatic = (text, lang) => {
   return text;
 };
 
-const s2twp = OpenCC.Converter({ from: 'cn', to: 'twp' });
+// 懒加载 opencc s2twp converter：首次切繁体时动态 import，之后复用；未就绪时 toTW 回退简体。
+let _s2twp = null;
+let _twLoading = null;
+function ensureTW() {
+  if (_s2twp) return Promise.resolve(_s2twp);
+  if (!_twLoading) {
+    _twLoading = import('opencc-js').then((OpenCC) => {
+      _s2twp = OpenCC.Converter({ from: 'cn', to: 'twp' });
+      return _s2twp;
+    });
+  }
+  return _twLoading;
+}
 // opencc s2twp 在金融/IT 语境下的几处过度转换修正（保持台湾习惯用语）：
 //   1) 「代码」→ opencc「程式碼」，但股票/证券代码场景应保留「代碼」
 //   2) 「权限」→ opencc「許可權」，但通知/IT 语境台湾标准用「權限」
@@ -70,7 +83,8 @@ const TW_POSTFIX = [
   [/([0-9}]\s*)只/g, '$1檔'],
 ];
 const toTW = (text) => {
-  let out = s2twp(text);
+  if (!_s2twp) return text;  // opencc 未就绪 → 暂回退简体（加载完 twReady 翻转会重渲染转正）
+  let out = _s2twp(text);
   for (const [re, rep] of TW_POSTFIX) out = out.replace(re, rep);
   return out;
 };
@@ -2825,13 +2839,22 @@ const translateTW = (text) => {
   if (TW[text]) return TW[text];
   if (TW_CACHE.has(text)) return TW_CACHE.get(text);
   const out = toTW(text);
-  TW_CACHE.set(text, out);
+  if (_s2twp) TW_CACHE.set(text, out);  // 只缓存真正的繁体输出，别把未就绪时的简体回退永久缓存
   return out;
 };
 
 // ─── Language Context & Provider ────────────────────────────
 export function LangProvider({ children }) {
   const [lang, setLangRaw] = useState(() => normalizeLang(localStorage.getItem(LANG_KEY)));
+  // 繁体 opencc 就绪标志：切到 zh-TW 时动态加载 opencc，加载完 bump 此 state → t 重算 → 繁体转正
+  const [twReady, setTwReady] = useState(!!_s2twp);
+  useEffect(() => {
+    if (lang === 'zh-TW' && !_s2twp) {
+      let alive = true;
+      ensureTW().then(() => { if (alive) setTwReady(true); });
+      return () => { alive = false; };
+    }
+  }, [lang]);
 
   const setLang = useCallback((l) => {
     const norm = normalizeLang(l);
@@ -2851,7 +2874,8 @@ export function LangProvider({ children }) {
       });
     }
     return result;
-  }, [lang]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang, twReady]);
 
   const value = useMemo(() => ({ lang, setLang, t }), [lang, setLang, t]);
 
