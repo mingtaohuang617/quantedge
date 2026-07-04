@@ -1583,7 +1583,6 @@ const ScoringDashboard = () => {
     const rows = filtered;
     const idx = sel ? rows.findIndex((s) => s.ticker === sel.ticker) : -1;
     const goRel = (d) => { const n = rows[idx + d]; if (n) setSel(n); };
-    const cur = (s) => currencySymbol(s?.currency);
     const px = (s) => (s?.price != null ? fmtPrice(s.price, s.currency) : "—"); // fmtPrice 已含币种符号
     const seg = typeFilter === "ETF" ? "ETF" : mkt === "US" ? "US" : mkt === "HK" ? "HK" : "ALL";
     const setSeg = (v) => { if (v === "ETF") { setTypeFilter("ETF"); setMkt("ALL"); } else { setTypeFilter("ALL"); setMkt(v); } };
@@ -1680,7 +1679,7 @@ const ScoringDashboard = () => {
                   return (
                     <div className="mb-4">
                       <div className="flex justify-between font-mono text-[9px] mb-1.5" style={{ color: "var(--fg-3)" }}>
-                        <span>52W {cur(sel)}{lo}</span><span style={{ color: "var(--up)" }}>P{pct.toFixed(0)}</span><span>{cur(sel)}{hi}</span>
+                        <span>52W {fmtPrice(lo, sel.currency)}</span><span style={{ color: "var(--up)" }}>P{pct.toFixed(0)}</span><span>{fmtPrice(hi, sel.currency)}</span>
                       </div>
                       <div className="relative h-1 rounded-full" style={{ background: "rgba(255,255,255,.06)" }}>
                         <div className="absolute top-0 bottom-0 left-0 rounded-full" style={{ width: `${pct}%`, background: "linear-gradient(90deg,rgba(255,107,107,.3),rgba(245,181,60,.4) 50%,rgba(30,211,149,.5))" }} />
@@ -2863,7 +2862,7 @@ const ScoringDashboard = () => {
             })()}
 
             {/* C7: 详情 Tab 锚点导航条 */}
-            <div className="flex items-center gap-1 sticky top-0 z-10 px-1 py-1.5 -mt-1 mb-1 backdrop-blur-md bg-[var(--bg-card)]/85 border-b border-white/5 rounded-t overflow-x-auto">
+            <div className={`flex items-center gap-1 sticky ${(leftCollapsed || rightCollapsed) ? 'top-8' : 'top-0'} z-10 px-1 py-1.5 -mt-1 mb-1 backdrop-blur-md bg-[var(--bg-card)]/85 border-b border-white/5 rounded-t overflow-x-auto`}>
               {[
                 { id: "overview", label: t("综合") },
                 { id: "fundamental", label: t("基本面") },
@@ -2920,7 +2919,7 @@ const ScoringDashboard = () => {
                     <div className="glass-card p-2 min-w-[180px] border border-indigo-500/30 shadow-xl">
                       <div className="text-[9px] text-indigo-300 uppercase tracking-wider mb-1.5 font-medium">{t('分数构成')}</div>
                       <div className="space-y-1">
-                        {Object.entries(sel.subScores).map(([k, v]) => {
+                        {Object.entries(sel.subScores).filter(([, v]) => Number.isFinite(Number(v))).map(([k, v]) => {
                           const labelMap = { valuation: t('估值'), profitability: t('盈利'), growth: t('成长'), cost: t('成本'), liquidity: t('流动性'), diversification: t('分散'), momentum: t('动量'), trend: t('趋势'), rsi: 'RSI' };
                           const label = labelMap[k] || k;
                           const pct = Math.max(0, Math.min(100, Number(v) || 0));
@@ -2962,7 +2961,7 @@ const ScoringDashboard = () => {
                   <div className="glass-card p-2.5">
                     <div className="text-[9px] text-[#778] uppercase tracking-wider mb-0.5">{t('动量')}</div>
                     <div className="flex items-baseline gap-1">
-                      <span className={`text-lg font-bold font-mono tabular-nums ${sel.momentum >= 70 ? 'text-up' : sel.momentum >= 40 ? 'text-white' : 'text-down'}`}>{sel.momentum ?? '—'}</span>
+                      <span className={`text-lg font-bold font-mono tabular-nums ${sel.momentum >= 70 ? 'text-up' : sel.momentum >= 40 ? 'text-white' : 'text-down'}`}>{sel.momentum != null ? sel.momentum.toFixed(0) : '—'}</span>
                     </div>
                     <div className="text-[9px] text-[#a0aec0] mt-1">{sel.momentum == null ? t('暂无') : sel.momentum >= 70 ? t('强势') : sel.momentum >= 40 ? t('中性') : t('弱势')}</div>
                   </div>
@@ -2987,7 +2986,7 @@ const ScoringDashboard = () => {
                   <div className="glass-card p-2.5">
                     <div className="text-[9px] text-[#778] uppercase tracking-wider mb-0.5">RSI(14)</div>
                     <div className="flex items-baseline gap-1">
-                      <span className={`text-lg font-bold font-mono tabular-nums ${sel.rsi > 70 ? 'text-down' : sel.rsi < 30 ? 'text-up' : 'text-white'}`}>{sel.rsi ?? '—'}</span>
+                      <span className={`text-lg font-bold font-mono tabular-nums ${sel.rsi > 70 ? 'text-down' : sel.rsi < 30 ? 'text-up' : 'text-white'}`}>{sel.rsi != null ? sel.rsi.toFixed(0) : '—'}</span>
                     </div>
                     <div className="text-[9px] text-[#a0aec0] mt-1">{sel.rsi == null ? t('暂无') : sel.rsi > 70 ? t('超买') : sel.rsi < 30 ? t('超卖') : t('中性')}</div>
                   </div>
@@ -3060,12 +3059,11 @@ const ScoringDashboard = () => {
                     const lo = sel.week52Low, hi = sel.week52High;
                     const range = hi - lo || 1;
                     const pct = Math.max(0, Math.min(100, ((sel.price - lo) / range) * 100));
-                    const currSymbol = currencySymbol(sel.currency);
                     return (
                       <div>
                         <div className="flex items-center justify-between text-[10px] mb-1.5">
-                          <span className="text-down font-mono">{currSymbol}{lo}</span>
-                          <span className="text-up font-mono">{currSymbol}{hi}</span>
+                          <span className="text-down font-mono">{fmtPrice(lo, sel.currency)}</span>
+                          <span className="text-up font-mono">{fmtPrice(hi, sel.currency)}</span>
                         </div>
                         <div className="relative w-full h-3 rounded-full overflow-visible">
                           {/* Background track with gradient */}
@@ -3085,7 +3083,7 @@ const ScoringDashboard = () => {
                         </div>
                         <div className="flex items-center justify-between text-[10px] mt-4">
                           <span className="text-[#a0aec0]">{t('52周低')}</span>
-                          <span className="font-mono text-white font-medium">{currSymbol}{sel.price}</span>
+                          <span className="font-mono text-white font-medium"><span className="text-[#778] font-sans">{t('现价')} </span>{fmtPrice(sel.price, sel.currency)}</span>
                           <span className="text-[#a0aec0]">{t('52周高')}</span>
                         </div>
                       </div>
@@ -3100,7 +3098,7 @@ const ScoringDashboard = () => {
                         "text-[#a0aec0] bg-white/5 border-white/10"
                       }`}>
                         <Activity size={9} />
-                        RSI {sel.rsi} {sel.rsi > 70 ? t("超买") : sel.rsi < 30 ? t("超卖") : t("中性")}
+                        RSI {sel.rsi.toFixed(0)} {sel.rsi > 70 ? t("超买") : sel.rsi < 30 ? t("超卖") : t("中性")}
                       </span>
                     )}
                     {sel.momentum != null && (
@@ -3110,7 +3108,7 @@ const ScoringDashboard = () => {
                         "text-amber-400 bg-amber-500/10 border-amber-500/20"
                       }`}>
                         <TrendingUp size={9} />
-                        {t('动量')} {sel.momentum}
+                        {t('动量')} {sel.momentum.toFixed(0)}
                       </span>
                     )}
                     {sel.beta != null && (
@@ -3381,7 +3379,7 @@ const ScoringDashboard = () => {
                     <div className="space-y-0">
                       {[
                         ["PE (TTM)", sel.pe ? Number(sel.pe).toFixed(1) : "N/A", sel.pe && sel.pe > 0 && sel.pe < 25 ? "success" : sel.pe && sel.pe > 0 && sel.pe < 50 ? "warning" : "danger"],
-                        [t("52周区间"), `${currencySymbol(sel.currency)}${sel.week52Low} – ${sel.week52High}`, "info"],
+                        [t("52周区间"), `${fmtPrice(sel.week52Low, sel.currency)} – ${fmtPrice(sel.week52High, sel.currency)}`, "info"],
                         [t("营收增长"), sel.revenueGrowth ? `${sel.revenueGrowth}%` : "N/A", sel.revenueGrowth && sel.revenueGrowth > 20 ? "success" : sel.revenueGrowth && sel.revenueGrowth > 5 ? "warning" : "default"],
                         [t("利润率"), sel.profitMargin ? `${sel.profitMargin}%` : "N/A", sel.profitMargin && sel.profitMargin > 20 ? "success" : sel.profitMargin && sel.profitMargin > 0 ? "warning" : "danger"],
                         [t("年营收"), sel.revenue || "N/A", "info"],
