@@ -2,7 +2,7 @@
 // ScoringDashboard — 评分仪表盘 / 股票列表 / 详情面板
 // 从 quant-platform.jsx 抽出（C1 重构第四步），通过 React.lazy 懒加载
 // ─────────────────────────────────────────────────────────────
-import React, { useState, useEffect, useMemo, useCallback, useRef, useContext } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef, useContext, useDeferredValue } from "react";
 import { LineChart, Line, AreaChart, Area, Bar, Brush, Customized, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ComposedChart, ReferenceLine } from "recharts";
 import { Activity, ArrowDownRight, ArrowUpRight, Briefcase, Calendar, Check, ChevronDown, ChevronRight, Clock, Database, Eye, Filter, GripVertical, Info, Layers, Loader, Maximize2, Minus, Plus, RefreshCw, Search, Settings, Star, Trash2, TrendingUp, X, Zap, ArrowLeftRight } from "lucide-react";
 import { searchTickers as standaloneSearch, fetchRangePrices, STOCK_CN_NAMES, STOCK_CN_DESCS, STOCK_EN_DESCS } from "../standalone.js";
@@ -614,7 +614,7 @@ const ScoringDashboard = () => {
   }, [mktOpen, typeOpen]);
   const [searchTerm, setSearchTerm] = useState("");
   // jank-4: 搜索去抖 —— input 即时响应，543 项过滤/排序跟随 deferred 值（每空闲帧最多一次，不逐键卡）
-  const deferredSearch = React.useDeferredValue(searchTerm);
+  const deferredSearch = useDeferredValue(searchTerm);
   const [sortBy, setSortBy] = useState("score"); // score | change | name
   // A2/C16: 评分权重 — 按 workspace 隔离 + 工作区切换响应式
   const wsCtx = useWorkspace();
