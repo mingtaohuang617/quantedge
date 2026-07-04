@@ -55,7 +55,7 @@ export const tStatic = (text, lang) => {
 // 懒加载 opencc s2twp converter：首次切繁体时动态 import，之后复用；未就绪时 toTW 回退简体。
 let _s2twp = null;
 let _twLoading = null;
-function ensureTW() {
+export function ensureTW() {
   if (_s2twp) return Promise.resolve(_s2twp);
   if (!_twLoading) {
     _twLoading = import('opencc-js').then((OpenCC) => {
