@@ -1,11 +1,15 @@
 // @vitest-environment jsdom
 // i18n 三语系统单测 — 纯函数 + LangProvider/useLang Context 行为 + 旧值迁移
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, beforeAll } from 'vitest';
 import { render, screen, act, cleanup } from '@testing-library/react';
 import {
   LANGS, localeFor, isZh, hasCJK, enFallback, tStatic,
-  LangProvider, useLang,
+  LangProvider, useLang, ensureTW,
 } from './i18n.jsx';
+
+// opencc 现改为繁体按需懒加载（首屏省 ~470KB gz）。单测里先预加载一次，
+// 之后 tStatic/t 的 zh-TW 转换即同步生效，与线上「切繁体加载完」行为一致。
+beforeAll(async () => { await ensureTW(); });
 
 // ─── 纯函数 ────────────────────────────────────────────────
 
