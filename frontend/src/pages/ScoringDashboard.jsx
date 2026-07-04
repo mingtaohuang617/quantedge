@@ -2,7 +2,7 @@
 // ScoringDashboard — 评分仪表盘 / 股票列表 / 详情面板
 // 从 quant-platform.jsx 抽出（C1 重构第四步），通过 React.lazy 懒加载
 // ─────────────────────────────────────────────────────────────
-import React, { useState, useEffect, useMemo, useCallback, useRef, useContext, useDeferredValue } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef, useContext, useDeferredValue, memo } from "react";
 import { LineChart, Line, AreaChart, Area, Bar, Brush, Customized, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ComposedChart, ReferenceLine } from "recharts";
 import { Activity, ArrowDownRight, ArrowUpRight, Briefcase, Calendar, Check, ChevronDown, ChevronRight, Clock, Database, Eye, Filter, GripVertical, Info, Layers, Loader, Maximize2, Minus, Plus, RefreshCw, Search, Settings, Star, Trash2, TrendingUp, X, Zap, ArrowLeftRight } from "lucide-react";
 import { searchTickers as standaloneSearch, fetchRangePrices, STOCK_CN_NAMES, STOCK_CN_DESCS, STOCK_EN_DESCS } from "../standalone.js";
@@ -592,6 +592,79 @@ const CompareModal = ({ open, onClose, stocks }) => {
 };
 
 
+// jank-1 性能：列表行抽成 React.memo 组件，隔断父级高频重渲染（行选中 setSel、hover
+// schedulePeek/cancelPeek、marketTick 每 30s、以及全屏图打开时每次 onMouseMove 的 setHoverPoint）
+// 对 543 行 vnode + Highlight×2 + MiniSparkline + ScoreBar + MacroAdjustBadge 的整树重建。
+// props 全为标量或稳定引用（父级 useCallback + temp 传标量），memo 才能真正 bail。
+// t/lang 走 useLang() 上下文：父级重渲染不改变 context → memo 生效；仅语言切换时整表重渲染（罕见、正确）。
+const StockRow = memo(function StockRow({ stk, i, isSel, isFav, density, searchTerm, temp, onSelect, onToggleFav, onContextMenu, onPeek, onPeekCancel }) {
+  const { t, lang } = useLang();
+  const displayName = isZh(lang) ? t(stk.nameCN || STOCK_CN_NAMES[stk.ticker] || stk.name) : enFallback(stk.name, stk.ticker);
+  return (
+    <button onClick={() => onSelect(stk)} onContextMenu={(e) => onContextMenu(e, stk)} onMouseEnter={(e) => onPeek(e, stk)} onMouseLeave={onPeekCancel} className={`virt-row w-full text-left px-2.5 ${density === "compact" ? "py-1" : "py-2.5 md:py-2"} rounded-lg transition-all duration-200 border ${i < 30 ? 'animate-stagger' : ''} active:scale-[0.98] group relative overflow-hidden ${isSel ? "bg-gradient-to-r from-indigo-500/35 via-indigo-500/15 to-transparent border-indigo-500/30 shadow-lg shadow-indigo-500/5" : "bg-white/[0.02] border-transparent hover:bg-white/[0.04] hover:border-white/10"}`} style={{ animationDelay: i < 30 ? `${i * 0.03}s` : undefined }}>
+      {/* PDF2 抛光 Phase 1.1：选中态 2px 渐变光条 indigo→cyan（无入场动画，直接显示） */}
+      {isSel && (
+        <span aria-hidden="true" className="absolute left-0 top-1 bottom-1 w-[2px] rounded-r" style={{ background: 'var(--brand-gradient)' }} />
+      )}
+      {density === "compact" ? (
+        <div className="flex items-center gap-2">
+          <span className="text-[9px] w-4 text-center text-[#667] font-mono shrink-0">{i + 1}</span>
+          <span className="font-semibold text-[11px] text-white shrink-0 font-mono"><Highlight text={stk.ticker} query={searchTerm} /></span>
+          <span className="text-[9px] text-[#a0aec0] truncate flex-1"><Highlight text={displayName} query={searchTerm} /></span>
+          <MiniSparkline data={get5DSparkData(stk)} w={56} h={16} />
+          <span className="text-[10px] font-mono tabular-nums text-indigo-300 shrink-0">{stk.score?.toFixed(1)}</span>
+          <span className={`text-[10px] font-mono tabular-nums shrink-0 w-14 text-right ${safeChange(stk.change) >= 0 ? "text-up" : "text-down"}`}>
+            {safeChange(stk.change) >= 0 ? "+" : ""}{fmtChange(stk.change)}%
+          </span>
+          <span
+            role="button"
+            onClick={(e) => { e.stopPropagation(); onToggleFav(stk.ticker); }}
+            className={`p-0.5 rounded shrink-0 transition-all ${isFav ? "text-amber-400" : "text-[#556] opacity-0 group-hover:opacity-100 hover:text-amber-300"}`}
+            title={isFav ? t("移出关注") : t("加入关注")}
+          >
+            <Star size={11} className={isFav ? "fill-amber-400" : ""} />
+          </span>
+        </div>
+      ) : (
+      <>
+      <div className="flex items-center justify-between mb-1">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className={`rank-badge ${i < 3 ? "rank-top" : "rank-mid"}`}>{i + 1}</span>
+          <span className="font-semibold text-xs text-white shrink-0"><Highlight text={stk.ticker} query={searchTerm} /></span>
+          {/* PDF1 P0 收敛：市场标签从彩色 Badge 改 neutral mono 文字。ETF/leverage 是功能性识别，保留 Badge */}
+          <span className="text-[9px] font-mono uppercase tracking-wide" style={{ color: 'var(--sem-neutral)' }}>{stk.market}</span>
+          {stk.isETF && !stk.leverage && <Badge variant="accent" size="sm">ETF</Badge>}
+          {stk.isETF && stk.leverage && <Badge variant="danger" size="sm">{stk.leverage}</Badge>}
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className={`text-xs font-semibold font-mono tabular-nums ${safeChange(stk.change) >= 0 ? "text-up" : "text-down"}`}>
+            {safeChange(stk.change) >= 0 ? "+" : ""}{fmtChange(stk.change)}%
+          </span>
+          <span
+            role="button"
+            onClick={(e) => { e.stopPropagation(); onToggleFav(stk.ticker); }}
+            className={`p-1 -m-1 rounded transition-all ${isFav ? "text-amber-400" : "text-[#556] opacity-0 group-hover:opacity-100 hover:text-amber-300"}`}
+            title={isFav ? t("移出关注") : t("加入关注")}
+          >
+            <Star size={12} className={isFav ? "fill-amber-400" : ""} />
+          </span>
+        </div>
+      </div>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[10px] text-[#b0b8c4] truncate flex-1 min-w-0"><Highlight text={displayName} query={searchTerm} /></span>
+        <MiniSparkline data={get5DSparkData(stk)} w={48} h={14} />
+        <div className="flex items-center gap-1 w-20 shrink-0">
+          <ScoreBar score={stk.score} />
+          <MacroAdjustBadge stock={stk} temp={temp} />
+        </div>
+      </div>
+      </>
+      )}
+    </button>
+  );
+});
+
+
 const ScoringDashboard = () => {
   const { t, lang } = useLang();
   const [sel, setSel] = useState(null);
@@ -1063,10 +1136,10 @@ const ScoringDashboard = () => {
     window.addEventListener("quantedge:macroSignal", onSignal);
     return () => window.removeEventListener("quantedge:macroSignal", onSignal);
   }, []);
-  const handleContextMenu = (e, stk) => {
+  const handleContextMenu = useCallback((e, stk) => {
     e.preventDefault();
     setCtxMenu({ x: e.clientX, y: e.clientY, ticker: stk.ticker, name: stk.name });
-  };
+  }, []);
 
   // v7 工作站：hover peek — 停留 ~280ms 浮出迷你卡（分项评分 + 走势 + W/C 提示）
   // 仅支持 hover 的设备（桌面）；选中行不浮（与详情区重复）。
@@ -1089,6 +1162,8 @@ const ScoringDashboard = () => {
     }, 280);
   }, [canHover]);
   const cancelPeek = useCallback(() => { clearTimeout(peekTimerRef.current); setPeek(null); }, []);
+  // jank-1：稳定的行选中回调，供 memo 化的 StockRow 用（引用不变才能 bail）
+  const handleSelect = useCallback((stk) => { cancelPeek(); setSel(stk); setMobileShowDetail(true); }, [cancelPeek]);
   useEffect(() => () => clearTimeout(peekTimerRef.current), []);
   const handleDeleteTicker = async () => {
     if (!ctxMenu) return;
@@ -2354,66 +2429,21 @@ const ScoringDashboard = () => {
               ))}
             </div>
           ) : filtered.map((stk, i) => (
-            <button key={stk.ticker} onClick={() => { cancelPeek(); setSel(stk); setMobileShowDetail(true); }} onContextMenu={(e) => handleContextMenu(e, stk)} onMouseEnter={(e) => schedulePeek(e, stk)} onMouseLeave={cancelPeek} className={`virt-row w-full text-left px-2.5 ${density === "compact" ? "py-1" : "py-2.5 md:py-2"} rounded-lg transition-all duration-200 border ${i < 30 ? 'animate-stagger' : ''} active:scale-[0.98] group relative overflow-hidden ${sel?.ticker === stk.ticker ? "bg-gradient-to-r from-indigo-500/35 via-indigo-500/15 to-transparent border-indigo-500/30 shadow-lg shadow-indigo-500/5" : "bg-white/[0.02] border-transparent hover:bg-white/[0.04] hover:border-white/10"}`} style={{ animationDelay: i < 30 ? `${i * 0.03}s` : undefined }}>
-              {/* PDF2 抛光 Phase 1.1：选中态 2px 渐变光条 indigo→cyan（无入场动画，直接显示） */}
-              {sel?.ticker === stk.ticker && (
-                <span aria-hidden="true" className="absolute left-0 top-1 bottom-1 w-[2px] rounded-r" style={{ background: 'var(--brand-gradient)' }} />
-              )}
-              {density === "compact" ? (
-                <div className="flex items-center gap-2">
-                  <span className="text-[9px] w-4 text-center text-[#667] font-mono shrink-0">{i + 1}</span>
-                  <span className="font-semibold text-[11px] text-white shrink-0 font-mono"><Highlight text={stk.ticker} query={searchTerm} /></span>
-                  <span className="text-[9px] text-[#a0aec0] truncate flex-1"><Highlight text={isZh(lang) ? t(stk.nameCN || STOCK_CN_NAMES[stk.ticker] || stk.name) : enFallback(stk.name, stk.ticker)} query={searchTerm} /></span>
-                  <MiniSparkline data={get5DSparkData(stk)} w={56} h={16} />
-                  <span className="text-[10px] font-mono tabular-nums text-indigo-300 shrink-0">{stk.score?.toFixed(1)}</span>
-                  <span className={`text-[10px] font-mono tabular-nums shrink-0 w-14 text-right ${safeChange(stk.change) >= 0 ? "text-up" : "text-down"}`}>
-                    {safeChange(stk.change) >= 0 ? "+" : ""}{fmtChange(stk.change)}%
-                  </span>
-                  <span
-                    role="button"
-                    onClick={(e) => { e.stopPropagation(); toggleFav(stk.ticker); }}
-                    className={`p-0.5 rounded shrink-0 transition-all ${favorites.has(stk.ticker) ? "text-amber-400" : "text-[#556] opacity-0 group-hover:opacity-100 hover:text-amber-300"}`}
-                    title={favorites.has(stk.ticker) ? t("移出关注") : t("加入关注")}
-                  >
-                    <Star size={11} className={favorites.has(stk.ticker) ? "fill-amber-400" : ""} />
-                  </span>
-                </div>
-              ) : (
-              <>
-              <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <span className={`rank-badge ${i < 3 ? "rank-top" : "rank-mid"}`}>{i + 1}</span>
-                  <span className="font-semibold text-xs text-white shrink-0"><Highlight text={stk.ticker} query={searchTerm} /></span>
-                  {/* PDF1 P0 收敛：市场标签从彩色 Badge 改 neutral mono 文字。ETF/leverage 是功能性识别，保留 Badge */}
-                  <span className="text-[9px] font-mono uppercase tracking-wide" style={{ color: 'var(--sem-neutral)' }}>{stk.market}</span>
-                  {stk.isETF && !stk.leverage && <Badge variant="accent" size="sm">ETF</Badge>}
-                  {stk.isETF && stk.leverage && <Badge variant="danger" size="sm">{stk.leverage}</Badge>}
-                </div>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <span className={`text-xs font-semibold font-mono tabular-nums ${safeChange(stk.change) >= 0 ? "text-up" : "text-down"}`}>
-                    {safeChange(stk.change) >= 0 ? "+" : ""}{fmtChange(stk.change)}%
-                  </span>
-                  <span
-                    role="button"
-                    onClick={(e) => { e.stopPropagation(); toggleFav(stk.ticker); }}
-                    className={`p-1 -m-1 rounded transition-all ${favorites.has(stk.ticker) ? "text-amber-400" : "text-[#556] opacity-0 group-hover:opacity-100 hover:text-amber-300"}`}
-                    title={favorites.has(stk.ticker) ? t("移出关注") : t("加入关注")}
-                  >
-                    <Star size={12} className={favorites.has(stk.ticker) ? "fill-amber-400" : ""} />
-                  </span>
-                </div>
-              </div>
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[10px] text-[#b0b8c4] truncate flex-1 min-w-0"><Highlight text={isZh(lang) ? t(stk.nameCN || STOCK_CN_NAMES[stk.ticker] || stk.name) : enFallback(stk.name, stk.ticker)} query={searchTerm} /></span>
-                <MiniSparkline data={get5DSparkData(stk)} w={48} h={14} />
-                <div className="flex items-center gap-1 w-20 shrink-0">
-                  <ScoreBar score={stk.score} />
-                  <MacroAdjustBadge stock={stk} temp={macroSnapshot?.composite?.market_temperature} />
-                </div>
-              </div>
-              </>
-              )}
-            </button>
+            <StockRow
+              key={stk.ticker}
+              stk={stk}
+              i={i}
+              isSel={sel?.ticker === stk.ticker}
+              isFav={favorites.has(stk.ticker)}
+              density={density}
+              searchTerm={searchTerm}
+              temp={macroSnapshot?.composite?.market_temperature}
+              onSelect={handleSelect}
+              onToggleFav={toggleFav}
+              onContextMenu={handleContextMenu}
+              onPeek={schedulePeek}
+              onPeekCancel={cancelPeek}
+            />
           ))}
         </div>
       </div>
