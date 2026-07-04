@@ -95,6 +95,19 @@ describe('tStatic（无 hook 翻译）', () => {
     expect(tStatic('复利', 'zh-TW')).toBe('複利');
     expect(tStatic('重复', 'zh-TW')).toBe('重複');
   });
+  it('zh-TW：股票量词「只」→「檔」（台股惯用，非动物量词「隻」）', () => {
+    // opencc 语法转出的「隻」
+    expect(tStatic('这只股票', 'zh-TW')).toBe('這檔股票');
+    expect(tStatic('下一只标的', 'zh-TW')).toBe('下一檔標的');
+    // opencc 对占位符/数字保留的「只」
+    expect(tStatic('{n} 只持仓', 'zh-TW')).toBe('{n} 檔持倉');
+    expect(tStatic('一次最多 30 只', 'zh-TW')).toBe('一次最多 30 檔');
+  });
+  it('zh-TW：副词「只」(只看/只要/只有) 不被误转成「檔」', () => {
+    expect(tStatic('只看关注', 'zh-TW')).toBe('只看關注');
+    expect(tStatic('同样的定投，只要', 'zh-TW')).toBe('同樣的定投，只要');
+    expect(tStatic('几乎只有', 'zh-TW')).toBe('幾乎只有');
+  });
   it('空文本 → 空串', () => {
     expect(tStatic('', 'en')).toBe('');
     expect(tStatic(null, 'zh-TW')).toBe('');
