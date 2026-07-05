@@ -239,7 +239,7 @@ export function ListDialog({ mode, list, onCreate, onRename, onDelete, onCancel 
 
 // ─── AlertsPanel — 评分变化预警弹层 ─────────────────────────────────
 export function AlertsPanel({ alerts, onSelect, onClose, onRequestNotify }) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const notifPerm = typeof Notification !== "undefined" ? Notification.permission : "unsupported";
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 bg-black/40 backdrop-blur-sm" onClick={onClose}>
@@ -315,7 +315,7 @@ export function AlertsPanel({ alerts, onSelect, onClose, onRequestNotify }) {
                     </span>
                   )}
                   <span className="text-[9px] text-[#5a6477] ml-auto">
-                    {formatFreshness(a.checked_at)}
+                    {formatFreshness(a.checked_at, t, lang)}
                   </span>
                 </div>
               </button>
@@ -411,7 +411,7 @@ export function SchedulerPanel({ status, onToggle, onSetSchedule, onRunNow, onCl
           <div className="flex justify-between">
             <span className="text-[#7a8497]">{t('上次运行')}</span>
             <span className="font-mono text-[#a0aec0]">
-              {lastRun ? `${formatFreshness(lastRun)}（${new Date(lastRun).toLocaleString(localeFor(lang), { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}）` : t('从未')}
+              {lastRun ? `${formatFreshness(lastRun, t, lang)}（${new Date(lastRun).toLocaleString(localeFor(lang), { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}）` : t('从未')}
             </span>
           </div>
           {lastSummary?.engines && (

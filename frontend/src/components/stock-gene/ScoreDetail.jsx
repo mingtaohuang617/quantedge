@@ -17,7 +17,7 @@ export function ScoreDetail({
   editingNotes, notesDraft, setNotesDraft, onEditNotes, onSaveNotes, onCancelNotes, notesSaving,
   onSaveTags, weights, position, lists, onMove,
 }) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const cfg = eng(engine);
   const r = engResult(item, engine);
   const engineLabel = cfg.framework;
@@ -50,7 +50,7 @@ export function ScoreDetail({
               <div className="text-right">
                 <VerdictBadge verdict={r.verdict} score={r.score} maxScore={r.max_score} available={r.available} />
                 <div className="text-[9px] text-[#7a8497] mt-1">
-                  {formatChecked(r.checked_at)}
+                  {formatChecked(r.checked_at, t, lang)}
                 </div>
                 {composite != null && (
                   <div className="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded border bg-white/5 border-white/15">

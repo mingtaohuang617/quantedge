@@ -208,6 +208,11 @@ const EN = {
   "{n} 个跟踪中": "{n} tracking",
   "有效持仓 · HHI {h}": "Effective holdings · HHI {h}",
   "按 {label} 排序": "Sort by {label}",
+  // ── A8：相对时间 / 复盘时效（helpers formatFreshness + WatchlistCard title）──
+  "{n} 天前": "{n} days ago",
+  "{d} 天前观察": "Added {d} days ago",
+  "已 {d} 天未复盘 — 强烈建议重看 thesis 是否仍成立": "Not reviewed for {d} days — strongly recommend re-checking whether the thesis still holds",
+  "已 {d} 天未复盘 — 建议复盘并 regenerate AI 草稿": "Not reviewed for {d} days — suggest reviewing and regenerating the AI draft",
   "远超正常区间（顶级策略夏普约 2–3、Calmar 通常 < 5）。常见原因：某只成分股价格数据异常（分拆复权 / 数据源返回极端值）。请核对各标的价格真实性后再参考此结果。": "far exceeds the normal range (top strategies: Sharpe ~2–3, Calmar usually < 5). Common cause: anomalous price data for a constituent (split/adjustment or extreme data-source values). Verify each ticker's price authenticity before relying on this result.",
   "请先填赛道名": "Please fill in the track name first",
   "后端无响应（DEEPSEEK_API_KEY 未配置或网络问题）": "Backend not responding (DEEPSEEK_API_KEY not configured or network issue)",

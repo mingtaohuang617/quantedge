@@ -1,6 +1,7 @@
 // ─────────────────────────────────────────────────────────────
 // Stock Gene 共享工具：引擎配置 / 综合分 / verdict 配色 / 格式化
 // ─────────────────────────────────────────────────────────────
+import { localeFor } from "../../i18n.jsx";
 
 export const VERDICT_STYLE = {
   strong: { bg: "bg-emerald-500/15", border: "border-emerald-500/40", text: "text-emerald-300" },
@@ -144,26 +145,31 @@ export function verdictStyle(verdict) {
 }
 
 // ─── 时间格式化 ──────────────────────────────────────────
-export function formatChecked(iso) {
-  if (!iso) return "未评分";
+// 相对时间 / 时间戳随语言：调用方透传 (t, lang)。t 本地化中文标签，
+// lang 经 localeFor 决定日期/时间 locale（en 走 12h AM/PM，zh 走 24h）。
+// 默认 _interp（插值型 identity）+ zh-CN，不传时行为等价旧版（中文）。
+const _interp = (s, p) => (p ? s.replace(/\{(\w+)\}/g, (_, k) => (p[k] ?? "")) : s);
+
+export function formatChecked(iso, t = _interp, lang = "zh-CN") {
+  if (!iso) return t("未评分");
   try {
     const d = new Date(iso);
-    return d.toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+    return d.toLocaleString(localeFor(lang), { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
   } catch {
     return iso;
   }
 }
 
 /** 评分新鲜度：相对时间标签，一眼知道数据多旧 */
-export function formatFreshness(iso) {
+export function formatFreshness(iso, t = _interp, lang = "zh-CN") {
   if (!iso) return null;
-  const t = new Date(iso).getTime();
-  if (!Number.isFinite(t)) return null;
-  const diffMin = (Date.now() - t) / 60000;
-  if (diffMin < 60) return `${Math.max(1, Math.round(diffMin))}分钟前`;
-  if (diffMin < 60 * 24) return `${Math.round(diffMin / 60)}小时前`;
-  if (diffMin < 60 * 24 * 30) return `${Math.round(diffMin / (60 * 24))}天前`;
-  return new Date(iso).toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" });
+  const tm = new Date(iso).getTime();
+  if (!Number.isFinite(tm)) return null;
+  const diffMin = (Date.now() - tm) / 60000;
+  if (diffMin < 60) return t("{n} 分钟前", { n: Math.max(1, Math.round(diffMin)) });
+  if (diffMin < 60 * 24) return t("{n} 小时前", { n: Math.round(diffMin / 60) });
+  if (diffMin < 60 * 24 * 30) return t("{n} 天前", { n: Math.round(diffMin / (60 * 24)) });
+  return new Date(iso).toLocaleDateString(localeFor(lang), { month: "numeric", day: "numeric" });
 }
 
 // ─── 多 watchlist 配色 ───────────────────────────────────
