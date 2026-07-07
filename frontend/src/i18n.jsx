@@ -208,6 +208,10 @@ const EN = {
   "{n} 个跟踪中": "{n} tracking",
   "有效持仓 · HHI {h}": "Effective holdings · HHI {h}",
   "按 {label} 排序": "Sort by {label}",
+  // ── 估值指标 tooltip（StockDetailPanel financialRows.hint）──
+  "市销率 — 未盈利/高成长看它": "P/S ratio — useful for unprofitable / high-growth names",
+  "PE÷盈利增速 — <1 偏便宜": "PEG (P/E ÷ earnings growth) — <1 is cheap",
+  "企业倍数 — 跨杠杆/税率可比": "EV multiple — comparable across leverage / tax rates",
   // ── A8：相对时间 / 复盘时效（helpers formatFreshness + WatchlistCard title）──
   "{n} 天前": "{n} days ago",
   "{d} 天前观察": "Added {d} days ago",
