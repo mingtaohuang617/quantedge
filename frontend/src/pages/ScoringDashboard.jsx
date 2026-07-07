@@ -3209,6 +3209,9 @@ const ScoringDashboard = () => {
                           [
                             sel.pe != null && sel.pe > 0 && ['PE', sel.pe.toFixed(1)],
                             sel.pb != null && ['PB', sel.pb.toFixed(2)],
+                            sel.ps != null && ['PS', sel.ps.toFixed(2)],
+                            sel.peg != null && ['PEG', sel.peg.toFixed(2)],
+                            sel.evEbitda != null && ['EV/EBITDA', sel.evEbitda.toFixed(1)],
                           ].filter(Boolean)],
                         [t("盈利"), sel.subScores.profitability, "violet", sectorMedians?.profitability,
                           [

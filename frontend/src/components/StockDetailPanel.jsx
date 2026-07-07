@@ -85,12 +85,17 @@ export default function StockDetailPanel({
     : null;
   const lastPrice = validPrices.length >= 1 ? validPrices[validPrices.length - 1] : null;
 
-  // 5 维财务行
+  // 估值/财务行。roe 在 data.js 存整百分数（如 39.8=39.8%），故用 pctWhole 而非
+  // fmtPct（后者按小数 ×100，会把 39.8 显示成 3980%）；dividend_yield 存小数走 fmtPct。
+  const pctWhole = (v) => (typeof v === "number" && isFinite(v) ? `${v.toFixed(1)}%` : "—");
   const financialRows = [
     { label: "PE", value: fmtNum(item.pe, 1), hint: "市盈率 — 越低越便宜" },
     { label: "PB", value: fmtNum(item.pb, 2), hint: "市净率 — 银行/REIT 更重要" },
+    { label: "PS", value: fmtNum(item.ps, 2), hint: "市销率 — 未盈利/高成长看它" },
+    { label: "PEG", value: fmtNum(item.peg, 2), hint: "PE÷盈利增速 — <1 偏便宜" },
+    { label: "EV/EBITDA", value: fmtNum(item.evEbitda, 1), hint: "企业倍数 — 跨杠杆/税率可比" },
+    { label: "ROE", value: pctWhole(item.roe), hint: "净资产收益率 — > 15% 优秀" },
     { label: "股息率", value: fmtPct(item.dividend_yield), hint: "年化股息率" },
-    { label: "ROE", value: fmtPct(item.roe), hint: "净资产收益率 — > 15% 优秀" },
     { label: "D/E", value: fmtNum(item.debt_to_equity, 2), hint: "负债权益比 — 越低越安全" },
   ];
 
@@ -200,7 +205,7 @@ export default function StockDetailPanel({
               </div>
               <div className="grid grid-cols-5 gap-1">
                 {financialRows.map((r) => (
-                  <div key={r.label} className="text-center" title={r.hint}>
+                  <div key={r.label} className="text-center" title={t(r.hint)}>
                     <div className="text-[9px] text-[#7a8497]">{r.label}</div>
                     <div className={`text-[11px] font-mono ${r.value === "—" ? "text-[#5a6477]" : "text-white"}`}>
                       {r.value}
