@@ -160,10 +160,10 @@ export default function WatchlistCard({
                 }`}
                 title={
                   reviewState.tone === "urgent"
-                    ? `已 ${reviewState.daysAgo} 天未复盘 — 强烈建议重看 thesis 是否仍成立`
+                    ? t('已 {d} 天未复盘 — 强烈建议重看 thesis 是否仍成立', { d: reviewState.daysAgo })
                     : reviewState.tone === "warn"
-                    ? `已 ${reviewState.daysAgo} 天未复盘 — 建议复盘并 regenerate AI 草稿`
-                    : `${reviewState.daysAgo} 天前观察`
+                    ? t('已 {d} 天未复盘 — 建议复盘并 regenerate AI 草稿', { d: reviewState.daysAgo })
+                    : t('{d} 天前观察', { d: reviewState.daysAgo })
                 }
               >
                 ⏰ {reviewState.daysAgo}d

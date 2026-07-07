@@ -1943,7 +1943,7 @@ export default function StockGene() {
                   {/* 评分新鲜度：显示当前 engine 的最近评分时间 */}
                   {(activeR?.checked_at) && (
                     <div className="text-[9px] text-[#5a6477] mt-0.5">
-                      评分 {formatFreshness(activeR.checked_at)}
+                      {t('评分')} {formatFreshness(activeR.checked_at, t, lang)}
                     </div>
                   )}
                   {/* 用户自定义标签 */}

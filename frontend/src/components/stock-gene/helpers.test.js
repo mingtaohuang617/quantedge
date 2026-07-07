@@ -153,19 +153,27 @@ describe('formatFreshness', () => {
     expect(formatFreshness(undefined)).toBeNull();
   });
 
-  it('< 1 小时 → "N分钟前"（向上至少 1）', () => {
+  it('< 1 小时 → "N 分钟前"（向上至少 1；默认 zh-CN 走 t 键空格形态）', () => {
     // 30 分钟前
-    expect(formatFreshness('2024-11-01T11:30:00Z')).toBe('30分钟前');
+    expect(formatFreshness('2024-11-01T11:30:00Z')).toBe('30 分钟前');
     // 10 秒前（不到 1 分钟，但应当 round 到至少 1）
-    expect(formatFreshness('2024-11-01T11:59:50Z')).toBe('1分钟前');
+    expect(formatFreshness('2024-11-01T11:59:50Z')).toBe('1 分钟前');
   });
 
-  it('1 小时到 1 天之间 → "N小时前"', () => {
-    expect(formatFreshness('2024-11-01T09:00:00Z')).toBe('3小时前');
+  it('1 小时到 1 天之间 → "N 小时前"', () => {
+    expect(formatFreshness('2024-11-01T09:00:00Z')).toBe('3 小时前');
   });
 
-  it('1 天到 30 天之间 → "N天前"', () => {
-    expect(formatFreshness('2024-10-29T12:00:00Z')).toBe('3天前');
+  it('1 天到 30 天之间 → "N 天前"', () => {
+    expect(formatFreshness('2024-10-29T12:00:00Z')).toBe('3 天前');
+  });
+
+  it('传入 t 时走本地化（en 相对时间标签）', () => {
+    const enT = (s, p) => ({
+      '{n} 分钟前': `${p?.n} minutes ago`, '{n} 小时前': `${p?.n} hours ago`, '{n} 天前': `${p?.n} days ago`,
+    }[s] ?? s);
+    expect(formatFreshness('2024-11-01T11:30:00Z', enT)).toBe('30 minutes ago');
+    expect(formatFreshness('2024-11-01T09:00:00Z', enT)).toBe('3 hours ago');
   });
 
   it('> 30 天 → 月/日 格式（toLocaleDateString fallback）', () => {
@@ -180,7 +188,7 @@ describe('formatFreshness', () => {
     // 时钟漂移：服务端给的时间比客户端晚
     const out = formatFreshness('2024-11-01T12:30:00Z');
     // diffMin < 0，但 Math.max(1, round(diffMin)) 保证至少 1
-    expect(out).toBe('1分钟前');
+    expect(out).toBe('1 分钟前');
   });
 
   it('无效 ISO → null', () => {
