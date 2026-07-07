@@ -3213,6 +3213,7 @@ const ScoringDashboard = () => {
                             sel.peg != null && ['PEG', sel.peg.toFixed(2)],
                             sel.evEbitda != null && ['EV/EBITDA', sel.evEbitda.toFixed(1)],
                             sel.dividend_yield != null && [t('股息率'), `${(sel.dividend_yield * 100).toFixed(1)}%`],
+                            sel.targetPrice != null && [t('目标价'), `${sel.targetPrice.toFixed(sel.targetPrice < 20 ? 1 : 0)}${sel.price ? `  ${(sel.targetPrice / sel.price - 1) * 100 >= 0 ? '+' : ''}${((sel.targetPrice / sel.price - 1) * 100).toFixed(0)}%` : ''}`],
                           ].filter(Boolean)],
                         [t("盈利"), sel.subScores.profitability, "violet", sectorMedians?.profitability,
                           [
