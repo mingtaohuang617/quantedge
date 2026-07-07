@@ -124,7 +124,7 @@ export default function FactorDetailModal({ f, onClose, onPrev, onNext, isStarre
             {t(CATEGORY_LABEL[f.category] || f.category)}
           </span>
           <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium border ${dirBadge.cls}`}
-                title={dirBadge.title}>
+                title={t(dirBadge.title)}>
             <span className="font-mono mr-0.5">{dirBadge.icon}</span>{t(dirBadge.label)}
           </span>
           <span id="factor-modal-title" className="text-base font-mono font-semibold text-white/95">{f.factor_id}</span>

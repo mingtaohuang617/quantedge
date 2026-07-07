@@ -39,7 +39,7 @@ function FactorCard({ f, onSelect, isStarred, onToggleStar, alert }) {
           </span>
           <span
             className={`px-1.5 py-0.5 rounded text-[10px] font-medium border ${dirBadge.cls} cursor-help select-none`}
-            title={dirBadge.title}
+            title={t(dirBadge.title)}
           >
             <span className="font-mono mr-0.5">{dirBadge.icon}</span>
             {t(dirBadge.label)}

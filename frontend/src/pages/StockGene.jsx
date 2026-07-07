@@ -679,8 +679,8 @@ export default function StockGene() {
   // ── 删除（用 ConfirmDialog 替换 window.confirm）─────────
   const handleDelete = (ticker) => {
     setConfirmDialog({
-      title: "删除观察项",
-      message: `确定从股性观察列表删除 ${ticker}？同时清除 8/6 维评分、历史记录、备注与标签。`,
+      title: t("删除观察项"),
+      message: t('确定从股性观察列表删除 {ticker}？同时清除 8/6 维评分、历史记录、备注与标签。', { ticker }),
       confirmLabel: "删除",
       danger: true,
       onConfirm: async () => {
