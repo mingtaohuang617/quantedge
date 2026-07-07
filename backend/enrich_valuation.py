@@ -160,6 +160,48 @@ def _parse_global_valuation(md: str) -> dict:
         if rec: out[_gkey(cells[0])] = rec  # 首列即代码
     return out
 
+def _parse_dividend(md: str, keyfn) -> dict:
+    """解析股息率表（多日期行，首个非空即最新）→ {key: 小数}。iFinD 返回 %，存小数(÷100)配 fmtPct。"""
+    out = {}
+    lines = [l for l in md.splitlines() if l.strip().startswith("|")]
+    if not lines: return out
+    header = [c.strip() for c in lines[0].strip("|").split("|")]
+    di = None
+    for i, h in enumerate(header):
+        if "股息率" in h:
+            if "12" in h or "TTM" in h.upper():  # 近12个月/TTM 优先
+                di = i; break
+            if di is None: di = i
+    if di is None: return out
+    for l in lines[1:]:
+        if set(l.strip()) <= {"|", "-", " "}: continue
+        cells = [c.strip() for c in l.strip("|").split("|")]
+        if len(cells) <= di or not cells[0]: continue
+        key = keyfn(cells[0])
+        if key in out: continue  # 首个非空（最新日期在前）
+        v = cells[di].replace(",", "").strip()
+        try:
+            fv = float(v)
+            if fv > 0: out[key] = round(fv / 100.0, 4)  # % → 小数
+        except ValueError:
+            pass
+    return out
+
+def ifind_dividend_batch(terms: list[str], url: str, auth: str, tool: str, keyfn) -> dict:
+    """查股息率 → {key: 小数}。A股 tool=get_stock_financials/keyfn=identity；港美股 tool=global_stock_financial/keyfn=_gkey。"""
+    sid = [None]
+    _ifind_call(url, auth, "initialize", {"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "enrich", "version": "1"}}, sid=sid)
+    _ifind_call(url, auth, "notifications/initialized", notify=True, sid=sid)
+    q = "、".join(terms) + " 的近12个月股息率(%)"
+    res = _ifind_call(url, auth, "tools/call", {"name": tool, "arguments": {"query": q}}, sid=sid)
+    r = res.get("result", {})
+    txt = " ".join(c.get("text", "") for c in r.get("content", []) if c.get("type") == "text")
+    try:
+        answer = json.loads(txt).get("data", {}).get("answer", "") if txt.strip().startswith("{") else txt
+    except Exception:
+        answer = txt
+    return _parse_dividend(answer, keyfn)
+
 def ifind_global_batch(terms: list[str], url: str, auth: str) -> dict:
     """一次查最多5只港/美股估值 → {_gkey: {pe,pb,ps,peg,evEbitda}}。
     terms 传「名称(代码)」形如 美光科技(MU)——裸 ticker 会被 iFinD 实体解析猜错，必须带名消歧。"""
@@ -190,13 +232,17 @@ def main():
     ifind_url, ifind_auth, gurl = _load_keys()
 
     stocks, alerts = parse_data_js(DATA_JS)
-    filled = {k: 0 for k in FILL_FIELDS + NEW_FIELDS}
+    filled = {k: 0 for k in FILL_FIELDS + NEW_FIELDS + ["dividend_yield"]}
     n_gs = n_cn = 0
 
     def apply(s, rec):
         for k in FILL_FIELDS + NEW_FIELDS:
             if s.get(k) is None and rec.get(k) is not None:
                 s[k] = rec[k]; filled[k] += 1
+
+    def apply_div(s, div):
+        if div is not None and s.get("dividend_yield") is None:
+            s["dividend_yield"] = div; filled["dividend_yield"] += 1
 
     # 港/美股 via iFinD global-stock（批5）
     gs_markets = markets & {"US", "HK"}
@@ -218,6 +264,16 @@ def main():
             n_gs += len(batch)
             if (b // 5) % 10 == 0: print(f"  ...港/美股 {b+len(batch)}/{len(terms)}", flush=True)
             time.sleep(0.5)  # iFinD 2/秒
+        # 股息率（另一 tool：global_stock_financial）
+        print("港/美股: 补股息率")
+        for b in range(0, len(terms), 5):
+            try:
+                divs = ifind_dividend_batch(terms[b:b+5], gurl, ifind_auth, "global_stock_financial", _gkey)
+            except Exception as e:
+                print(f"  [global div {b}] {e}", flush=True); divs = {}
+            for gk, dv in divs.items():
+                if gk in idx: apply_div(idx[gk], dv)
+            time.sleep(0.5)
 
     # A股 via iFinD ifind-stock（批5）
     cn_markets = markets & {"SH", "SZ"}
@@ -241,6 +297,16 @@ def main():
             n_cn += len(batch)
             if (b // 5) % 10 == 0: print(f"  ...A股 {b+len(batch)}/{len(codes)}", flush=True)
             time.sleep(0.5)  # iFinD 2/秒
+        # 股息率（另一 tool：get_stock_financials）
+        print("A股: 补股息率")
+        for b in range(0, len(codes), 5):
+            try:
+                divs = ifind_dividend_batch(codes[b:b+5], ifind_url, ifind_auth, "get_stock_financials", lambda c: c.upper())
+            except Exception as e:
+                print(f"  [A股 div {b}] {e}", flush=True); divs = {}
+            for code, dv in divs.items():
+                if code in idx: apply_div(idx[code], dv)
+            time.sleep(0.5)
 
     print(f"\n[统计] 港/美股取数 {n_gs} | A股取数 {n_cn}")
     print("[填充] " + " ".join(f"{k}:{v}" for k, v in filled.items()))
