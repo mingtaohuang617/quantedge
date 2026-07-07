@@ -65,7 +65,7 @@ export default function AlertBacktestPanel({ history }) {
             return (
               <details key={id} className="text-[10px] font-mono">
                 <summary className="grid grid-cols-[1fr_3rem_4rem_4rem_4rem] gap-2 items-center px-1 py-1 hover:bg-white/[0.02] rounded cursor-pointer">
-                  <span className="font-sans text-white/85 truncate" title={meta.desc}>
+                  <span className="font-sans text-white/85 truncate" title={t(meta.desc)}>
                     {t(meta.label)}
                   </span>
                   <span className="text-right text-white/65 tabular-nums">{stats.count}</span>

@@ -50,7 +50,7 @@ export default function HmmPanel({ hmm, temp }) {
                 <div key={s}
                      className={HMM_COLOR[s].bg}
                      style={{ width: `${p}%` }}
-                     title={`${HMM_COLOR[s].label} ${p.toFixed(1)}%`} />
+                     title={`${t(HMM_COLOR[s].label)} ${p.toFixed(1)}%`} />
               );
             })}
           </div>

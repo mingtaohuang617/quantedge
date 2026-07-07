@@ -208,6 +208,8 @@ const EN = {
   "{n} 个跟踪中": "{n} tracking",
   "有效持仓 · HHI {h}": "Effective holdings · HHI {h}",
   "按 {label} 排序": "Sort by {label}",
+  // ── A9：删除观察项确认弹层 message（含占位符）──
+  "确定从股性观察列表删除 {ticker}？同时清除 8/6 维评分、历史记录、备注与标签。": "Delete {ticker} from the stock-gene watchlist? This also clears the 8/6-dimension scores, history, notes and tags.",
   // ── 估值指标 tooltip（StockDetailPanel financialRows.hint）──
   "市销率 — 未盈利/高成长看它": "P/S ratio — useful for unprofitable / high-growth names",
   "PE÷盈利增速 — <1 偏便宜": "PEG (P/E ÷ earnings growth) — <1 is cheap",
