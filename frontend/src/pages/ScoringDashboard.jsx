@@ -3212,6 +3212,7 @@ const ScoringDashboard = () => {
                             sel.ps != null && ['PS', sel.ps.toFixed(2)],
                             sel.peg != null && ['PEG', sel.peg.toFixed(2)],
                             sel.evEbitda != null && ['EV/EBITDA', sel.evEbitda.toFixed(1)],
+                            sel.dividend_yield != null && [t('股息率'), `${(sel.dividend_yield * 100).toFixed(1)}%`],
                           ].filter(Boolean)],
                         [t("盈利"), sel.subScores.profitability, "violet", sectorMedians?.profitability,
                           [
