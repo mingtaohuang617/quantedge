@@ -22,8 +22,11 @@ const FULL_ITEM = {
   marketCap: 4800e9,
   pe: 65,
   pb: 45,
+  ps: 20.5,
+  peg: 2.6,
+  evEbitda: 32.5,
   dividend_yield: 0.0003,
-  roe: 1.15,
+  roe: 115, // 整百分数（data.js 约定：39.8 = 39.8%）
   debt_to_equity: 0.18,
   matched_supertrends: ['semi', 'ai_compute'],
   match_reasons: {
@@ -79,13 +82,19 @@ describe('StockDetailPanel — 5 维财务', () => {
     renderPanel();
     expect(screen.getByText('PE')).toBeInTheDocument();
     expect(screen.getByText('PB')).toBeInTheDocument();
+    expect(screen.getByText('PS')).toBeInTheDocument();
+    expect(screen.getByText('PEG')).toBeInTheDocument();
+    expect(screen.getByText('EV/EBITDA')).toBeInTheDocument();
     expect(screen.getByText('股息率')).toBeInTheDocument();
     expect(screen.getByText('ROE')).toBeInTheDocument();
     expect(screen.getByText('D/E')).toBeInTheDocument();
     // 具体值
     expect(screen.getByText('65.0')).toBeInTheDocument();   // PE
     expect(screen.getByText('45.00')).toBeInTheDocument();  // PB
-    expect(screen.getByText('115.0%')).toBeInTheDocument(); // ROE
+    expect(screen.getByText('20.50')).toBeInTheDocument();  // PS
+    expect(screen.getByText('2.60')).toBeInTheDocument();   // PEG
+    expect(screen.getByText('32.5')).toBeInTheDocument();   // EV/EBITDA
+    expect(screen.getByText('115.0%')).toBeInTheDocument(); // ROE（整百分数）
     expect(screen.getByText('0.18')).toBeInTheDocument();   // D/E
   });
 
@@ -93,7 +102,7 @@ describe('StockDetailPanel — 5 维财务', () => {
     renderPanel({
       item: {
         ...FULL_ITEM,
-        pe: null, pb: null, dividend_yield: null, roe: null, debt_to_equity: null,
+        pe: null, pb: null, ps: null, peg: null, evEbitda: null, dividend_yield: null, roe: null, debt_to_equity: null,
       },
     });
     expect(screen.queryByText('财务指标')).not.toBeInTheDocument();
@@ -101,9 +110,9 @@ describe('StockDetailPanel — 5 维财务', () => {
 
   it('部分字段缺失时显示 "—"', () => {
     renderPanel({
-      item: { ...FULL_ITEM, pe: null, pb: 2.0, dividend_yield: null, roe: 0.2, debt_to_equity: null },
+      item: { ...FULL_ITEM, pe: null, pb: 2.0, ps: null, peg: null, evEbitda: null, dividend_yield: null, roe: 20, debt_to_equity: null },
     });
-    // pe / div / d/e 显示 —；pb / roe 显示具体值
+    // pe / ps / peg / ev / div / d/e 显示 —；pb / roe 显示具体值
     const dashes = screen.getAllByText('—');
     expect(dashes.length).toBeGreaterThanOrEqual(3);
     expect(screen.getByText('2.00')).toBeInTheDocument();
