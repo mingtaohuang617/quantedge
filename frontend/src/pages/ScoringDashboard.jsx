@@ -13,6 +13,7 @@ import AIStockSummaryCard from "../components/AIStockSummaryCard.jsx";
 import ScoreExplainCard from "../components/ScoreExplainCard.jsx";
 import ValuationReadCard from "../components/ValuationReadCard.jsx";
 import StockNewsCard from "../components/StockNewsCard.jsx";
+import StockProfileCard from "../components/StockProfileCard.jsx";
 import MacroAdjustBadge from "../components/MacroAdjustBadge.jsx";
 import macroSnapshot from "../macroSnapshot.json";
 import { TEMP_TEXT, TEMP_LABEL } from "../components/macro/shared.js";
@@ -1774,6 +1775,7 @@ const ScoringDashboard = () => {
                 )}
                 <div className="mb-4"><ScoreExplainCard stock={sel} weights={weights} /></div>
                 {!sel.isETF && <div className="mb-4"><ValuationReadCard stock={sel} /></div>}
+                <div className="mb-4"><StockProfileCard stock={sel} /></div>
                 <div className="mb-4"><StockNewsCard stock={sel} /></div>
                 <div className="rounded-[14px] border p-3.5 mb-2" style={{ borderColor: "var(--line)", background: "var(--bg-2)" }}>
                   <div className="flex items-center justify-between mb-2">
@@ -3034,7 +3036,8 @@ const ScoringDashboard = () => {
               </div>
             )}
 
-            {/* 相关资讯（离线烘焙 newsSnapshot） */}
+            {/* 公司档案(F10) + 相关资讯（离线烘焙） */}
+            <div><StockProfileCard stock={sel} /></div>
             <div><StockNewsCard stock={sel} /></div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:flex-1 md:min-h-0">
