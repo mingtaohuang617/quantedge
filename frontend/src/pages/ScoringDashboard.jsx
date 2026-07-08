@@ -85,18 +85,19 @@ function ScoreRing({ score = 0, size = 76 }) {
 }
 
 function MPillar({ name, v, w, c, hl }) {
+  const { t } = useLang();
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 0", borderBottom: "1px solid var(--line)" }}>
       <div style={{ width: 3, height: 34, borderRadius: 2, background: c, boxShadow: `0 0 8px ${c}66` }} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 5 }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--fg-0)" }}>{name}<span style={{ fontSize: 10, color: "var(--fg-3)", fontWeight: 400, marginLeft: 6 }}>权重 {w}%</span></span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--fg-0)" }}>{name}<span style={{ fontSize: 10, color: "var(--fg-3)", fontWeight: 400, marginLeft: 6 }}>{t('权重')} {w}%</span></span>
           <span className="font-mono score-accent-num" style={{ fontSize: 18, fontWeight: 700, color: c, lineHeight: 1 }}>{v != null ? Math.round(v) : "—"}</span>
         </div>
         <div style={{ height: 4, background: "rgba(255,255,255,.05)", borderRadius: 2, overflow: "hidden" }}>
           <div style={{ width: `${Math.max(0, Math.min(100, v || 0))}%`, height: "100%", background: `linear-gradient(90deg,${c}55,${c})`, borderRadius: 2 }} />
         </div>
-        {hl && <div style={{ fontSize: 10.5, color: "var(--fg-3)", marginTop: 5 }}>{hl}</div>}
+        {hl && <div style={{ fontSize: 10.5, color: "var(--fg-3)", marginTop: 5 }}>{t(hl)}</div>}
       </div>
     </div>
   );

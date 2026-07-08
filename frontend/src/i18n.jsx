@@ -208,6 +208,9 @@ const EN = {
   "{n} 个跟踪中": "{n} tracking",
   "有效持仓 · HHI {h}": "Effective holdings · HHI {h}",
   "按 {label} 排序": "Sort by {label}",
+  // ── A10：预览验收补漏（复利页叙事块）──
+  "{y} 年后，你将拥有": "In {y} years, you'll have",
+  "复利贡献": "Compound gains",
   // ── A9：删除观察项确认弹层 message（含占位符）──
   "确定从股性观察列表删除 {ticker}？同时清除 8/6 维评分、历史记录、备注与标签。": "Delete {ticker} from the stock-gene watchlist? This also clears the 8/6-dimension scores, history, notes and tags.",
   // ── 估值指标 tooltip（StockDetailPanel financialRows.hint）──
@@ -1637,6 +1640,7 @@ const EN = {
   '价值猎手': 'Value Hunter',
   '价格 + 评级': 'Price + Rating',
   '价格走势': 'Price Trend',
+  '相关资讯': 'Related News',
   '优秀': 'Excellent',
   '低 Beta — 防御性偏强，跑不赢牛市但回撤受控': 'Low Beta — defensive; lags bull markets but contains drawdowns',
   '低估': 'Undervalued',

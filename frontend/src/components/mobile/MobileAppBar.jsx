@@ -1,5 +1,6 @@
 import React from "react";
 import { ChevronLeft } from "lucide-react";
+import { useLang } from "../../i18n.jsx";
 
 /**
  * MobileAppBar — 下钻页面（全屏个股卡 / 研究报告 / 时间线详情…）的顶部栏。
@@ -13,6 +14,7 @@ export default function MobileAppBar({
   backLabel = "返回",
   className = "",
 }) {
+  const { t } = useLang();
   return (
     <div
       className={`sticky top-0 z-20 flex items-center gap-2.5 h-[46px] px-3 border-b ${className}`}
@@ -25,7 +27,7 @@ export default function MobileAppBar({
       {onBack && (
         <button
           onClick={onBack}
-          aria-label={backLabel}
+          aria-label={t(backLabel)}
           className="-ml-1 p-1 active:scale-90 transition"
           style={{ color: "var(--fg-1)" }}
         >
