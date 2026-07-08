@@ -541,7 +541,7 @@ export default function CompoundPower({ onOneClickBacktest = null }) {
             }}
           >
             <div style={{ fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--fg-3)", marginBottom: 10 }}>
-              {years} 年后，你将拥有
+              {t('{y} 年后，你将拥有', { y: years })}
             </div>
             <div
               className="font-serif"
@@ -561,10 +561,10 @@ export default function CompoundPower({ onOneClickBacktest = null }) {
             {/* chips */}
             <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 14, flexWrap: "wrap" }}>
               <span style={{ padding: "4px 10px", borderRadius: 20, fontSize: 10.5, background: "rgba(90,94,118,.25)", border: "1px solid rgba(90,94,118,.4)", color: "var(--fg-1)" }}>
-                本金 {fmtMoney(story.finalPrincipal)}
+                {t('本金')} {fmtMoney(story.finalPrincipal)}
               </span>
               <span style={{ padding: "4px 10px", borderRadius: 20, fontSize: 10.5, background: "rgba(30,211,149,.12)", border: "1px solid rgba(30,211,149,.3)", color: "var(--up)", fontWeight: 600 }}>
-                复利贡献 {fmtMoney(story.finalGrowth)}
+                {t('复利贡献')} {fmtMoney(story.finalGrowth)}
               </span>
             </div>
             {/* 本金/复利占比条 */}
@@ -582,8 +582,8 @@ export default function CompoundPower({ onOneClickBacktest = null }) {
               className="font-mono"
               style={{ display: "flex", justifyContent: "space-between", margin: "6px 8px 0", fontSize: 9, color: "var(--fg-3)" }}
             >
-              <span>本金 {principalPct}%</span>
-              <span style={{ color: "var(--up)" }}>复利 {growthPct}%</span>
+              <span>{t('本金')} {principalPct}%</span>
+              <span style={{ color: "var(--up)" }}>{t('复利')} {growthPct}%</span>
             </div>
           </div>
 
@@ -656,7 +656,7 @@ export default function CompoundPower({ onOneClickBacktest = null }) {
                     fontSize: 10.5, color: "var(--up)", fontWeight: 600,
                   }}
                 >
-                  <Maximize2 size={11} />全屏
+                  <Maximize2 size={11} />{t('全屏')}
                 </button>
               </div>
               {/* 迷你预览曲线 */}
