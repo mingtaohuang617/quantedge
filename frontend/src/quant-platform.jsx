@@ -2580,7 +2580,7 @@ function QuantPlatformInner() {
       <a href="#main-content" className="skip-nav">{t('跳至主内容')}</a>
       {/* C9: Bloomberg 风左侧栏（仅桌面 + sidebar 模式） */}
       {useSidebar && (
-        <aside className="hidden md:flex fixed left-0 top-0 bottom-0 z-40 w-12 flex-col items-stretch border-r border-white/8 bg-white/[0.02] backdrop-blur-md py-2 group/sidebar hover:w-44 transition-[width] duration-200">
+        <aside className="hidden md:flex fixed left-0 top-0 bottom-0 z-40 w-12 flex-col items-stretch border-r border-white/8 bg-white/[0.02] hover:!bg-[var(--bg-overlay)] backdrop-blur-md py-2 group/sidebar hover:w-44 transition-[width,background-color] duration-200">
           <div className="px-2 py-1 mb-2 flex items-center gap-2 overflow-hidden">
             <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-white font-bold text-[10px] shrink-0">QE</div>
             <span className="text-[11px] font-semibold text-white opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200 whitespace-nowrap">QuantEdge</span>
