@@ -322,16 +322,20 @@ def test_get_alerts_filters_by_age(tmp_sg):
 
 def test_get_alerts_sorted_desc(tmp_sg):
     """多 alerts 按 checked_at 倒序"""
+    from datetime import datetime, timedelta, timezone
+    now = datetime.now(timezone.utc)
     sg.add_to_watchlist("A")
     sg.add_to_watchlist("B")
     data = sg.load_watchlist()
+    # 相对日期，避免硬编码日期随时间推移滑出 days 窗口（时间炸弹）。
+    # A 最新在 20 天前、B 最新在 10 天前 → B 更新排前；均在 days=60 内。
     data["items"][0]["score_history"] = [
-        {"engine": "trend", "checked_at": "2026-05-01T00:00:00Z", "score": 5, "max_score": 8},
-        {"engine": "trend", "checked_at": "2026-05-10T00:00:00Z", "score": 3, "max_score": 8},
+        {"engine": "trend", "checked_at": (now - timedelta(days=40)).isoformat(), "score": 5, "max_score": 8},
+        {"engine": "trend", "checked_at": (now - timedelta(days=20)).isoformat(), "score": 3, "max_score": 8},
     ]
     data["items"][1]["score_history"] = [
-        {"engine": "trend", "checked_at": "2026-05-01T00:00:00Z", "score": 5, "max_score": 8},
-        {"engine": "trend", "checked_at": "2026-05-17T00:00:00Z", "score": 2, "max_score": 8},
+        {"engine": "trend", "checked_at": (now - timedelta(days=40)).isoformat(), "score": 5, "max_score": 8},
+        {"engine": "trend", "checked_at": (now - timedelta(days=10)).isoformat(), "score": 2, "max_score": 8},
     ]
     sg.save_watchlist(data)
     alerts = sg.get_alerts(days=60)
