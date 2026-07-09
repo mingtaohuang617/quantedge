@@ -12,6 +12,7 @@ import { BottomSheet, MobileAppBar, FullscreenChart } from "../components/mobile
 // 线上快照（production 只能读它，因为 Vercel 上没跑 backend；本地 dev 走实时 API）
 // 主动刷新：本地 `cd backend && python export_macro_snapshot.py` → commit → push
 import macroSnapshot from "../macroSnapshot.json";
+import EconomicCalendarCard from "../components/EconomicCalendarCard.jsx";
 
 import {
   CATEGORY_LABEL, snapshotStaleness, readStarred, writeStarred, factorStarKey,
@@ -903,6 +904,9 @@ export default function MacroDashboard() {
       </div>
 
       <DataStatusBanner composite={composite} factors={factors} />
+
+      {/* 财经日历（离线烘焙 calendarSnapshot，jin10 本周高影响事件） */}
+      <EconomicCalendarCard />
 
       {/* v7 regime 仪表组 — 真实 composite/因子分布做成圆环仪表（对齐设计稿 SECTION 04「仪表组替代大数字头条」；
           设计稿的板块×因子热力 / 资产相关矩阵用的是 Math.sin 假数据，本平台无对应真实数据源，按「不编造」未复刻）*/}
