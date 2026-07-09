@@ -1854,7 +1854,7 @@ const HubRow = ({ icon, label, value, onClick, last }) => (
     style={last ? undefined : { borderBottom: '1px solid var(--line)' }}
   >
     <span style={{ color: 'var(--fg-2)' }}>{icon}</span>
-    <span className="flex-1 text-[13.5px]" style={{ color: 'var(--fg-1)' }}>{label}</span>
+    <span className="flex-1 text-[13px]" style={{ color: 'var(--fg-1)' }}>{label}</span>
     {value != null && <span className="text-[12px] font-mono" style={{ color: 'var(--fg-3)' }}>{value}</span>}
     <ChevronRight size={16} style={{ color: 'var(--fg-4)' }} />
   </button>

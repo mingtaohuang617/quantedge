@@ -880,7 +880,7 @@ const Monitor = () => {
                   <div className="w-full flex items-center justify-between">
                     <span className="text-xs text-white">{s.displayName}<span className="ml-1.5 text-[9px]" style={{ color: "var(--text-dim)" }}>({s.count})</span>
                       {/* v5.2：板块排名 pip — 在所有板块中即刻定位领涨/领跌 */}
-                      <span className={`ml-1.5 text-[8px] font-mono font-bold ${s.value >= 0 ? "text-up" : "text-down"}`} title={t('今日板块排名')}>{s.value >= 0 ? "▲" : "▼"}#{i + 1}</span>
+                      <span className={`ml-1.5 text-[9px] font-mono font-bold ${s.value >= 0 ? "text-up" : "text-down"}`} title={t('今日板块排名')}>{s.value >= 0 ? "▲" : "▼"}#{i + 1}</span>
                     </span>
                     <div className="flex items-baseline gap-2">
                       <span className={`text-[10px] font-mono ${s.value >= 0 ? "text-[#a0aec0]" : "text-[#7a8497]"}`} title={t('今日绝对涨跌')}>{s.value >= 0 ? "+" : ""}{s.value}%</span>
@@ -1172,10 +1172,10 @@ const Monitor = () => {
                 )}
                 {/* v5.2：键盘快捷 hint（E/M 已接入 keydown）— 重度用户 1 秒处理 */}
                 <span className="ml-auto hidden md:inline-flex items-center gap-1 text-[9px] text-[#778]">
-                  <kbd className="px-1 py-px rounded bg-white/[0.06] border border-white/12 font-mono text-[8px] text-[#a0aec0]">E</kbd>{t('处置')}
+                  <kbd className="px-1 py-px rounded bg-white/[0.06] border border-white/12 font-mono text-[9px] text-[#a0aec0]">E</kbd>{t('处置')}
                   <span className="opacity-40">·</span>
                   {featuredAlert.type !== "macro" && (<>
-                    <kbd className="px-1 py-px rounded bg-white/[0.06] border border-white/12 font-mono text-[8px] text-[#a0aec0]">M</kbd>{t('静音')}
+                    <kbd className="px-1 py-px rounded bg-white/[0.06] border border-white/12 font-mono text-[9px] text-[#a0aec0]">M</kbd>{t('静音')}
                   </>)}
                 </span>
               </div>
