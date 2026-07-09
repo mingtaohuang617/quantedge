@@ -213,7 +213,7 @@ export default function StockDetailPanel({
                   </div>
                 ))}
               </div>
-              <div className="text-[8px] text-[#5a6477] mt-1">
+              <div className="text-[9px] text-[#5a6477] mt-1">
                 {t('ⓘ 缺数据显示 — ；可跑 Finnhub enrich 补齐')}
               </div>
             </div>

@@ -751,7 +751,7 @@ ${angleQuestion}
                       </span>
                     </div>
                     {e.thesis ? (
-                      <p className="font-serif text-[13.5px] leading-relaxed mb-2.5 italic" style={{ color: "var(--fg-1)", margin: "0 0 10px" }}>
+                      <p className="font-serif text-[13px] leading-relaxed mb-2.5 italic" style={{ color: "var(--fg-1)", margin: "0 0 10px" }}>
                         "{e.thesis}"
                       </p>
                     ) : null}
@@ -814,7 +814,7 @@ ${angleQuestion}
             <button
               onClick={handleMobileAdd}
               disabled={!selectedStock || addingEntry}
-              className="w-full h-[46px] rounded-xl text-white text-[14.5px] font-bold flex items-center justify-center gap-2 active:scale-[0.98] transition disabled:opacity-40"
+              className="w-full h-[46px] rounded-xl text-white text-[14px] font-bold flex items-center justify-center gap-2 active:scale-[0.98] transition disabled:opacity-40"
               style={{ background: "linear-gradient(180deg, var(--indigo-2), var(--indigo))", boxShadow: "0 8px 22px -6px rgba(99,102,241,.6)" }}
             >
               {addingEntry

@@ -2025,11 +2025,11 @@ export default function Screener10x() {
                   )}
                 </span>
                 <span className="hidden md:inline-flex items-center gap-1.5">
-                  <span><kbd className="px-1 py-px rounded bg-white/[0.06] border border-white/12 font-mono text-[8px]">J</kbd>/<kbd className="px-1 py-px rounded bg-white/[0.06] border border-white/12 font-mono text-[8px]">K</kbd> {t('移动')}</span>
+                  <span><kbd className="px-1 py-px rounded bg-white/[0.06] border border-white/12 font-mono text-[9px]">J</kbd>/<kbd className="px-1 py-px rounded bg-white/[0.06] border border-white/12 font-mono text-[9px]">K</kbd> {t('移动')}</span>
                   <span className="opacity-40">·</span>
-                  <span><kbd className="px-1 py-px rounded bg-white/[0.06] border border-white/12 font-mono text-[8px]">↵</kbd> {t('详情')}</span>
+                  <span><kbd className="px-1 py-px rounded bg-white/[0.06] border border-white/12 font-mono text-[9px]">↵</kbd> {t('详情')}</span>
                   <span className="opacity-40">·</span>
-                  <span><kbd className="px-1 py-px rounded bg-white/[0.06] border border-white/12 font-mono text-[8px]">+</kbd> {t('观察')}</span>
+                  <span><kbd className="px-1 py-px rounded bg-white/[0.06] border border-white/12 font-mono text-[9px]">+</kbd> {t('观察')}</span>
                 </span>
               </div>
             )}

@@ -1761,7 +1761,7 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
         >
           <button
             onClick={() => setMWeightsOpen(true)}
-            className="flex-1 h-[46px] rounded-xl border flex items-center justify-center gap-2 text-[13.5px] font-semibold active:scale-95 transition"
+            className="flex-1 h-[46px] rounded-xl border flex items-center justify-center gap-2 text-[13px] font-semibold active:scale-95 transition"
             style={{ borderColor: "var(--line-2)", background: "rgba(255,255,255,.04)", color: "var(--fg-1)" }}
           >
             <Layers size={16} style={{ color: "var(--fg-1)" }} />{t("调整组合")}
@@ -2578,7 +2578,7 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
                     {tab.label}
                     {/* v5.2：风险页若有深回撤（≤−15%）则标红色 ⚠ pip，引导用户别跳过风险页 */}
                     {tab.id === "risk" && m.maxDD != null && m.maxDD <= -15 && (
-                      <span className="ml-1 inline-flex items-center justify-center h-[14px] px-1 rounded-full bg-down/20 text-down text-[8px] font-bold border border-down/40 align-middle" title={`${t('最大回撤')} ${m.maxDD.toFixed(1)}%`}>⚠1</span>
+                      <span className="ml-1 inline-flex items-center justify-center h-[14px] px-1 rounded-full bg-down/20 text-down text-[9px] font-bold border border-down/40 align-middle" title={`${t('最大回撤')} ${m.maxDD.toFixed(1)}%`}>⚠1</span>
                     )}
                   </button>
                 );
@@ -2876,7 +2876,7 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
                               <td key={run.id} className={`text-right font-mono py-1 px-1.5 align-top ${isWinner ? 'bg-indigo-500/10 font-bold' : ''}`}>
                                 <span className={goodColor}>{r.fmt(v)}</span>
                                 {delta != null && (
-                                  <span className="block text-[8px] leading-tight text-[#667] font-normal mt-0.5">{delta >= 0 ? '+' : ''}{delta.toFixed(2)} vs {all[0].label}</span>
+                                  <span className="block text-[9px] leading-tight text-[#667] font-normal mt-0.5">{delta >= 0 ? '+' : ''}{delta.toFixed(2)} vs {all[0].label}</span>
                                 )}
                               </td>
                             );
