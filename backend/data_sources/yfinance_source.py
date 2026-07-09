@@ -15,6 +15,7 @@ import math
 import os
 import sys
 import time
+from datetime import datetime, timezone
 from typing import TypeVar
 from collections.abc import Callable
 
@@ -271,12 +272,26 @@ def fetch_fundamentals_enrich(yf_symbol: str) -> dict:
       - profit_margin: profitMargins ×100，round 1（百分比）
       - revenue_growth:revenueGrowth ×100，round 1（百分比）
       - market_cap:    marketCap（原值，本币）
+      - eps:           trailingEps（原值，round 2 —— data.js eps 是裸数）
+      - beta:          beta（原值，round 2 —— data.js beta 是裸数）
+      - revenue:       totalRevenue → "X.XB"/"X.XT" 字符串（对齐 data.js 展示口径）
+      - ebitda:        ebitda → "X.XB"/"X.XT" 字符串（同上）
+      - ps:            priceToSalesTrailing12Months，round 2（比率）
+      - peg:           trailingPegRatio，round 2（比率，trailing 口径）
+      - ev_ebitda:     enterpriseToEbitda，round 2（企业倍数）
+      - target_price:  targetMeanPrice（卖方综合目标价，本币，round 2）
+      - analyst_count: numberOfAnalystOpinions（覆盖机构家数，int）
+      - next_earnings: earningsTimestamp → "YYYY-MM-DD"，仅当在未来才返回
+                       （yf 对 A股给的是上次财报日=过去，未来护栏可滤掉，避免误导）
       - sector:        .info sector（英文大类，如 'Consumer Defensive'）
       - industry:      .info industry（英文细类，如 'Banks - Diversified'）
     .info 失败指数退避重试；全部失败返回全 None（不抛错，让上游跳过保原值）。
     """
     out = {"pe": None, "pb": None, "roe": None, "profit_margin": None,
-           "revenue_growth": None, "market_cap": None, "sector": None, "industry": None}
+           "revenue_growth": None, "market_cap": None, "eps": None, "beta": None,
+           "revenue": None, "ebitda": None, "ps": None, "peg": None, "ev_ebitda": None,
+           "target_price": None, "analyst_count": None, "next_earnings": None,
+           "sector": None, "industry": None}
     if not yf_symbol:
         return out
     try:
@@ -295,8 +310,47 @@ def fetch_fundamentals_enrich(yf_symbol: str) -> dict:
     rg = _coerce_float(info.get("revenueGrowth"))
     out["revenue_growth"] = round(rg * 100, 1) if rg is not None else None
     out["market_cap"] = _coerce_float(info.get("marketCap"))
+    eps = _coerce_float(info.get("trailingEps"))
+    out["eps"] = round(eps, 2) if eps is not None else None
+    beta = _coerce_float(info.get("beta"))
+    out["beta"] = round(beta, 2) if beta is not None else None
+    out["revenue"] = _fmt_big(_coerce_float(info.get("totalRevenue")))
+    out["ebitda"] = _fmt_big(_coerce_float(info.get("ebitda")))
+    ps = _coerce_float(info.get("priceToSalesTrailing12Months"))
+    out["ps"] = round(ps, 2) if ps and ps > 0 else None
+    peg = _coerce_float(info.get("trailingPegRatio"))
+    out["peg"] = round(peg, 2) if peg and peg > 0 else None
+    eve = _coerce_float(info.get("enterpriseToEbitda"))
+    out["ev_ebitda"] = round(eve, 2) if eve and eve > 0 else None
+    tgt = _coerce_float(info.get("targetMeanPrice"))
+    out["target_price"] = round(tgt, 2) if tgt and tgt > 0 else None
+    nac = _coerce_float(info.get("numberOfAnalystOpinions"))
+    out["analyst_count"] = int(nac) if nac and nac > 0 else None
+    ts = info.get("earningsTimestamp") or info.get("earningsTimestampStart")
+    ts = _coerce_float(ts)
+    if ts:
+        try:
+            d = datetime.fromtimestamp(ts, timezone.utc).date()
+            if d >= datetime.now(timezone.utc).date():  # 仅未来财报日
+                out["next_earnings"] = d.isoformat()
+        except (ValueError, OverflowError, OSError):
+            pass
     sec = info.get("sector")
     out["sector"] = str(sec).strip() if sec else None
     ind = info.get("industry")
     out["industry"] = str(ind).strip() if ind else None
     return out
+
+
+def _fmt_big(v: float | None) -> str | None:
+    """大额金额 → data.js 展示口径字符串（对齐美股：T 2 位 / B 1 位 / M 整数）。
+    None/非有限/<=0 → None（让上游跳过保原值，不写 "0"）。"""
+    if v is None or v <= 0:
+        return None
+    if v >= 1e12:
+        return f"{v / 1e12:.2f}T"
+    if v >= 1e9:
+        return f"{v / 1e9:.1f}B"
+    if v >= 1e6:
+        return f"{v / 1e6:.0f}M"
+    return f"{v:.0f}"
