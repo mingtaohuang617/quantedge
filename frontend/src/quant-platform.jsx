@@ -2582,7 +2582,7 @@ function QuantPlatformInner() {
       {useSidebar && (
         <aside className="hidden md:flex fixed left-0 top-0 bottom-0 z-40 w-12 flex-col items-stretch border-r border-white/8 bg-white/[0.02] hover:!bg-[var(--bg-overlay)] backdrop-blur-md py-2 group/sidebar hover:w-44 transition-[width,background-color] duration-200">
           <div className="px-2 py-1 mb-2 flex items-center gap-2 overflow-hidden">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-white font-bold text-[10px] shrink-0">QE</div>
+            <div className="relative w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-white font-bold text-[10px] shrink-0">QE<div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-up border border-deep-base" title={t("系统在线")} /></div>
             <span className="text-[11px] font-semibold text-white opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200 whitespace-nowrap">QuantEdge</span>
           </div>
           <nav role="tablist" aria-label={t('主导航')} className="flex flex-col gap-0.5 px-1.5">
@@ -2633,10 +2633,13 @@ function QuantPlatformInner() {
       <header className="relative z-40 flex flex-col md:flex-row items-center justify-between px-3 md:px-6 py-2 md:py-2.5 border-b border-white/5 bg-white/[0.02] backdrop-blur-md flex-shrink-0 gap-2 md:gap-0">
         <div className="flex items-center justify-between w-full md:w-auto">
           <div className="flex items-center gap-2.5 md:gap-3">
-            <div className="relative w-7 h-7 md:w-8 md:h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-indigo-500/30">
-              <Briefcase size={14} className="text-white drop-shadow-sm" />
-              <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-up border border-deep-base" title={t("系统在线")} />
-            </div>
+            {/* sidebar 模式下侧栏已有 QE 徽标(带在线点)，隐藏 header 冗余 logo，避免双 logo */}
+            {!useSidebar && (
+              <div className="relative w-7 h-7 md:w-8 md:h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                <Briefcase size={14} className="text-white drop-shadow-sm" />
+                <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-up border border-deep-base" title={t("系统在线")} />
+              </div>
+            )}
             <div className="flex items-center gap-2">
               <div>
                 <h1 className="text-xs md:text-sm font-bold tracking-tight text-white leading-tight">QuantEdge</h1>
