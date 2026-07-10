@@ -142,6 +142,22 @@ function isCacheStale(cached) {
   return Date.now() - cached.timestamp > CACHE_MAX_AGE;
 }
 
+// 缓存 schema 过期检测：老用户的 quantedge_data 缓存可能缺 data.js 后来新增的字段
+// （如估值 ps/peg/evEbitda/目标价）。standalone（生产无后端）缓存永不被 API 刷新，
+// 导致评分详情对应明细 chips 永久不渲染，需手动清缓存才出。检测「缓存是否缺 data.js 现有字段」。
+function stockFieldSet(stocks) {
+  const keys = new Set();
+  if (stocks) for (const s of stocks) for (const k in s) keys.add(k);
+  return keys;
+}
+function cacheLacksFreshFields(cacheStocks, freshStocks) {
+  if (!cacheStocks?.length || !freshStocks?.length) return false;
+  const cacheKeys = stockFieldSet(cacheStocks);
+  const freshKeys = stockFieldSet(freshStocks);
+  for (const k of freshKeys) if (!cacheKeys.has(k)) return true;
+  return false;
+}
+
 function formatCacheAge(timestamp) {
   if (!timestamp) return "";
   const d = new Date(timestamp);
@@ -303,8 +319,12 @@ function DataProvider({ children }) {
     const cacheStocks = cached?.stocks?.length > 0 ? cached.stocks : [];
     const standStocks = standaloneStocks.length > 0 ? standaloneStocks : [];
     if (cacheStocks.length === 0 && standStocks.length === 0) return STATIC_STOCKS;
-    // 以数量最多的为基底，合并其他来源
-    const sources = [cacheStocks, standStocks, STATIC_STOCKS].sort((a, b) => b.length - a.length);
+    // A1 修复：缓存缺 data.js 新字段(schema 过期) → 以 data.js 为字段基底，让新增明细(估值 chips 等)立即可见；
+    // 否则沿用「数量最多者为基底」的即时显示路径（同 schema 的新缓存零回归）。
+    const staleSchema = cacheLacksFreshFields(cacheStocks, STATIC_STOCKS);
+    const sources = staleSchema
+      ? [STATIC_STOCKS, cacheStocks, standStocks].filter(a => a.length > 0)
+      : [cacheStocks, standStocks, STATIC_STOCKS].sort((a, b) => b.length - a.length);
     const base = [...sources[0]];
     const baseTickers = new Set(base.map(s => s.ticker));
     for (let i = 1; i < sources.length; i++) {
