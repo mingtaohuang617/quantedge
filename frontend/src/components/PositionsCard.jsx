@@ -41,7 +41,7 @@ export default function PositionsCard({ onAddClick }) {
   useEffect(() => { reload(); }, [reload]);
 
   const handleDelete = async (txId, ticker) => {
-    if (!(await confirm({ title: t('删除交易'), message: t('删除 {ticker} 的最近一笔交易？(此操作不可撤销)', { ticker }), danger: true, confirmLabel: t('删除') }))) return;
+    if (!(await confirm({ title: t('删除'), message: t('删除 {ticker} 的最近一笔交易？(此操作不可撤销)', { ticker }), danger: true, confirmLabel: t('删除') }))) return;
     // 拿该 ticker 最新一笔 tx
     const txList = await apiFetch(`/transactions?ticker=${ticker}&limit=1`);
     if (!txList?.transactions?.length) return;

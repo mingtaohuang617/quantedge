@@ -658,7 +658,7 @@ export default function Screener10x() {
   }, [supertrends]);
 
   const handleDelete = async (ticker) => {
-    if (!(await confirm({ title: t('删除观察项'), message: t('从观察列表删除 {ticker}？此操作不可撤销。归档（左下"显示归档"按钮）可保留 thesis。', { ticker }), danger: true, confirmLabel: t('删除') }))) return;
+    if (!(await confirm({ title: t('删除'), message: t('从观察列表删除 {ticker}？此操作不可撤销。归档（左下"显示归档"按钮）可保留 thesis。', { ticker }), danger: true, confirmLabel: t('删除') }))) return;
     await apiFetch(`/watchlist/10x/${encodeURIComponent(ticker)}`, { method: "DELETE" });
     await reloadWatchlist();
     // 删除后让 ticker 重新进入候选列表

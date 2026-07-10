@@ -1024,7 +1024,7 @@ ${angleQuestion}
                 }
                 actions={
                   <button
-                    onClick={async (ev) => { ev.stopPropagation(); if (await confirm({ title: t('删除记录'), message: t("确定删除 {ticker} 的投资记录？", { ticker: e.ticker }), danger: true, confirmLabel: t('删除') })) { deleteEntry(e.id); setMDetailSel(null); } }}
+                    onClick={async (ev) => { ev.stopPropagation(); if (await confirm({ title: t('删除'), message: t("确定删除 {ticker} 的投资记录？", { ticker: e.ticker }), danger: true, confirmLabel: t('删除') })) { deleteEntry(e.id); setMDetailSel(null); } }}
                     className="p-1 active:scale-90 transition"
                     style={{ color: "var(--down)" }}
                   >
@@ -1437,7 +1437,7 @@ ${angleQuestion}
               <div key={e.id} className={`relative w-full text-left p-3 rounded-xl transition-all border cursor-pointer group ${sel?.id === e.id ? "bg-indigo-500/8 border-indigo-500/30" : "bg-white/[0.02] border-white/5 hover:bg-white/[0.04]"}`} onClick={() => { setSel(e); setMobileShowDetail(true); }}>
                 <div className={`absolute left-0 top-2 bottom-2 w-0.5 rounded-full ${ret >= 0 ? "bg-up" : "bg-down"}`} />
                 <button
-                  onClick={async (ev) => { ev.stopPropagation(); if (await confirm({ title: t('删除记录'), message: t('确定删除 {ticker} 的投资记录？', {ticker: e.ticker}), danger: true, confirmLabel: t('删除') })) deleteEntry(e.id); }}
+                  onClick={async (ev) => { ev.stopPropagation(); if (await confirm({ title: t('删除'), message: t('确定删除 {ticker} 的投资记录？', {ticker: e.ticker}), danger: true, confirmLabel: t('删除') })) deleteEntry(e.id); }}
                   className="absolute bottom-2 right-2 flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-all opacity-0 group-hover:opacity-100 text-down bg-down/[0.08] border border-down/15 hover:bg-down/20 hover:border-down/40"
                   title={t("删除")}
                 ><Trash2 size={10} /> {t('删除')}</button>

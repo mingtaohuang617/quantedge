@@ -1754,7 +1754,7 @@ const WorkspaceSwitcher = () => {
                         {workspaces.length > 1 && (
                           <button onClick={async (e) => {
                             e.stopPropagation();
-                            if (await confirm({ title: t('删除工作区'), message: t('删除工作区 "{n}"？此操作会清除该工作区的日志和回测模板。', { n: w.name }), danger: true, confirmLabel: t('删除') })) {
+                            if (await confirm({ title: t('删除'), message: t('删除工作区 "{n}"？此操作会清除该工作区的日志和回测模板。', { n: w.name }), danger: true, confirmLabel: t('删除') })) {
                               remove(w.id);
                             }
                           }}
