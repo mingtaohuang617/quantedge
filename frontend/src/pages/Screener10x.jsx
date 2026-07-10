@@ -31,6 +31,7 @@ import { apiFetch } from "../quant-platform.jsx";
 import TenxItemEditor from "../components/TenxItemEditor.jsx";
 import AddSupertrendDialog from "../components/AddSupertrendDialog.jsx";
 import WatchlistCard from "../components/WatchlistCard.jsx";
+import { useConfirm } from "../components/ConfirmModal.jsx";
 import ValueFilters from "../components/ValueFilters.jsx";
 import { loadPrefs, savePrefs } from "../lib/screener10xPrefs.js";
 import { sortCandidates, nextSortState } from "../lib/candidateSort.js";
@@ -122,6 +123,7 @@ export default function Screener10x() {
   // ── v6 移动端 ────────────────────────────────────────────────
   const isMobile = useIsMobile();
   const { t } = useLang();
+  const confirm = useConfirm();
   // 移动端专用状态（必须无条件声明，在所有早返回之前）
   const [mFilterOpen, setMFilterOpen] = useState(false);   // 筛选 BottomSheet
   const [mFunnelFs, setMFunnelFs] = useState(false);       // 漏斗全屏（横屏）
@@ -656,7 +658,7 @@ export default function Screener10x() {
   }, [supertrends]);
 
   const handleDelete = async (ticker) => {
-    if (!window.confirm(t('从观察列表删除 {ticker}？此操作不可撤销。归档（左下"显示归档"按钮）可保留 thesis。', { ticker }))) return;
+    if (!(await confirm({ title: t('删除观察项'), message: t('从观察列表删除 {ticker}？此操作不可撤销。归档（左下"显示归档"按钮）可保留 thesis。', { ticker }), danger: true, confirmLabel: t('删除') }))) return;
     await apiFetch(`/watchlist/10x/${encodeURIComponent(ticker)}`, { method: "DELETE" });
     await reloadWatchlist();
     // 删除后让 ticker 重新进入候选列表

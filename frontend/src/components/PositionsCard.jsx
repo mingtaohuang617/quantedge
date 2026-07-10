@@ -10,9 +10,11 @@ import { Briefcase, Plus, Loader, RefreshCw, Trash2 } from "lucide-react";
 import { apiFetch } from "../quant-platform.jsx";
 import EmptyState from "./EmptyState.jsx";
 import { useLang } from "../i18n.jsx";
+import { useConfirm } from "./ConfirmModal.jsx";
 
 export default function PositionsCard({ onAddClick }) {
   const { t } = useLang();
+  const confirm = useConfirm();
   const [positions, setPositions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -39,7 +41,7 @@ export default function PositionsCard({ onAddClick }) {
   useEffect(() => { reload(); }, [reload]);
 
   const handleDelete = async (txId, ticker) => {
-    if (!confirm(t('删除 {ticker} 的最近一笔交易？(此操作不可撤销)', { ticker }))) return;
+    if (!(await confirm({ title: t('删除交易'), message: t('删除 {ticker} 的最近一笔交易？(此操作不可撤销)', { ticker }), danger: true, confirmLabel: t('删除') }))) return;
     // 拿该 ticker 最新一笔 tx
     const txList = await apiFetch(`/transactions?ticker=${ticker}&limit=1`);
     if (!txList?.transactions?.length) return;

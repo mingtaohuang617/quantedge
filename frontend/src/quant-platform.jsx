@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef, createContext
 import { TrendingUp, TrendingDown, Search, Bell, BookOpen, BarChart3, Activity, Settings, ChevronRight, ChevronDown, ChevronLeft, Star, AlertTriangle, Clock, Target, Zap, Filter, ArrowUpRight, ArrowDownRight, Minus, RefreshCw, Plus, X, Check, Eye, EyeOff, Layers, Globe, Briefcase, Info, Database, Trash2, Loader, ExternalLink, Sun, Moon, Calendar, User, LogOut, Mail, Lock, Shield, KeyRound, UserCircle, Share2, GripVertical, Maximize2, AlertCircle, GraduationCap, Palette } from "lucide-react";
 import { searchTickers as standaloneSearch, fetchStockData, fetchBenchmarkPrices, fetchRangePrices, validateStockData, validateAllStocks, loadStandaloneStocks, saveStandaloneStocks, checkStandaloneMode, resolveSector, STOCK_CN_NAMES, STOCK_CN_DESCS } from "./standalone.js";
 import { LangProvider, useLang, localeFor, isZh, tStatic, enFallback } from "./i18n.jsx";
+import { ConfirmProvider, useConfirm } from "./components/ConfirmModal.jsx";
 import { monteCarlo as mcSimulate, navToReturns as mcNavToReturns, hhi as hhiCalc, effectiveN as effN } from "./math/stats.ts";
 import { idbGet, idbSet } from "./lib/idb.js";
 import macroSnapshot from "./macroSnapshot.json";
@@ -1657,6 +1658,7 @@ const WS_PRESET_COLORS = ['#6366f1', '#06b6d4', '#10b981', '#f59e0b', '#ec4899',
 const WorkspaceSwitcher = () => {
   const { t } = useLang();
   const ws = useWorkspace();
+  const confirm = useConfirm();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null); // { id, name, color }
   const [creating, setCreating] = useState(false);
@@ -1750,9 +1752,9 @@ const WorkspaceSwitcher = () => {
                           className="text-[9px] px-1 py-0.5 rounded text-[#778] hover:text-white hover:bg-white/5"
                           title={t('重命名')}>✎</button>
                         {workspaces.length > 1 && (
-                          <button onClick={(e) => {
+                          <button onClick={async (e) => {
                             e.stopPropagation();
-                            if (window.confirm(t('删除工作区 "{n}"？此操作会清除该工作区的日志和回测模板。', { n: w.name }))) {
+                            if (await confirm({ title: t('删除工作区'), message: t('删除工作区 "{n}"？此操作会清除该工作区的日志和回测模板。', { n: w.name }), danger: true, confirmLabel: t('删除') })) {
                               remove(w.id);
                             }
                           }}
@@ -3038,7 +3040,9 @@ export default function QuantPlatform() {
       <AuthProvider>
         <DataProvider>
           <WorkspaceProvider>
-            <QuantPlatformInner />
+            <ConfirmProvider>
+              <QuantPlatformInner />
+            </ConfirmProvider>
           </WorkspaceProvider>
         </DataProvider>
       </AuthProvider>
