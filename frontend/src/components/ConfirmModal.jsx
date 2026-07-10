@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, createContext, useContext, useState, useCallback } from "react";
 import { AlertTriangle, X } from "lucide-react";
 import { useLang } from "../i18n.jsx";
 
@@ -108,3 +108,37 @@ export default function ConfirmModal({
     </div>
   );
 }
+
+// ── 命令式 confirm ──────────────────────────────────────────
+// Provider 内渲染单个 ConfirmModal，暴露 promise 化的 confirm()，
+// 让 `if (window.confirm(msg))` 只需改成 `if (await confirm({ message: msg }))`。
+const ConfirmContext = createContext(() => Promise.resolve(false));
+
+export function ConfirmProvider({ children }) {
+  const [dialog, setDialog] = useState(null); // { title, message, confirmLabel, cancelLabel, danger, resolve }
+  const confirm = useCallback((opts) => {
+    const o = typeof opts === "string" ? { message: opts } : (opts || {});
+    return new Promise((resolve) => setDialog({ ...o, resolve }));
+  }, []);
+  const settle = useCallback((val) => {
+    setDialog((d) => { d?.resolve?.(val); return null; });
+  }, []);
+  return (
+    <ConfirmContext.Provider value={confirm}>
+      {children}
+      <ConfirmModal
+        open={!!dialog}
+        title={dialog?.title}
+        message={dialog?.message}
+        confirmLabel={dialog?.confirmLabel}
+        cancelLabel={dialog?.cancelLabel}
+        danger={dialog?.danger}
+        onConfirm={() => settle(true)}
+        onCancel={() => settle(false)}
+      />
+    </ConfirmContext.Provider>
+  );
+}
+
+// 用法：const confirm = useConfirm(); if (await confirm({ message, danger, confirmLabel })) { ... }
+export const useConfirm = () => useContext(ConfirmContext);
