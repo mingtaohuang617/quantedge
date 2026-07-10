@@ -28,7 +28,7 @@ export default function MobileAppBar({
         <button
           onClick={onBack}
           aria-label={t(backLabel)}
-          className="-ml-1 p-1 active:scale-90 transition"
+          className="-ml-1.5 w-11 h-11 inline-flex items-center justify-center active:scale-90 transition"
           style={{ color: "var(--fg-1)" }}
         >
           <ChevronLeft size={22} />

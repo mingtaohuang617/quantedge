@@ -433,6 +433,8 @@ body {
 }
 .density-compact .virt-row { contain-intrinsic-size: 0 32px; }
 .density-dense   .virt-row { contain-intrinsic-size: 0 24px; }
+/* v7 移动端评分列表行虚拟化（行高≈66px，与桌面 .virt-row 同机制；旧浏览器忽略） */
+.virt-row-m { content-visibility: auto; contain-intrinsic-size: 0 66px; }
 
 /* S2: 表格密度切换（density-cozy=默认 / density-compact / density-dense） */
 :root { --row-py: 0.75rem; --row-px: 0.75rem; --row-gap: 0.5rem; --row-fs: 0.75rem; }
