@@ -2652,7 +2652,7 @@ function QuantPlatformInner() {
           </div>
         </aside>
       )}
-      <header className="relative z-40 flex flex-col md:flex-row items-center justify-between px-3 md:px-6 py-2 md:py-2.5 border-b border-white/5 bg-white/[0.02] backdrop-blur-md flex-shrink-0 gap-2 md:gap-0">
+      <header className="relative z-40 hidden md:flex md:flex-row items-center justify-between px-3 md:px-6 py-2 md:py-2.5 border-b border-white/5 bg-white/[0.02] backdrop-blur-md flex-shrink-0 gap-2 md:gap-0">
         <div className="flex items-center justify-between w-full md:w-auto">
           <div className="flex items-center gap-2.5 md:gap-3">
             {/* sidebar 模式下侧栏已有 QE 徽标(带在线点)，隐藏 header 冗余 logo，避免双 logo */}
@@ -2782,7 +2782,7 @@ function QuantPlatformInner() {
         </div>
       </header>
 
-      <main id="main-content" role="main" className="flex-1 px-0 pt-0 pb-14 md:p-4 min-h-0 overflow-hidden flex flex-col">
+      <main id="main-content" role="main" className="flex-1 px-0 pt-0 pb-[calc(3.5rem_+_env(safe-area-inset-bottom))] md:p-4 min-h-0 overflow-hidden flex flex-col">
         <Suspense fallback={
           <div className="flex items-center justify-center h-full text-[#778] text-xs">
             <div className="flex items-center gap-2">

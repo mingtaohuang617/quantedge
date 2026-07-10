@@ -591,7 +591,7 @@ const Monitor = () => {
               {unreadCount > 0 ? (
                 <button
                   onClick={ackAllRest}
-                  style={{ fontSize: 12, color: "var(--indigo-2)", fontWeight: 600, display: "flex", alignItems: "center", gap: 5, background: "none", border: "none", cursor: "pointer", padding: 0 }}
+                  style={{ fontSize: 12, color: "var(--indigo-2)", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 5, background: "none", border: "none", cursor: "pointer", minHeight: 44, padding: "0 4px", margin: "0 -4px" }}
                 >
                   <Check size={14} style={{ color: "var(--indigo-2)" }} />
                   {t("全部已读")}

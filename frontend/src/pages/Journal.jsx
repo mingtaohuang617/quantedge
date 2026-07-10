@@ -649,14 +649,14 @@ ${angleQuestion}
               <button
                 onClick={() => setShowAddTx(true)}
                 aria-label={t("录入交易")}
-                className="w-9 h-9 rounded-xl border flex items-center justify-center active:scale-95 transition"
+                className="w-11 h-11 rounded-xl border flex items-center justify-center active:scale-95 transition"
                 style={{ borderColor: "var(--line)", background: "rgba(255,255,255,.03)", color: "var(--fg-1)" }}
               >
                 <Briefcase size={15} />
               </button>
               <button
                 onClick={() => setShowMonthlyReview(true)}
-                className="flex items-center gap-1.5 px-3 h-9 rounded-xl border text-[12px] font-medium active:scale-95 transition"
+                className="flex items-center gap-1.5 px-3 h-11 rounded-xl border text-[12px] font-medium active:scale-95 transition"
                 style={{ borderColor: "rgba(139,92,246,.3)", background: "rgba(139,92,246,.08)", color: "#C4B5FD" }}
               >
                 <FileText size={13} /> {t("复盘")}

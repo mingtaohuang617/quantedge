@@ -121,7 +121,7 @@ export default function BottomSheet({
                 ? <span className="text-[16px] font-semibold" style={{ color: "var(--fg-0)" }}>{title}</span>
                 : title}
               {headerRight || (
-                <button onClick={onClose} aria-label={t("关闭")} className="p-1 -mr-1 rounded active:scale-90 transition" style={{ color: "var(--fg-3)" }}>
+                <button onClick={onClose} aria-label={t("关闭")} className="-mr-1.5 w-11 h-11 inline-flex items-center justify-center rounded active:scale-90 transition" style={{ color: "var(--fg-3)" }}>
                   <X size={18} />
                 </button>
               )}

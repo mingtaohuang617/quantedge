@@ -1683,7 +1683,7 @@ const ScoringDashboard = () => {
         <div className="flex-1 overflow-y-auto overscroll-contain">
           <div className="px-4 pt-3 pb-1.5 flex items-center justify-between">
             <h1 className="text-[22px] font-bold" style={{ color: "var(--fg-0)" }}>{t("量化评分")}</h1>
-            <button onClick={() => setMFilterOpen(true)} className="relative w-9 h-9 rounded-[10px] border flex items-center justify-center active:scale-95"
+            <button onClick={() => setMFilterOpen(true)} className="relative w-11 h-11 rounded-[10px] border flex items-center justify-center active:scale-95"
               style={{ borderColor: nFilters ? "rgba(99,102,241,.3)" : "var(--line)", background: nFilters ? "rgba(99,102,241,.12)" : "rgba(255,255,255,.03)" }}>
               <Filter size={17} style={{ color: nFilters ? "var(--indigo-2)" : "var(--fg-1)" }} />
               {nFilters > 0 && <span className="absolute -top-1 -right-1 w-[15px] h-[15px] rounded-full text-[9px] font-bold text-white flex items-center justify-center" style={{ background: "var(--indigo)" }}>{nFilters}</span>}
@@ -1692,8 +1692,15 @@ const ScoringDashboard = () => {
           <div className="px-4 mb-2 relative">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "var(--fg-3)" }} />
             <input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder={t("搜索代码 / 名称")}
-              className="w-full rounded-[10px] pl-9 pr-3 py-2.5 text-[13px] outline-none border"
+              className="w-full rounded-[10px] pl-9 pr-10 py-2.5 text-[13px] outline-none border"
               style={{ background: "rgba(255,255,255,.04)", borderColor: "var(--line)", color: "var(--fg-0)" }} />
+            {searchTerm && (
+              <button type="button" onClick={() => setSearchTerm("")} aria-label={t("清空搜索")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 inline-flex items-center justify-center rounded-full active:scale-90"
+                style={{ color: "var(--fg-2)", background: "rgba(255,255,255,.06)" }}>
+                <X size={13} />
+              </button>
+            )}
           </div>
           <div className="px-4 mb-2">
             <Segmented value={seg} onChange={setSeg} options={[{ value: "ALL", label: t("全部") }, { value: "US", label: t("美股") }, { value: "HK", label: t("港股") }, { value: "ETF", label: "ETF" }]} />
@@ -1703,7 +1710,7 @@ const ScoringDashboard = () => {
             {rows.map((stk) => {
               const up = safeChange(stk.change) >= 0;
               return (
-                <button key={stk.ticker} onClick={() => setSel(stk)} className="w-full flex items-center gap-3 px-2.5 py-3 rounded-xl active:scale-[0.99] transition text-left">
+                <button key={stk.ticker} onClick={() => setSel(stk)} className="virt-row-m w-full flex items-center gap-3 px-2.5 py-3 active:scale-[0.99] transition text-left" style={{ borderBottom: "1px solid var(--line)" }}>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline gap-2">
                       <span className="font-mono text-[14px] font-semibold" style={{ color: "var(--fg-0)" }}>{stk.ticker}</span>
@@ -1731,7 +1738,7 @@ const ScoringDashboard = () => {
                 <span className="font-mono text-[15px] font-bold" style={{ color: "var(--fg-0)" }}>{sel.ticker}</span>
                 <span className="font-mono text-[10px] px-1.5 py-0.5 rounded" style={{ background: "rgba(30,211,149,.12)", color: "var(--up)" }}>{(sel.score ?? 0).toFixed(0)}</span>
               </span>}
-              actions={<button onClick={() => toggleFav(sel.ticker)} aria-label={t("自选")} className="p-0.5 active:scale-90"><Star size={19} style={{ color: isFav ? "var(--warn)" : "var(--fg-3)" }} fill={isFav ? "var(--warn)" : "none"} /></button>}
+              actions={<button onClick={() => toggleFav(sel.ticker)} aria-label={t("自选")} className="-mr-1.5 w-11 h-11 inline-flex items-center justify-center active:scale-90"><Star size={19} style={{ color: isFav ? "var(--warn)" : "var(--fg-3)" }} fill={isFav ? "var(--warn)" : "none"} /></button>}
             />
             <div className="flex-1 overflow-y-auto overscroll-contain" onTouchStart={onTS} onTouchEnd={onTE} style={{ paddingBottom: "calc(74px + env(safe-area-inset-bottom))" }}>
               <div className="px-4 pt-3">
