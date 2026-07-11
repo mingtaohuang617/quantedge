@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 
 // 与 Tailwind `md` 断点对齐：视口 < 768px 视为移动端。
 // 用 matchMedia 监听，旋转 / 改窗口尺寸都会实时切换。
-const QUERY = "(max-width: 767.5px)";
+const QUERY = "(max-width: 767.5px), (pointer: coarse) and (max-height: 500px)";
 
 export default function useIsMobile() {
   const [isMobile, setIsMobile] = useState(() =>

@@ -22,7 +22,7 @@ export default function Segmented({ options, value, onChange, size = "md", class
             style={
               on
                 ? { color: "var(--indigo-2)", borderColor: "rgba(99,102,241,.3)", background: "rgba(99,102,241,.15)", fontWeight: 600 }
-                : { color: "var(--fg-2)", borderColor: "var(--line)", background: "rgba(255,255,255,.03)" }
+                : { color: "var(--fg-2)", borderColor: "var(--line)", background: "var(--surface-1)" }
             }
           >
             {label}

@@ -74,7 +74,7 @@ export default function FullscreenChart({
           {meta}
           <span className="flex-1" />
           {ranges && (
-            <div className="flex gap-1 p-0.5 rounded-lg" style={{ background: "rgba(255,255,255,.04)" }}>
+            <div className="flex gap-1 p-0.5 rounded-lg" style={{ background: "var(--surface-2)" }}>
               {ranges.map((r) => {
                 const v = typeof r === "string" ? r : r.value;
                 const l = typeof r === "string" ? r : r.label;
@@ -97,7 +97,7 @@ export default function FullscreenChart({
           <button
             onClick={onClose}
             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] active:scale-95 transition"
-            style={{ background: "rgba(255,255,255,.04)", color: "var(--fg-2)" }}
+            style={{ background: "var(--surface-2)", color: "var(--fg-2)" }}
           >
             <Minimize2 size={13} />退出
           </button>

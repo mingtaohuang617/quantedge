@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, createContext, useContext, lazy, Suspense } from "react";
 // C1/C2: Recharts 已下沉到各 lazy page chunk（CompareModal 已迁至 ScoringDashboard），主文件不再直接依赖
-import { TrendingUp, TrendingDown, Search, Bell, BookOpen, BarChart3, Activity, Settings, ChevronRight, ChevronDown, ChevronLeft, Star, AlertTriangle, Clock, Target, Zap, Filter, ArrowUpRight, ArrowDownRight, Minus, RefreshCw, Plus, X, Check, Eye, EyeOff, Layers, Globe, Briefcase, Info, Database, Trash2, Loader, ExternalLink, Sun, Moon, Calendar, User, LogOut, Mail, Lock, Shield, KeyRound, UserCircle, Share2, GripVertical, Maximize2, AlertCircle, GraduationCap, Palette } from "lucide-react";
+import { TrendingUp, TrendingDown, Search, Bell, BookOpen, BarChart3, Activity, Settings, ChevronRight, ChevronDown, ChevronLeft, Star, AlertTriangle, Clock, Target, Zap, Filter, ArrowUpRight, ArrowDownRight, Minus, RefreshCw, Plus, X, Check, Eye, EyeOff, Layers, Globe, Briefcase, Info, Database, Trash2, Loader, ExternalLink, Sun, Moon, Calendar, User, LogOut, Mail, Lock, Shield, KeyRound, UserCircle, Share2, GripVertical, Maximize2, AlertCircle, GraduationCap, Palette, LayoutGrid } from "lucide-react";
 import { searchTickers as standaloneSearch, fetchStockData, fetchBenchmarkPrices, fetchRangePrices, validateStockData, validateAllStocks, loadStandaloneStocks, saveStandaloneStocks, checkStandaloneMode, resolveSector, STOCK_CN_NAMES, STOCK_CN_DESCS } from "./standalone.js";
 import { LangProvider, useLang, localeFor, isZh, tStatic, enFallback } from "./i18n.jsx";
 import { ConfirmProvider, useConfirm } from "./components/ConfirmModal.jsx";
@@ -1361,7 +1361,7 @@ const MOBILE_PRIMARY_TABS = [
   { id: "monitor", label: "实时监控", short: "监控", icon: Bell },
   { id: "journal", label: "投资日志", short: "日志", icon: BookOpen },
   { id: "macro",   label: "宏观看板", short: "宏观", icon: Globe },
-  { id: "me",      label: "我的",     short: "我的", icon: UserCircle },
+  { id: "me",      label: "更多",     short: "更多", icon: LayoutGrid },
 ];
 const MOBILE_HUB_IDS = ["backtest", "smartBeta", "miningAlpha", "screener10x", "stockgene", "compound"];
 
@@ -1889,7 +1889,7 @@ const MobileMeHub = ({ setTab, user, stocks, theme, toggleTheme, density, cycleD
   return (
     <div className="md:hidden h-full overflow-y-auto" style={{ background: 'var(--bg-0)' }}>
       <div className="px-4 pt-3 pb-2">
-        <h1 className="text-[22px] font-bold" style={{ color: 'var(--fg-0)' }}>{t("我的")}</h1>
+        <h1 className="text-[22px] font-bold" style={{ color: 'var(--fg-0)' }}>{t("更多")}</h1>
       </div>
       {/* 账户卡 */}
       <button
@@ -2580,8 +2580,13 @@ function QuantPlatformInner() {
       const target = e.detail;
       if (target && typeof target === 'string') setTab(target);
     };
+    const onRefresh = () => { kbdRefreshRef.current?.(); };
     window.addEventListener("quantedge:nav", handler);
-    return () => window.removeEventListener("quantedge:nav", handler);
+    window.addEventListener("quantedge:refresh", onRefresh);
+    return () => {
+      window.removeEventListener("quantedge:nav", handler);
+      window.removeEventListener("quantedge:refresh", onRefresh);
+    };
   }, []);
 
   // 未登录显示认证页面
