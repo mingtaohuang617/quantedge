@@ -85,8 +85,15 @@ const AlertRulesPanel = ({ liveStocks, t, lang }) => {
 
 // ─── v6 移动端：告警 Hero 大卡 + 行滑动操作 ───────────────────
 // 轻量 swipe-reveal 行，只暴露「已读 / 静音」两个操作
-function MAlertRow({ alert: a, onAck, onMute, t, lang, liveStocks, onTap }) {
+function MAlertRow({ alert: a, onAck, onMute, t, lang, liveStocks, onTap, autohint }) {
   const [dx, setDx] = useState(0);
+  // #13 首用左滑提示：自动 peek 一次，教用户「左滑可操作」
+  useEffect(() => {
+    if (!autohint) return;
+    const t1 = setTimeout(() => setDx(-56), 350);
+    const t2 = setTimeout(() => setDx(0), 1050);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [autohint]);
   const startX = useRef(null);
   const trackingRef = useRef(false);
   const REVEAL = 128; // 两个 64px 按钮
@@ -426,6 +433,12 @@ const Monitor = () => {
 
   // v6 移动端：下钻详情弹层 + 筛选类型 chip state
   const [mDetailAlert, setMDetailAlert] = useState(null); // 当前下钻的 alert
+  // v7 移动端：真下拉刷新 + 左滑首用提示（一次性）
+  const [pullY, setPullY] = useState(0);
+  const [mRefreshing, setMRefreshing] = useState(false);
+  const pullStart = useRef(null);
+  const mScrollRef = useRef(null);
+  const [showSwipeHint] = useState(() => { try { if (!localStorage.getItem("qe:monitor-swipe-hint")) { localStorage.setItem("qe:monitor-swipe-hint", "1"); return true; } } catch {} return false; });
   const [mFilterType, setMFilterType] = useState("all");  // mobile 独立类型 chip
 
   // v5 编辑式：SPY 作为板块超额收益基准（若 SPY 在 watchlist 内）
@@ -483,8 +496,11 @@ const Monitor = () => {
       const stk = liveStocks.find((s) => s.ticker === a.ticker);
       const dc = sevColor(a.severity);
       const isAcked = ackedIds.has(a.id);
+      let eb = null;
+      const ebStart = (ev) => { const p = ev.touches[0]; eb = p.clientX <= 24 ? { x: p.clientX, y: p.clientY } : null; };
+      const ebEnd = (ev) => { if (!eb) return; const p = ev.changedTouches[0]; const dx = p.clientX - eb.x, dy = p.clientY - eb.y; if (dx > 64 && Math.abs(dx) > Math.abs(dy) * 1.5) setMDetailAlert(null); eb = null; };
       return (
-        <div className="fixed inset-0 z-40 flex flex-col" style={{ background: "var(--bg-0)" }}>
+        <div className="fixed inset-0 z-40 flex flex-col" onTouchStart={ebStart} onTouchEnd={ebEnd} style={{ background: "var(--bg-0)" }}>
           <MobileAppBar
             onBack={() => setMDetailAlert(null)}
             title={
@@ -567,16 +583,25 @@ const Monitor = () => {
       );
     })() : null;
 
+    // #11 真下拉刷新手势（列表顶端下拉 → 派发 quantedge:refresh，quant-platform 调 quickPriceRefresh）
+    const PULL_TRIGGER = 64, PULL_MAX = 90;
+    const onPullStart = (e) => { if (mRefreshing) return; const el = mScrollRef.current; pullStart.current = (el && el.scrollTop <= 0) ? e.touches[0].clientY : null; };
+    const onPullMove = (e) => { if (pullStart.current == null || mRefreshing) return; const dy = e.touches[0].clientY - pullStart.current; if (dy > 0) setPullY(Math.min(PULL_MAX, dy * 0.5)); };
+    const onPullEnd = () => { if (mRefreshing) return; if (pullY >= PULL_TRIGGER) { setMRefreshing(true); setPullY(0); window.dispatchEvent(new CustomEvent("quantedge:refresh")); window.setTimeout(() => setMRefreshing(false), 1400); } else { setPullY(0); } pullStart.current = null; };
+
     return (
       <div className="h-full flex flex-col" style={{ background: "var(--bg-0)" }}>
         {/* detail overlay mounts on top */}
         {DetailOverlay}
 
-        <div className="flex-1 overflow-y-auto overscroll-contain">
-          {/* ── 顶部 pull-to-refresh 提示 ── */}
-          <div style={{ textAlign: "center", padding: "8px 0 4px", fontSize: 10, color: "var(--fg-3)", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-            <RefreshCw size={11} className="animate-pulse" style={{ color: "var(--fg-3)" }} />
-            {t("下拉刷新")} · {t("刚刚更新")}
+        <div ref={mScrollRef} className="flex-1 overflow-y-auto overscroll-contain" onTouchStart={onPullStart} onTouchMove={onPullMove} onTouchEnd={onPullEnd}>
+          {/* ── 真·下拉刷新指示器（手势见 onPull*）── */}
+          <div style={{ height: mRefreshing ? 34 : (pullY > 0 ? pullY : 22), overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 10, color: "var(--fg-3)", transition: pullStart.current != null ? "none" : "height .25s ease" }}>
+            {mRefreshing
+              ? (<><RefreshCw size={11} className="animate-spin" style={{ color: "var(--fg-3)" }} />{t("刷新中...")}</>)
+              : pullY >= PULL_TRIGGER
+              ? <span>↑ {t("松开刷新")}</span>
+              : <span>↓ {t("下拉刷新")}</span>}
           </div>
 
           <div className="px-4 pt-1 pb-2">
@@ -735,7 +760,7 @@ const Monitor = () => {
                 <div style={{ fontSize: 9, color: "var(--fg-3)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10, paddingLeft: 2 }}>
                   {t("其余告警")} · {t("今天")} · {t("左滑可操作")}
                 </div>
-                {mRest.map((a) => (
+                {mRest.map((a, i) => (
                   <MAlertRow
                     key={a.id}
                     alert={a}
@@ -745,6 +770,7 @@ const Monitor = () => {
                     t={t}
                     lang={lang}
                     liveStocks={liveStocks}
+                    autohint={i === 0 && showSwipeHint}
                   />
                 ))}
               </>

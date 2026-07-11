@@ -1010,8 +1010,11 @@ ${angleQuestion}
             ? (isZh(lang) ? t(stk?.nameCN || STOCK_CN_NAMES[e.ticker] || stk?.name || e.name) : enFallback(stk?.name || e.name, e.ticker)) || e.ticker
             : e.ticker;
           const days = Math.max(0, Math.floor((Date.now() - new Date(e.anchorDate).getTime()) / 86400000));
+          let eb = null;
+          const ebStart = (ev) => { const p = ev.touches[0]; eb = p.clientX <= 24 ? { x: p.clientX, y: p.clientY } : null; };
+          const ebEnd = (ev) => { if (!eb) return; const p = ev.changedTouches[0]; const dx = p.clientX - eb.x, dy = p.clientY - eb.y; if (dx > 64 && Math.abs(dx) > Math.abs(dy) * 1.5) { setMDetailSel(null); setSel(e); } eb = null; };
           return (
-            <div className="fixed inset-0 z-40 flex flex-col" style={{ background: "var(--bg-0)" }}>
+            <div className="fixed inset-0 z-40 flex flex-col" onTouchStart={ebStart} onTouchEnd={ebEnd} style={{ background: "var(--bg-0)" }}>
               <MobileAppBar
                 onBack={() => { setMDetailSel(null); setSel(e); }}
                 title={

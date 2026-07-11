@@ -668,6 +668,9 @@ const StockRow = memo(function StockRow({ stk, i, isSel, isFav, density, searchT
 });
 
 
+const SCORING_SS = "qe:scoring:filters";
+const loadScoringFilters = () => { try { return JSON.parse(sessionStorage.getItem(SCORING_SS) || "{}"); } catch { return {}; } };
+
 const ScoringDashboard = () => {
   const { t, lang } = useLang();
   const [sel, setSel] = useState(null);
@@ -675,8 +678,8 @@ const ScoringDashboard = () => {
   const [activeSection, setActiveSection] = useState("overview");
   // 来自 MacroDashboard alert 跳转的上下文 — 显示一个可关闭的横幅
   const [macroSignal, setMacroSignal] = useState(null);
-  const [mkt, setMkt] = useState("ALL");
-  const [typeFilter, setTypeFilter] = useState("ALL"); // ALL | STOCK | ETF | LEV
+  const [mkt, setMkt] = useState(() => loadScoringFilters().mkt ?? "ALL");
+  const [typeFilter, setTypeFilter] = useState(() => loadScoringFilters().typeFilter ?? "ALL"); // ALL | STOCK | ETF | LEV
   const [mktOpen, setMktOpen] = useState(false);
   const [typeOpen, setTypeOpen] = useState(false);
   const filterRef = useRef(null);
@@ -688,10 +691,10 @@ const ScoringDashboard = () => {
     document.addEventListener('keydown', onKey);
     return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey); };
   }, [mktOpen, typeOpen]);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState(() => loadScoringFilters().searchTerm ?? "");
   // jank-4: 搜索去抖 —— input 即时响应，543 项过滤/排序跟随 deferred 值（每空闲帧最多一次，不逐键卡）
   const deferredSearch = useDeferredValue(searchTerm);
-  const [sortBy, setSortBy] = useState("score"); // score | change | name
+  const [sortBy, setSortBy] = useState(() => loadScoringFilters().sortBy ?? "score"); // score | change | name
   // A2/C16: 评分权重 — 按 workspace 隔离 + 工作区切换响应式
   const wsCtx = useWorkspace();
   const wsId = wsCtx?.activeId || 'default';
@@ -725,7 +728,19 @@ const ScoringDashboard = () => {
   const [favorites, setFavorites] = useState(() => {
     try { return new Set(JSON.parse(localStorage.getItem('quantedge_favorites') || '[]')); } catch { return new Set(); }
   });
-  const [showFavOnly, setShowFavOnly] = useState(false);
+  const [showFavOnly, setShowFavOnly] = useState(() => loadScoringFilters().showFavOnly ?? false);
+  // #4 评分筛选态跨 tab 持久化（sessionStorage）+ 移动端列表滚动位置记忆
+  const mListRef = useRef(null);
+  useEffect(() => {
+    try { sessionStorage.setItem(SCORING_SS, JSON.stringify({ mkt, typeFilter, searchTerm, sortBy, showFavOnly })); } catch {}
+  }, [mkt, typeFilter, searchTerm, sortBy, showFavOnly]);
+  useEffect(() => {
+    if (!isMobile) return;
+    const el = mListRef.current; if (!el) return;
+    const y = Number(sessionStorage.getItem("qe:scoring:scroll") || 0);
+    if (y > 0) el.scrollTop = y;
+    return () => { try { sessionStorage.setItem("qe:scoring:scroll", String(el.scrollTop)); } catch {} };
+  }, [isMobile]);
   const toggleFav = useCallback((ticker) => {
     setFavorites(prev => {
       const next = new Set(prev);
@@ -1672,7 +1687,7 @@ const ScoringDashboard = () => {
     ] : [];
     let tStart = null;
     const onTS = (e) => { const p = e.touches[0]; tStart = { x: p.clientX, y: p.clientY }; };
-    const onTE = (e) => { if (!tStart) return; const p = e.changedTouches[0]; const dx = p.clientX - tStart.x, dy = p.clientY - tStart.y; if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) goRel(dx < 0 ? 1 : -1); tStart = null; };
+    const onTE = (e) => { if (!tStart) return; const p = e.changedTouches[0]; const dx = p.clientX - tStart.x, dy = p.clientY - tStart.y; if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) { if (tStart.x <= 24 && dx > 0) setSel(null); else goRel(dx < 0 ? 1 : -1); } tStart = null; };
     const segBtn = (on) => on
       ? { color: "var(--indigo-2)", borderColor: "rgba(99,102,241,.3)", background: "rgba(99,102,241,.15)" }
       : { color: "var(--fg-2)", borderColor: "var(--line)", background: "rgba(255,255,255,.03)" };
@@ -1680,7 +1695,7 @@ const ScoringDashboard = () => {
     return (
       <div className="h-full flex flex-col" style={{ background: "var(--bg-0)" }}>
         {/* ── 列表 ── */}
-        <div className="flex-1 overflow-y-auto overscroll-contain">
+        <div ref={mListRef} className="flex-1 overflow-y-auto overscroll-contain">
           <div className="px-4 pt-3 pb-1.5 flex items-center justify-between">
             <h1 className="text-[22px] font-bold" style={{ color: "var(--fg-0)" }}>{t("量化评分")}</h1>
             <button onClick={() => setMFilterOpen(true)} className="relative w-11 h-11 rounded-[10px] border flex items-center justify-center active:scale-95"

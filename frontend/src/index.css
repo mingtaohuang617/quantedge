@@ -30,6 +30,8 @@
   --line: #1F2230; --line-2: #2C3043;
   /* --fg-3 = 弱化文字 token（=--text-muted / --sem-neutral）。v7 a11y：#5A5E76(~2.9:1) → #767C92(~4.75:1) 过 WCAG AA，仍保持弱化层级 */
   --fg-0: #F5F6FA; --fg-1: #C9CDDA; --fg-2: #878BA0; --fg-3: #767C92; --fg-4: #3A3E54;
+  /* v7 #8：主题化叠层。深色值 = 原硬编码 rgba 白，零回归；浅色见 .light（黑色微阴，避免白上加白） */
+  --surface-1: rgba(255,255,255,.03); --surface-2: rgba(255,255,255,.04); --surface-3: rgba(255,255,255,.06);
   --indigo-2: #818CF8; --rose: #F472B6;
   --up: var(--accent-up); --down: var(--accent-down); --warn: var(--accent-amber);
   --cyan: var(--accent-cyan); --indigo: var(--accent-indigo); --violet: var(--accent-violet);
@@ -111,6 +113,7 @@
   --bg-0: #f0f2f8; --bg-1: #e8ecf4; --bg-2: #ffffff; --bg-3: #f5f6fa;
   --line: rgba(0,0,0,.08); --line-2: rgba(0,0,0,.12);
   --fg-0: #0f172a; --fg-1: #1e293b; --fg-2: #475569; --fg-3: #64748b; --fg-4: #94a3b8;
+  --surface-1: rgba(15,23,42,.035); --surface-2: rgba(15,23,42,.05); --surface-3: rgba(15,23,42,.07);
   --indigo-2: var(--accent-indigo); --rose: #db2777;
   --bg-base: #f0f2f8;
   --bg-gradient: linear-gradient(135deg, #f0f2f8 0%, #e8ecf4 50%, #f5f6fa 100%);

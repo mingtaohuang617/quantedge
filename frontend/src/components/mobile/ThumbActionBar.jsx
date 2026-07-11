@@ -37,7 +37,7 @@ export default function ThumbActionBar({
               aria-label={b.label}
               disabled={b.disabled}
               className="w-[46px] h-[46px] shrink-0 rounded-xl border flex items-center justify-center active:scale-95 transition disabled:opacity-40"
-              style={{ borderColor: "var(--line-2)", background: "rgba(255,255,255,.04)", color: "var(--fg-1)" }}
+              style={{ borderColor: "var(--line-2)", background: "var(--surface-2)", color: "var(--fg-1)" }}
             >
               {b.icon}
             </button>
