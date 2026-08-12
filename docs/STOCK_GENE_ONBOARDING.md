@@ -61,7 +61,7 @@ cd backend && python server.py
 cd frontend && npm run dev
 ```
 
-打开 `http://localhost:5173`，邀请码：`MtQuant2026_X9k7P`（dev 用，写在 `frontend/src/quant-platform.jsx`）。
+打开 `http://localhost:5173`，邀请码：`MintoQuant`（dev 用，写在 `frontend/src/quant-platform.jsx`）。
 
 ## 核心工作流
 

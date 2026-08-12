@@ -858,7 +858,7 @@ function AuthProvider({ children }) {
 }
 
 // ─── AuthPage（邀请码登录） ───────────────────────────────
-const INVITE_CODE = "MtQuant2026_X9k7P";
+const INVITE_CODE = "MintoQuant";
 
 const AuthPage = () => {
   const { login } = useAuth();
@@ -2508,6 +2508,7 @@ function QuantPlatformInner() {
   }, [layoutMode]);
   const toggleLayout = () => setLayoutMode(m => m === "topbar" ? "sidebar" : "topbar");
   const useSidebar = layoutMode === "sidebar";
+  const [sidebarExpanded, setSidebarExpanded] = useState(false);
 
   // 全局键盘快捷键（ref 持有最新的回调以避免每次渲染重注册）
   const kbdRefreshRef = useRef(quickPriceRefresh);
@@ -2607,10 +2608,22 @@ function QuantPlatformInner() {
       <a href="#main-content" className="skip-nav">{t('跳至主内容')}</a>
       {/* C9: Bloomberg 风左侧栏（仅桌面 + sidebar 模式） */}
       {useSidebar && (
-        <aside className="hidden md:flex fixed left-0 top-0 bottom-0 z-40 w-12 flex-col items-stretch border-r border-white/8 bg-white/[0.02] hover:!bg-[var(--bg-overlay)] backdrop-blur-md py-2 group/sidebar hover:w-44 transition-[width,background-color] duration-200">
+        <aside
+          data-testid="desktop-sidebar"
+          data-expanded={sidebarExpanded ? "true" : "false"}
+          onMouseEnter={() => setSidebarExpanded(true)}
+          onMouseLeave={(e) => {
+            if (!e.currentTarget.contains(document.activeElement)) setSidebarExpanded(false);
+          }}
+          onFocusCapture={() => setSidebarExpanded(true)}
+          onBlurCapture={(e) => {
+            if (!e.currentTarget.contains(e.relatedTarget)) setSidebarExpanded(false);
+          }}
+          className={`hidden md:flex fixed left-0 top-0 bottom-0 z-50 flex-col items-stretch border-r border-white/8 backdrop-blur-md py-2 overflow-hidden transition-[width,background-color,box-shadow] duration-200 ease-out ${sidebarExpanded ? "w-44 bg-[var(--bg-overlay)] shadow-2xl shadow-black/30" : "w-12 bg-white/[0.02]"}`}
+        >
           <div className="px-2 py-1 mb-2 flex items-center gap-2 overflow-hidden">
             <div className="relative w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-white font-bold text-[10px] shrink-0">QE<div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-up border border-deep-base" title={t("系统在线")} /></div>
-            <span className="text-[11px] font-semibold text-white opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200 whitespace-nowrap">QuantEdge</span>
+            <span className={`text-[11px] font-semibold text-white transition-opacity duration-150 whitespace-nowrap ${sidebarExpanded ? "opacity-100" : "opacity-0"}`}>QuantEdge</span>
           </div>
           <nav role="tablist" aria-label={t('主导航')} className="flex flex-col gap-0.5 px-1.5">
             {TAB_CFG.map(c => {
@@ -2627,7 +2640,7 @@ function QuantPlatformInner() {
                   className={`relative flex items-center gap-2 px-2 py-2 rounded-md text-[11px] font-medium transition-all overflow-hidden whitespace-nowrap btn-tactile ${active ? "bg-white/[0.04] text-white" : "text-[#a0aec0] hover:text-white hover:bg-white/[0.04]"}`}
                 >
                   <I size={14} className="shrink-0" />
-                  <span className="opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">{t(c.label)}</span>
+                  <span className={`transition-opacity duration-150 ${sidebarExpanded ? "opacity-100" : "opacity-0"}`}>{t(c.label)}</span>
                   {active && (
                     <span
                       aria-hidden="true"
@@ -2648,11 +2661,11 @@ function QuantPlatformInner() {
               className="relative flex items-center gap-2 px-2 py-2 rounded-md text-[11px] font-medium text-[#a0aec0] hover:text-white hover:bg-white/[0.04] transition-all overflow-hidden whitespace-nowrap btn-tactile"
             >
               <GraduationCap size={14} className="shrink-0" />
-              <span className="opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">{t('功能教程')}</span>
+              <span className={`transition-opacity duration-150 ${sidebarExpanded ? "opacity-100" : "opacity-0"}`}>{t('功能教程')}</span>
             </button>
             <div className="px-2 py-1.5 text-[9px] text-[#667] flex items-center gap-1.5 overflow-hidden whitespace-nowrap">
               <kbd className="px-1 py-[1px] rounded bg-white/5 border border-white/10 font-mono">⌘K</kbd>
-              <span className="opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">{t('搜索')}</span>
+              <span className={`transition-opacity duration-150 ${sidebarExpanded ? "opacity-100" : "opacity-0"}`}>{t('搜索')}</span>
             </div>
           </div>
         </aside>
@@ -2667,7 +2680,11 @@ function QuantPlatformInner() {
                 <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-up border border-deep-base" title={t("系统在线")} />
               </div>
             )}
-            <div className="flex items-center gap-2">
+            <div
+              data-testid="header-brand"
+              aria-hidden={useSidebar && sidebarExpanded ? "true" : undefined}
+              className={`flex items-center gap-2 transition-opacity duration-150 ${useSidebar && sidebarExpanded ? "opacity-0 pointer-events-none" : "opacity-100"}`}
+            >
               <div>
                 <h1 className="text-xs md:text-sm font-bold tracking-tight text-white leading-tight">QuantEdge</h1>
                 <p className="text-[9px] md:text-[10px] text-[#a0aec0] hidden sm:block leading-tight">{t('综合量化投资平台 · 真实数据')}</p>

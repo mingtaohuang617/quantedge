@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { skipOnboarding } from './helpers';
 
-const INVITE = 'MtQuant2026_X9k7P';
+const INVITE = 'MintoQuant';
 
 test.describe('AuthPage', () => {
   test.beforeEach(async ({ page }) => {
