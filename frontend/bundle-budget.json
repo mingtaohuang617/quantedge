@@ -1,9 +1,9 @@
 {
   "recordedAt": "2026-08-28",
-  "baselineCommit": "stage-3-local",
+  "baselineCommit": "vite-8-upgrade-local",
   "originalInitialGzipBytes": 345791,
   "minimumInitialReductionPercent": 30,
-  "initialGzipBytes": 50676,
+  "initialGzipBytes": 57421,
   "maxInitialGrowthPercent": 5,
   "lazyRouteGzipLimitBytes": 153600,
   "enforceLazyAbsolute": true,
