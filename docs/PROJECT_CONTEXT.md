@@ -87,7 +87,7 @@
 - **数据管道**：yfinance + Finnhub + AKShare + Futu + Tushare 多源容错；Windows GBK UnicodeEncodeError 已修
 - **v0.8.0 UI/UX 优化**：色彩 7→5 语义角色 / 字号 8→5 档 / 玻璃质感 + 玻璃面板 / 命令面板 ⌘K + 全局键盘流 / 移动端底部 Tab Bar
 - **v5 编辑式设计语言**（2026-05 落地）：Fraunces serif Hero + AI Lead Paragraph（紫色 3px 左边线）+ Screener10x 4 阶段漏斗 chip
-- **测试覆盖**：vitest 710 / backend pytest 1272 / Playwright 33，含十页 axe 和 360–2048px 响应式验收
+- **测试覆盖**：vitest 713 / backend pytest 1272 / Playwright 33，含十页 axe 和 360–2048px 响应式验收
 - **工程化**：ruff + pytest + vitest + GitHub Actions CI + Vercel preview deploy
 - 架构与数据流细节：[ARCHITECTURE.md](ARCHITECTURE.md)
 - 历史 TODO 已归档；未来研究基础设施见 [RFC](rfcs/FUTURE_RESEARCH_INFRASTRUCTURE.md)

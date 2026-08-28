@@ -77,7 +77,7 @@ Render FastAPI
 ## 证据定位
 
 - Origin、会话、Cookie、CSRF 与限流：`frontend/api/_lib/auth.js:11`
-- 邀请码服务端校验：`frontend/api/auth/invite.js:14`
+- 邀请码服务端校验：`frontend/api/auth/_invite.js:14`
 - BFF 路由白名单、成本限制与签名：`frontend/api/_lib/backendProxy.js:7`
 - Render 签名校验、请求体上限、重放和并发：`backend/server.py:611`
 - Mining Alpha 强类型参数与重复任务防护：`backend/server.py:2784`

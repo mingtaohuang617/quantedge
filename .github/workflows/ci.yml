@@ -63,6 +63,8 @@ jobs:
         run: npm run audit:i18n:all
       - name: Version consistency
         run: npm run check:version
+      - name: Vercel function budget
+        run: npm run check:vercel-functions
       - name: Vitest
         run: npm test
       - name: Vite build

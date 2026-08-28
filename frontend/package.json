@@ -16,6 +16,7 @@
     "test:e2e:responsive": "playwright test responsive.spec.ts",
     "check:bundle": "node scripts/check-bundle-budget.mjs",
     "check:version": "node scripts/check-version.mjs",
+    "check:vercel-functions": "node scripts/check-vercel-functions.mjs",
     "check:lighthouse": "node scripts/check-lighthouse.mjs",
     "test:e2e:ui": "playwright test --ui",
     "audit:lucide": "node scripts/audit-lucide.mjs",
