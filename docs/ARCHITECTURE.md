@@ -1,158 +1,123 @@
-# QuantEdge — 架构与数据流
+# QuantEdge 架构与数据流
 
-> 配套阅读：[PROJECT_CONTEXT.md](PROJECT_CONTEXT.md)（业务目标）、[TODO.md](TODO.md)（待办）。
+状态日期：2026-08-28
 
-## 1. 整体拓扑
+配套阅读：[项目背景](PROJECT_CONTEXT.md)、[安全威胁模型](SECURITY_THREAT_MODEL.md)、[部署与运维](DEPLOYMENT.md)。
 
-```
-┌──────────────┐  pip / venv   ┌────────────────────────────────────────┐
-│  backend/    │ ───────────►  │  pipeline.py  ──► output/*.json        │
-│  Python 3.11 │               │  server.py    ──► /api/* (FastAPI 20+) │
-└──────┬───────┘               │  data/quantedge.db  (SQLite)            │
-       │                       └────────────────────────────────────────┘
-       │  data_sources/* 链路（多源容错）
-       ├─► yfinance (Yahoo)             ── 行情主源 + .info 兜底
-       ├─► Finnhub (REST + token)       ── 美股 PE/PB/ROE 补充（限频自动 retry）
-       ├─► AKShare (REST)               ── 港股 / A 股财务补充
-       ├─► Futu OpenD (本地 socket)     ── 港/A 行情备选
-       ├─► Tushare (Mining Alpha 专用)  ── A 股日线 + Alpha191 因子
-       ├─► multpl.com                   ── 标普 PE / Shiller CAPE
-       └─► FRED                         ── 宏观因子（10Y-2Y / M2 / 信用利差等）
-       │
-       └─► DeepSeek LLM（B1-B7：摘要 / 评分解读 / 回测 narrate / 月度复盘 / thesis）
-           带 SQLite cache（按 endpoint + model + prompt sha256）
+## 1. 生产拓扑
 
-┌──────────────┐  npm / vite   ┌────────────────────────────────────────┐
-│  frontend/   │ ───────────►  │  vite dev :5173                        │
-│  React 18    │               │   ├─ /api/*       proxy → :8001 后端    │
-│  + Recharts  │               │   └─ /yahoo-api/* proxy → query1.yahoo  │
-└──────────────┘               └────────────────────────────────────────┘
-       │  Vercel 部署（生产；v0.8 重构后 8 serverless functions，详见 §5）
-       ├─► frontend/api/yahoo.js              serverless proxy（带 referer 白名单）
-       ├─► frontend/api/stock-gene/index.js   单点 dispatcher（rewrite 接所有子路径）
-       ├─► frontend/api/watchlist/10x.js + 10x/[slug].js
-       ├─► frontend/api/llm/[endpoint].js     本地 4 handler + 反代 Render 兜底
-       ├─► frontend/api/{smart-beta/snapshot, universe/stats}
-       └─► frontend/public/data/universe/universe_{us,hk,cn}.json
-           Vercel SPA fallback：无后端时静态 JSON 直接喂赛道列表
+```text
+浏览器 React SPA
+  │ 仅同源 /api，HttpOnly 会话 Cookie，写请求附 CSRF token
+  ▼
+Vercel Serverless BFF
+  ├─ /api/auth/invite
+  ├─ /api/auth/session
+  ├─ /api/auth/logout
+  ├─ /api/yahoo
+  ├─ 专用 serverless handlers
+  └─ /api/[...path] 受控反向代理
+       │ HMAC 绑定 method、path、query、body hash、request_id、timestamp
+       ▼
+Render FastAPI
+  ├─ /healthz 公开健康检查
+  ├─ 评分、回测、组合、宏观、Stock Gene、Mining Alpha
+  ├─ SQLite 与 output 文件
+  └─ Yahoo、FRED、Tushare、Futu、Finnhub、DeepSeek 等受控上游
 ```
 
-## 2. 数据加载的四条路径
+生产浏览器不得直连 Render，也不得使用公共 CORS 代理。Render 除 `/healthz` 外只接受 BFF 内部签名。开发环境的 Vite `/api` 代理可访问本机 FastAPI；FastAPI 只对 loopback 和 TestClient 保留未签名本地通道。
 
-前端有意保留**降级链**，开发/部署/离线均可用。优先级从上到下：
+## 2. 认证与工作区
 
-| # | 路径 | 触发场景 | 文件 |
-|---|---|---|---|
-| 1 | `apiFetch('/api/...')` | 后端 `server.py` 在跑 | quant-platform.jsx |
-| 2 | `import './data.js'` | 静态 fallback（pipeline 写过一次） | quant-platform.jsx + src/data.js |
-| 3 | Yahoo Finance 实时拉取 | 用户点"刷新"且后端不可用 | src/standalone.js |
-| 4 | localStorage 缓存 | 离线/慢网 | quant-platform.jsx loadCache() |
+当前产品维持单一私有工作区，不迁移现有数据。
 
-**Yahoo 拉取的代理链**（standalone.js + quant-platform.jsx 重复实现，待统一）：
-1. `/yahoo-api/*` (vite dev proxy) — 仅 dev
-2. `/api/yahoo` (Vercel serverless) — 生产首选
-3. `corsproxy.io`、`api.allorigins.win` — 公共 CORS 代理兜底
+- 邀请码只保存在 Vercel 的 `QUANTEDGE_INVITE_CODE`。
+- 登录成功签发八小时 HttpOnly、Secure、SameSite=Lax Cookie。
+- 会话声明包含固定 `workspace_id=private-default`，由现有 WorkspaceContext 消费。
+- GET 会话接口返回用户、工作区、过期时间与内存 CSRF token。
+- 所有非安全方法必须通过精确 Origin 检查、有效会话与 CSRF 校验。
+- 注销清除会话 Cookie。
 
-## 3. 后端数据管道
+未来多用户化只能扩展 WorkspaceContext 与持久化授权模型，不能把客户端传入的 workspace_id 直接作为授权依据。
 
-```
-pipeline.py（每日批处理）
-  ├─ Windows GBK 终端兼容：sys.stdout.reconfigure(encoding="utf-8")
-  └─► for ticker in TICKERS:
-        ├─ data_sources.fetch_history()        → DataFrame
-        │   └─ 3 次指数退避重试（1s/2s/4s，YFINANCE_RETRY_MAX 可调）
-        ├─ data_sources.fetch_quote/info()     → dict
-        ├─ factors.calc_stock_score / calc_etf_score
-        ├─ apply_overrides()  ← config.py: static_overrides
-        └─ dataFreshness = {priceAsOf, fundamentalsAsOf, source}
+## 3. 数据加载与契约
 
-  写出:
-  ├─ output/stocks_data.json   ── 主输出
-  ├─ output/alerts.json
-  ├─ output/pipeline_log.txt
-  └─ ../frontend/src/data.js   ── 前端直接 import（ES module fallback）
+生产优先级如下：
 
-server.py（FastAPI 在线 API）
-  20+ 路由分组：
-  ├─ 标的管理：/api/{tickers,search,data,refresh,sync}
-  ├─ 行情查询：/api/intraday  (1m/5m/15m/1h/1d) 按需拉取不落库
-  ├─ DB 接口：/api/db/{stats,bars/{ticker:path}}
-  ├─ LLM：/api/llm/{summary,journal-structure,explain-score,backtest-narrate,
-  │                  parse-strategy,monthly-review}
-  ├─ 交易记录：/api/transactions (GET/POST/DELETE) + /api/positions
-  └─ Mining Alpha：/api/mining-alpha/* 5 路由（详见 MINING_ALPHA.md）
+| 优先级 | 路径 | 约束 |
+|---|---|---|
+| 1 | 同源 Vercel BFF | 生产唯一在线 API 入口 |
+| 2 | 项目内静态数据 | 只用于明确标注的 demo 或 fallback |
+| 3 | IndexedDB 或 localStorage | 只保存允许的客户端偏好和有时点的数据 |
+| 4 | 显式不可用状态 | 不使用公共代理伪造可用性 |
 
-logs/server.log: 10MB × 5 份 RotatingFileHandler（logging_config.py 模块级 setup）
+BFF 通用成功响应：
+
+```json
+{
+  "data": {},
+  "meta": {
+    "as_of": "2026-08-28T00:00:00.000Z",
+    "source": "backend",
+    "cache_status": "bypass",
+    "stale": false,
+    "quality": "verified",
+    "schema_version": "1.0",
+    "request_id": "uuid"
+  }
+}
 ```
 
-## 4. 前端模块边界（v0.8.0 状态）
+非 2xx 使用 `error.code`、`error.message`、`error.request_id` 与 `meta.request_id`。前端 `apiFetch` 对非 2xx 抛出 ApiError，不再把错误对象当作成功数据。
 
-**已落地拆分**：`src/quant-platform.jsx` 主壳 2597 行（曾 6700+），8 个 tab 抽到独立 page 文件。
+Yahoo 报价执行 network-first：30 秒以内可标记 fresh；上游失败时最多回退五分钟，超过上限返回不可用；Service Worker 不缓存任何 `/api/` 请求。
 
-```
+## 4. 后端边界
+
+FastAPI 中间件统一处理：
+
+- 256 KiB 请求体上限。
+- BFF HMAC 签名、60 秒时窗、请求体摘要与 request_id 重放检查。
+- LLM、回测、调度和 Mining Alpha 的独立并发上限。
+- request_id、route、status、latency_ms、cache 与 upstream 结构化日志。
+
+Mining Alpha 管理任务只接受 Pydantic 强类型字段。每个 step 都有独立字段白名单，额外字段被拒绝；run_id 必须通过格式和解析后路径边界校验；任务在启动线程前同步预占状态，重复提交返回 409。
+
+## 5. 前端模块
+
+```text
 src/
-├── quant-platform.jsx        # 主壳：DataContext + Tab nav + Footer + Header
-├── i18n.jsx                  # zh/en 双语
-├── main.jsx                  # 入口
-├── standalone.js             # Yahoo 拉取（无后端模式）
-│
-├── pages/                    # 8 个 tab，独立页面组件
-│   ├── ScoringDashboard.jsx       # 量化评分（2460 行）
-│   ├── BacktestEngine.jsx         # 组合回测（3033 行 · 含 client-side 回测引擎）
-│   ├── Monitor.jsx                # 实时监控（636 行）
-│   ├── Journal.jsx                # 投资日志（1275 行）
-│   ├── MacroDashboard.jsx         # 宏观看板（525 行）
-│   ├── Screener10x.jsx            # 10x 猎手（1368 行）
-│   ├── StockGene.jsx              # 股性检测（1542 行）
-│   └── MiningAlpha.jsx            # A 股 Alpha 挖掘（794 行）
-│
-├── components/               # 共享组件
-│   ├── AIStockSummaryCard.jsx     # B1 个股 AI 摘要（v5 .lead-paragraph）
-│   ├── BacktestNarrationCard.jsx  # B4 回测 AI 总结（v5 .lead-paragraph）
-│   ├── ScoreExplainCard.jsx       # B2 评分 AI 解读（v5 .lead-paragraph）
-│   ├── MonthlyReviewModal.jsx     # B7 月度复盘
-│   ├── ValueDCFCalculator.jsx     # 两阶段 DCF + 敏感性矩阵
-│   ├── TenxItemEditor.jsx         # 10x 观察项编辑器
-│   ├── WatchlistCard.jsx          # 观察项卡片
-│   ├── macro/                     # 宏观看板 8 个子组件
-│   └── stock-gene/                # 股性检测子组件 + 4 引擎
-│
-├── lib/                      # 纯函数 + 算法
-│   ├── dcf.js                     # 两阶段 DCF
-│   ├── alertBacktest.js           # 告警回测
-│   ├── macroAdjust.js             # 宏观调整因子
-│   ├── macroPortfolio.js          # 持仓宏观敏感性
-│   ├── sectorRegimeExposure.js    # 板块 regime 敞口
-│   ├── priceCache.js              # IndexedDB 价格缓存
-│   ├── csvExport.js               # CSV 导出
-│   └── idb.js                     # IndexedDB 包装
-│
-├── math/stats.ts             # 纯数学函数（TypeScript）
-├── data.js                   # backend pipeline 自动生成的 ES module（fallback）
-└── index.css                 # 设计 token + v5 编辑式工具类（.t-eyebrow / .t-hero /
-                              #   .lead-paragraph / .pillar-card / Fraunces serif）
+├─ quant-platform.jsx      主壳、认证门、导航与共享 provider
+├─ pages/                  功能页 lazy route
+├─ components/             可复用 UI 与业务组件
+├─ hooks/                  数据获取与交互状态
+├─ lib/                    纯函数、数据服务与算法
+├─ data/                   功能级 demo 数据
+├─ data.js                 历史 pipeline fallback，待按市场继续分片
+├─ i18n.jsx                简体中文、英文、繁体中文词典
+└─ main.jsx                应用入口、可选 Sentry 与 Service Worker
 ```
 
-## 5. 部署
+主壳、评分页、回测页仍是后续拆分重点。组合回测旋钮的外观、拖动方向、0.1 精度、刻度点击与 pointer-lock 属于兼容性保留项。
 
-- **前端**：Vercel — 根目录 = `frontend/`，build = `npm run build`，output = `dist/`
-  - **8 个 serverless functions**（v0.8 重构后，远低于 Hobby plan 12 上限）— 详见 PR #173/#176/#178：
-    - `llm/[endpoint].js` — 4 本地 handler + 反代 Render 兜底
-    - `watchlist/10x.js` + `watchlist/10x/[slug].js` — 列表根 + 子路由
-    - `stock-gene/index.js` — 单点 dispatcher（vercel.json rewrite `/api/stock-gene/(.+) → /api/stock-gene?path=$1`）
-    - `smart-beta/snapshot.js` / `universe/stats.js` / `yahoo.js` — 各自独立
-  - handler 文件 `_*.js` 前缀 Vercel 自动忽略（不当 function），由 dispatcher 静态 import
-  - 生产 `quantedge-chi.vercel.app` 上 stock-gene tab **已可正常工作**（PR #178 解除 `.vercelignore` 排除）
-- **后端**：本地 `python backend/server.py`（端口 8001），暂无生产部署
-- **定时任务**：`backend/scripts/install_pipeline_scheduler.ps1`（Windows）/ `install_cron.sh`（macOS/Linux）
-- **CI**：`.github/workflows/ci.yml` — push/PR 跑 ruff + pytest（非网络）+ vitest + vite build
+## 6. 部署与版本
 
-## 6. 关键约定
+- 前端与 BFF：Vercel，项目根目录 `frontend/`。
+- 后端：Render，健康检查 `/healthz`。
+- CI：GitHub Actions，Python 3.11 与 Node 22。
+- 项目版本：`pyproject.toml`。
+- 前端版本：`frontend/package.json`。
+- 后端运行时 API 版本：`backend/server.py` 的 FastAPI version，后续统一从项目版本生成。
+- UI 展示版本：后续统一从构建期 Git SHA 与 package version 注入。
 
-- **ETF 与个股因子库分离**（见 `factors.py`）
-- 杠杆 ETF 不用 `static_overrides` 兜底 NAV（见 `pipeline.apply_overrides`）
-- 所有 Yahoo 调用都要走 referer 白名单（生产 Vercel proxy 会拦）
-- **v5 编辑式设计语言**（2026-05 落地）：AI 文本输出统一用 `.lead-paragraph`（紫 3px 左边线 + 渐变 bg + 13.5px serif body）；hero 数字用 `.t-hero` + Fraunces serif（OPT-IN）
-- **5 字号 + 5 语义色 token**（详见 `index.css` 注释）：禁止散落 `text-[8px]` / `text-[12.5px]` 中间值；禁止散落 `emerald` / `fuchsia` / `sky` 装饰色
-- **数据时效性**：`dataFreshness.priceAsOf` 字段贯穿后端到前端 Footer，与客户端 `priceUpdatedAt` 双层时间戳
-- **LLM 缓存**：SQLite `llm_cache` 表按 `sha256(endpoint|model|prompt)` 截断 32 字符为 key；TTL 各 endpoint 不同（评分 24h / 摘要 1h / 回测 30min / 月度复盘 24h）
+## 7. 安全与数据不变量
+
+- 密钥不得使用 `VITE_` 前缀或进入静态 bundle。
+- 生产 API 只走同源 BFF。
+- 公共 CORS 代理不得进入降级链。
+- 报价必须携带可核验时点和 stale 状态。
+- 非 2xx 不得进入成功数据分支。
+- 管理任务不得接受自由命令参数。
+- 新增后端根路由必须同步 BFF 白名单、安全测试与数据契约测试。
+- 新增 lazy route 必须通过单路由 150 KB gzip 预算。

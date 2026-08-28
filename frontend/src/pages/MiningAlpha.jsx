@@ -392,13 +392,13 @@ const FactorDetailModal = ({ alphaNum, runId, onClose, isDemoMode = false }) => 
 //   synthetic-demo 走 mining_alpha.synthetic_demo（不需 tushare 一键生数据）
 //   其他 step 走 mining_alpha.run {step}
 const STEPS = [
-  { id: "synthetic-demo", label: "0. 合成 demo 数据 (无需 tushare)", extra: "--n-stocks 100 --years 5", standalone: true },
-  { id: "sync-data", label: "1. 同步行情 (tushare)", extra: "" },
-  { id: "compute-factors", label: "2. 算因子", extra: "" },
-  { id: "ic-report", label: "3. IC 报告", extra: "--vol-scale-window 20 --filter-redundant" },
-  { id: "optuna", label: "3b. Optuna", extra: "--n-trials 30" },
-  { id: "train", label: "4. 训练", extra: "--use-optuna-params" },
-  { id: "backtest", label: "5. 回测", extra: "--top-n 50 --use-tradeable-mask --multi-topn 20,50,100,200" },
+  { id: "synthetic-demo", label: "0. 合成 demo 数据 (无需 tushare)", params: { n_stocks: 100, years: 5 }, standalone: true },
+  { id: "sync-data", label: "1. 同步行情 (tushare)", params: {} },
+  { id: "compute-factors", label: "2. 算因子", params: {} },
+  { id: "ic-report", label: "3. IC 报告", params: { vol_scale_window: 20, filter_redundant: true } },
+  { id: "optuna", label: "3b. Optuna", params: { n_trials: 30 } },
+  { id: "train", label: "4. 训练", params: { use_optuna_params: true } },
+  { id: "backtest", label: "5. 回测", params: { top_n: 50, use_tradeable_mask: true, multi_topn: [20, 50, 100, 200] } },
 ];
 
 const RunPipelinePanel = ({ runId, onJobDone }) => {
@@ -440,13 +440,13 @@ const RunPipelinePanel = ({ runId, onJobDone }) => {
     return () => { cancelled = true; if (timer) clearTimeout(timer); };
   }, [jobState?.running, activeStep]);
 
-  const triggerStep = async (step, extra) => {
+  const triggerStep = async (step, params) => {
     setActiveStep(step);
-    const qs = new URLSearchParams();
-    if (runId) qs.set("run_id", runId);
-    if (extra) qs.set("extra_args", extra);
     try {
-      await apiFetch(`/mining-alpha/run/${step}?${qs.toString()}`, { method: "POST" });
+      await apiFetch(`/mining-alpha/run/${step}`, {
+        method: "POST",
+        body: JSON.stringify({ ...(step === 'synthetic-demo' ? {} : { run_id: runId || undefined }), ...params }),
+      });
       // 立刻拉一次最新状态，让 jobState.running=true 触发 polling effect
       const s = await apiFetch("/mining-alpha/run/status").catch(() => null);
       if (s) setJobState(s);
@@ -473,7 +473,7 @@ const RunPipelinePanel = ({ runId, onJobDone }) => {
         {STEPS.map(s => (
           <button
             key={s.id}
-            onClick={() => triggerStep(s.id, s.extra)}
+            onClick={() => triggerStep(s.id, s.params)}
             disabled={isRunning}
             className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[11px] font-medium border transition-colors ${
               activeStep === s.id ? "bg-amber-500/20 border-amber-500/40 text-amber-300" :

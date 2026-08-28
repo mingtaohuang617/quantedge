@@ -16,7 +16,7 @@
 
 | 工具 | 版本 | 用途 |
 |---|---|---|
-| Python | ≥ 3.10 | 后端 |
+| Python | ≥ 3.11 | 后端 |
 | Node | ≥ 18 | 前端 |
 | Git | 任何 | 拉代码 |
 
@@ -38,15 +38,24 @@ python -m venv .venv
 
 # Frontend
 cd ../frontend
-npm install
+npm ci
 ```
 
 ## 配置 .env（可选）
 
-`backend/.env`:
+`backend/.env`：
 ```env
 DEEPSEEK_API_KEY=sk-...     # AI 解读评分
 TUSHARE_TOKEN=...           # A 股财务数据
+```
+
+`frontend/.env.local`：
+
+```env
+QUANTEDGE_INVITE_CODE=本地邀请码
+QUANTEDGE_SESSION_SECRET=至少32字符且与BFF不同
+QUANTEDGE_BFF_SECRET=至少32字符
+QUANTEDGE_BACKEND_URL=http://localhost:8001
 ```
 
 ## 启动
@@ -61,7 +70,7 @@ cd backend && python server.py
 cd frontend && npm run dev
 ```
 
-打开 `http://localhost:5173`，邀请码：`MintoQuant`（dev 用，写在 `frontend/src/quant-platform.jsx`）。
+打开 `http://localhost:5173`，输入 `QUANTEDGE_INVITE_CODE` 配置的本地邀请码。邀请码只由服务端校验，不进入前端代码或静态 bundle。
 
 ## 核心工作流
 

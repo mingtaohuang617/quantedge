@@ -43,22 +43,29 @@ let STOCKS = [...STATIC_STOCKS];
 let ALERTS = [...STATIC_ALERTS];
 
 // ─── API helpers ──────────────────────────────────────
-// API_BASE 解析顺序：
-//   1. VITE_API_BASE 已设 → 远端 backend（如 Vercel 接 Render/Railway/Fly）
-//      例 VITE_API_BASE=https://quantedge-backend-p3e1.onrender.com
-//      → 拼接为 https://quantedge-backend-p3e1.onrender.com/api
-//   2. 未设 → 走相对 /api（本地 dev 经 vite proxy → 8001；Vercel 经 rewrite → serverless）
-// 兼容用户填带 trailing slash 的 URL（去尾 / 防双斜杠）
-const API_BASE = (() => {
-  const remote = import.meta.env.VITE_API_BASE;
-  if (!remote || typeof remote !== "string") return "/api";
-  return `${remote.replace(/\/$/, "")}/api`;
-})();
+// 浏览器只访问同源 Vercel BFF。Render 地址与内部签名绝不进入前端 bundle。
+const API_BASE = "/api";
 // Silent retry：Render free tier 有 30s cold start + 偶发 502，第一次失败后静默重试
 // 1 次（800ms 后），不打 console.warn；只有真正不可达才 warn 并返回 null。
 // 对 GET 自动重试；POST 等可能有副作用的，调用方传 opts.noRetry=true 跳过。
 const RETRY_DELAY_MS = 800;
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+let authCsrfToken = null;
+
+export class ApiError extends Error {
+  constructor(message, { status = 0, code = 'request_failed', requestId = null, details = null } = {}) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.code = code;
+    this.requestId = requestId;
+    this.details = details;
+  }
+}
+
+function setAuthCsrfToken(value) {
+  authCsrfToken = typeof value === 'string' && value ? value : null;
+}
 
 export const apiFetch = async (path, opts = {}) => {
   const { noRetry, ...fetchOpts } = opts;
@@ -74,11 +81,39 @@ export const apiFetch = async (path, opts = {}) => {
   const shouldRetry = isGet && !noRetry;
 
   const doFetch = async () => {
+    const method = String(fetchOpts.method || 'GET').toUpperCase();
+    const headers = { "Content-Type": "application/json", ...(fetchOpts.headers || {}) };
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(method) && authCsrfToken) {
+      headers['X-CSRF-Token'] = authCsrfToken;
+    }
     const res = await fetch(`${API_BASE}${path}`, {
-      headers: { "Content-Type": "application/json" },
       ...fetchOpts,
+      headers,
+      credentials: 'same-origin',
     });
-    return await res.json();
+    let payload;
+    try { payload = await res.json(); }
+    catch { throw new ApiError(`API returned HTTP ${res.status} with a non-JSON body`, { status: res.status }); }
+    if (!res.ok) {
+      const structured = payload?.error && typeof payload.error === 'object' ? payload.error : null;
+      throw new ApiError(
+        structured?.message || payload?.detail || payload?.error || `API returned HTTP ${res.status}`,
+        {
+          status: res.status,
+          code: structured?.code || 'request_failed',
+          requestId: structured?.request_id || payload?.meta?.request_id || res.headers.get('x-request-id'),
+          details: structured?.details,
+        },
+      );
+    }
+    if (payload && Object.prototype.hasOwnProperty.call(payload, 'data') && payload.meta) {
+      const data = payload.data;
+      if (data && typeof data === 'object') {
+        Object.defineProperty(data, '_meta', { value: payload.meta, enumerable: false, configurable: true });
+      }
+      return data;
+    }
+    return payload;
   };
 
   try {
@@ -91,11 +126,11 @@ export const apiFetch = async (path, opts = {}) => {
         return await doFetch();
       } catch (e2) {
         console.warn("API unavailable:", e2.message);
-        return null;
+        throw e2;
       }
     }
     console.warn("API unavailable:", e.message);
-    return null;
+    throw e;
   }
 };
 
@@ -166,16 +201,13 @@ function formatCacheAge(timestamp) {
 }
 
 // ── Yahoo Finance 前端直接刷新价格（绕过后端，用于快速更新） ──
-// 多代理链式降级（与 standalone.js 保持一致；Vercel 自建代理优先）
+// 仅使用同源 Vercel BFF，禁止把证券请求发给公共 CORS 代理。
 const _YF_PROXIES = [
   { build: (u) => {
     const url = new URL(u);
     const host = url.hostname.includes("query2") ? "query2" : "query1";
     return `/api/yahoo?host=${host}&path=${encodeURIComponent(url.pathname + url.search)}`;
   }, parse: (t) => JSON.parse(t) },
-  { build: (u) => "https://corsproxy.io/?" + encodeURIComponent(u), parse: (t) => JSON.parse(t) },
-  { build: (u) => "https://api.allorigins.win/raw?url=" + encodeURIComponent(u), parse: (t) => JSON.parse(t) },
-  { build: (u) => "https://api.allorigins.win/get?url=" + encodeURIComponent(u), parse: (t) => { const j = JSON.parse(t); if (!j.contents) throw new Error("empty"); return JSON.parse(j.contents); } },
 ];
 async function _fetchYahooChart(chartPath, timeout = 10000) {
   // 本地 vite proxy 优先
@@ -808,58 +840,56 @@ export const displayTicker = (ticker, stock, lang) => {
 };
 
 // ─── Auth Context ────────────────────────────────────────
-const AUTH_KEY = "quantedge_auth";
-
-function loadAuth() {
-  try {
-    const raw = localStorage.getItem(AUTH_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw);
-  } catch { return null; }
-}
-
-function saveAuth(user) {
-  try { localStorage.setItem(AUTH_KEY, JSON.stringify(user)); } catch {}
-}
-
-function clearAuth() {
-  try { localStorage.removeItem(AUTH_KEY); } catch {}
-}
-
 const AuthContext = createContext(null);
 const useAuth = () => useContext(AuthContext);
 
 function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => loadAuth());
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const login = useCallback((userData) => {
-    setUser(userData);
-    saveAuth(userData);
+  useEffect(() => {
+    let cancelled = false;
+    apiFetch('/auth/session', { noRetry: true })
+      .then(data => {
+        if (cancelled) return;
+        setAuthCsrfToken(data?.csrf_token);
+        setUser(data?.user || null);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setAuthCsrfToken(null);
+        setUser(null);
+      })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, []);
 
-  const logout = useCallback(() => {
-    setUser(null);
-    clearAuth();
+  const login = useCallback((sessionData) => {
+    setAuthCsrfToken(sessionData?.csrf_token);
+    setUser(sessionData?.user || null);
+  }, []);
+
+  const logout = useCallback(async () => {
+    try { await apiFetch('/auth/logout', { method: 'POST', noRetry: true }); }
+    catch (error) { console.warn('Logout request failed:', error.message); }
+    finally {
+      setAuthCsrfToken(null);
+      setUser(null);
+    }
   }, []);
 
   const updateProfile = useCallback((updates) => {
-    setUser(prev => {
-      const next = { ...prev, ...updates };
-      saveAuth(next);
-      return next;
-    });
+    setUser(prev => prev ? { ...prev, ...updates } : prev);
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, updateProfile }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );
 }
 
 // ─── AuthPage（邀请码登录） ───────────────────────────────
-const INVITE_CODE = "MintoQuant";
-
 const AuthPage = () => {
   const { login } = useAuth();
   const { t } = useLang();
@@ -874,25 +904,21 @@ const AuthPage = () => {
 
     if (!code.trim()) return setError(t("请输入邀请码"));
 
-    if (code.trim() !== INVITE_CODE) {
-      setError(t("邀请码无效，请检查后重试"));
+    setLoading(true);
+    try {
+      const sessionData = await apiFetch('/auth/invite', {
+        method: 'POST',
+        body: JSON.stringify({ code: code.trim() }),
+        noRetry: true,
+      });
+      login(sessionData);
+    } catch (err) {
+      setError(err?.status === 429 ? t("尝试次数过多，请稍后再试") : t("邀请码无效，请检查后重试"));
       setShake(true);
       setTimeout(() => setShake(false), 500);
-      return;
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(true);
-    await new Promise(r => setTimeout(r, 600));
-
-    login({
-      id: "u_" + Date.now(),
-      name: "Investor",
-      email: "user@quantedge.pro",
-      avatar: null,
-      plan: "pro",
-      joinedAt: new Date().toISOString(),
-    });
-    setLoading(false);
   };
 
   return (
@@ -2590,9 +2616,6 @@ function QuantPlatformInner() {
     };
   }, []);
 
-  // 未登录显示认证页面
-  if (!user) return <AuthPage />;
-
   // footer 共享：市场计数（IIFE 外也要用，所以提到组件顶层）
   const usCount = stocks.filter(s => s.market === "US").length;
   const hkCount = stocks.filter(s => s.market === "HK").length;
@@ -3056,17 +3079,33 @@ function QuantPlatformInner() {
   );
 }
 
+function AuthenticatedQuantPlatform() {
+  const { user, loading } = useAuth();
+  const { t } = useLang();
+  if (loading) {
+    return (
+      <div className="w-full h-screen flex items-center justify-center bg-[#080b14] text-[#a0aec0]">
+        <Loader size={20} className="animate-spin" aria-label={t('正在验证会话')} />
+      </div>
+    );
+  }
+  if (!user) return <AuthPage />;
+  return (
+    <DataProvider>
+      <WorkspaceProvider>
+        <ConfirmProvider>
+          <QuantPlatformInner />
+        </ConfirmProvider>
+      </WorkspaceProvider>
+    </DataProvider>
+  );
+}
+
 export default function QuantPlatform() {
   return (
     <LangProvider>
       <AuthProvider>
-        <DataProvider>
-          <WorkspaceProvider>
-            <ConfirmProvider>
-              <QuantPlatformInner />
-            </ConfirmProvider>
-          </WorkspaceProvider>
-        </DataProvider>
+        <AuthenticatedQuantPlatform />
       </AuthProvider>
     </LangProvider>
   );
