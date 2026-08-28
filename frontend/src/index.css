@@ -1,6 +1,5 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@config "../tailwind.config.js";
 
 /* ─────────────────────────────────────────────────────────────────────────
    QuantEdge · 字号档位（5 档制 · v0.7 收敛 · 禁止散落 text-[8px]/[12.5px]）

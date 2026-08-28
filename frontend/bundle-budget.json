@@ -1,9 +1,9 @@
 {
   "recordedAt": "2026-08-28",
-  "baselineCommit": "react-19-recharts-3-upgrade-local",
+  "baselineCommit": "tailwind-4-upgrade-local",
   "originalInitialGzipBytes": 345791,
   "minimumInitialReductionPercent": 30,
-  "initialGzipBytes": 71628,
+  "initialGzipBytes": 71625,
   "maxInitialGrowthPercent": 5,
   "lazyRouteGzipLimitBytes": 153600,
   "enforceLazyAbsolute": true,

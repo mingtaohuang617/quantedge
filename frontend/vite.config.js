@@ -128,6 +128,10 @@ export default defineConfig(({ command }) => ({
   // H6: vitest 排除 Playwright E2E 目录（避免 vitest 误跑 .spec.ts）
   test: {
     exclude: ['node_modules', 'dist', 'tests-e2e/**'],
+    // Tailwind 4's CSS compiler is loaded by component-test workers. Cap worker
+    // fan-out so high-core Windows and CI hosts do not multiply that footprint
+    // into non-deterministic OOM failures.
+    maxWorkers: 4,
     // 组件渲染测试在文件顶部用 `// @vitest-environment jsdom` 注释切换
     // （vitest 4 移除了 environmentMatchGlobs；setupFile 仍在全局 setup jest-dom matchers）
     setupFiles: ['./src/test-setup.js'],
