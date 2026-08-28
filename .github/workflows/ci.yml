@@ -162,8 +162,22 @@ jobs:
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
-          vercel inspect "${{ steps.preview.outputs.url }}" --wait --timeout=5m --token=$VERCEL_TOKEN
-          node frontend/scripts/smoke-production.mjs "${{ steps.preview.outputs.url }}"
+          preview_url="${{ steps.preview.outputs.url }}"
+          vercel inspect "$preview_url" --wait --timeout=5m --token=$VERCEL_TOKEN
+          check_preview() {
+            path="$1"
+            allowed="$2"
+            status=$(vercel curl "$path" --deployment "$preview_url" --token=$VERCEL_TOKEN -- --silent --show-error --output /dev/null --write-out "%{http_code}" | tail -n 1)
+            echo "$path -> $status"
+            case ",$allowed," in
+              *",$status,"*) ;;
+              *) echo "Unexpected status for $path: $status"; exit 1 ;;
+            esac
+          }
+          check_preview "/" "200"
+          check_preview "/sw.js" "200"
+          check_preview "/api/auth/session" "401,403"
+          check_preview "/api/yahoo?path=%2Fv8%2Ffinance%2Fchart%2FSPY" "401,403"
 
   # H6: 自动部署到 Vercel — 仅 push 到 main 时触发，需配置 secrets
   # 必需 secrets:
