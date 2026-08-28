@@ -178,6 +178,7 @@ jobs:
           check_preview "/sw.js" "200"
           check_preview "/api/auth/session" "401,403"
           check_preview "/api/yahoo?path=%2Fv8%2Ffinance%2Fchart%2FSPY" "401,403"
+          check_preview "/api/mining-alpha/status" "401,403"
 
   # H6: 自动部署到 Vercel — 仅 push 到 main 时触发，需配置 secrets
   # 必需 secrets:

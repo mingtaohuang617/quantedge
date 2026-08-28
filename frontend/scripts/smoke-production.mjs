@@ -6,6 +6,7 @@ const checks = [
   { path: '/sw.js', statuses: [200] },
   { path: '/api/auth/session', statuses: [401, 403] },
   { path: '/api/yahoo?path=%2Fv8%2Ffinance%2Fchart%2FSPY', statuses: [401, 403] },
+  { path: '/api/mining-alpha/status', statuses: [401, 403] },
 ];
 
 for (const check of checks) {
