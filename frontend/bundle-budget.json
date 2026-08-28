@@ -1,20 +1,22 @@
 {
   "recordedAt": "2026-08-28",
-  "baselineCommit": "cb00f7e",
-  "initialGzipBytes": 345791,
+  "baselineCommit": "stage-3-local",
+  "originalInitialGzipBytes": 345791,
+  "minimumInitialReductionPercent": 30,
+  "initialGzipBytes": 50676,
   "maxInitialGrowthPercent": 5,
   "lazyRouteGzipLimitBytes": 153600,
-  "enforceLazyAbsolute": false,
+  "enforceLazyAbsolute": true,
   "routeBaselines": {
-    "ScoringDashboard": 258164,
-    "BacktestEngine": 165903,
-    "StockGene": 35331,
-    "Screener10x": 35027,
-    "Journal": 30731,
-    "MacroDashboard": 29210,
-    "MiningAlpha": 17445,
-    "Monitor": 16034,
-    "CompoundPower": 14844,
-    "SmartBeta": 11853
+    "ScoringDashboard": 127797,
+    "BacktestEngine": 35662,
+    "StockGene": 30556,
+    "Screener10x": 29754,
+    "Journal": 24753,
+    "MacroDashboard": 24146,
+    "MiningAlpha": 15698,
+    "Monitor": 13965,
+    "CompoundPower": 12003,
+    "SmartBeta": 10444
   }
 }

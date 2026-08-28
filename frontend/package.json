@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "data:split": "node scripts/split-market-data.mjs",
+    "prebuild": "npm run data:split",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",

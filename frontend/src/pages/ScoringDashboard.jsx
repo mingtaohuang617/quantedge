@@ -8,7 +8,6 @@ import { Activity, ArrowDownRight, ArrowUpRight, Briefcase, Calendar, Check, Che
 import { searchTickers as standaloneSearch, fetchRangePrices, STOCK_CN_NAMES, STOCK_CN_DESCS, STOCK_EN_DESCS } from "../standalone.js";
 import { Z_ELEVATED } from "../lib/zIndex.js";
 import { useLang, isZh, localeFor, hasCJK, enFallback } from "../i18n.jsx";
-import { STOCKS } from "../data.js";
 import AIStockSummaryCard from "../components/AIStockSummaryCard.jsx";
 import ScoreExplainCard from "../components/ScoreExplainCard.jsx";
 import ValuationReadCard from "../components/ValuationReadCard.jsx";
@@ -758,7 +757,7 @@ const ScoringDashboard = () => {
     if (key === favLastSynced.current) return;
     favLastSynced.current = key;
     apiFetch('/watchlist/favorites', { method: 'PUT', body: JSON.stringify({ tickers: arr }) })
-      .catch((error) => console.warn('[QuantEdge] 星标同步失败，保留本地数据:', error.message));
+      .catch((error) => console.warn('[QuantEdge] Favorite sync failed; keeping local data:', error.message));
   }, []);
   // 首挂载：服务端为权威。有数据→覆盖本地；服务端空且 KV 已启用→把本地星标种子上云。
   useEffect(() => {
@@ -1009,7 +1008,7 @@ const ScoringDashboard = () => {
     setPullDist(0);
   }, [pullDist, quickPriceRefresh]);
   // 使用 context 中的 stocks（响应式），而非模块级 STOCKS（可能过时）
-  const liveStocks = ctxStocks || STOCKS;
+  const liveStocks = ctxStocks || [];
   // 保持 sel 与 liveStocks 同步：初始化 + 数据更新时刷新 sel 对象
   useEffect(() => {
     if (!liveStocks || liveStocks.length === 0) return;

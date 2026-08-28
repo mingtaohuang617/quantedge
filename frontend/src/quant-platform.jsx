@@ -23,20 +23,45 @@ const StockGene = lazy(() => import("./pages/StockGene.jsx"));
 const SmartBeta = lazy(() => import("./pages/SmartBeta.jsx"));
 const CompoundPower = lazy(() => import("./pages/CompoundPower.jsx"));
 
-// TODO(perf): data.js 当前 1.09 MB / gzip 264 KB，含 277 个标的的完整 STOCKS
-// + ALERTS。通过 top-level await 在 entry parse 阶段加载，跟主 bundle 并行下载，
-// 因为 ScoringDashboard 首屏需要 STATIC_STOCKS 才能渲染评分列表。
-// 真正优化路径：按 market（US/HK/CN）分片 + lazy load 非首屏市场。需要：
-//   1) backend/export_stocks_to_frontend.py 改成生成 data-us.js / data-hk.js / data-cn.js
-//   2) DataProvider mount 时按 user preference 优先 load 当前市场，其他 idle 时 prefetch
-//   3) 多个 readers（L260/L275/L348）改成 React state（接受首屏空状态 → fetched 后重渲染）
 let STATIC_STOCKS = [];
 let STATIC_ALERTS = [];
-try {
-  const mod = await import("./data.js");
-  STATIC_STOCKS = mod.STOCKS || [];
-  STATIC_ALERTS = mod.ALERTS || [];
-} catch { /* data.js not available in standalone build */ }
+
+const STATIC_MARKET_LOADERS = {
+  US: () => import('./data-markets/us.js'),
+  HK: () => import('./data-markets/hk.js'),
+  CN: () => import('./data-markets/cn.js'),
+};
+const staticMarketPromises = new Map();
+let staticAlertsPromise = null;
+const loadStaticMarket = (market) => {
+  if (!staticMarketPromises.has(market)) {
+    staticMarketPromises.set(market, STATIC_MARKET_LOADERS[market]().then(mod => mod.STOCKS || []));
+  }
+  return staticMarketPromises.get(market);
+};
+const loadStaticAlerts = () => {
+  staticAlertsPromise ||= import('./data-markets/alerts.js').then(mod => mod.ALERTS || []);
+  return staticAlertsPromise;
+};
+
+function preferredStaticMarket() {
+  try {
+    const saved = JSON.parse(sessionStorage.getItem('qe:scoring:filters') || '{}');
+    if (saved.mkt === 'HK') return 'HK';
+    if (saved.mkt === 'SH' || saved.mkt === 'SZ' || saved.mkt === 'CN') return 'CN';
+  } catch {}
+  return 'US';
+}
+
+function mergeStaticStocks(current, incoming) {
+  const incomingByTicker = new Map(incoming.map(stock => [stock.ticker, stock]));
+  const merged = current.map(stock => ({ ...(incomingByTicker.get(stock.ticker) || {}), ...stock }));
+  const seen = new Set(merged.map(stock => stock.ticker));
+  for (const stock of incoming) if (!seen.has(stock.ticker)) merged.push(stock);
+  merged.sort((a, b) => (b.score || 0) - (a.score || 0));
+  merged.forEach((stock, index) => { stock.rank = index + 1; });
+  return merged;
+}
 
 // Mutable references — updated by DataProvider on API load
 let STOCKS = [...STATIC_STOCKS];
@@ -374,6 +399,45 @@ function DataProvider({ children }) {
   const [apiOnline, setApiOnline] = useState(false);
   const [standalone, setStandalone] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+
+  // 认证成功后只先取用户当前市场；其余市场在浏览器空闲时补齐。
+  // 认证页不再等待 543 个标的，评分页仍会逐步恢复完整跨市场集合。
+  useEffect(() => {
+    let cancelled = false;
+    let idleHandle = null;
+    const preferred = preferredStaticMarket();
+    const applyStocks = (incoming) => {
+      if (cancelled || incoming.length === 0) return;
+      STATIC_STOCKS = mergeStaticStocks(STATIC_STOCKS, incoming);
+      setStocks(current => mergeStaticStocks(current, incoming));
+    };
+
+    Promise.all([loadStaticMarket(preferred), loadStaticAlerts()])
+      .then(([stocksForMarket, staticAlerts]) => {
+        if (cancelled) return;
+        applyStocks(stocksForMarket);
+        STATIC_ALERTS = staticAlerts;
+        setAlerts(current => current.length > 0 ? current : staticAlerts);
+
+        const loadRemaining = () => {
+          Promise.all(Object.keys(STATIC_MARKET_LOADERS)
+            .filter(market => market !== preferred)
+            .map(loadStaticMarket))
+            .then(chunks => applyStocks(chunks.flat()))
+            .catch(error => console.warn('[QuantEdge] Deferred market data failed:', error.message));
+        };
+        if ('requestIdleCallback' in window) idleHandle = window.requestIdleCallback(loadRemaining, { timeout: 1500 });
+        else idleHandle = window.setTimeout(loadRemaining, 250);
+      })
+      .catch(error => console.warn('[QuantEdge] Preferred market data failed:', error.message));
+
+    return () => {
+      cancelled = true;
+      if (idleHandle == null) return;
+      if ('cancelIdleCallback' in window) window.cancelIdleCallback(idleHandle);
+      else window.clearTimeout(idleHandle);
+    };
+  }, []);
 
   // C10: localStorage 为空 → 异步从 IndexedDB hydrate（页面切换浏览器/隐私模式后回来仍能找回数据）
   useEffect(() => {
@@ -855,10 +919,16 @@ const AuthContext = createContext(null);
 const useAuth = () => useContext(AuthContext);
 
 function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const bootstrapSession = typeof window !== 'undefined' ? window.__QUANTEDGE_BOOTSTRAP_SESSION__ : null;
+  const [user, setUser] = useState(bootstrapSession?.user || null);
+  const [loading, setLoading] = useState(!bootstrapSession);
 
   useEffect(() => {
+    if (bootstrapSession) {
+      setAuthCsrfToken(bootstrapSession.csrf_token);
+      delete window.__QUANTEDGE_BOOTSTRAP_SESSION__;
+      return undefined;
+    }
     let cancelled = false;
     apiFetch('/auth/session', { noRetry: true })
       .then(data => {

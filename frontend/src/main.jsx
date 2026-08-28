@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
-import QuantPlatform from './quant-platform.jsx';
+import AuthBootstrap from './AuthBootstrap.jsx';
 import ErrorBoundary from './ErrorBoundary.jsx';
 
 // H7: Sentry 错误监控 — 仅当配置了 DSN 时启用
@@ -78,7 +78,7 @@ window.addEventListener('error', (event) => {
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ErrorBoundary>
-      <QuantPlatform />
+      <AuthBootstrap />
     </ErrorBoundary>
   </React.StrictMode>
 );

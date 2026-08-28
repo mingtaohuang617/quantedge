@@ -9,9 +9,7 @@ const values = {
   cls: audits['cumulative-layout-shift']?.numericValue ?? Infinity,
   tbtMs: audits['total-blocking-time']?.numericValue ?? Infinity,
 };
-// Stage-two fixed lab baseline. Stage three tightens performance/LCP to the
-// product acceptance targets after the shell and route split lands.
-const limits = { performance: 0.8, lcpMs: 4000, cls: 0.1, tbtMs: 200 };
+const limits = { performance: 0.85, lcpMs: 2500, cls: 0.1, tbtMs: 200 };
 const failures = [];
 if (values.performance < limits.performance) failures.push(`performance ${values.performance} < ${limits.performance}`);
 if (values.lcpMs > limits.lcpMs) failures.push(`LCP ${values.lcpMs}ms > ${limits.lcpMs}ms`);

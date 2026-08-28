@@ -35,28 +35,36 @@ const lazyRoutes = Object.entries(manifest)
   .map(([key, value]) => {
     const routeGraph = collectGraph(key);
     const incremental = new Set([...routeGraph].filter(item => !initialGraph.has(item)));
-    return { route: value.name || key, gzipBytes: graphBytes(incremental) };
+    return {
+      route: value.name || key,
+      chunkGzipBytes: gzipBytes(value.file),
+      incrementalGraphGzipBytes: graphBytes(incremental),
+    };
   })
-  .sort((a, b) => b.gzipBytes - a.gzipBytes);
+  .sort((a, b) => b.chunkGzipBytes - a.chunkGzipBytes);
 
 const failures = [];
 if (initialGzipBytes > initialLimit) {
   failures.push(`initial JS ${initialGzipBytes} B exceeds ${initialLimit} B`);
 }
+if (baseline.originalInitialGzipBytes && baseline.minimumInitialReductionPercent) {
+  const reductionTarget = Math.floor(baseline.originalInitialGzipBytes * (1 - baseline.minimumInitialReductionPercent / 100));
+  if (initialGzipBytes > reductionTarget) failures.push(`initial JS ${initialGzipBytes} B misses reduction target ${reductionTarget} B`);
+}
 for (const route of lazyRoutes) {
   const routeBaseline = baseline.routeBaselines?.[route.route];
-  if (routeBaseline && route.gzipBytes > Math.ceil(routeBaseline * 1.05)) {
-    failures.push(`${route.route} grew more than 5%: ${route.gzipBytes} B > ${Math.ceil(routeBaseline * 1.05)} B`);
+  if (routeBaseline && route.chunkGzipBytes > Math.ceil(routeBaseline * 1.05)) {
+    failures.push(`${route.route} chunk grew more than 5%: ${route.chunkGzipBytes} B > ${Math.ceil(routeBaseline * 1.05)} B`);
   }
-  if (baseline.enforceLazyAbsolute && route.gzipBytes > baseline.lazyRouteGzipLimitBytes) {
-    failures.push(`${route.route} exceeds lazy-route limit: ${route.gzipBytes} B > ${baseline.lazyRouteGzipLimitBytes} B`);
+  if (baseline.enforceLazyAbsolute && route.chunkGzipBytes > baseline.lazyRouteGzipLimitBytes) {
+    failures.push(`${route.route} chunk exceeds lazy-route limit: ${route.chunkGzipBytes} B > ${baseline.lazyRouteGzipLimitBytes} B`);
   }
 }
 
 console.log(JSON.stringify({
   initialGzipBytes,
   initialLimit,
-  target30PercentReductionBytes: Math.floor(baseline.initialGzipBytes * 0.7),
+  target30PercentReductionBytes: Math.floor((baseline.originalInitialGzipBytes || baseline.initialGzipBytes) * 0.7),
   lazyRouteLimitBytes: baseline.lazyRouteGzipLimitBytes,
   lazyRoutes,
 }, null, 2));

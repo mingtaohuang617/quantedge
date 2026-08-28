@@ -88,18 +88,24 @@ Mining Alpha 管理任务只接受 Pydantic 强类型字段。每个 step 都有
 
 ```text
 src/
-├─ quant-platform.jsx      主壳、认证门、导航与共享 provider
+├─ AuthBootstrap.jsx       轻量会话检查与登录入口，授权后再下载应用
+├─ quant-platform.jsx      主壳、导航与共享 provider
 ├─ pages/                  功能页 lazy route
 ├─ components/             可复用 UI 与业务组件
 ├─ hooks/                  数据获取与交互状态
 ├─ lib/                    纯函数、数据服务与算法
 ├─ data/                   功能级 demo 数据
-├─ data.js                 历史 pipeline fallback，待按市场继续分片
+├─ data-markets/           构建生成的 US、HK、CN 与 alerts 分片
+├─ data.js                 pipeline 权威静态快照，不直接进入运行时依赖图
 ├─ i18n.jsx                简体中文、英文、繁体中文词典
 └─ main.jsx                应用入口、可选 Sentry 与 Service Worker
 ```
 
-主壳、评分页、回测页仍是后续拆分重点。组合回测旋钮的外观、拖动方向、0.1 精度、刻度点击与 pointer-lock 属于兼容性保留项。
+`npm run data:split` 从 `data.js` 生成三个市场分片。认证成功后先加载用户上次使用的市场；未指定时先加载 US，其他市场在浏览器空闲阶段补齐。认证页不下载标的快照、Recharts 或功能页。
+
+2026-08-28 固定构建基线中，首屏 JS gzip 从 345,791 B 降至 50,676 B，下降 85.3%；最大 lazy route chunk 为 ScoringDashboard 的 127,797 B，低于 150 KB 门禁。固定 Lighthouse 为 performance 0.99、LCP 1.81s、CLS 0、TBT 0ms。无真实用户遥测时，TBT 仅作为 INP 的实验室代理。
+
+评分页与回测页已经移除对全量 `data.js` 的直接依赖，统一消费 DataContext。继续拆分时不得改变组合回测旋钮的外观、拖动方向、0.1 精度、刻度点击与 pointer-lock。
 
 ## 6. 部署与版本
 

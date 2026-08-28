@@ -107,10 +107,20 @@ export default defineConfig(({ command }) => ({
     },
     rollupOptions: {
       output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom'],
-          'recharts-vendor': ['recharts'],
-          'icons-vendor': ['lucide-react'],
+        manualChunks(id) {
+          const normalized = id.replaceAll('\\', '/');
+          if (
+            normalized.includes('/node_modules/react/') ||
+            normalized.includes('/node_modules/react-dom/') ||
+            normalized.includes('/node_modules/scheduler/')
+          ) return 'react-vendor';
+          if (
+            normalized.includes('/node_modules/recharts/') ||
+            normalized.includes('/node_modules/d3-') ||
+            normalized.includes('/node_modules/victory-vendor/')
+          ) return 'recharts-vendor';
+          if (normalized.includes('/node_modules/lucide-react/')) return 'icons-vendor';
+          return undefined;
         },
       },
     },

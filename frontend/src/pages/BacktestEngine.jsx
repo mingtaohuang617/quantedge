@@ -14,7 +14,6 @@ import { Z_ELEVATED } from "../lib/zIndex.js";
 import BacktestNarrationCard from "../components/BacktestNarrationCard.jsx";
 import { useLang, isZh, enFallback } from "../i18n.jsx";
 import { monteCarlo as mcSimulate, navToReturns as mcNavToReturns, hhi as hhiCalc, effectiveN as effN } from "../math/stats.ts";
-import { STOCKS } from "../data.js";
 import {
   DataContext,
   apiFetch,
@@ -186,7 +185,7 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
   // useContext 可能为 null：DataContext = createContext(null)，若组件在无 Provider 祖先时渲染会拿到默认 null。
   // 与 Monitor/Journal/StockGene/AddTransactionModal 一致用 `|| {}` 兜底，避免解构 null 抛错冲到 ErrorBoundary。
   const { stocks: ctxStocks2, setStocks: ctxSetStocks2, standalone, addTicker: addTickerToPlatform } = useContext(DataContext) || {};
-  const liveStocks = ctxStocks2 || STOCKS;
+  const liveStocks = ctxStocks2 || [];
   // C16: 工作区 namespace
   const ws = useWorkspace();
   const wsId = ws?.activeId || 'default';
@@ -201,15 +200,7 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
     }
     // 默认组合: NVDA, SNDK, RKLB, LITE 各25%
     const defaults = ["NVDA", "SNDK", "RKLB", "LITE"];
-    const init = {};
-    defaults.forEach(t => {
-      if (STOCKS.find(s => s.ticker === t)) init[t] = 25;
-    });
-    // 如果默认标的不在 STOCKS 中，降级到前4个
-    if (Object.keys(init).length === 0) {
-      STOCKS.slice(0, 4).forEach(s => { init[s.ticker] = 25; });
-    }
-    return init;
+    return Object.fromEntries(defaults.map(ticker => [ticker, 25]));
   });
   // mount 时若有 preload：显示来源 hint（4 秒自动隐藏）+ 通知父组件已消费
   const [preloadHint, setPreloadHint] = useState(

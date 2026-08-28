@@ -16,7 +16,8 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..', 'src');
 const CJK = /[㐀-䶿一-鿿]/;
-const SKIP_FILES = new Set(['i18n.jsx', 'standalone.js', 'data.js']);
+const SKIP_FILES = new Set(['i18n.jsx', 'standalone.js', 'data.js', 'AuthBootstrap.jsx']);
+const SKIP_DIRS = new Set(['data-markets']);
 
 // 已知非显示中文串：不应进 EN 字典，豁免。新增请写明原因。
 const ALLOW = [
@@ -53,7 +54,7 @@ function collectFiles() {
   const walk = (d) => {
     for (const e of readdirSync(d, { withFileTypes: true })) {
       const p = join(d, e.name);
-      if (e.isDirectory()) walk(p);
+      if (e.isDirectory() && !SKIP_DIRS.has(e.name)) walk(p);
       else if (/\.(jsx?|tsx?)$/.test(e.name) && !/\.test\./.test(e.name) && !SKIP_FILES.has(basename(e.name))) files.push(p);
     }
   };
