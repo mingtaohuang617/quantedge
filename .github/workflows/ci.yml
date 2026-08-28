@@ -61,6 +61,8 @@ jobs:
         run: npm run audit:imports
       - name: Audit i18n
         run: npm run audit:i18n:all
+      - name: Version consistency
+        run: npm run check:version
       - name: Vitest
         run: npm test
       - name: Vite build

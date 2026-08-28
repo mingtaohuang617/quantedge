@@ -76,6 +76,7 @@ except ImportError:
 
 # ─── Paths ──────────────────────────────────────────────
 BASE_DIR = Path(__file__).resolve().parent
+PROJECT_VERSION = (BASE_DIR.parent / "VERSION").read_text(encoding="utf-8").strip()
 CUSTOM_TICKERS_PATH = BASE_DIR / "tickers_custom.json"
 OUTPUT_DIR = BASE_DIR / "output"
 FRONTEND_DATA_PATH = BASE_DIR.parent / "frontend" / "src" / "data.js"
@@ -608,7 +609,7 @@ async def lifespan(_app):
     # （目前没有需要 shutdown 清理的资源；如果未来加，写在 yield 之后）
 
 
-app = FastAPI(title="QuantEdge API", version="0.3.0", lifespan=lifespan)
+app = FastAPI(title="QuantEdge API", version=PROJECT_VERSION, lifespan=lifespan)
 
 _SECURITY_LOG = logging.getLogger("quantedge.security")
 _BFF_MAX_SKEW_SECONDS = 60

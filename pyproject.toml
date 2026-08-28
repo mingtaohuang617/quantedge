@@ -1,6 +1,6 @@
 [project]
 name = "quantedge-backend"
-version = "0.6.0"
+version = "0.8.0"
 description = "QuantEdge backend — pipeline + API for quantitative scoring/backtest/monitoring"
 requires-python = ">=3.11"
 dependencies = [

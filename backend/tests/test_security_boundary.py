@@ -19,6 +19,12 @@ import server  # noqa: E402
 SECRET = "test-bff-secret-with-at-least-32-characters"
 
 
+def test_api_version_matches_canonical_version_file():
+    expected = (BACKEND.parent / "VERSION").read_text(encoding="utf-8").strip()
+    assert server.PROJECT_VERSION == expected
+    assert server.app.version == expected
+
+
 def _signed_headers(method: str, path: str, body: bytes = b"", timestamp: int | None = None):
     request_id = str(uuid.uuid4())
     timestamp = timestamp or int(time.time())

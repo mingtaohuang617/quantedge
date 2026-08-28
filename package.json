@@ -1,6 +1,6 @@
 {
   "name": "quantedge",
-  "version": "0.6.0",
+  "version": "0.8.0",
   "private": true,
   "description": "QuantEdge — 自研综合量化投资平台 (评分 + 回测 + 监控 + 日志)",
   "scripts": {

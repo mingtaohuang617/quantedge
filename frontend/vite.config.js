@@ -1,8 +1,13 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
-const packageVersion = process.env.npm_package_version || '0.8.0';
+const packageVersion = readFileSync(
+  fileURLToPath(new URL('../VERSION', import.meta.url)),
+  'utf8',
+).trim();
 const gitSha = process.env.VERCEL_GIT_COMMIT_SHA || process.env.GITHUB_SHA || 'local';
 const releaseName = process.env.VITE_SENTRY_RELEASE || `quantedge-frontend@${packageVersion}+${gitSha.slice(0, 12)}`;
 const sentryBuildConfigured = Boolean(
@@ -48,6 +53,7 @@ export default defineConfig(({ command }) => ({
     })] : []),
   ],
   define: {
+    __QUANTEDGE_VERSION__: JSON.stringify(packageVersion),
     __QUANTEDGE_RELEASE__: JSON.stringify(releaseName),
     __QUANTEDGE_GIT_SHA__: JSON.stringify(gitSha),
   },

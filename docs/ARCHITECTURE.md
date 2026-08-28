@@ -86,6 +86,21 @@ Mining Alpha 管理任务只接受 Pydantic 强类型字段。每个 step 都有
 
 ## 5. 前端模块
 
+用户授权后的主导航共十个 lazy page：
+
+| 页面 | 主组件 | 主要数据/计算边界 |
+|---|---|---|
+| 量化评分 | `ScoringDashboard` | DataContext 市场分片、评分与报价 |
+| 组合回测 | `BacktestEngine` | 历史价格、纯计算模块、交易成本 |
+| Smart Beta | `SmartBeta` | FastAPI snapshot/backtest、FRED 可选因子 |
+| Mining Alpha | `MiningAlpha` | 受控 run_id 产物与管理任务 |
+| 实时监控 | `Monitor` | 报价、动态告警、macro snapshot |
+| 投资日志 | `Journal` | 持仓/笔记 API、宏观上下文 |
+| 宏观看板 | `MacroDashboard` | FRED/AKShare/Tushare 快照、HMM、持续期 |
+| 10x 猎手 | `Screener10x` | 版本化 universe、watchlist、受限 LLM |
+| 股性检测 | `StockGene` | 四引擎评分、alerts、scheduler |
+| 复利的力量 | `CompoundPower` | 本地纯计算与策略预置 |
+
 ```text
 src/
 ├─ AuthBootstrap.jsx       轻量会话检查与登录入口，授权后再下载应用
@@ -103,7 +118,7 @@ src/
 
 `npm run data:split` 从 `data.js` 生成三个市场分片。认证成功后先加载用户上次使用的市场；未指定时先加载 US，其他市场在浏览器空闲阶段补齐。认证页不下载标的快照、Recharts 或功能页。
 
-2026-08-28 固定构建基线中，首屏 JS gzip 从 345,791 B 降至 50,676 B，下降 85.3%；最大 lazy route chunk 为 ScoringDashboard 的 127,797 B，低于 150 KB 门禁。固定 Lighthouse 为 performance 0.99、LCP 1.81s、CLS 0、TBT 0ms。无真实用户遥测时，TBT 仅作为 INP 的实验室代理。
+2026-08-28 完成 React 19、Recharts 3 与 Tailwind 4 独立升级后，首屏 JS gzip 从原始 345,791 B 降至 71,627 B，下降 79.3%；最大 lazy route chunk 为 ScoringDashboard 的 126,669 B，低于 150 KB 门禁。当次固定 Lighthouse 为 performance 0.98、LCP 1.96s、CLS 0、TBT 0ms。无真实用户遥测时，TBT 仅作为 INP 的实验室代理。
 
 评分页与回测页已经移除对全量 `data.js` 的直接依赖，统一消费 DataContext。继续拆分时不得改变组合回测旋钮的外观、拖动方向、0.1 精度、刻度点击与 pointer-lock。
 
@@ -112,10 +127,10 @@ src/
 - 前端与 BFF：Vercel，项目根目录 `frontend/`。
 - 后端：Render，健康检查 `/healthz`。
 - CI：GitHub Actions，Python 3.11 与 Node 22。
-- 项目版本：`pyproject.toml`。
-- 前端版本：`frontend/package.json`。
-- 后端运行时 API 版本：`backend/server.py` 的 FastAPI version，后续统一从项目版本生成。
-- UI 展示版本：后续统一从构建期 Git SHA 与 package version 注入。
+- 根 `VERSION` 是唯一产品版本源。
+- 根 package、前端 package 与 pyproject 保留 package manager 声明，CI 必须验证它们与 `VERSION` 一致。
+- FastAPI OpenAPI version 启动时读取 `VERSION`；UI 由 Vite 从同一文件注入。
+- Sentry release 由产品版本与 CI Git SHA 组合，Git SHA 不代替产品版本。
 
 ## 7. 安全与数据不变量
 
