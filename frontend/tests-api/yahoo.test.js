@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseEligibleFallback } from './yahoo.js';
+import { parseEligibleFallback } from '../api/yahoo.js';
 
 describe('quote fallback freshness boundary', () => {
   const now = Date.parse('2026-08-28T00:10:00Z');

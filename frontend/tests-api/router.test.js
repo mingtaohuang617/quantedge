@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import handler from './[...path].js';
+import handler from '../api/[...path].js';
 
 function response() {
   return {

@@ -10,7 +10,7 @@ async function walk(directory, relative = '') {
     const path = relative ? `${relative}/${entry.name}` : entry.name;
     if (entry.isDirectory()) {
       await walk(`${directory}/${entry.name}`, path);
-    } else if (entry.name.endsWith('.js') && !entry.name.endsWith('.test.js')) {
+    } else if (entry.name.endsWith('.js')) {
       functions.push(path);
     }
   }
