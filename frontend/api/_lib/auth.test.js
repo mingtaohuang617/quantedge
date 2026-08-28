@@ -5,6 +5,7 @@ import {
   getSession,
   isAllowedOrigin,
   requireSession,
+  runWithConcurrency,
   verifySessionToken,
 } from './auth.js';
 
@@ -32,6 +33,23 @@ describe('failed-attempt rate limit', () => {
     expect(consumeRateLimit(key, { limit: 2, windowMs: 60_000 }).allowed).toBe(true);
     expect(consumeRateLimit(key, { limit: 2, windowMs: 60_000 }).allowed).toBe(true);
     expect(consumeRateLimit(key, { limit: 2, windowMs: 60_000 }).allowed).toBe(false);
+  });
+});
+
+describe('costly-operation concurrency limit', () => {
+  it('rejects work above the configured boundary and releases the slot', async () => {
+    const scope = `test-concurrency:${Date.now()}:${Math.random()}`;
+    let release;
+    const first = runWithConcurrency(response(), scope, 1, () => new Promise(resolve => { release = resolve; }));
+
+    const denied = response();
+    await runWithConcurrency(denied, scope, 1, async () => 'unreachable');
+    expect(denied.statusCode).toBe(429);
+    expect(denied.body.error.code).toBe('concurrency_limited');
+
+    release('done');
+    await expect(first).resolves.toBe('done');
+    await expect(runWithConcurrency(response(), scope, 1, async () => 'next')).resolves.toBe('next');
   });
 });
 

@@ -86,4 +86,6 @@ Render FastAPI
 
 ## 工具状态说明
 
-本次已按项目代码完成威胁建模和自动化验证。正式 Codex Security 扫描入口在 Windows 中文路径上因插件使用系统 GBK 解码而在创建扫描 ID 前失败，错误为 `UnicodeDecodeError`，随后触发空值 `AttributeError`。因此本文件不是对正式扫描已成功完成的替代声明；修复插件编码后仍需重新运行正式扫描。
+本次已按项目代码完成威胁建模和自动化验证，并通过独立 ASCII 路径的精确 Git 快照完成正式 Codex Security 扫描，扫描 ID 为 `965ba56e-2351-445f-8461-f8c42b2cb9d1`。扫描基于修复前快照 `1244cfdf6fc5a5ea10fa4b9f514d679f622e2818`，发现一项 Medium：本地 Vercel LLM handler 在进入统一后端代理前绕过成本限流与并发上限。
+
+该项随后已修复：本地 LLM handler 现在执行每小时失败限流并共享两槽并发边界，达到上限返回结构化 429 与 `Retry-After`，释放逻辑有自动化测试覆盖。修复后的前端测试、生产构建、bundle budget 与 Vercel 函数预算均通过。生产环境密钥与 Render 同值签名配置仍属于部署前运维核验项，不应由代码扫描结果替代。

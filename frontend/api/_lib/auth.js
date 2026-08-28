@@ -7,6 +7,8 @@ export const MAX_JSON_BODY_BYTES = 256 * 1024;
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 const RATE_BUCKETS = globalThis.__qeRateBuckets || new Map();
 globalThis.__qeRateBuckets = RATE_BUCKETS;
+const CONCURRENCY_BUCKETS = globalThis.__qeConcurrencyBuckets || new Map();
+globalThis.__qeConcurrencyBuckets = CONCURRENCY_BUCKETS;
 
 function configuredOrigins() {
   const values = [
@@ -186,6 +188,22 @@ export function enforceRateLimit(req, res, scope, options) {
     return false;
   }
   return true;
+}
+
+export async function runWithConcurrency(res, scope, limit, operation) {
+  const active = CONCURRENCY_BUCKETS.get(scope) || 0;
+  if (active >= limit) {
+    res.setHeader('Retry-After', '2');
+    return sendError(res, 429, 'concurrency_limited', 'This operation is already at its concurrency limit');
+  }
+  CONCURRENCY_BUCKETS.set(scope, active + 1);
+  try {
+    return await operation();
+  } finally {
+    const remaining = (CONCURRENCY_BUCKETS.get(scope) || 1) - 1;
+    if (remaining <= 0) CONCURRENCY_BUCKETS.delete(scope);
+    else CONCURRENCY_BUCKETS.set(scope, remaining);
+  }
 }
 
 /** Parse a JSON body with a hard byte limit. */

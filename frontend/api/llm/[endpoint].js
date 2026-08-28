@@ -22,7 +22,7 @@
 // 环境变量（仅 proxy 路径需要）：
 //   QUANTEDGE_BACKEND_URL  Render 后端 URL，如 https://quantedge-xxx.onrender.com
 
-import { requireReferer } from '../_lib/auth.js';
+import { enforceRateLimit, requireReferer, runWithConcurrency } from '../_lib/auth.js';
 import { proxyToBackend } from '../_lib/backendProxy.js';
 import generateKeywords from './_generate-keywords.js';
 import matchSupertrend from './_match-supertrend.js';
@@ -55,7 +55,10 @@ export default async function handler(req, res) {
 
   // 1) 本地 handler 优先：generate-keywords / match-supertrend / rank-candidates / 10x-thesis
   const localFn = KNOWN_HANDLERS[endpoint];
-  if (localFn) return localFn(req, res);
+  if (localFn) {
+    if (!enforceRateLimit(req, res, 'llm-local', { limit: 30, windowMs: 60 * 60 * 1000 })) return;
+    return runWithConcurrency(res, 'llm-local', 2, () => localFn(req, res));
+  }
 
   // 2) 兜底反向代理 — 统一走带内部签名的 Render BFF。
   // requireReferer 已在本函数入口执行；proxyToBackend 会再次校验，防止未来直接调用绕过。

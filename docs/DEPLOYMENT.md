@@ -57,7 +57,7 @@ Python 版本为 3.11，Node 版本为 22。Python 直接依赖、测试工具�
 ## 3. CI 与发布顺序
 
 - backend：精确依赖安装、Ruff 硬门禁、非网络测试、Mining Alpha 合成数据冒烟。
-- frontend：npm ci、依赖审计、import/i18n/版本一致性审计、Vercel 公开函数上限、713 项 Vitest、生产 build、bundle budget。
+- frontend：npm ci、依赖审计、import/i18n/版本一致性审计、Vercel 公开函数上限、714 项 Vitest、生产 build、bundle budget。
 - e2e：Chromium、移动端、响应式、axe serious/critical、旋钮与侧栏交互。
 - preview：部署 Preview，检查认证、核心页面、核心 API、Service Worker 与 5xx。
 - production：只从通过全部门禁的 main 发布。
