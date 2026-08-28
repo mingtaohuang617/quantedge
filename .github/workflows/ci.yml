@@ -167,7 +167,7 @@ jobs:
           check_preview() {
             path="$1"
             allowed="$2"
-            status=$(vercel curl "$path" --deployment "$preview_url" --token=$VERCEL_TOKEN -- --silent --show-error --output /dev/null --write-out "%{http_code}" | tail -n 1)
+            status=$(vercel curl --deployment "$preview_url" --token=$VERCEL_TOKEN "$path" -- --silent --show-error --output /dev/null --write-out "%{http_code}" | tail -n 1)
             echo "$path -> $status"
             case ",$allowed," in
               *",$status,"*) ;;
