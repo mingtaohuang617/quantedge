@@ -1,5 +1,13 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { sentryVitePlugin } from '@sentry/vite-plugin';
+
+const packageVersion = process.env.npm_package_version || '0.8.0';
+const gitSha = process.env.VERCEL_GIT_COMMIT_SHA || process.env.GITHUB_SHA || 'local';
+const releaseName = process.env.VITE_SENTRY_RELEASE || `quantedge-frontend@${packageVersion}+${gitSha.slice(0, 12)}`;
+const sentryBuildConfigured = Boolean(
+  process.env.SENTRY_AUTH_TOKEN && process.env.SENTRY_ORG && process.env.SENTRY_PROJECT,
+);
 
 // ─── Yahoo Finance Proxy: 服务端 Cookie 管理 ──────────────────
 // vite dev proxy 在服务端发请求，可跨域维护 cookie 会话
@@ -28,7 +36,21 @@ function configureYahooProxy(proxy) {
 }
 
 export default defineConfig(({ command }) => ({
-  plugins: [react()],
+  plugins: [
+    react(),
+    ...(sentryBuildConfigured ? [sentryVitePlugin({
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+      org: process.env.SENTRY_ORG,
+      project: process.env.SENTRY_PROJECT,
+      release: { name: releaseName },
+      sourcemaps: { filesToDeleteAfterUpload: './dist/**/*.map' },
+      telemetry: false,
+    })] : []),
+  ],
+  define: {
+    __QUANTEDGE_RELEASE__: JSON.stringify(releaseName),
+    __QUANTEDGE_GIT_SHA__: JSON.stringify(gitSha),
+  },
   base: command === 'build' ? './' : '/',
   // vitest 用 rolldown 而 plugin-react 的 esbuild JSX 配置被忽略；
   // 显式给 oxc 加 JSX automatic，让 .jsx 测试文件能解析
@@ -61,7 +83,8 @@ export default defineConfig(({ command }) => ({
     outDir: 'dist',
     assetsDir: 'assets',
     target: 'esnext',
-    sourcemap: false,
+    manifest: true,
+    sourcemap: sentryBuildConfigured ? 'hidden' : false,
     chunkSizeWarningLimit: 1500,
     // C2: 关掉 lazy chunk 的 modulepreload — 让 recharts/各 page chunk 真正按需加载
     // 否则 <link rel="modulepreload"> 会让浏览器在首屏就把它们拉下来，违背懒加载初衷

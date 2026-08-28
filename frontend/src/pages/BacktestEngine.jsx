@@ -2157,19 +2157,19 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
           <div className="text-xs font-medium text-[#a0aec0] mb-1">{t('回测参数')}</div>
           <div>
             <label className="text-[10px] text-[#a0aec0] mb-0.5 block">{t('初始资金')}</label>
-            <select value={initialCap} onChange={e => setInitialCap(+e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-[10px] text-white outline-none">
+            <select aria-label={t('初始资金')} value={initialCap} onChange={e => setInitialCap(+e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-[10px] text-white outline-none">
               <option value={50000}>$50,000</option><option value={100000}>$100,000</option><option value={500000}>$500,000</option><option value={1000000}>$1,000,000</option>
             </select>
           </div>
           <div>
             <label className="text-[10px] text-[#a0aec0] mb-0.5 block">{t('交易成本 (bps)')}</label>
-            <select value={costBps} onChange={e => setCostBps(+e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-[10px] text-white outline-none">
+            <select aria-label={t('交易成本 (bps)')} value={costBps} onChange={e => setCostBps(+e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-[10px] text-white outline-none">
               <option value={0}>{t('无成本')}</option><option value={10}>10 bps (0.10%)</option><option value={15}>15 bps (0.15%)</option><option value={30}>30 bps (0.30%)</option>
             </select>
           </div>
           <div>
             <label className="text-[10px] text-[#a0aec0] mb-0.5 block">{t('基准对比')}</label>
-            <select value={benchTicker} onChange={e => setBenchTicker(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-[10px] text-white outline-none">
+            <select aria-label={t('基准对比')} value={benchTicker} onChange={e => setBenchTicker(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-[10px] text-white outline-none">
               <option value="SPY">S&P 500 (SPY)</option><option value="QQQ">{t('纳斯达克 (QQQ)')}</option><option value="EWY">{t('韩国 (EWY)')}</option>
             </select>
             {/* S8: 额外叠加基准 — 可点选 */}
@@ -2200,7 +2200,7 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
             <div className="flex flex-wrap gap-0.5 bg-white/5 rounded-lg p-0.5 border border-white/8">
               {[["1M",t("1月")],["6M",t("6月")],["YTD",t("今年")],["1Y",t("1年")],["5Y",t("5年")],["ALL",t("全部")],["CUSTOM",t("自定义")]].map(([k, label]) => (
                 <button key={k} onClick={() => setBtRange(k)}
-                  className={`flex-1 min-w-0 px-1 py-0.5 rounded text-[10px] font-medium transition-all text-center ${btRange === k ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20" : "text-[#a0aec0] hover:text-white"}`}
+                  className={`flex-1 min-w-0 px-1 py-0.5 rounded text-[10px] font-medium transition-all text-center ${btRange === k ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/20" : "text-[#a0aec0] hover:text-white"}`}
                 >{label}</button>
               ))}
             </div>
@@ -2230,7 +2230,7 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
             <div className="flex gap-0.5 bg-white/5 rounded-lg p-0.5 border border-white/8">
               {[["none",t("不再平衡")],["quarterly",t("季度再平衡")],["yearly",t("年度再平衡")]].map(([k, label]) => (
                 <button key={k} onClick={() => setRebalance(k)}
-                  className={`flex-1 px-1 py-0.5 rounded text-[10px] font-medium transition-all text-center ${rebalance === k ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20" : "text-[#a0aec0] hover:text-white"}`}
+                  className={`flex-1 px-1 py-0.5 rounded text-[10px] font-medium transition-all text-center ${rebalance === k ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/20" : "text-[#a0aec0] hover:text-white"}`}
                 >{label}</button>
               ))}
             </div>
@@ -2248,7 +2248,7 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
             <div className="text-xs font-medium text-[#a0aec0] mb-1">{t('配置可视化')}</div>
             <ResponsiveContainer width="100%" height={140}>
               <PieChart>
-                <Pie data={portfolioStocks.map(p => ({ name: p.ticker, value: p.weight }))} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={55} innerRadius={30} paddingAngle={2} strokeWidth={0}>
+                <Pie data={portfolioStocks.map(p => ({ name: p.ticker, value: p.weight, 'aria-label': `${p.ticker} ${p.weight.toFixed(1)}%` }))} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={55} innerRadius={30} paddingAngle={2} strokeWidth={0}>
                   {portfolioStocks.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                 </Pie>
                 <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => [`${v}%`, t("权重")]} />

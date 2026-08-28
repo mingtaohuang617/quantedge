@@ -119,7 +119,7 @@ def _num(v):
         return None
     try:
         f = float(v)
-        return None if (f != f or f in (float("inf"), float("-inf"))) else f
+        return None if not math.isfinite(f) else f
     except (TypeError, ValueError):
         return None
 
@@ -305,5 +305,5 @@ def _mean_std(vals: list[float]) -> tuple[float, float]:
 
 def _avg(pcts: list[float], raws: list) -> float:
     """只对「原始值非 None」的维度求百分位均值；全缺 → 50。"""
-    kept = [p for p, r in zip(pcts, raws) if r is not None]
+    kept = [p for p, r in zip(pcts, raws, strict=True) if r is not None]
     return sum(kept) / len(kept) if kept else 50.0

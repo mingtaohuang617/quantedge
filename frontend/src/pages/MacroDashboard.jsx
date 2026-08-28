@@ -250,12 +250,12 @@ export default function MacroDashboard() {
     }
     setLoading(false);
     // 历史曲线 + AI 画像异步加载（不阻塞首屏）
-    apiFetch("/macro/composite/history").then(setHistory);
+    apiFetch("/macro/composite/history").then(setHistory).catch(() => null);
     setNarrativeLoading(true);
     apiFetch("/macro/narrative").then(d => {
       if (d?.ok && d.narrative) setNarrative(d.narrative);
       setNarrativeLoading(false);
-    });
+    }).catch(() => setNarrativeLoading(false));
   };
 
   // dev 模式：force=true 跳过 12h 缓存重新生成 narrative
@@ -266,7 +266,14 @@ export default function MacroDashboard() {
     setNarrativeLoading(false);
   };
 
-  useEffect(() => { load(); }, [lang]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    load().catch((error) => {
+      setError(t("宏观数据暂时无法加载，请稍后点击刷新重试"));
+      setLoading(false);
+      setNarrativeLoading(false);
+      console.warn('[QuantEdge] 宏观数据加载失败:', error.message);
+    });
+  }, [lang]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const categories = useMemo(() => {
     if (!factors) return [];

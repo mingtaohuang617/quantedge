@@ -749,7 +749,7 @@ const ScoringDashboard = () => {
       return next;
     });
   }, []);
-  // 服务端同步：整集 PUT（幂等）。失败时 apiFetch 返回 null，本地 localStorage 仍兜底。
+  // 服务端同步：整集 PUT（幂等）。失败时显式降级到本地 localStorage。
   const favSyncReady = useRef(false);   // 首挂载拉取完成前不回写，避免本地覆盖服务端
   const favLastSynced = useRef(null);   // 去重：相同集合不重复 PUT
   const pushFavorites = useCallback((set) => {
@@ -757,7 +757,8 @@ const ScoringDashboard = () => {
     const key = JSON.stringify(arr);
     if (key === favLastSynced.current) return;
     favLastSynced.current = key;
-    apiFetch('/watchlist/favorites', { method: 'PUT', body: JSON.stringify({ tickers: arr }) });
+    apiFetch('/watchlist/favorites', { method: 'PUT', body: JSON.stringify({ tickers: arr }) })
+      .catch((error) => console.warn('[QuantEdge] 星标同步失败，保留本地数据:', error.message));
   }, []);
   // 首挂载：服务端为权威。有数据→覆盖本地；服务端空且 KV 已启用→把本地星标种子上云。
   useEffect(() => {
@@ -778,7 +779,10 @@ const ScoringDashboard = () => {
         }
       }
       favSyncReady.current = true;
-    })();
+    })().catch((error) => {
+      favSyncReady.current = true;
+      console.warn('[QuantEdge] 星标读取失败，使用本地数据:', error.message);
+    });
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -2246,7 +2250,12 @@ const ScoringDashboard = () => {
           >
             {density === "standard" ? <Minus size={12} /> : <Filter size={12} />}
           </button>
-          <button onClick={() => setShowW(!showW)} className="p-1 rounded-md bg-white/5 border border-white/8 text-[#a0aec0] hover:text-white hover:bg-white/10 transition-all shrink-0">
+          <button
+            onClick={() => setShowW(!showW)}
+            title={t('评分权重设置')}
+            aria-label={t('评分权重设置')}
+            className="p-1 rounded-md bg-white/5 border border-white/8 text-[#a0aec0] hover:text-white hover:bg-white/10 transition-all shrink-0"
+          >
             <Settings size={12} />
           </button>
         </div>

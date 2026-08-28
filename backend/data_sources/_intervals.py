@@ -16,10 +16,10 @@ yfinance 1m 硬限制（已实测 SPY 2026-05-18 验证）：
 """
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 
 
-class Interval(str, Enum):
+class Interval(StrEnum):
     MIN_1 = "1m"
     MIN_5 = "5m"
     MIN_15 = "15m"

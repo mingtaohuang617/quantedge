@@ -392,7 +392,10 @@ function DataProvider({ children }) {
           console.info('[QuantEdge] 从 IndexedDB 恢复 ' + idbCached.stocks.length + ' 个标的');
         }
       } catch {}
-    })();
+    })().catch((error) => {
+      setApiOnline(false);
+      console.warn('[QuantEdge] 后台数据加载失败，继续使用本地缓存:', error.message);
+    });
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -456,25 +459,33 @@ function DataProvider({ children }) {
           }
         }
       }, 2000);
-    })();
+    })().catch((error) => {
+      setApiOnline(false);
+      console.warn('[QuantEdge] 后台数据加载失败，继续使用本地缓存:', error.message);
+    });
 
     // Poll status every 5s while refreshing (only when backend exists)
     const interval = setInterval(async () => {
       if (standalone) return;
-      const status = await apiFetch("/status");
-      if (status) {
-        setApiOnline(true);
-        if (status.refreshing !== refreshing) setRefreshing(status.refreshing);
-        if (!status.refreshing && refreshing) {
-          const data = await apiFetch("/data");
-          if (data?.stocks?.length > 0) {
-            setStocks(data.stocks);
-            setAlerts(data.alerts || []);
-            setLastRefresh(data.lastRefresh || "");
-            saveCache(data.stocks, data.alerts, data.lastRefresh);
-            setPriceUpdatedAt(Date.now());
+      try {
+        const status = await apiFetch("/status");
+        if (status) {
+          setApiOnline(true);
+          if (status.refreshing !== refreshing) setRefreshing(status.refreshing);
+          if (!status.refreshing && refreshing) {
+            const data = await apiFetch("/data");
+            if (data?.stocks?.length > 0) {
+              setStocks(data.stocks);
+              setAlerts(data.alerts || []);
+              setLastRefresh(data.lastRefresh || "");
+              saveCache(data.stocks, data.alerts, data.lastRefresh);
+              setPriceUpdatedAt(Date.now());
+            }
           }
         }
+      } catch (error) {
+        setApiOnline(false);
+        console.warn('[QuantEdge] 状态轮询失败:', error.message);
       }
     }, 5000);
     return () => clearInterval(interval);

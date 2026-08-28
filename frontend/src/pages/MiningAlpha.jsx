@@ -415,7 +415,7 @@ const RunPipelinePanel = ({ runId, onJobDone }) => {
     let cancelled = false;
     apiFetch("/mining-alpha/run/status").then(s => {
       if (!cancelled && s) setJobState(s);
-    });
+    }).catch(() => null);
     return () => { cancelled = true; };
   }, []);
 

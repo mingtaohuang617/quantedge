@@ -51,6 +51,17 @@ async function kvSet(key, value, ttlSec) {
   } catch { /* 缓存失败不影响主流程 */ }
 }
 
+export function parseEligibleFallback(cached, now = Date.now()) {
+  try {
+    const parsed = cached ? JSON.parse(cached) : null;
+    const ageMs = parsed?.stored_at ? now - parsed.stored_at : Infinity;
+    if (typeof parsed?.body !== 'string' || ageMs < 0 || ageMs > 5 * 60 * 1000) return null;
+    return { body: parsed.body, storedAt: parsed.stored_at, ageMs, stale: ageMs > 30_000 };
+  } catch {
+    return null;
+  }
+}
+
 export default async function handler(req, res) {
   // 行情必须 network-first，禁止 CDN 把旧报价伪装成实时数据。
   res.setHeader('Cache-Control', 'private, no-store');
@@ -101,20 +112,17 @@ export default async function handler(req, res) {
     res.send(text);
   } catch (err) {
     const cached = KV_ENABLED ? await kvGet(cacheKey) : null;
-    try {
-      const parsed = cached ? JSON.parse(cached) : null;
-      const ageMs = parsed?.stored_at ? Date.now() - parsed.stored_at : Infinity;
-      if (typeof parsed?.body === 'string' && ageMs >= 0 && ageMs <= 5 * 60 * 1000) {
-        res.status(200);
-        res.setHeader('Content-Type', 'application/json');
-        res.setHeader('X-Cache-Status', ageMs <= 30_000 ? 'HIT-FRESH' : 'FALLBACK');
-        res.setHeader('X-Data-Stale', ageMs > 30_000 ? 'true' : 'false');
-        res.setHeader('X-Data-Source', 'Yahoo Finance cache');
-        res.setHeader('X-Data-As-Of', new Date(parsed.stored_at).toISOString());
-        res.send(parsed.body);
-        return;
-      }
-    } catch { /* invalid or legacy cache is not eligible for realtime fallback */ }
+    const fallback = parseEligibleFallback(cached);
+    if (fallback) {
+      res.status(200);
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('X-Cache-Status', fallback.stale ? 'FALLBACK' : 'HIT-FRESH');
+      res.setHeader('X-Data-Stale', fallback.stale ? 'true' : 'false');
+      res.setHeader('X-Data-Source', 'Yahoo Finance cache');
+      res.setHeader('X-Data-As-Of', new Date(fallback.storedAt).toISOString());
+      res.send(fallback.body);
+      return;
+    }
     res.status(502).json({
       error: { code: 'quote_upstream_failed', message: 'Yahoo Finance request failed' },
       meta: {

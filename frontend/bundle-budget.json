@@ -1,0 +1,20 @@
+{
+  "recordedAt": "2026-08-28",
+  "baselineCommit": "cb00f7e",
+  "initialGzipBytes": 345791,
+  "maxInitialGrowthPercent": 5,
+  "lazyRouteGzipLimitBytes": 153600,
+  "enforceLazyAbsolute": false,
+  "routeBaselines": {
+    "ScoringDashboard": 258164,
+    "BacktestEngine": 165903,
+    "StockGene": 35331,
+    "Screener10x": 35027,
+    "Journal": 30731,
+    "MacroDashboard": 29210,
+    "MiningAlpha": 17445,
+    "Monitor": 16034,
+    "CompoundPower": 14844,
+    "SmartBeta": 11853
+  }
+}

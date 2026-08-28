@@ -54,6 +54,18 @@ def test_valid_bff_signature_is_accepted(monkeypatch):
     assert response.status_code == 200
 
 
+def test_replayed_request_id_is_rejected(monkeypatch):
+    monkeypatch.setenv("RENDER", "true")
+    monkeypatch.setenv("QUANTEDGE_BFF_SECRET", SECRET)
+    client = TestClient(server.app)
+    path = "/api/mining-alpha/run/status"
+    headers = _signed_headers("GET", path)
+    assert client.get(path, headers=headers).status_code == 200
+    replay = client.get(path, headers=headers)
+    assert replay.status_code == 401
+    assert "already been used" in replay.json()["error"]["message"]
+
+
 def test_expired_and_body_tampered_signatures_are_rejected(monkeypatch):
     monkeypatch.setenv("RENDER", "true")
     monkeypatch.setenv("QUANTEDGE_BFF_SECRET", SECRET)
@@ -66,6 +78,18 @@ def test_expired_and_body_tampered_signatures_are_rejected(monkeypatch):
     headers = _signed_headers("POST", "/api/mining-alpha/run/ic-report", body)
     tampered = client.post("/api/mining-alpha/run/ic-report", headers=headers, content=b'{"run_id":"other"}')
     assert tampered.status_code == 401
+
+
+def test_request_body_limit_is_enforced_before_signature(monkeypatch):
+    monkeypatch.setenv("RENDER", "true")
+    client = TestClient(server.app)
+    response = client.post(
+        "/api/mining-alpha/run/backtest",
+        headers={"Content-Length": str(server._BFF_MAX_BODY_BYTES + 1)},
+        content=b"{}",
+    )
+    assert response.status_code == 413
+    assert response.json()["error"]["code"] == "request_too_large"
 
 
 def test_run_id_rejects_path_traversal(tmp_path, monkeypatch):
@@ -91,3 +115,17 @@ def test_typed_job_arguments_forbid_unknown_or_cross_step_fields():
         assert exc.status_code == 422
     else:
         raise AssertionError("cross-step parameter was accepted")
+
+
+def test_duplicate_mining_job_is_rejected(monkeypatch):
+    monkeypatch.delenv("RENDER", raising=False)
+    monkeypatch.delenv("QUANTEDGE_ENV", raising=False)
+    client = TestClient(server.app)
+    previous = dict(server._MA_JOB_STATE)
+    try:
+        server._MA_JOB_STATE["running"] = True
+        response = client.post("/api/mining-alpha/run/backtest", json={"run_id": "safe"})
+        assert response.status_code == 409
+    finally:
+        server._MA_JOB_STATE.clear()
+        server._MA_JOB_STATE.update(previous)

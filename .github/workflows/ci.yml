@@ -19,12 +19,13 @@ jobs:
       - name: Install backend deps + ruff + pytest
         run: |
           pip install --upgrade pip
-          # 装运行时依赖（factors/data_sources 需要 pandas/numpy；test 收集时会 import）
           pip install -r backend/requirements.txt
-          pip install ruff pytest
-      - name: Ruff check (informational — legacy issues not yet cleaned)
+          pip install ruff==0.15.13 pytest==9.0.3
+          pip check
+      - name: Ruff check
         run: ruff check backend
-        continue-on-error: true
+      - name: Security boundary and data contract
+        run: pytest backend/tests/test_security_boundary.py --tb=short
       - name: Pytest (no network)
         run: pytest backend/tests -m "not network and not slow" --tb=short
 
@@ -53,16 +54,19 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - name: Install
-        # 用 npm install 而非 npm ci：现 lock 中部分 optional native deps
-        # （@esbuild/netbsd-arm64 等）未标记 optional=true，npm ci 在 Linux 会
-        # 报 EBADPLATFORM。npm install 会自动跳过不适配的可选平台依赖。
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
+      - name: Production dependency audit
+        run: npm audit --omit=dev --audit-level=high
       - name: Audit imports (lucide / react / recharts — 拦截漏 import 上线)
         run: npm run audit:imports
+      - name: Audit i18n
+        run: npm run audit:i18n:all
       - name: Vitest
         run: npm test
       - name: Vite build
         run: npm run build
+      - name: Bundle budget
+        run: npm run check:bundle
       - name: Upload dist artifact
         uses: actions/upload-artifact@v4
         with:
@@ -86,7 +90,7 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - name: Install
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
       - name: Install Playwright browser (chromium only)
         run: npx playwright install --with-deps chromium
       - name: Download dist artifact
@@ -105,6 +109,57 @@ jobs:
           name: playwright-report
           path: frontend/playwright-report
           retention-days: 7
+      - name: Lighthouse fixed lab baseline
+        shell: bash
+        run: |
+          mkdir -p .lighthouse
+          npm run preview -- --host 127.0.0.1 --port 4173 > /tmp/quantedge-preview.log 2>&1 &
+          for i in {1..30}; do curl --fail --silent http://127.0.0.1:4173/ >/dev/null && break; sleep 1; done
+          npx lighthouse http://127.0.0.1:4173/ --chrome-flags="--headless --no-sandbox" --only-categories=performance --output=json --output-path=.lighthouse/report.json
+          npm run check:lighthouse -- .lighthouse/report.json
+      - name: Upload Lighthouse report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-report
+          path: frontend/.lighthouse
+          retention-days: 7
+
+  deploy-preview:
+    name: Deploy and verify Vercel Preview
+    runs-on: ubuntu-latest
+    needs: [frontend, e2e]
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install pinned Vercel CLI
+        run: npm install --global vercel@59.9.1
+      - name: Build Preview
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
+          vercel build --token=$VERCEL_TOKEN
+      - name: Deploy Preview
+        id: preview
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          deployment_url=$(vercel deploy --prebuilt --token=$VERCEL_TOKEN)
+          echo "url=$deployment_url" >> "$GITHUB_OUTPUT"
+      - name: Verify Preview
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          vercel inspect "${{ steps.preview.outputs.url }}" --wait --timeout=5m --token=$VERCEL_TOKEN
+          node frontend/scripts/smoke-production.mjs "${{ steps.preview.outputs.url }}"
 
   # H6: 自动部署到 Vercel — 仅 push 到 main 时触发，需配置 secrets
   # 必需 secrets:
@@ -122,7 +177,7 @@ jobs:
         with:
           node-version: "22"
       - name: Install Vercel CLI
-        run: npm install --global vercel@latest
+        run: npm install --global vercel@59.9.1
       - name: Pull Vercel env (production)
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
@@ -136,9 +191,35 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: vercel build --prod --token=$VERCEL_TOKEN
+      - name: Record previous Ready deployments
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: vercel list --prod --token=$VERCEL_TOKEN > previous-ready-deployments.txt
       - name: Deploy prebuilt artifact
+        id: deploy
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-        run: vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN
+        run: |
+          deployment_url=$(vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN)
+          echo "url=$deployment_url" >> "$GITHUB_OUTPUT"
+      - name: Verify deployment status and core paths
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          vercel inspect "${{ steps.deploy.outputs.url }}" --wait --timeout=5m --token=$VERCEL_TOKEN
+          node frontend/scripts/smoke-production.mjs "${{ steps.deploy.outputs.url }}"
+      - name: Check recent production errors
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        shell: bash
+        run: |
+          vercel logs --deployment "${{ steps.deploy.outputs.url }}" --environment production --status-code 5xx --since 10m --limit 50 --json --token=$VERCEL_TOKEN > recent-5xx.jsonl
+          if [ -s recent-5xx.jsonl ]; then cat recent-5xx.jsonl; exit 1; fi
+      - name: Upload rollback record
+        uses: actions/upload-artifact@v4
+        with:
+          name: previous-ready-deployments
+          path: previous-ready-deployments.txt
+          retention-days: 14

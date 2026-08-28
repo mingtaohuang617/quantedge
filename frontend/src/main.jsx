@@ -7,13 +7,17 @@ import ErrorBoundary from './ErrorBoundary.jsx';
 // H7: Sentry 错误监控 — 仅当配置了 DSN 时启用
 // 在 Vercel 控制台设置环境变量 VITE_SENTRY_DSN 即可激活
 const SENTRY_DSN = import.meta.env.VITE_SENTRY_DSN;
+const SENTRY_RELEASE = typeof __QUANTEDGE_RELEASE__ === 'string'
+  ? __QUANTEDGE_RELEASE__
+  : (import.meta.env.VITE_SENTRY_RELEASE || 'quantedge-frontend@local');
 if (SENTRY_DSN && import.meta.env.PROD) {
   // 异步加载，避免没启用时也带上 Sentry bundle
   import('@sentry/react').then((Sentry) => {
     Sentry.init({
       dsn: SENTRY_DSN,
       environment: import.meta.env.MODE,
-      release: import.meta.env.VITE_APP_VERSION || 'quantedge@dev',
+      release: SENTRY_RELEASE,
+      sendDefaultPii: false,
       // 性能监控采样率 — 默认 10% 节省额度
       tracesSampleRate: Number(import.meta.env.VITE_SENTRY_TRACES_RATE) || 0.1,
       // 仅捕获生产环境真实用户错误
@@ -31,6 +35,7 @@ if (SENTRY_DSN && import.meta.env.PROD) {
         return event;
       },
     });
+    window.Sentry = Sentry;
     console.info('[QuantEdge] Sentry 错误监控已启用');
   }).catch((e) => console.warn('[QuantEdge] Sentry 加载失败：', e));
 }

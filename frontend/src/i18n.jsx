@@ -1194,6 +1194,8 @@ const EN = {
   '部分引擎未评分': 'Some engines have no score',
   '行业：': 'Sector: ',
   '批量加入': 'Batch add',
+  '批量加入市场': 'Batch-add market',
+  '评分权重设置': 'Scoring weight settings',
   // ── audit cleanup #1: Journal + Screener10x ──
   '代码:': 'Ticker:',
   '数量:': 'Qty:',

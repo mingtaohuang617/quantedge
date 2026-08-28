@@ -15,7 +15,7 @@ import math
 import os
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from typing import TypeVar
 from collections.abc import Callable
 
@@ -330,8 +330,8 @@ def fetch_fundamentals_enrich(yf_symbol: str) -> dict:
     ts = _coerce_float(ts)
     if ts:
         try:
-            d = datetime.fromtimestamp(ts, timezone.utc).date()
-            if d >= datetime.now(timezone.utc).date():  # 仅未来财报日
+            d = datetime.fromtimestamp(ts, UTC).date()
+            if d >= datetime.now(UTC).date():  # 仅未来财报日
                 out["next_earnings"] = d.isoformat()
         except (ValueError, OverflowError, OSError):
             pass

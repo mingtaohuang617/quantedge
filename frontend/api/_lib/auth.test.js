@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
+  consumeRateLimit,
   createSession,
   getSession,
   isAllowedOrigin,
@@ -23,6 +24,15 @@ function response() {
 beforeEach(() => {
   process.env.QUANTEDGE_SESSION_SECRET = SECRET;
   process.env.QUANTEDGE_ALLOWED_HOSTS = 'quantedge.example.com';
+});
+
+describe('failed-attempt rate limit', () => {
+  it('rejects the request after the configured boundary', () => {
+    const key = `test:${Date.now()}:${Math.random()}`;
+    expect(consumeRateLimit(key, { limit: 2, windowMs: 60_000 }).allowed).toBe(true);
+    expect(consumeRateLimit(key, { limit: 2, windowMs: 60_000 }).allowed).toBe(true);
+    expect(consumeRateLimit(key, { limit: 2, windowMs: 60_000 }).allowed).toBe(false);
+  });
 });
 
 describe('origin boundary', () => {

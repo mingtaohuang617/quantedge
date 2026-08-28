@@ -19,6 +19,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import stock_gene as sg  # noqa: E402
+from datetime import UTC
 
 
 @pytest.fixture
@@ -259,8 +260,8 @@ def test_append_history_cap_limits_size(tmp_sg):
 # ── get_alerts ────────────────────────────────────────────
 def test_get_alerts_detects_score_drop(tmp_sg):
     # 用相对日期，避免硬编码日期随时间滑出 get_alerts 的 days 窗口（时间炸弹）
-    from datetime import datetime, timedelta, timezone
-    now = datetime.now(timezone.utc)
+    from datetime import datetime, timedelta
+    now = datetime.now(UTC)
     sg.add_to_watchlist("AAPL")
     data = sg.load_watchlist()
     item = data["items"][0]
@@ -283,8 +284,8 @@ def test_get_alerts_detects_score_drop(tmp_sg):
 
 def test_get_alerts_filters_min_delta(tmp_sg):
     # 同上：相对日期，避免时间炸弹
-    from datetime import datetime, timedelta, timezone
-    now = datetime.now(timezone.utc)
+    from datetime import datetime, timedelta
+    now = datetime.now(UTC)
     sg.add_to_watchlist("AAPL")
     data = sg.load_watchlist()
     item = data["items"][0]
@@ -306,11 +307,11 @@ def test_get_alerts_filters_min_delta(tmp_sg):
 
 def test_get_alerts_filters_by_age(tmp_sg):
     """超过 days 的不返回（基于 to_checked_at）"""
-    from datetime import datetime, timedelta, timezone
+    from datetime import datetime, timedelta
     sg.add_to_watchlist("OLD")
     data = sg.load_watchlist()
     item = data["items"][0]
-    old_date = (datetime.now(timezone.utc) - timedelta(days=100)).isoformat()
+    old_date = (datetime.now(UTC) - timedelta(days=100)).isoformat()
     item["score_history"] = [
         {"engine": "trend", "checked_at": "2025-01-01T00:00:00Z", "score": 5, "max_score": 8},
         {"engine": "trend", "checked_at": old_date, "score": 2, "max_score": 8},
@@ -322,8 +323,8 @@ def test_get_alerts_filters_by_age(tmp_sg):
 
 def test_get_alerts_sorted_desc(tmp_sg):
     """多 alerts 按 checked_at 倒序"""
-    from datetime import datetime, timedelta, timezone
-    now = datetime.now(timezone.utc)
+    from datetime import datetime, timedelta
+    now = datetime.now(UTC)
     sg.add_to_watchlist("A")
     sg.add_to_watchlist("B")
     data = sg.load_watchlist()

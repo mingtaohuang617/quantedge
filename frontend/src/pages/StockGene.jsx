@@ -1747,6 +1747,7 @@ export default function StockGene() {
             <div className="ml-auto flex items-center gap-1" title={t("排序方式")}>
               <ArrowUpDown size={9} className="text-[#7a8497]" />
               <select
+                aria-label={t("排序方式")}
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
                 className="text-[9px] bg-white/5 border border-white/10 rounded px-1 py-0.5 text-[#d0d7e2] focus:outline-none focus:border-emerald-500/40"
@@ -2030,6 +2031,7 @@ export default function StockGene() {
                   <Layers size={10} className="text-emerald-300" />
                   <span className="text-[10px] font-semibold text-white">{t('批量加入')}</span>
                   <select
+                    aria-label={t('批量加入市场')}
                     value={batchMarket}
                     onChange={(e) => setBatchMarket(e.target.value)}
                     className="ml-auto px-1 py-0.5 text-[9px] bg-white/5 border border-white/10 rounded text-white"
