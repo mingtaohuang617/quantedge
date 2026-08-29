@@ -228,7 +228,10 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
           vercel inspect "${{ steps.deploy.outputs.url }}" --wait --timeout=5m --token=$VERCEL_TOKEN
-          node frontend/scripts/smoke-production.mjs "${{ steps.deploy.outputs.url }}"
+          # The immutable deployment URL may be protected by Vercel and return its
+          # own 200 HTML login page. Verify application routes through the public
+          # production alias after `vercel deploy --prod` has promoted it.
+          node frontend/scripts/smoke-production.mjs "https://quantedge-chi.vercel.app"
       - name: Check recent production errors
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
