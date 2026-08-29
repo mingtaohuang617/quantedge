@@ -19,6 +19,22 @@ import server  # noqa: E402
 SECRET = "test-bff-secret-with-at-least-32-characters"
 
 
+def test_production_startup_sync_is_opt_in(monkeypatch):
+    monkeypatch.delenv("QUANTEDGE_STARTUP_SYNC", raising=False)
+    monkeypatch.setenv("RENDER", "true")
+    assert server._startup_sync_enabled() is False
+
+    monkeypatch.setenv("QUANTEDGE_STARTUP_SYNC", "true")
+    assert server._startup_sync_enabled() is True
+
+
+def test_local_startup_sync_preserves_existing_default(monkeypatch):
+    monkeypatch.delenv("QUANTEDGE_STARTUP_SYNC", raising=False)
+    monkeypatch.delenv("RENDER", raising=False)
+    monkeypatch.delenv("QUANTEDGE_ENV", raising=False)
+    assert server._startup_sync_enabled() is True
+
+
 def test_api_version_matches_canonical_version_file():
     expected = (BACKEND.parent / "VERSION").read_text(encoding="utf-8").strip()
     assert server.PROJECT_VERSION == expected
