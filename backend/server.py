@@ -581,6 +581,14 @@ cache = DataCache()
 from contextlib import asynccontextmanager
 
 
+def _startup_sync_enabled() -> bool:
+    """Keep production boot deterministic; remote sync is an explicit opt-in there."""
+    configured = os.environ.get("QUANTEDGE_STARTUP_SYNC")
+    if configured is not None:
+        return configured.strip().lower() in {"1", "true", "yes", "on"}
+    return not (os.environ.get("RENDER") or os.environ.get("QUANTEDGE_ENV") == "production")
+
+
 @asynccontextmanager
 async def lifespan(_app):
     """Init DB, load cached data, kick off incremental sync (C17)."""
@@ -593,9 +601,12 @@ async def lifespan(_app):
     cache.load_from_file()
     print(f"[OK] loaded {len(cache.stocks)} stocks on startup")
 
-    # 后台增量同步（不阻塞 API server 启动）
-    if HAS_DB:
+    # Render 生产启动必须保持确定性；远程行情同步由受保护的手动/调度端点触发。
+    # 本地开发仍默认启动同步；生产需要 QUANTEDGE_STARTUP_SYNC=true 显式开启。
+    if HAS_DB and _startup_sync_enabled():
         threading.Thread(target=_bg_run_incremental_sync, daemon=True).start()
+    elif HAS_DB:
+        print("[OK] startup market sync skipped (production opt-in)")
 
     # Stock Gene 评分定时刷新（守护线程，默认禁用直到用户启用）
     try:
