@@ -88,6 +88,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').then((reg) => {
+      if (reg.waiting) {
+        window.dispatchEvent(new CustomEvent('quantedge:swUpdate', { detail: { reg } }));
+      }
       reg.addEventListener('updatefound', () => {
         const sw = reg.installing;
         if (!sw) return;

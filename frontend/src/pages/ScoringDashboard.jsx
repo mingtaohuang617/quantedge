@@ -39,7 +39,7 @@ import {
   fmtPrice,
 } from "../quant-platform.jsx";
 import useIsMobile from "../hooks/useIsMobile";
-import { BottomSheet, ThumbActionBar, MobileAppBar, FullscreenChart, Segmented } from "../components/mobile";
+import { AppStatusChip, BottomSheet, ThumbActionBar, MobileAppBar, FullscreenChart, Segmented, useMobileLayerHistory } from "../components/mobile";
 
 // P3 双轨权重：质量/时机两档（localStorage key: quantedge_weights_<wsId>）
 // 综合分 = 质量分 × quality% + 时机分 × timing%（对齐后端 COMPOSITE 0.6/0.4）
@@ -721,6 +721,7 @@ const ScoringDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [mobileShowDetail, setMobileShowDetail] = useState(false); // mobile: toggle list vs detail
   const isMobile = useIsMobile();
+  const closeMobileDetail = useMobileLayerHistory(isMobile && mobileShowDetail && !!sel, () => setMobileShowDetail(false), "scoring-detail");
   const [mFilterOpen, setMFilterOpen] = useState(false); // v6 移动端筛选 sheet
   // 关注列表 — localStorage + 服务端(KV/后端)双写持久化
   // 服务端可读：GET /api/watchlist/favorites —— 让监控/AI/月度复盘脱离浏览器读到关注池
@@ -936,7 +937,7 @@ const ScoringDashboard = () => {
     const iv = setInterval(fetchIndices, 60_000);
     return () => clearInterval(iv);
   }, [fetchIndices]);
-  const { stocks: ctxStocks, setStocks: ctxSetStocks, addTicker, removeTicker, apiOnline, standalone, quickPriceRefresh } = useData() || {};
+  const { stocks: ctxStocks, setStocks: ctxSetStocks, addTicker, removeTicker, apiOnline, standalone, quickPriceRefresh, priceUpdatedAt, priceRefreshing } = useData() || {};
 
   // P3 双轨：综合分 = 质量分 × wQ + 时机分 × wT。个股与 ETF 都有 qualityScore/timingScore，
   // 故统一重算（不再像旧三轴那样把 ETF 排除）。返回变更标的数。
@@ -1690,7 +1691,7 @@ const ScoringDashboard = () => {
     ] : [];
     let tStart = null;
     const onTS = (e) => { const p = e.touches[0]; tStart = { x: p.clientX, y: p.clientY }; };
-    const onTE = (e) => { if (!tStart) return; const p = e.changedTouches[0]; const dx = p.clientX - tStart.x, dy = p.clientY - tStart.y; if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) { if (tStart.x <= 24 && dx > 0) setSel(null); else goRel(dx < 0 ? 1 : -1); } tStart = null; };
+    const onTE = (e) => { if (!tStart) return; const p = e.changedTouches[0]; const dx = p.clientX - tStart.x, dy = p.clientY - tStart.y; if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) { if (tStart.x <= 24 && dx > 0) closeMobileDetail(); else goRel(dx < 0 ? 1 : -1); } tStart = null; };
     const segBtn = (on) => on
       ? { color: "var(--indigo-2)", borderColor: "rgba(99,102,241,.3)", background: "rgba(99,102,241,.15)" }
       : { color: "var(--fg-2)", borderColor: "var(--line)", background: "rgba(255,255,255,.03)" };
@@ -1699,13 +1700,16 @@ const ScoringDashboard = () => {
       <div className="h-full flex flex-col" style={{ background: "var(--bg-0)" }}>
         {/* ── 列表 ── */}
         <div ref={mListRef} className="flex-1 overflow-y-auto overscroll-contain">
-          <div className="px-4 pt-3 pb-1.5 flex items-center justify-between">
+          <div className="px-4 pt-3 pb-1.5 flex items-center justify-between gap-2">
             <h1 className="text-[22px] font-bold" style={{ color: "var(--fg-0)" }}>{t("量化评分")}</h1>
-            <button onClick={() => setMFilterOpen(true)} className="relative w-11 h-11 rounded-[10px] border flex items-center justify-center active:scale-95"
-              style={{ borderColor: nFilters ? "rgba(99,102,241,.3)" : "var(--line)", background: nFilters ? "rgba(99,102,241,.12)" : "rgba(255,255,255,.03)" }}>
-              <Filter size={17} style={{ color: nFilters ? "var(--indigo-2)" : "var(--fg-1)" }} />
-              {nFilters > 0 && <span className="absolute -top-1 -right-1 w-[15px] h-[15px] rounded-full text-[9px] font-bold text-white flex items-center justify-center" style={{ background: "var(--indigo)" }}>{nFilters}</span>}
-            </button>
+            <div className="flex items-center gap-2">
+              <AppStatusChip compact apiOnline={apiOnline} updatedAt={priceUpdatedAt} refreshing={priceRefreshing} onClick={() => window.dispatchEvent(new CustomEvent("quantedge:openStatus"))} />
+              <button onClick={() => setMFilterOpen(true)} aria-label={t("筛选标的")} className="relative w-11 h-11 rounded-[10px] border flex items-center justify-center active:scale-95"
+                style={{ borderColor: nFilters ? "color-mix(in srgb, var(--sem-brand) 30%, transparent)" : "var(--line)", background: nFilters ? "color-mix(in srgb, var(--sem-brand) 12%, transparent)" : "var(--surface-1)" }}>
+                <Filter size={17} style={{ color: nFilters ? "var(--indigo-2)" : "var(--fg-1)" }} />
+                {nFilters > 0 && <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full text-[10px] font-bold text-white flex items-center justify-center" style={{ background: "var(--indigo)" }}>{nFilters}</span>}
+              </button>
+            </div>
           </div>
           <div className="px-4 mb-2 relative">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "var(--fg-3)" }} />
@@ -1728,7 +1732,7 @@ const ScoringDashboard = () => {
             {rows.map((stk) => {
               const up = safeChange(stk.change) >= 0;
               return (
-                <button key={stk.ticker} onClick={() => setSel(stk)} className="virt-row-m w-full flex items-center gap-3 px-2.5 py-3 active:scale-[0.99] transition text-left" style={{ borderBottom: "1px solid var(--line)" }}>
+                <button key={stk.ticker} onClick={() => { setSel(stk); setMobileShowDetail(true); }} className="virt-row-m w-full flex items-center gap-3 px-2.5 py-3 active:scale-[0.99] transition text-left" style={{ borderBottom: "1px solid var(--line)" }}>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline gap-2">
                       <span className="font-mono text-[14px] font-semibold" style={{ color: "var(--fg-0)" }}>{stk.ticker}</span>
@@ -1749,9 +1753,9 @@ const ScoringDashboard = () => {
         </div>
 
         {/* ── 全屏个股卡 ── */}
-        {sel && (
+        {mobileShowDetail && sel && (
           <div className="fixed inset-0 z-40 flex flex-col" style={{ background: "var(--bg-0)" }}>
-            <MobileAppBar onBack={() => setSel(null)}
+              <MobileAppBar onBack={closeMobileDetail}
               title={<span className="flex items-center gap-2">
                 <span className="font-mono text-[15px] font-bold" style={{ color: "var(--fg-0)" }}>{sel.ticker}</span>
                 <span className="font-mono text-[10px] px-1.5 py-0.5 rounded" style={{ background: "rgba(30,211,149,.12)", color: "var(--up)" }}>{(sel.score ?? 0).toFixed(0)}</span>

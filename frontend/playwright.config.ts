@@ -14,7 +14,8 @@ export default defineConfig({
   fullyParallel: !isCI,
   forbidOnly: isCI,
   retries: isCI ? 1 : 0,
-  workers: isCI ? 1 : undefined,
+  // Recharts + 大型静态行情数据同时开 10 个 Chromium 容易触发浏览器进程 OOM。
+  workers: isCI ? 1 : 4,
   reporter: isCI ? [['github'], ['list']] : 'list',
   timeout: 30_000,
   expect: { timeout: 5_000 },
@@ -26,7 +27,20 @@ export default defineConfig({
     viewport: { width: 1440, height: 900 },
   },
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    { name: 'chromium', testIgnore: /mobile\.spec\.ts/, use: { ...devices['Desktop Chrome'] } },
+    { name: 'mobile-iphone-se', testMatch: /mobile\.spec\.ts/, use: { ...devices['iPhone SE'], browserName: 'chromium' } },
+    { name: 'mobile-iphone-13', testMatch: /mobile\.spec\.ts/, use: { ...devices['iPhone 13'], browserName: 'chromium' } },
+    { name: 'mobile-pixel-7', testMatch: /mobile\.spec\.ts/, use: { ...devices['Pixel 7'] } },
+    {
+      name: 'mobile-landscape',
+      testMatch: /mobile\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 740, height: 360 },
+        isMobile: true,
+        hasTouch: true,
+      },
+    },
   ],
   // 仅当未指定 E2E_BASE_URL 时才本地启动 preview server
   webServer: process.env.E2E_BASE_URL ? undefined : {

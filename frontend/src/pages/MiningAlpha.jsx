@@ -36,6 +36,7 @@ import { useLang } from "../i18n.jsx";
 import useIsMobile from "../hooks/useIsMobile.js";
 import MobileAppBar from "../components/mobile/MobileAppBar";
 import FullscreenChart from "../components/mobile/FullscreenChart";
+import useMobileLayerHistory from "../hooks/useMobileLayerHistory.js";
 
 const fmtPct = (v, digits = 2) => (v === null || v === undefined || isNaN(v))
   ? "—" : `${(v * 100).toFixed(digits)}%`;
@@ -926,6 +927,7 @@ export default function MiningAlpha() {
 
   // ── mobile-only state (hooks must be unconditional) ──────
   const [mSel, setMSel] = useState(null);          // selected signal row (IC report row)
+  const closeMSel = useMobileLayerHistory(isMobile && Boolean(mSel), () => setMSel(null), "mining-signal");
   const [mCatFilter, setMCatFilter] = useState("all"); // category filter chip
   const [mFsChart, setMFsChart] = useState(false); // fullscreen layered backtest chart
 
@@ -972,18 +974,15 @@ export default function MiningAlpha() {
       <div className="h-full flex flex-col" style={{ background: "var(--bg-0)" }}>
         {/* ── 信号卡流（列表层）──────────────────────────── */}
         <div className="flex-1 overflow-y-auto overscroll-contain">
-          {/* 页头 — design: h=46, fs=16 fw=600 + sliders icon btn 34×34 r=9 */}
-          <div className="flex items-center gap-2.5"
-            style={{ flexShrink: 0, height: 46, padding: "0 14px", borderBottom: "1px solid var(--line)", background: "rgba(13,15,22,.6)" }}>
-            <span className="flex-1 font-semibold" style={{ fontSize: 16, color: "var(--fg-0)" }}>{t("信号实验室")}</span>
-            <button
-              className="flex items-center justify-center active:scale-95 transition"
-              style={{ width: 34, height: 34, borderRadius: 9, border: "1px solid var(--line)", background: "rgba(255,255,255,.03)", flexShrink: 0 }}
-              aria-label={t("筛选")}
-            >
-              <SlidersHorizontal size={17} style={{ color: "var(--fg-1)" }} />
-            </button>
-          </div>
+          <MobileAppBar
+            title={t("信号实验室")}
+            chips={<span className="mobile-status-chip" data-status={backendUnreachable ? "offline" : loading ? "loading" : "live"}>{backendUnreachable ? t("后端离线") : loading ? t("计算中") : t("研究就绪")}</span>}
+            actions={
+              <button className="mobile-control active:scale-95 transition" aria-label={t("筛选信号")}>
+                <SlidersHorizontal size={17} style={{ color: "var(--fg-1)" }} />
+              </button>
+            }
+          />
 
           {/* 分类筛选 chips 横滑 — design: padding 12px 16px 4px, chip 6px 13px r=18 fs=11.5 */}
           {cats.length > 1 && (
@@ -1102,17 +1101,11 @@ export default function MiningAlpha() {
         {/* ── 全屏研究报告（单信号下钻）──────────────────── */}
         {sel && (
           <div className="fixed inset-0 z-40 flex flex-col" style={{ background: "var(--bg-0)" }}>
-            {/* 报告顶栏 — design: h=46 chevL(22) + title 14px + share icon */}
-            <div className="flex items-center flex-shrink-0"
-              style={{ height: 46, gap: 10, padding: "0 14px", borderBottom: "1px solid var(--line)", background: "rgba(13,15,22,.6)" }}>
-              <button onClick={() => setMSel(null)} className="active:scale-90 transition" aria-label={t("返回")}>
-                <ChevronRight size={22} style={{ color: "var(--fg-1)", transform: "rotate(180deg)" }} />
-              </button>
-              <span className="flex-1 font-semibold" style={{ fontSize: 14, color: "var(--fg-0)" }}>{t("研究报告")}</span>
-              <button className="active:scale-90 transition" aria-label={t("分享")} style={{ color: "var(--fg-3)" }}>
-                <ArrowRight size={18} style={{ color: "var(--fg-3)" }} />
-              </button>
-            </div>
+            <MobileAppBar
+              onBack={closeMSel}
+              title={t("研究报告")}
+              actions={<button className="mobile-control active:scale-90 transition" aria-label={t("分享研究报告")}><ArrowRight size={18} style={{ color: "var(--fg-3)" }} /></button>}
+            />
 
             {/* 可滚动正文 */}
             <div className="flex-1 overflow-y-auto overscroll-contain" style={{ paddingBottom: 80 }}>

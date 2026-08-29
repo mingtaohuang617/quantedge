@@ -106,6 +106,183 @@
   --brand-gradient: linear-gradient(135deg, var(--accent-indigo) 0%, var(--accent-cyan) 100%);
 }
 
+/* ── QuantEdge Mobile v8 foundation ─────────────────────────────── */
+:root {
+  --mobile-page-gutter: 16px;
+  --mobile-section-gap: 22px;
+  --mobile-card-gap: 12px;
+  --mobile-radius-sm: 10px;
+  --mobile-radius-md: 14px;
+  --mobile-radius-lg: 20px;
+  --motion-press: 100ms;
+  --motion-state: 180ms;
+  --motion-layer: 280ms;
+  --motion-standard: cubic-bezier(.2,.7,.1,1);
+}
+
+.mobile-control {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.mobile-primary-button,
+.mobile-secondary-button {
+  min-height: 46px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 700;
+  transition: transform var(--motion-press) ease, opacity var(--motion-state) ease, background var(--motion-state) ease;
+}
+
+.mobile-primary-button {
+  color: white;
+  background: linear-gradient(180deg, var(--indigo-2), var(--indigo));
+  box-shadow: 0 8px 22px -8px color-mix(in srgb, var(--sem-brand) 65%, transparent);
+}
+
+.mobile-secondary-button {
+  color: var(--fg-1);
+  background: var(--surface-2);
+  border: 1px solid var(--line-2);
+}
+
+.mobile-primary-button:active,
+.mobile-secondary-button:active,
+.mobile-status-chip:active {
+  transform: scale(.98);
+}
+
+.mobile-primary-button:disabled,
+.mobile-secondary-button:disabled {
+  opacity: .45;
+}
+
+.mobile-status-chip {
+  min-height: 36px;
+  max-width: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 1px solid;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1;
+  transition: transform var(--motion-press) ease, background var(--motion-state) ease;
+}
+
+.mobile-status-chip.is-compact {
+  min-width: 44px;
+  min-height: 44px;
+  justify-content: center;
+  padding: 0 9px;
+}
+
+.mobile-status-age {
+  color: var(--fg-2);
+  font-family: "JetBrains Mono", monospace;
+  font-weight: 500;
+}
+
+.mobile-status-hero {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid;
+  border-radius: var(--mobile-radius-md);
+  background: var(--surface-1);
+}
+
+.mobile-status-hero-icon {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+}
+
+.app-feedback-viewport {
+  position: fixed;
+  left: 50%;
+  bottom: calc(68px + env(safe-area-inset-bottom));
+  z-index: 110;
+  width: min(calc(100vw - 24px), 440px);
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.app-feedback {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px 9px 13px;
+  color: var(--fg-0);
+  background: color-mix(in srgb, var(--bg-2) 94%, transparent);
+  border: 1px solid var(--line-2);
+  border-radius: 14px;
+  box-shadow: 0 18px 44px rgba(0,0,0,.34);
+  backdrop-filter: blur(16px);
+  pointer-events: auto;
+  animation: mobile-feedback-in var(--motion-state) var(--motion-standard);
+}
+
+.app-feedback-success > svg { color: var(--sem-up); }
+.app-feedback-error > svg,
+.app-feedback-offline > svg { color: var(--sem-down); }
+.app-feedback-loading > svg,
+.app-feedback-info > svg { color: var(--sem-brand); }
+
+.app-feedback-action,
+.app-feedback-close {
+  min-height: 40px;
+  min-width: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.app-feedback-action {
+  padding: 0 8px;
+  color: var(--indigo-2);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.app-feedback-close { color: var(--fg-3); }
+
+@keyframes mobile-feedback-in {
+  from { opacity: 0; transform: translateY(8px) scale(.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (min-width: 768px) {
+  .app-feedback-viewport { bottom: 24px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-feedback,
+  .mobile-primary-button,
+  .mobile-secondary-button,
+  .mobile-status-chip {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 /* Light theme */
 .light {
   /* v6 canonical tokens · light equivalents（强调色 --up/--cyan… 经 --accent-* 自动跟随）*/

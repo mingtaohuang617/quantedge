@@ -20,6 +20,7 @@ import { apiFetch } from "../quant-platform.jsx";
 import { useLang } from "../i18n.jsx";
 import useIsMobile from "../hooks/useIsMobile.js";
 import FullscreenChart from "../components/mobile/FullscreenChart.jsx";
+import MobileAppBar from "../components/mobile/MobileAppBar.jsx";
 
 // ─── 工具 ────────────────────────────────────────────────
 const fmtPct = (v, digits = 1) =>
@@ -491,27 +492,28 @@ export default function SmartBeta() {
 
     return (
       <div className="h-full flex flex-col" style={{ background: "var(--bg-0)" }}>
-        {/* ── App bar — matches design: h-[46px] px-[14px] rgba(13,15,22,.6) border-bottom ── */}
-        <div
-          className="shrink-0 flex items-center gap-2.5 border-b"
-          style={{
-            height: 46,
-            padding: "0 14px",
-            borderColor: "var(--line)",
-            background: "rgba(13,15,22,.6)",
-          }}
-        >
-          <span className="flex-1 font-bold truncate" style={{ fontSize: 16, color: "var(--fg-0)" }}>
-            {t("Smart Beta 调音台")}
-          </span>
-          <button
-            onClick={fetchSnapshot}
-            disabled={loading}
-            className="active:scale-95 transition disabled:opacity-50"
-            style={{ fontSize: 11, fontWeight: 600, color: "var(--indigo-2)", background: "none", border: "none", padding: 0, cursor: "pointer" }}
-          >
-            {loading ? <Loader size={11} className="animate-spin inline" /> : t("重置")}
-          </button>
+        <MobileAppBar
+          title={t("Smart Beta 调音台")}
+          actions={
+            <button
+              onClick={fetchSnapshot}
+              disabled={loading}
+              className="mobile-control active:scale-95 transition disabled:opacity-50"
+              style={{ minWidth: 52, fontSize: 11, fontWeight: 600, color: "var(--indigo-2)" }}
+              aria-label={t("重置因子配置")}
+            >
+              {loading ? <Loader size={14} className="animate-spin" /> : t("重置")}
+            </button>
+          }
+        />
+
+        <div className="grid grid-cols-3 gap-2 px-4 py-3 border-b" style={{ borderColor: "var(--line)", background: "var(--surface-1)" }} aria-label={t("配置流程")}>
+          {[t("1 选择因子"), t("2 查看暴露"), t("3 回测验证")].map((label, index) => (
+            <div key={label} className="min-h-9 rounded-lg flex items-center justify-center text-center px-1"
+              style={{ fontSize: 10, color: index === 0 ? "var(--indigo-2)" : "var(--fg-3)", background: index === 0 ? "rgba(99,102,241,.12)" : "var(--surface-2)", border: `1px solid ${index === 0 ? "rgba(99,102,241,.28)" : "var(--line)"}` }}>
+              {label}
+            </div>
+          ))}
         </div>
 
         {/* ── Scrollable body ── */}

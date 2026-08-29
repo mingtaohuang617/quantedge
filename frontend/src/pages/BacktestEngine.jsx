@@ -1466,6 +1466,14 @@ const BacktestEngine = ({ preloadPortfolio = null, onPreloadConsumed = null }) =
           }
         />
 
+        <div className="grid grid-cols-3 gap-2 px-4 py-3 border-b" style={{ borderColor: "var(--line)", background: "var(--surface-1)" }} aria-label={t("回测流程")}>
+          {[t("1 构建组合"), t("2 设置参数"), t("3 阅读结果")].map((label, index) => {
+            const active = index === 0 ? portfolioStocks.length > 0 : index === 1 ? totalWeight === 100 : Boolean(btResult);
+            return <div key={label} className="min-h-9 rounded-lg flex items-center justify-center px-1 text-center"
+              style={{ fontSize: 10, color: active ? "var(--indigo-2)" : "var(--fg-3)", background: active ? "rgba(99,102,241,.1)" : "var(--surface-2)", border: `1px solid ${active ? "rgba(99,102,241,.25)" : "var(--line)"}` }}>{label}</div>;
+          })}
+        </div>
+
         {/* ── Scrollable body ── */}
         <div
           className="flex-1 overflow-y-auto overscroll-contain"

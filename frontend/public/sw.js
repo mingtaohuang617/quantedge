@@ -11,7 +11,8 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE).then((c) => c.addAll(APP_SHELL).catch(() => {}))
   );
-  self.skipWaiting();
+  // 升级时保持 waiting，等用户主动点击「更新」后再 SKIP_WAITING，
+  // 避免打断尚未保存的日志、交易或回测参数。首次安装仍会正常激活。
 });
 
 self.addEventListener("activate", (event) => {

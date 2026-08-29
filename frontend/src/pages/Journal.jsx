@@ -18,7 +18,7 @@ import { buildDigest } from "../components/macro/digestBuilder.js";
 import { searchTickers as standaloneSearch, fetchStockData, STOCK_CN_NAMES } from "../standalone.js";
 import { useLang, isZh, enFallback } from "../i18n.jsx";
 import useIsMobile from "../hooks/useIsMobile";
-import { BottomSheet, ThumbActionBar, MobileAppBar } from "../components/mobile";
+import { AppStatusChip, BottomSheet, ThumbActionBar, MobileAppBar, notifyApp, useMobileLayerHistory } from "../components/mobile";
 import {
   DataContext,
   apiFetch,
@@ -229,7 +229,7 @@ const AnchorPriceEditor = ({ entry, currency, onUpdate }) => {
 const Journal = () => {
   const { t, lang } = useLang();
   const confirm = useConfirm();
-  const { stocks: ctxStocks4, standalone } = useContext(DataContext) || {};
+  const { stocks: ctxStocks4, standalone, apiOnline, priceUpdatedAt, priceRefreshing } = useContext(DataContext) || {};
   const liveStocks = ctxStocks4 || [];
   const ws = useWorkspace();
   const wsId = ws?.activeId || 'default';
@@ -431,6 +431,10 @@ const Journal = () => {
   }, [entries]);
 
   const isMobile = useIsMobile();
+  const closeJournalDetail = useMobileLayerHistory(isMobile && !!mDetailSel, () => {
+    if (mDetailSel) setSel(mDetailSel);
+    setMDetailSel(null);
+  }, "journal-entry");
 
   // ─── H4: AI 复盘助手（生成结构化 Claude prompt） ──────────
   const [aiOpen, setAiOpen] = useState(false);
@@ -643,25 +647,26 @@ ${angleQuestion}
         <div className="flex-1 overflow-y-auto overscroll-contain" style={{ paddingBottom: 10 }}>
 
           {/* 顶部 AppBar */}
-          <div className="px-4 pt-3 pb-1 flex items-center justify-between">
+          <div className="px-4 pt-3 pb-1 flex items-center justify-between gap-3">
             <h1 className="text-[22px] font-bold" style={{ color: "var(--fg-0)" }}>{t("投资日志")}</h1>
-            <div className="flex items-center gap-2">
+            <AppStatusChip compact apiOnline={apiOnline} updatedAt={priceUpdatedAt} refreshing={priceRefreshing} onClick={() => window.dispatchEvent(new CustomEvent("quantedge:openStatus"))} />
+          </div>
+          <div className="px-4 py-2 grid grid-cols-2 gap-2">
               <button
                 onClick={() => setShowAddTx(true)}
                 aria-label={t("录入交易")}
-                className="w-11 h-11 rounded-xl border flex items-center justify-center active:scale-95 transition"
-                style={{ borderColor: "var(--line)", background: "rgba(255,255,255,.03)", color: "var(--fg-1)" }}
+                className="min-h-11 rounded-xl border flex items-center justify-center gap-2 text-[12px] font-semibold active:scale-[.98] transition"
+                style={{ borderColor: "var(--line)", background: "var(--surface-1)", color: "var(--fg-1)" }}
               >
-                <Briefcase size={15} />
+                <Briefcase size={15} /> {t("录入交易")}
               </button>
               <button
                 onClick={() => setShowMonthlyReview(true)}
-                className="flex items-center gap-1.5 px-3 h-11 rounded-xl border text-[12px] font-medium active:scale-95 transition"
-                style={{ borderColor: "rgba(139,92,246,.3)", background: "rgba(139,92,246,.08)", color: "#C4B5FD" }}
+                className="flex items-center justify-center gap-1.5 px-3 min-h-11 rounded-xl border text-[12px] font-semibold active:scale-[.98] transition"
+                style={{ borderColor: "color-mix(in srgb, var(--violet) 30%, transparent)", background: "color-mix(in srgb, var(--violet) 9%, transparent)", color: "var(--violet)" }}
               >
                 <FileText size={13} /> {t("复盘")}
               </button>
-            </div>
           </div>
 
           {/* ── Hero P&L — serif 大字号（v5 t-hero-display + .font-serif） ── */}
@@ -1012,11 +1017,11 @@ ${angleQuestion}
           const days = Math.max(0, Math.floor((Date.now() - new Date(e.anchorDate).getTime()) / 86400000));
           let eb = null;
           const ebStart = (ev) => { const p = ev.touches[0]; eb = p.clientX <= 24 ? { x: p.clientX, y: p.clientY } : null; };
-          const ebEnd = (ev) => { if (!eb) return; const p = ev.changedTouches[0]; const dx = p.clientX - eb.x, dy = p.clientY - eb.y; if (dx > 64 && Math.abs(dx) > Math.abs(dy) * 1.5) { setMDetailSel(null); setSel(e); } eb = null; };
+          const ebEnd = (ev) => { if (!eb) return; const p = ev.changedTouches[0]; const dx = p.clientX - eb.x, dy = p.clientY - eb.y; if (dx > 64 && Math.abs(dx) > Math.abs(dy) * 1.5) closeJournalDetail(); eb = null; };
           return (
             <div className="fixed inset-0 z-40 flex flex-col" onTouchStart={ebStart} onTouchEnd={ebEnd} style={{ background: "var(--bg-0)" }}>
               <MobileAppBar
-                onBack={() => { setMDetailSel(null); setSel(e); }}
+                onBack={closeJournalDetail}
                 title={
                   <span className="flex items-center gap-2">
                     <span className="font-mono text-[15px] font-bold" style={{ color: "var(--fg-0)" }}>{mainLabel}</span>
@@ -1027,8 +1032,9 @@ ${angleQuestion}
                 }
                 actions={
                   <button
-                    onClick={async (ev) => { ev.stopPropagation(); if (await confirm({ title: t('删除'), message: t("确定删除 {ticker} 的投资记录？", { ticker: e.ticker }), danger: true, confirmLabel: t('删除') })) { deleteEntry(e.id); setMDetailSel(null); } }}
-                    className="p-1 active:scale-90 transition"
+                    onClick={async (ev) => { ev.stopPropagation(); if (await confirm({ title: t('删除'), message: t("确定删除 {ticker} 的投资记录？", { ticker: e.ticker }), danger: true, confirmLabel: t('删除') })) { deleteEntry(e.id); notifyApp({ type: "success", message: t("投资记录已删除") }); closeJournalDetail(); } }}
+                    aria-label={t("删除投资记录")}
+                    className="w-11 h-11 inline-flex items-center justify-center active:scale-90 transition"
                     style={{ color: "var(--down)" }}
                   >
                     <Trash2 size={17} />

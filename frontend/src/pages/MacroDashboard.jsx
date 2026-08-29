@@ -2,12 +2,12 @@
 // MacroDashboard — 市场层面宏观因子看板（Phase 1+2）
 // 组件已拆到 ../components/macro/*；本文件只负责数据加载 + 组合 + 路由级 state
 // ─────────────────────────────────────────────────────────────
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useContext } from "react";
 import { Globe, RefreshCw, AlertCircle, Loader, ArrowUp, Maximize2, Minimize2, Share2, Check, FileText, ChevronRight, ChevronLeft, Thermometer } from "lucide-react";
-import { apiFetch } from "../quant-platform.jsx";
+import { apiFetch, DataContext } from "../quant-platform.jsx";
 import { useLang } from "../i18n.jsx";
 import useIsMobile from "../hooks/useIsMobile";
-import { BottomSheet, MobileAppBar, FullscreenChart } from "../components/mobile";
+import { AppStatusChip, BottomSheet, MobileAppBar, FullscreenChart } from "../components/mobile";
 
 // 线上快照（production 只能读它，因为 Vercel 上没跑 backend；本地 dev 走实时 API）
 // 主动刷新：本地 `cd backend && python export_macro_snapshot.py` → commit → push
@@ -52,6 +52,7 @@ function localizeMacro(node, en) {
 export default function MacroDashboard() {
   const { t, lang } = useLang();
   const isMobile = useIsMobile();
+  const { apiOnline, priceUpdatedAt, priceRefreshing } = useContext(DataContext) || {};
   const [factors, setFactors] = useState(null);
   const [composite, setComposite] = useState(null);
   const [history, setHistory] = useState(null);
@@ -485,16 +486,20 @@ export default function MacroDashboard() {
         <div className="flex-1 overflow-y-auto overscroll-contain">
 
           {/* ── 页头 ── */}
-          <div className="px-4 pt-3 pb-1 flex items-center justify-between">
+          <div className="px-4 pt-3 pb-1 flex items-center justify-between gap-2">
             <h1 className="text-[22px] font-bold" style={{ color: "var(--fg-0)" }}>{t("宏观看板")}</h1>
-            <button
-              onClick={load}
-              disabled={loading}
-              className="w-9 h-9 rounded-[10px] border flex items-center justify-center active:scale-95"
-              style={{ borderColor: "var(--line)", background: "rgba(255,255,255,.03)" }}
-            >
-              <RefreshCw size={16} className={loading ? "animate-spin" : ""} style={{ color: "var(--fg-2)" }} />
-            </button>
+            <div className="flex items-center gap-2">
+              <AppStatusChip compact apiOnline={apiOnline} updatedAt={priceUpdatedAt} refreshing={priceRefreshing || loading} onClick={() => window.dispatchEvent(new CustomEvent("quantedge:openStatus"))} />
+              <button
+                onClick={load}
+                disabled={loading}
+                aria-label={t("刷新宏观数据")}
+                className="w-11 h-11 rounded-[10px] border flex items-center justify-center active:scale-95"
+                style={{ borderColor: "var(--line)", background: "var(--surface-1)" }}
+              >
+                <RefreshCw size={16} className={loading ? "animate-spin" : ""} style={{ color: "var(--fg-2)" }} />
+              </button>
+            </div>
           </div>
 
           {/* ── 市场温度英雄区 ── */}

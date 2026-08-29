@@ -41,7 +41,7 @@ import { fmtMcap, fmtNum, fmtPct } from "../lib/formatters.js";
 import { fetchCurrentPrice } from "../lib/yahoo.js";
 import EmptyState from "../components/EmptyState.jsx";
 import useIsMobile from "../hooks/useIsMobile.js";
-import { BottomSheet, MobileAppBar, FullscreenChart } from "../components/mobile";
+import { BottomSheet, MobileAppBar, FullscreenChart, useMobileLayerHistory } from "../components/mobile";
 import { useLang } from "../i18n.jsx";
 
 // ── 移动端：漏斗条形色阶（全宇宙→初筛→AI精选→观察名单）
@@ -128,6 +128,7 @@ export default function Screener10x() {
   const [mFilterOpen, setMFilterOpen] = useState(false);   // 筛选 BottomSheet
   const [mFunnelFs, setMFunnelFs] = useState(false);       // 漏斗全屏（横屏）
   const [mDetailItem, setMDetailItem] = useState(null);    // 候选下钻卡
+  const closeMDetailItem = useMobileLayerHistory(isMobile && Boolean(mDetailItem), () => setMDetailItem(null), "screener-candidate");
 
   // 数据状态
   const [supertrends, setSupertrends] = useState([]);
@@ -902,7 +903,7 @@ export default function Screener10x() {
         <div className="flex-1 overflow-y-auto overscroll-contain">
 
           {/* 顶栏：标题 + AI 狩猎 + 筛选按钮 */}
-          <div className="flex items-center gap-[10px] shrink-0" style={{ height: 46, padding: "0 14px", borderBottom: "1px solid var(--line)", background: "rgba(13,15,22,.6)" }}>
+          <div className="flex items-center gap-[8px] shrink-0" style={{ minHeight: 52, padding: "4px 12px", borderBottom: "1px solid var(--line)", background: "var(--surface-1)" }}>
             <h1 className="flex-1 text-[16px] font-bold" style={{ color: "var(--fg-0)" }}>
               {t("10x 猎手")}
             </h1>
@@ -913,7 +914,7 @@ export default function Screener10x() {
               onClick={handleAiPipeline}
               disabled={aiPipelineState.loading || isDemoMode || selectedTrends.length === 0 || candidates.length === 0}
               className="inline-flex items-center gap-[5px] active:scale-95 transition disabled:opacity-40"
-              style={{ padding: "6px 11px", borderRadius: 9, background: "rgba(139,92,246,.14)", color: "#C4B5FD", border: "1px solid rgba(139,92,246,.3)", fontSize: 11, fontWeight: 600 }}
+              style={{ minHeight: 44, padding: "0 11px", borderRadius: 10, background: "rgba(139,92,246,.14)", color: "#C4B5FD", border: "1px solid rgba(139,92,246,.3)", fontSize: 11, fontWeight: 600 }}
             >
               {aiPipelineState.loading
                 ? <><Loader size={13} className="animate-spin" />{aiPipelineState.matched}/{aiPipelineState.total}</>
@@ -921,7 +922,8 @@ export default function Screener10x() {
             </button>
             <button
               onClick={() => setMFilterOpen(true)}
-              className="relative w-9 h-9 rounded-[10px] border flex items-center justify-center active:scale-95 transition"
+              className="relative w-11 h-11 rounded-[10px] border flex items-center justify-center active:scale-95 transition"
+              aria-label={t("筛选赛道")}
               style={{
                 borderColor: selectedTrends.length > 0 ? "rgba(99,102,241,.35)" : "var(--line)",
                 background: selectedTrends.length > 0 ? "rgba(99,102,241,.12)" : "rgba(255,255,255,.03)",
@@ -934,6 +936,14 @@ export default function Screener10x() {
                 </span>
               )}
             </button>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 px-4 py-3" aria-label={t("狩猎流程")}>
+            {[t("1 选赛道"), t("2 筛候选"), t("3 纳入观察")].map((label, index) => {
+              const progress = items.length ? 2 : candidates.length ? 1 : selectedTrends.length ? 0 : -1;
+              return <div key={label} className="min-h-9 rounded-lg flex items-center justify-center px-1 text-center"
+                style={{ fontSize: 10, color: index <= progress ? "var(--indigo-2)" : "var(--fg-3)", background: "var(--surface-1)", border: "1px solid var(--line)" }}>{label}</div>;
+            })}
           </div>
 
           {/* 成长型 / 价值型 大开关 */}
@@ -1270,7 +1280,7 @@ export default function Screener10x() {
 
         {/* ── 候选下钻卡 ── */}
         {mDetailItem && (
-          <CandidateDetailCard item={mDetailItem} onClose={() => setMDetailItem(null)} />
+          <CandidateDetailCard item={mDetailItem} onClose={closeMDetailItem} />
         )}
 
         {/* ── 编辑 TenxItemEditor（移动端复用桌面版模态框） ── */}
