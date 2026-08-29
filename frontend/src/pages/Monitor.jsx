@@ -6,7 +6,7 @@ import React, { useState, useEffect, useMemo, useContext, useCallback, useRef } 
 import { Activity, Bell, BellOff, Check, Globe, ChevronLeft, BellRing, RefreshCw } from "lucide-react";
 import { useLang, isZh, enFallback } from "../i18n.jsx";
 import useIsMobile from "../hooks/useIsMobile";
-import { BottomSheet, MobileAppBar, ThumbActionBar } from "../components/mobile";
+import { AppStatusChip, BottomSheet, MobileAppBar, ThumbActionBar, notifyApp, useMobileLayerHistory } from "../components/mobile";
 import {
   DataContext,
   displayTicker,
@@ -188,7 +188,7 @@ function MAlertRow({ alert: a, onAck, onMute, t, lang, liveStocks, onTap, autohi
 const Monitor = () => {
   const { t, lang } = useLang();
   const isMobile = useIsMobile();
-  const { stocks: ctxStocks3, alerts: ctxAlerts3 } = useContext(DataContext) || {};
+  const { stocks: ctxStocks3, alerts: ctxAlerts3, apiOnline, priceUpdatedAt, priceRefreshing } = useContext(DataContext) || {};
   const liveStocks = ctxStocks3 || [];
   const allAlerts = ctxAlerts3 || [];
   const [selSector, setSelSector] = useState(null);
@@ -433,6 +433,7 @@ const Monitor = () => {
 
   // v6 移动端：下钻详情弹层 + 筛选类型 chip state
   const [mDetailAlert, setMDetailAlert] = useState(null); // 当前下钻的 alert
+  const closeMobileAlert = useMobileLayerHistory(isMobile && !!mDetailAlert, () => setMDetailAlert(null), "monitor-alert");
   // v7 移动端：真下拉刷新 + 左滑首用提示（一次性）
   const [pullY, setPullY] = useState(0);
   const [mRefreshing, setMRefreshing] = useState(false);
@@ -498,11 +499,11 @@ const Monitor = () => {
       const isAcked = ackedIds.has(a.id);
       let eb = null;
       const ebStart = (ev) => { const p = ev.touches[0]; eb = p.clientX <= 24 ? { x: p.clientX, y: p.clientY } : null; };
-      const ebEnd = (ev) => { if (!eb) return; const p = ev.changedTouches[0]; const dx = p.clientX - eb.x, dy = p.clientY - eb.y; if (dx > 64 && Math.abs(dx) > Math.abs(dy) * 1.5) setMDetailAlert(null); eb = null; };
+      const ebEnd = (ev) => { if (!eb) return; const p = ev.changedTouches[0]; const dx = p.clientX - eb.x, dy = p.clientY - eb.y; if (dx > 64 && Math.abs(dx) > Math.abs(dy) * 1.5) closeMobileAlert(); eb = null; };
       return (
         <div className="fixed inset-0 z-40 flex flex-col" onTouchStart={ebStart} onTouchEnd={ebEnd} style={{ background: "var(--bg-0)" }}>
           <MobileAppBar
-            onBack={() => setMDetailAlert(null)}
+            onBack={closeMobileAlert}
             title={
               <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 15, fontWeight: 700, color: "var(--fg-0)" }}>{a.ticker}</span>
@@ -563,7 +564,7 @@ const Monitor = () => {
             {/* macro nav link */}
             {a.type === "macro" && (
               <button
-                onClick={() => { window.dispatchEvent(new CustomEvent("quantedge:nav", { detail: "macro" })); setMDetailAlert(null); }}
+                onClick={() => { closeMobileAlert(); setTimeout(() => window.dispatchEvent(new CustomEvent("quantedge:nav", { detail: "macro" })), 0); }}
                 style={{ width: "100%", padding: "12px 0", borderRadius: 12, border: "1px solid var(--line-2)", background: "rgba(139,92,246,.08)", color: "var(--violet)", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
               >
                 → {t("打开宏观看板")}
@@ -573,10 +574,10 @@ const Monitor = () => {
 
           {/* thumb actions */}
           <ThumbActionBar
-            secondary={a.type !== "macro" ? [{ icon: <BellOff size={20} />, label: t("静音 24h"), onClick: () => { muteTicker(a.ticker); setMDetailAlert(null); } }] : []}
+            secondary={a.type !== "macro" ? [{ icon: <BellOff size={20} />, label: t("静音 24h"), onClick: () => { muteTicker(a.ticker); notifyApp({ type: "success", message: t("已静音 {ticker} 24 小时", { ticker: a.ticker }), actionLabel: t("撤销"), onAction: () => unmuteTicker(a.ticker) }); closeMobileAlert(); } }] : []}
             primary={isAcked
-              ? { icon: <RefreshCw size={18} />, label: t("撤销已读"), onClick: () => { unackAlert(a.id); setMDetailAlert(null); } }
-              : { icon: <Check size={18} />, label: t("标记已处理"), onClick: () => { ackAlert(a.id); setMDetailAlert(null); } }
+              ? { icon: <RefreshCw size={18} />, label: t("撤销已读"), onClick: () => { unackAlert(a.id); closeMobileAlert(); } }
+              : { icon: <Check size={18} />, label: t("标记已处理"), onClick: () => { ackAlert(a.id); notifyApp({ type: "success", message: t("预警已处理"), actionLabel: t("撤销"), onAction: () => unackAlert(a.id) }); closeMobileAlert(); } }
             }
           />
         </div>
@@ -606,27 +607,19 @@ const Monitor = () => {
 
           <div className="px-4 pt-1 pb-2">
             {/* ── 标题行 ── */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 12 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, color: "var(--fg-0)" }}>{t("实时监控")}</h1>
+                <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: "var(--fg-0)" }}>{t("实时监控")}</h1>
                 {/* live pulse dot */}
                 <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--up)", boxShadow: "0 0 0 0 rgba(30,211,149,.4)", animation: "breathe 1.8s infinite", flexShrink: 0 }} />
               </div>
-              {/* 全部已读 */}
-              {unreadCount > 0 ? (
-                <button
-                  onClick={ackAllRest}
-                  style={{ fontSize: 12, color: "var(--indigo-2)", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 5, background: "none", border: "none", cursor: "pointer", minHeight: 44, padding: "0 4px", margin: "0 -4px" }}
-                >
-                  <Check size={14} style={{ color: "var(--indigo-2)" }} />
-                  {t("全部已读")}
-                </button>
-              ) : (
-                <span style={{ fontSize: 12, color: "var(--up)", fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
-                  <Check size={14} style={{ color: "var(--up)" }} />
-                  {t("暂无预警")}
-                </span>
-              )}
+              <AppStatusChip compact apiOnline={apiOnline} updatedAt={priceUpdatedAt} refreshing={priceRefreshing || mRefreshing} onClick={() => window.dispatchEvent(new CustomEvent("quantedge:openStatus"))} />
+            </div>
+            <div className="flex items-center justify-between min-h-11 mb-2">
+              <span className="text-[12px]" style={{ color: unreadCount ? "var(--fg-2)" : "var(--up)" }}>
+                {unreadCount ? t("{n} 条待处理预警", { n: unreadCount }) : t("暂无预警")}
+              </span>
+              {unreadCount > 0 && <button onClick={() => { ackAllRest(); notifyApp({ type: "success", message: t("全部预警已处理") }); }} className="min-h-11 px-2 inline-flex items-center gap-1.5 text-[12px] font-semibold" style={{ color: "var(--indigo-2)" }}><Check size={14} />{t("全部已读")}</button>}
             </div>
 
             {/* ── 关注股异动 ── */}

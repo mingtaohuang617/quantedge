@@ -29,9 +29,12 @@ export default function FullscreenChart({
 }) {
   const { t } = useLang();
   const [portrait, setPortrait] = useState(false);
+  const dialogRef = React.useRef(null);
+  const previousFocusRef = React.useRef(null);
 
   useEffect(() => {
     if (!open) return;
+    previousFocusRef.current = document.activeElement;
     const calc = () => setPortrait(window.innerHeight > window.innerWidth);
     calc();
     window.addEventListener("resize", calc);
@@ -42,11 +45,14 @@ export default function FullscreenChart({
     document.body.style.overflow = "hidden";
     const onKey = (e) => { if (e.key === "Escape") onClose?.(); };
     document.addEventListener("keydown", onKey);
+    const focusTimer = setTimeout(() => dialogRef.current?.focus(), 0);
     return () => {
+      clearTimeout(focusTimer);
       window.removeEventListener("resize", calc);
       window.removeEventListener("orientationchange", calc);
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = prev;
+      previousFocusRef.current?.focus?.();
       try { window.screen?.orientation?.unlock?.(); } catch { /* noop */ }
     };
   }, [open, onClose]);
@@ -60,6 +66,8 @@ export default function FullscreenChart({
 
   return createPortal(
     <div
+      ref={dialogRef}
+      tabIndex={-1}
       role="dialog"
       aria-modal="true"
       aria-label={typeof title === "string" ? t('{title} 全屏图表', { title }) : t("全屏图表")}
@@ -83,7 +91,7 @@ export default function FullscreenChart({
                   <button
                     key={v}
                     onClick={() => onRangeChange?.(v)}
-                    className="px-2.5 py-1 rounded-md text-[11px] transition"
+                    className="min-w-11 min-h-11 px-2.5 rounded-lg text-[11px] transition active:scale-95"
                     style={on
                       ? { background: "var(--bg-2)", color: "var(--fg-0)", fontWeight: 600 }
                       : { color: "var(--fg-3)" }}
@@ -96,10 +104,11 @@ export default function FullscreenChart({
           )}
           <button
             onClick={onClose}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] active:scale-95 transition"
+            className="min-h-11 flex items-center gap-1.5 px-3 rounded-lg text-[11px] active:scale-95 transition"
+            aria-label={t("退出全屏图表")}
             style={{ background: "var(--surface-2)", color: "var(--fg-2)" }}
           >
-            <Minimize2 size={13} />退出
+            <Minimize2 size={15} />{t("退出")}
           </button>
         </div>
 

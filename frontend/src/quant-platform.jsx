@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, createContext, useContext, lazy, Suspense } from "react";
 // C1/C2: Recharts 已下沉到各 lazy page chunk（CompareModal 已迁至 ScoringDashboard），主文件不再直接依赖
-import { TrendingUp, TrendingDown, Search, Bell, BookOpen, BarChart3, Activity, Settings, ChevronRight, ChevronDown, ChevronLeft, Star, AlertTriangle, Clock, Target, Zap, Filter, ArrowUpRight, ArrowDownRight, Minus, RefreshCw, Plus, X, Check, Eye, EyeOff, Layers, Globe, Briefcase, Info, Database, Trash2, Loader, ExternalLink, Sun, Moon, Calendar, User, LogOut, Mail, Lock, Shield, KeyRound, UserCircle, Share2, GripVertical, Maximize2, AlertCircle, GraduationCap, Palette, LayoutGrid } from "lucide-react";
+import { TrendingUp, TrendingDown, Search, Bell, BookOpen, BarChart3, Activity, Settings, ChevronRight, ChevronDown, ChevronLeft, Star, AlertTriangle, Clock, Target, Zap, Filter, ArrowUpRight, ArrowDownRight, Minus, RefreshCw, Plus, X, Check, Eye, EyeOff, Layers, Globe, Briefcase, Info, Database, Trash2, Loader, ExternalLink, Sun, Moon, Calendar, User, LogOut, Mail, Lock, Shield, KeyRound, UserCircle, Share2, GripVertical, Maximize2, AlertCircle, GraduationCap, Palette, LayoutGrid, Download, Languages, Pin } from "lucide-react";
 import { searchTickers as standaloneSearch, fetchStockData, fetchBenchmarkPrices, fetchRangePrices, validateStockData, validateAllStocks, loadStandaloneStocks, saveStandaloneStocks, checkStandaloneMode, resolveSector, STOCK_CN_NAMES, STOCK_CN_DESCS } from "./standalone.js";
 import { LangProvider, useLang, localeFor, isZh, tStatic, enFallback } from "./i18n.jsx";
 import { ConfirmProvider, useConfirm } from "./components/ConfirmModal.jsx";
@@ -10,6 +10,7 @@ import macroSnapshot from "./macroSnapshot.json";
 import { TEMP_TEXT, TEMP_LABEL } from "./components/macro/shared.js";
 import ShortcutsModal from "./components/ShortcutsModal.jsx";
 import { Z_ELEVATED, Z_TOUR } from "./lib/zIndex.js";
+import { AppStatusChip, AppStatusSheet, FeedbackCenter, notifyApp, deriveAppStatus } from "./components/mobile/index.js";
 
 // C1/C2: 拆分主文件 + 代码分割 — 各 Tab 按需加载（首屏不打包这些 chunk）
 const Journal = lazy(() => import("./pages/Journal.jsx"));
@@ -1364,6 +1365,17 @@ const MOBILE_PRIMARY_TABS = [
   { id: "me",      label: "更多",     short: "更多", icon: LayoutGrid },
 ];
 const MOBILE_HUB_IDS = ["backtest", "smartBeta", "miningAlpha", "screener10x", "stockgene", "compound"];
+const MOBILE_TAB_IDS = new Set([...TAB_CFG.map((item) => item.id), "me"]);
+
+const readTabFromLocation = () => {
+  if (typeof window === "undefined") return "scoring";
+  try {
+    const candidate = new URL(window.location.href).searchParams.get("tab");
+    return MOBILE_TAB_IDS.has(candidate) ? candidate : "scoring";
+  } catch {
+    return "scoring";
+  }
+};
 
 // ─── Scoring ──────────────────────────────────────────────
 export const SkeletonBlock = ({ className = "" }) => <div className={`skeleton ${className}`} />;
@@ -1828,9 +1840,11 @@ const LiveClock = React.memo(() => {
 
 // ─── MobileBottomNav — 移动端底部 5-Tab（v6：评分/监控/日志/宏观/我的）─
 // 其余 6 个功能页收进「我的」hub；非主 tab 时高亮「我的」。保留 safe-area-inset-bottom。
-const MobileBottomNav = React.memo(({ tab, setTab }) => {
+const MobileBottomNav = React.memo(({ tab, setTab, apiOnline, updatedAt, refreshing }) => {
   const { t, lang } = useLang();
   const PRIMARY = ["scoring", "monitor", "journal", "macro"];
+  const dataState = deriveAppStatus({ apiOnline, updatedAt, refreshing });
+  const statusColor = dataState === "live" ? "var(--sem-up)" : dataState === "offline" ? "var(--sem-down)" : dataState === "refreshing" ? "var(--sem-brand)" : "var(--sem-warn)";
   return (
     <nav
       role="tablist"
@@ -1859,6 +1873,7 @@ const MobileBottomNav = React.memo(({ tab, setTab }) => {
               />
             )}
             <I size={21} strokeWidth={active ? 2.1 : 1.8} className={active ? 'drop-shadow-[0_0_5px_rgba(99,102,241,0.5)]' : ''} />
+            {c.id === "me" && <span aria-hidden="true" className={`absolute top-2.5 w-2 h-2 rounded-full border ${dataState === "refreshing" ? "animate-pulse" : ""}`} style={{ right: "calc(50% - 17px)", background: statusColor, borderColor: "var(--bg-1)" }} />}
             <span className="tracking-tight">{isZh(lang) ? t(c.short) : t(c.label)}</span>
           </button>
         );
@@ -1882,14 +1897,67 @@ const HubRow = ({ icon, label, value, onClick, last }) => (
   </button>
 );
 
-const MobileMeHub = ({ setTab, user, stocks, theme, toggleTheme, density, cycleDensity, onManage, onGuide, onProfile, onRefresh }) => {
-  const { t } = useLang();
+const MOBILE_PIN_KEY = "qe:mobile:pinned-tools";
+const MOBILE_RECENT_KEY = "qe:mobile:recent-tools";
+
+const MobileMeHub = ({
+  setTab,
+  user,
+  stocks,
+  theme,
+  toggleTheme,
+  accent,
+  cycleAccent,
+  density,
+  cycleDensity,
+  onManage,
+  onGuide,
+  onProfile,
+  onRefresh,
+  apiOnline,
+  updatedAt,
+  refreshing,
+  onOpenStatus,
+  installAvailable,
+  updateAvailable,
+  onInstall,
+  onUpdate,
+}) => {
+  const { t, lang, setLang } = useLang();
   const features = MOBILE_HUB_IDS.map((id) => TAB_CFG.find((c) => c.id === id)).filter(Boolean);
   const densityLabel = density === "cozy" ? t("舒适") : density === "compact" ? t("紧凑") : t("密集");
+  const [pinned, setPinned] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(MOBILE_PIN_KEY) || "[]");
+      return Array.isArray(saved) ? saved.filter((id) => MOBILE_HUB_IDS.includes(id)).slice(0, 3) : [];
+    } catch { return []; }
+  });
+  const [recent, setRecent] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(MOBILE_RECENT_KEY) || "[]");
+      return Array.isArray(saved) ? saved.filter((id) => MOBILE_HUB_IDS.includes(id)).slice(0, 3) : [];
+    } catch { return []; }
+  });
+  const openFeature = (id) => {
+    const next = [id, ...recent.filter((item) => item !== id)].slice(0, 3);
+    setRecent(next);
+    try { localStorage.setItem(MOBILE_RECENT_KEY, JSON.stringify(next)); } catch {}
+    setTab(id);
+  };
+  const togglePinned = (id) => {
+    const next = pinned.includes(id) ? pinned.filter((item) => item !== id) : [id, ...pinned].slice(0, 3);
+    setPinned(next);
+    try { localStorage.setItem(MOBILE_PIN_KEY, JSON.stringify(next)); } catch {}
+  };
+  const cycleLanguage = () => setLang(lang === "zh-CN" ? "zh-TW" : lang === "zh-TW" ? "en" : "zh-CN");
+  const languageLabel = lang === "zh-CN" ? "简体" : lang === "zh-TW" ? "繁體" : "EN";
+  const pinnedFeatures = pinned.map((id) => features.find((item) => item.id === id)).filter(Boolean);
+  const recentFeatures = recent.map((id) => features.find((item) => item.id === id)).filter(Boolean);
   return (
     <div className="md:hidden h-full overflow-y-auto" style={{ background: 'var(--bg-0)' }}>
-      <div className="px-4 pt-3 pb-2">
+      <div className="px-4 pt-3 pb-2 flex items-center justify-between gap-3">
         <h1 className="text-[22px] font-bold" style={{ color: 'var(--fg-0)' }}>{t("更多")}</h1>
+        <AppStatusChip apiOnline={apiOnline} updatedAt={updatedAt} refreshing={refreshing} onClick={onOpenStatus} />
       </div>
       {/* 账户卡 */}
       <button
@@ -1906,23 +1974,41 @@ const MobileMeHub = ({ setTab, user, stocks, theme, toggleTheme, density, cycleD
         </div>
         <ChevronRight size={18} style={{ color: 'var(--fg-3)' }} />
       </button>
+      {(pinnedFeatures.length > 0 || recentFeatures.length > 0) && (
+        <>
+          <div className="px-4 mb-2.5 text-[11px] font-mono uppercase tracking-wider" style={{ color: 'var(--fg-3)' }}>
+            {pinnedFeatures.length ? t("固定工具") : t("最近使用")}
+          </div>
+          <div className="px-4 mb-5 flex gap-2 overflow-x-auto pb-1">
+            {(pinnedFeatures.length ? pinnedFeatures : recentFeatures).map((c) => {
+              const I = c.icon;
+              return (
+                <button key={c.id} onClick={() => openFeature(c.id)} className="min-w-[124px] min-h-12 px-3 rounded-xl border flex items-center gap-2.5 text-left active:scale-[.98] transition" style={{ borderColor: 'var(--line)', background: 'var(--surface-1)' }}>
+                  <I size={17} style={{ color: 'var(--indigo-2)' }} />
+                  <span className="text-[12px] font-medium" style={{ color: 'var(--fg-1)' }}>{t(c.label)}</span>
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
       {/* 更多功能 */}
-      <div className="px-4 mb-2.5 text-[11px] font-mono uppercase tracking-wider" style={{ color: 'var(--fg-3)' }}>{t("更多功能")}</div>
-      <div className="px-4 mb-5 grid grid-cols-3 gap-2.5">
+      <div className="px-4 mb-2.5 text-[11px] font-mono uppercase tracking-wider" style={{ color: 'var(--fg-3)' }}>{t("研究工具")}</div>
+      <div className="px-4 mb-5 grid grid-cols-2 gap-2.5">
         {features.map((c) => {
           const I = c.icon;
           return (
-            <button
-              key={c.id}
-              onClick={() => setTab(c.id)}
-              className="flex flex-col items-center gap-2 py-3.5 rounded-xl border active:scale-95 transition"
-              style={{ borderColor: 'var(--line)', background: 'var(--bg-2)' }}
-            >
-              <span className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, rgba(99,102,241,.16), rgba(94,230,230,.06))', border: '1px solid rgba(99,102,241,.25)' }}>
-                <I size={18} style={{ color: 'var(--indigo-2)' }} />
-              </span>
-              <span className="text-[11px] font-medium text-center leading-tight" style={{ color: 'var(--fg-1)' }}>{t(c.label)}</span>
-            </button>
+            <div key={c.id} className="relative rounded-xl border overflow-hidden" style={{ borderColor: 'var(--line)', background: 'var(--bg-2)' }}>
+              <button onClick={() => openFeature(c.id)} className="w-full min-h-[86px] flex items-center gap-3 px-3.5 pr-11 text-left active:scale-[.99] transition">
+                <span className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'color-mix(in srgb, var(--sem-brand) 14%, transparent)', border: '1px solid color-mix(in srgb, var(--sem-brand) 25%, transparent)' }}>
+                  <I size={18} style={{ color: 'var(--indigo-2)' }} />
+                </span>
+                <span className="text-[12px] font-semibold leading-snug" style={{ color: 'var(--fg-1)' }}>{t(c.label)}</span>
+              </button>
+              <button type="button" onClick={() => togglePinned(c.id)} aria-label={pinned.includes(c.id) ? t("取消固定") : t("固定到顶部")} className="absolute right-1.5 top-1.5 w-11 h-11 flex items-center justify-center rounded-lg active:scale-90 transition" style={{ color: pinned.includes(c.id) ? 'var(--sem-brand)' : 'var(--fg-3)' }}>
+                {pinned.includes(c.id) ? <Pin size={16} fill="currentColor" /> : <Pin size={16} />}
+              </button>
+            </div>
           );
         })}
       </div>
@@ -1930,12 +2016,17 @@ const MobileMeHub = ({ setTab, user, stocks, theme, toggleTheme, density, cycleD
       <div className="px-4 mb-2.5 text-[11px] font-mono uppercase tracking-wider" style={{ color: 'var(--fg-3)' }}>{t("设置")}</div>
       <div className="mx-4 rounded-2xl border overflow-hidden" style={{ borderColor: 'var(--line)', background: 'var(--bg-2)' }}>
         <HubRow icon={theme === "dark" ? <Moon size={17} /> : <Sun size={17} />} label={t("主题")} value={theme === "dark" ? t("深色") : t("浅色")} onClick={toggleTheme} />
+        <HubRow icon={<Palette size={17} />} label={t("强调色")} value={accent} onClick={cycleAccent} />
+        <HubRow icon={<Languages size={17} />} label={t("语言")} value={languageLabel} onClick={cycleLanguage} />
         <HubRow icon={<Layers size={17} />} label={t("表格密度")} value={densityLabel} onClick={cycleDensity} />
         <HubRow icon={<Database size={17} />} label={t("标的管理")} value={String(stocks?.length ?? 0)} onClick={onManage} />
         <HubRow icon={<GraduationCap size={17} />} label={t("功能教程")} onClick={onGuide} />
-        <HubRow icon={<RefreshCw size={17} />} label={t("刷新行情")} onClick={onRefresh} last />
+        <HubRow icon={<RefreshCw size={17} className={refreshing ? "animate-spin" : ""} />} label={refreshing ? t("刷新中") : t("刷新行情")} onClick={onRefresh} />
+        {installAvailable && <HubRow icon={<Download size={17} />} label={t("安装 QuantEdge")} onClick={onInstall} />}
+        {updateAvailable && <HubRow icon={<RefreshCw size={17} />} label={t("新版本可用")} value={t("更新")} onClick={onUpdate} />}
+        <HubRow icon={<Info size={17} />} label={t("系统与数据状态")} onClick={onOpenStatus} last />
       </div>
-      <div className="px-4 pt-5 pb-2 text-center text-[10px] font-mono" style={{ color: 'var(--fg-4)' }}>QuantEdge · v6 · 2026.06</div>
+      <div className="px-4 pt-5 pb-2 text-center text-[10px] font-mono" style={{ color: 'var(--fg-3)' }}>QuantEdge · Mobile v8</div>
     </div>
   );
 };
@@ -2408,7 +2499,28 @@ function QuantPlatformInner() {
   const { stocks, alerts, apiOnline, refreshing, priceUpdatedAt, priceRefreshing, quickPriceRefresh } = useData();
   const { user } = useAuth();
   const { t, lang } = useLang();
-  const [tab, setTab] = useState("scoring");
+  const initialTab = readTabFromLocation();
+  const [tab, setTabState] = useState(initialTab);
+  const tabRef = useRef(initialTab);
+  const setTab = useCallback((next, options = {}) => {
+    if (!MOBILE_TAB_IDS.has(next) || next === tabRef.current) return;
+    tabRef.current = next;
+    setTabState(next);
+    if (typeof window === "undefined" || options.fromPopState) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set("tab", next);
+    const method = options.replace ? "replaceState" : "pushState";
+    window.history[method]({ ...(window.history.state || {}), qeTab: next }, "", url);
+  }, []);
+  useEffect(() => {
+    const onPopState = () => {
+      const next = readTabFromLocation();
+      tabRef.current = next;
+      setTabState(next);
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
   // 复利模块 → 一键回测：把选中的组合 weights 预加载进 BacktestEngine
   const [backtestPreload, setBacktestPreload] = useState(null);
   // weights: { TICKER: 0.7 } (0-1 小数) → portfolio: { TICKER: 70 } (整数百分比，总和强制=100)
@@ -2452,6 +2564,12 @@ function QuantPlatformInner() {
   // H5: PWA 状态 — 新版本可用 + 安装到桌面
   const [swUpdateReg, setSwUpdateReg] = useState(null);
   const [installPromptEvent, setInstallPromptEvent] = useState(null);
+  const [statusOpen, setStatusOpen] = useState(false);
+  useEffect(() => {
+    const openStatus = () => setStatusOpen(true);
+    window.addEventListener("quantedge:openStatus", openStatus);
+    return () => window.removeEventListener("quantedge:openStatus", openStatus);
+  }, []);
   useEffect(() => {
     const onUpdate = (e) => setSwUpdateReg(e.detail?.reg || null);
     const onBeforeInstall = (e) => { e.preventDefault(); setInstallPromptEvent(e); };
@@ -2466,6 +2584,7 @@ function QuantPlatformInner() {
     };
   }, []);
   const applySwUpdate = () => {
+    notifyApp({ id: "app-update", type: "loading", message: t("正在应用更新…"), duration: 0 });
     if (swUpdateReg?.waiting) {
       swUpdateReg.waiting.postMessage("SKIP_WAITING"); // 触发 controllerchange → 自动 reload
     } else {
@@ -2476,12 +2595,19 @@ function QuantPlatformInner() {
     if (!installPromptEvent) return;
     installPromptEvent.prompt();
     const { outcome } = await installPromptEvent.userChoice;
-    if (outcome === "accepted") setInstallPromptEvent(null);
+    if (outcome === "accepted") {
+      setInstallPromptEvent(null);
+      notifyApp({ type: "success", message: t("QuantEdge 已加入设备") });
+    }
   };
   const [theme, setTheme] = useState(() => localStorage.getItem("quantedge_theme") || "dark");
   useEffect(() => {
     localStorage.setItem("quantedge_theme", theme);
     document.documentElement.classList.toggle("light", theme === "light");
+    const themeColor = theme === "light" ? "#f0f2f8" : "#08090E";
+    document.querySelectorAll('meta[name="theme-color"]').forEach((meta) => meta.setAttribute("content", themeColor));
+    const statusBar = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+    statusBar?.setAttribute("content", theme === "light" ? "default" : "black-translucent");
   }, [theme]);
   const toggleTheme = () => setTheme(v => v === "dark" ? "light" : "dark");
   // v7: 强调色主题（6 色，驱动 <html data-theme>；indigo=默认不写属性，零回归）
@@ -2837,19 +2963,29 @@ function QuantPlatformInner() {
               stocks={stocks}
               theme={theme}
               toggleTheme={toggleTheme}
+              accent={accent}
+              cycleAccent={cycleAccent}
               density={density}
               cycleDensity={cycleDensity}
               onManage={() => setShowManager(true)}
               onGuide={openGuide}
               onProfile={() => setShowProfile(true)}
               onRefresh={quickPriceRefresh}
+              apiOnline={apiOnline}
+              updatedAt={priceUpdatedAt}
+              refreshing={priceRefreshing}
+              onOpenStatus={() => setStatusOpen(true)}
+              installAvailable={!!installPromptEvent}
+              updateAvailable={!!swUpdateReg}
+              onInstall={promptInstall}
+              onUpdate={applySwUpdate}
             />
           )}
         </Suspense>
       </main>
 
       {/* 移动端底部 Tab Bar（替代顶部 7-tab squeeze）— 桌面端不渲染 */}
-      <MobileBottomNav tab={tab} setTab={setTab} />
+      <MobileBottomNav tab={tab} setTab={setTab} apiOnline={apiOnline} updatedAt={priceUpdatedAt} refreshing={priceRefreshing} />
 
       <footer className="hidden md:flex items-center justify-between px-3 md:px-6 py-1.5 md:py-2 border-t border-white/5 bg-white/[0.02] backdrop-blur-sm flex-shrink-0" style={{ paddingBottom: "max(6px, env(safe-area-inset-bottom))" }}>
         <div className="flex items-center gap-2 md:gap-3 text-[9px] md:text-[10px] text-[#a0aec0] flex-wrap">
@@ -3019,6 +3155,20 @@ function QuantPlatformInner() {
       </footer>
 
       <TickerManager open={showManager} onClose={() => setShowManager(false)} />
+      <AppStatusSheet
+        open={statusOpen}
+        onClose={() => setStatusOpen(false)}
+        apiOnline={apiOnline}
+        updatedAt={priceUpdatedAt}
+        refreshing={priceRefreshing}
+        onRefresh={quickPriceRefresh}
+        sourceLabel={apiOnline ? "API" : t("本地缓存")}
+        installAvailable={!!installPromptEvent}
+        updateAvailable={!!swUpdateReg}
+        onInstall={promptInstall}
+        onUpdate={applySwUpdate}
+      />
+      <FeedbackCenter />
       <UserProfilePanel open={showProfile} onClose={() => setShowProfile(false)} theme={theme} toggleTheme={toggleTheme} accent={accent} setAccent={setAccent} />
       <CommandPalette
         open={cmdOpen}

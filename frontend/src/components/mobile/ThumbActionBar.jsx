@@ -20,7 +20,7 @@ export default function ThumbActionBar({
 }) {
   return (
     <div
-      className={`${sticky ? "sticky" : "fixed"} bottom-0 left-0 right-0 z-30 flex items-center gap-2.5 px-3.5 pt-2.5 border-t ${className}`}
+      className={`${sticky ? "sticky" : "fixed"} bottom-0 left-0 right-0 z-20 flex items-center gap-2.5 px-3.5 pt-2.5 border-t ${className}`}
       style={{
         borderColor: "var(--line)",
         background: "linear-gradient(180deg, transparent, var(--bg-0) 42%)",

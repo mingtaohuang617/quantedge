@@ -39,7 +39,7 @@ import { ListsTabBar } from "../components/stock-gene/ListsTabBar.jsx";
 import { ScoreDetail } from "../components/stock-gene/ScoreDetail.jsx";
 import { TickerSearchBox } from "../components/stock-gene/TickerSearchBox.jsx";
 import EmptyState from "../components/EmptyState.jsx";
-import { MobileAppBar, BottomSheet, FullscreenChart, useIsMobile } from "../components/mobile/index.js";
+import { MobileAppBar, BottomSheet, FullscreenChart, useIsMobile, useMobileLayerHistory } from "../components/mobile/index.js";
 import { useLang } from "../i18n.jsx";
 
 
@@ -56,6 +56,7 @@ export default function StockGene() {
   const isMobile = useIsMobile();
   // 移动端专用 state
   const [mDrillStock, setMDrillStock] = useState(null);   // 下钻的 ticker（null = 列表页）
+  const closeMDrillStock = useMobileLayerHistory(isMobile && Boolean(mDrillStock), () => setMDrillStock(null), "stock-gene-detail");
   const [mRadarFs, setMRadarFs] = useState(false);         // 全屏雷达
   const [mAddOpen, setMAddOpen] = useState(false);         // 添加 BottomSheet
   const [mNewTicker, setMNewTicker] = useState("");
@@ -998,7 +999,7 @@ export default function StockGene() {
       return (
         <div className="h-full flex flex-col" style={{ background: "var(--bg-0)" }}>
           <MobileAppBar
-            onBack={() => setMDrillStock(null)}
+            onBack={closeMDrillStock}
             title={t("股性档案")}
             chips={chips}
             actions={
@@ -1258,7 +1259,7 @@ export default function StockGene() {
     if (mDrillStock && !drillChar) {
       return (
         <div className="h-full flex flex-col" style={{ background: "var(--bg-0)" }}>
-          <MobileAppBar onBack={() => setMDrillStock(null)} title={mDrillStock} />
+          <MobileAppBar onBack={closeMDrillStock} title={mDrillStock} />
           <div className="flex-1 overflow-y-auto overscroll-contain" style={{ paddingBottom: 24 }}>
             {drillItem ? (
               <div style={{ padding: "16px" }}>
@@ -1316,35 +1317,20 @@ export default function StockGene() {
     // ── 列表页（主屏）─────────────────────────────────────
     return (
       <div className="h-full flex flex-col" style={{ background: "var(--bg-0)" }}>
-        {/* 顶部标题行 */}
-        <div style={{
-          flexShrink: 0, height: 52, display: "flex", alignItems: "center",
-          padding: "0 16px", gap: 10,
-          borderBottom: "1px solid var(--line)",
-          background: "color-mix(in srgb, var(--bg-1) 78%, transparent)",
-        }}>
-          <Activity size={18} style={{ color: "var(--up)" }} />
-          <span style={{ flex: 1, fontSize: 18, fontWeight: 700, color: "var(--fg-0)" }}>{t('股性检测')}</span>
-          {isDemoMode && (
-            <span style={{ fontSize: 9, padding: "2px 7px", borderRadius: 6, background: "rgba(245,181,60,.14)", color: "var(--warn)", border: "1px solid rgba(245,181,60,.3)" }}>
-              DEMO
-            </span>
-          )}
-          {!isDemoMode && (
+        <MobileAppBar
+          title={t("股性检测")}
+          chips={isDemoMode ? <span className="mobile-status-chip" data-status="cached">DEMO</span> : null}
+          actions={!isDemoMode ? (
             <button
               onClick={() => setMAddOpen(true)}
-              style={{
-                display: "flex", alignItems: "center", justifyContent: "center",
-                width: 32, height: 32, borderRadius: 9,
-                background: "rgba(30,211,149,.14)", border: "1px solid rgba(30,211,149,.35)",
-                color: "var(--up)",
-              }}
+              className="mobile-control"
+              style={{ background: "rgba(30,211,149,.14)", borderColor: "rgba(30,211,149,.35)", color: "var(--up)" }}
               aria-label={t("添加观察")}
             >
               <Plus size={17} />
             </button>
-          )}
-        </div>
+          ) : null}
+        />
 
         {/* 观察列表 */}
         <div className="flex-1 overflow-y-auto overscroll-contain" style={{ paddingBottom: 16 }}>

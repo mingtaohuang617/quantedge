@@ -21,7 +21,7 @@ import {
   monteCarloAnnual, formatBigNumber,
 } from "../math/compound.ts";
 import useIsMobile from "../hooks/useIsMobile";
-import { FullscreenChart, ThumbActionBar } from "../components/mobile";
+import { FullscreenChart, ThumbActionBar, MobileAppBar } from "../components/mobile";
 import { useLang } from "../i18n.jsx";
 
 // ─── 常量 ────────────────────────────────────────────────
@@ -524,15 +524,14 @@ export default function CompoundPower({ onOneClickBacktest = null }) {
 
     return (
       <div className="h-full flex flex-col" style={{ background: "radial-gradient(ellipse 400px 300px at 50% 8%, rgba(30,211,149,.12), var(--bg-0) 60%)" }}>
+        <MobileAppBar
+          title={t("复利的力量")}
+          chips={<span className="mobile-status-chip" data-status="live">{t("实时计算")}</span>}
+        />
         <div
           className="flex-1 overflow-y-auto overscroll-contain"
           style={{ paddingBottom: "calc(74px + env(safe-area-inset-bottom))" }}
         >
-          {/* ── 导航栏 ── */}
-          <div style={{ padding: "4px 16px 0", display: "flex", alignItems: "center", gap: 10 }}>
-            <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="var(--fg-1)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-            <span style={{ flex: 1, fontSize: 15, fontWeight: 600, color: "var(--fg-0)" }}>{t('复利的力量')}</span>
-          </div>
           {/* ── Hero: 终值大字 ── */}
           <div
             style={{

@@ -27,6 +27,7 @@ export default function BottomSheet({
   showHandle = true,
   closeOnBackdrop = true,
   ariaLabel,
+  ariaLabelledBy,
   contentClassName = "",
 }) {
   const { t } = useLang();
@@ -35,6 +36,10 @@ export default function BottomSheet({
   const [drag, setDrag] = useState(0);
   const startY = useRef(null);
   const reduce = useRef(false);
+  const panelRef = useRef(null);
+  const previousFocusRef = useRef(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
     reduce.current = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches || false;
@@ -58,14 +63,45 @@ export default function BottomSheet({
   useEffect(() => {
     if (!mounted) return;
     const prev = document.body.style.overflow;
+    previousFocusRef.current = document.activeElement;
     document.body.style.overflow = "hidden";
-    const onKey = (e) => { if (e.key === "Escape") onClose?.(); };
+    const onKey = (e) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onCloseRef.current?.();
+        return;
+      }
+      if (e.key !== "Tab" || !panelRef.current) return;
+      const focusable = [...panelRef.current.querySelectorAll(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      )].filter((el) => !el.hasAttribute("hidden") && el.getAttribute("aria-hidden") !== "true");
+      if (!focusable.length) {
+        e.preventDefault();
+        panelRef.current.focus();
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
     document.addEventListener("keydown", onKey);
+    const focusTimer = setTimeout(() => {
+      const first = panelRef.current?.querySelector('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])');
+      (first || panelRef.current)?.focus?.();
+    }, reduce.current ? 0 : 60);
     return () => {
+      clearTimeout(focusTimer);
       document.body.style.overflow = prev;
       document.removeEventListener("keydown", onKey);
+      previousFocusRef.current?.focus?.();
     };
-  }, [mounted, onClose]);
+  }, [mounted]);
 
   const onTouchStart = (e) => { startY.current = e.touches[0].clientY; };
   const onTouchMove = (e) => {
@@ -87,6 +123,7 @@ export default function BottomSheet({
       role="dialog"
       aria-modal="true"
       aria-label={ariaLabel || (typeof title === "string" ? title : t("面板"))}
+      aria-labelledby={ariaLabelledBy}
     >
       <div
         onClick={closeOnBackdrop ? onClose : undefined}
@@ -94,6 +131,8 @@ export default function BottomSheet({
         style={{ opacity: visible ? 1 : 0, transition: `opacity ${reduce.current ? 0 : DUR}ms ease` }}
       />
       <div
+        ref={panelRef}
+        tabIndex={-1}
         className="relative w-full max-w-xl mx-auto rounded-t-[22px] border border-b-0 flex flex-col"
         style={{
           maxHeight,

@@ -1,0 +1,11 @@
+@import "tailwindcss";
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #08090e;
+  font-family: Inter, "PingFang SC", "Microsoft YaHei", sans-serif;
+}

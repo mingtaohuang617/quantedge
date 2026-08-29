@@ -5,6 +5,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added — Mobile v8 系统与交互升级（2026-08-29）
+
+- 移动端主导航收敛为评分、监控、日志、宏观、我的五个标签，六个低频研究工具集中到「我的」中心。
+- 新增数据与系统状态、PWA 安装与用户触发更新、统一成功和撤销反馈。
+- 评分、日志、因子挖掘、10×筛选和股票基因详情接入浏览历史与系统返回。
+- BottomSheet、FullscreenChart 和 Segmented 补齐焦点管理、键盘导航、Escape 退出和焦点恢复。
+- 十个页面完成移动端流程、触控尺寸、状态层级和安全区优化。
+- 新增四视口移动端 E2E、状态组件单测、gzip 包体预算和独立 Remotion 动效验收工程。
+- 设计与验收规范见 `docs/mobile-v8-design-system.md`。
+
 ### Added — K线浏览平台 + TradingView 化（PR #232–#247）
 
 评分页「价格走势」从简单面积线升级成完整 K线浏览平台（桌面）：

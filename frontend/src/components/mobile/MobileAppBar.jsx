@@ -17,7 +17,7 @@ export default function MobileAppBar({
   const { t } = useLang();
   return (
     <div
-      className={`sticky top-0 z-20 flex items-center gap-2.5 h-[46px] px-3 border-b ${className}`}
+      className={`sticky top-0 z-20 flex items-center gap-2.5 min-h-[48px] px-3 border-b ${className}`}
       style={{
         borderColor: "var(--line)",
         background: "color-mix(in srgb, var(--bg-1) 78%, transparent)",
