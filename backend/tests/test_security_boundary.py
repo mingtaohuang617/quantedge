@@ -76,6 +76,25 @@ def test_valid_bff_signature_is_accepted(monkeypatch):
     assert response.status_code == 200
 
 
+def test_status_is_side_effect_free_in_production(monkeypatch):
+    monkeypatch.setenv("RENDER", "true")
+    monkeypatch.setenv("QUANTEDGE_BFF_SECRET", SECRET)
+
+    def unexpected_probe():
+        raise AssertionError("status endpoint must not contact upstream data sources")
+
+    monkeypatch.setattr(server, "health_check", unexpected_probe)
+    client = TestClient(server.app)
+    path = "/api/status"
+    response = client.get(path, headers=_signed_headers("GET", path))
+    assert response.status_code == 200
+    assert response.json()["dataSources"]["futu"] == {
+        "available": False,
+        "configured": True,
+        "message": "Futu OpenD is unavailable on Render; source health is checked on demand",
+    }
+
+
 def test_replayed_request_id_is_rejected(monkeypatch):
     monkeypatch.setenv("RENDER", "true")
     monkeypatch.setenv("QUANTEDGE_BFF_SECRET", SECRET)

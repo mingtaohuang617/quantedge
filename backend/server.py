@@ -1887,16 +1887,17 @@ def llm_health():
 
 @app.get("/api/status")
 def get_status():
-    """服务状态。"""
-    # Check data source health
-    futu_status = {"available": False, "message": "not installed"}
-    if HAS_DATA_SOURCES:
-        try:
-            hc = health_check()
-            futu_ok, futu_msg = hc.get("futu", (False, "unknown"))
-            futu_status = {"available": futu_ok, "message": futu_msg}
-        except Exception as e:
-            futu_status = {"available": False, "message": str(e)}
+    """Return a side-effect-free service snapshot; never probe upstreams here."""
+    production = bool(os.environ.get("RENDER")) or os.environ.get("QUANTEDGE_ENV") == "production"
+    futu_status = {
+        "available": bool(HAS_DATA_SOURCES and not production and _futu_available()),
+        "configured": bool(HAS_DATA_SOURCES),
+        "message": (
+            "Futu OpenD is unavailable on Render; source health is checked on demand"
+            if production
+            else "not probed; source health is checked on demand"
+        ),
+    }
 
     return {
         "status": "running",
@@ -1906,7 +1907,7 @@ def get_status():
         "refreshing": cache.refreshing,
         "customTickers": len(load_custom_tickers()),
         "dataSources": {
-            "yfinance": {"available": True},
+            "yfinance": {"available": True, "message": "loaded; checked on demand"},
             "futu": futu_status,
         },
     }
