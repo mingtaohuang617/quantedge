@@ -1,24 +1,24 @@
-yfinance
-pandas
-numpy
-requests
-fastapi
-httpx              # FastAPI TestClient 依赖（CI 跑 pytest 时需要）
-uvicorn[standard]
-akshare
-python-dotenv
-futu-api
-tushare
-duckdb
-pyarrow            # parquet I/O (mining_alpha 因子/掩码缓存)
-hmmlearn
-openai
+yfinance==1.3.0
+pandas==2.2.3
+numpy==2.4.3
+requests==2.33.1
+fastapi==0.115.0
+httpx==0.28.1       # FastAPI TestClient 依赖（CI 跑 pytest 时需要）
+uvicorn[standard]==0.30.0
+akshare==1.18.60
+python-dotenv==1.2.2
+futu-api==10.7.6708
+tushare==1.4.29
+duckdb==1.5.5
+pyarrow==25.0.1     # parquet I/O (mining_alpha 因子/掩码缓存)
+hmmlearn==0.3.3
+openai==2.35.1
 # alpha191 因子库 + ML + 回测
-lightgbm
-scikit-learn
-matplotlib
-optuna
-xgboost           # ensemble: 多模型集成
-catboost          # ensemble: 多模型集成
-shap              # explain: SHAP 因子贡献度
-numba             # operators_jit: 大窗口算子加速
+lightgbm==4.7.0
+scikit-learn==1.8.0
+matplotlib==3.11.1
+optuna==4.9.0
+xgboost==3.2.0     # ensemble: 多模型集成
+catboost==1.2.10   # ensemble: 多模型集成
+shap==0.51.0       # explain: SHAP 因子贡献度
+numba==0.67.0      # operators_jit: 大窗口算子加速

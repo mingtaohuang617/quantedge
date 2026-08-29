@@ -82,10 +82,10 @@ def yfinance_symbol(ticker: str, market: str, cfg: dict) -> str:
     if cfg.get("yf_symbol"):
         return cfg["yf_symbol"]
     if market == "HK":
-        base = ticker.split(".")[0].lstrip("0")
+        base = ticker.split(".", maxsplit=1)[0].lstrip("0")
         return f"{base.zfill(4)}.HK"
     if market in ("SH", "SZ"):
-        return f"{ticker.split('.')[0]}.{('SS' if market=='SH' else 'SZ')}"
+        return f"{ticker.split('.', maxsplit=1)[0]}.{('SS' if market=='SH' else 'SZ')}"
     return ticker
 
 

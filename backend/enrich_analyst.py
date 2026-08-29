@@ -81,10 +81,10 @@ def _parse_astock_analyst(md: str) -> dict:
         m = code_re.search(l)
         if not m: continue
         cells = [c.strip() for c in l.strip("|").split("|")]
-        def g(k):
+        def g(k, row_cells=cells):
             i = col.get(k)
-            if i is None or i >= len(cells): return None
-            v = cells[i].replace(",", "").strip()
+            if i is None or i >= len(row_cells): return None
+            v = row_cells[i].replace(",", "").strip()
             try: return float(v)
             except ValueError: return None
         t, n, b, a = g("t"), g("n"), g("b") or 0, g("a") or 0

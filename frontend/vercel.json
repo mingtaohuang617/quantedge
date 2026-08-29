@@ -1,7 +1,12 @@
 {
   "rewrites": [
+    { "source": "/api/auth/invite", "destination": "/api/[...path]?path=auth/invite" },
+    { "source": "/api/auth/session", "destination": "/api/[...path]?path=auth/session" },
+    { "source": "/api/auth/logout", "destination": "/api/[...path]?path=auth/logout" },
     { "source": "/api/stock-gene/(.+)", "destination": "/api/stock-gene?path=$1" },
-    { "source": "/api/(.*)", "destination": "/api/$1" },
+    { "source": "/api/llm/(.+)", "destination": "/api/llm/[endpoint]?endpoint=$1" },
+    { "source": "/api/watchlist/10x/(.+)", "destination": "/api/watchlist/10x/[slug]?slug=$1" },
+    { "source": "/api/(.*)", "destination": "/api/[...path]?path=$1" },
     { "source": "/((?!api/|assets/).*)", "destination": "/index.html" }
   ],
   "functions": {

@@ -61,6 +61,7 @@ def fetch_favorites(url=DEFAULT_FAVORITES_URL, referer=DEFAULT_REFERER, timeout=
                 out = subprocess.run(
                     [curl, "-sS", "-H", f"Referer: {referer}", "--max-time", str(timeout), url],
                     capture_output=True, text=True, timeout=timeout + 5,
+                    check=False,
                 )
                 if out.returncode == 0 and out.stdout.strip():
                     return _parse_tickers(out.stdout)

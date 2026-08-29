@@ -118,19 +118,19 @@ Mobile v8 将移动端从桌面页面的缩小版，调整为可连续操作的�
 
 ## 性能预算
 
-构建后执行 `npm run audit:bundle`。当前上限为：
+构建后执行 `npm run check:bundle`，与安全升级后的统一预算门禁共用 `bundle-budget.json`：
 
-- 应用壳：120 KB gzip。
-- 评分页：45 KB gzip。
-- 静态市场数据：130 KB gzip。
-- Recharts 图表包：165 KB gzip。
+- 初始 JS 基线为 71,627 bytes gzip，允许最多增长 5%。
+- 每个懒加载页面不得超过各自基线的 105%。
+- 单个懒加载页面的绝对上限为 153,600 bytes gzip。
+- US、HK、CN 市场数据保持按市场分片，不重新并入首屏。
 
-下一阶段若超出预算，优先拆分静态市场数据和只在图表打开时加载 Recharts，不通过降低信息可读性换取体积。
+下一阶段若超出预算，优先把图表能力延迟到用户打开图表时加载，不通过降低信息可读性换取体积。
 
 ## 验收结果
 
-- Vitest：702 / 702 通过，共 37 个测试文件。
-- Playwright：22 / 22 通过。
+- Vitest：716 / 716 通过，共 41 个测试文件。
+- Playwright：41 / 41 通过，包含十页 axe、响应式缩放、桌面主流程与 Mobile v8。
 - 移动视口：iPhone SE、iPhone 13、Pixel 7、740 × 360 横屏。
 - 覆盖：五标签导航、系统返回、底部面板、触控尺寸、横向溢出、状态反馈和 PWA 更新逻辑。
 
@@ -146,7 +146,7 @@ Mobile v8 将移动端从桌面页面的缩小版，调整为可连续操作的�
 ```bash
 cd frontend
 npm run build
-npm run audit:bundle
+npm run check:bundle
 npm run audit:i18n:all
 npm test
 npm run test:e2e

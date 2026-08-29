@@ -253,21 +253,22 @@ describe('RunPipelinePanel', () => {
     expect(statusCalls.length).toBe(1);
   });
 
-  it('点击 step 按钮 → POST /mining-alpha/run/{step}?run_id=…&extra_args=…', async () => {
+  it('点击 step 按钮 → POST 强类型参数，不发送 extra_args', async () => {
     render(<RunPipelinePanel runId="my-run" onJobDone={() => {}} />);
     await waitFor(() => expect(apiFetch).toHaveBeenCalledWith('/mining-alpha/run/status'));
 
     fireEvent.click(screen.getByText(/IC 报告/));
 
-    // 调用 path 形如 "/mining-alpha/run/ic-report?run_id=my-run&extra_args=..."
     await waitFor(() => {
       const postCall = apiFetch.mock.calls.find(c =>
-        typeof c[0] === 'string' && c[0].startsWith('/mining-alpha/run/ic-report?')
+        c[0] === '/mining-alpha/run/ic-report'
       );
       expect(postCall).toBeDefined();
-      expect(postCall[0]).toContain('run_id=my-run');
-      expect(postCall[0]).toContain('extra_args=');
-      expect(postCall[1]).toEqual({ method: 'POST' });
+      expect(postCall[1]).toEqual({
+        method: 'POST',
+        body: JSON.stringify({ run_id: 'my-run', vol_scale_window: 20, filter_redundant: true }),
+      });
+      expect(postCall[1].body).not.toContain('extra_args');
     });
   });
 

@@ -1,119 +1,139 @@
-# Deployment & Operations
+# QuantEdge 部署与运维
 
-## 部署架构
+状态日期：2026-08-28
 
-| 组件 | 平台 | 状态 |
-|---|---|---|
-| Frontend SPA | Vercel (`vercel.app/quantedge`) | ✅ 自动 |
-| `/api/yahoo` 代理 | Vercel Serverless Function | ✅ 自动随前端部署 |
-| Backend (可选) | 本地 / 独立服务 | 仅独立模式不需要 |
+## 结论
 
-## 一、首次部署 / CI/CD 配置
+生产由 Vercel 托管 SPA 与同源 BFF，Render 承载 FastAPI。浏览器只访问 Vercel；Render 只接受带内部签名的 BFF 请求，唯独 `/healthz` 可公开探活。
 
-### 1.1 GitHub Actions（已在 `.github/workflows/ci.yml`）
+任何生产部署都必须先通过 CI、Preview 冒烟和移动端检查，并保留上一条 Ready deployment 作为回滚点。数据库迁移、权限变更、付费资源、外部遥测和不可逆删除需要单独确认。
 
-每次 push/PR 自动跑：
-- backend pytest
-- frontend vitest（52 单测）
-- frontend Vite build
-- Playwright E2E（7 关键路径）
+## 1. 必填环境变量
 
-`push main` 额外触发 Vercel 自动部署。
+Vercel：
 
-### 1.2 配置 Vercel 自动部署 secrets
-
-GitHub repo → **Settings → Secrets and variables → Actions** 添加：
-
-| Secret | 怎么拿 |
-|---|---|
-| `VERCEL_TOKEN` | https://vercel.com/account/tokens → "Create" |
-| `VERCEL_ORG_ID` | `cat frontend/.vercel/project.json` → `orgId` |
-| `VERCEL_PROJECT_ID` | 同上 → `projectId` |
-
-未配置时 `deploy-prod` 作业会优雅失败（不影响测试结果），可以先只跑 CI，后续再配。
-
----
-
-## 二、可选环境变量（按需开启）
-
-在 Vercel 控制台 **Settings → Environment Variables** 配置。配置后需重新部署生效。
-
-### 2.1 Sentry 错误监控（H7）
-
-```
-VITE_SENTRY_DSN=https://xxx@xxx.ingest.sentry.io/xxx
-VITE_SENTRY_TRACES_RATE=0.1   # 可选，默认 10%
-VITE_APP_VERSION=quantedge@v0.7.0   # 可选，方便区分版本
+```env
+QUANTEDGE_INVITE_CODE=
+QUANTEDGE_SESSION_SECRET=
+QUANTEDGE_BACKEND_URL=
+QUANTEDGE_BFF_SECRET=
+QUANTEDGE_ALLOWED_HOSTS=
 ```
 
-**步骤：**
-1. https://sentry.io 注册免费账号（5K events/月免费）
-2. 创建 React 项目 → 拿 DSN
-3. 填到 Vercel env vars → redeploy
-4. 之后任何 React 渲染错误 / `pageerror` 会自动上报
+Render：
 
-未配置时 Sentry chunk（152 KB gzip）**不会下载** — 完全零开销。
+```env
+QUANTEDGE_BFF_SECRET=
+QUANTEDGE_ENV=production
+```
 
-### 2.2 Vercel KV 缓存（C15）
+要求：
 
-`/api/yahoo` 默认每次请求都直连 Yahoo（命中率 0%，每次 800-1500 ms）。
-配置 KV 后，相同 ticker+range 的请求 5 分钟内直接从 Redis 返回（命中率约 80%，<50 ms）。
+- `QUANTEDGE_SESSION_SECRET` 与 `QUANTEDGE_BFF_SECRET` 必须不同且至少 32 字符。
+- Vercel 与 Render 的 BFF secret 必须完全一致。
+- 邀请码和密钥不得使用 `VITE_` 前缀，不得提交到仓库。
+- 自定义生产域名加入 `QUANTEDGE_ALLOWED_HOSTS`，多个 hostname 用逗号分隔。
+- 不存在现成 Sentry DSN 时不得新开外部遥测。
 
-**步骤：**
-1. Vercel 项目 → **Storage → Create Database → KV**
-2. 选择"Connect to Project" → quantedge
-3. 自动注入 `KV_REST_API_URL` + `KV_REST_API_TOKEN` 环境变量
-4. Redeploy
-
-**验证：** DevTools Network → 任一 `/api/yahoo` 请求 → Response Headers 看 `X-Cache-Status`：
-- `HIT` ＝ 从 KV 返回（快）
-- `MISS` ＝ 这次拉了上游 + 顺手存进 KV（下次会 HIT）
-- `BYPASS` ＝ KV 未配置（与改造前行为一致）
-
-**TTL 策略**（在 `api/yahoo.js`）：
-- K线 (`/v8/finance/chart/...`) — 5 min
-- 财务 (`quoteSummary`) — 2 min
-- 搜索 (`autoc` / `search`) — 10 min
-- 其他默认 — 3 min
-
-**成本：** Vercel KV Free tier 30K commands/month + 256MB 存储，足够日常。超额按量计费。
-
----
-
-## 三、常用运维命令
+## 2. 本地安装与验证
 
 ```bash
-# 本地全套测试（unit + E2E）
+python -m pip install -r backend/requirements.txt
+python -m ruff check backend
+python -m pytest backend/tests -m "not network" --tb=short
+
 cd frontend
-npm test              # vitest（52 单测，<1s）
-npm run test:e2e      # Playwright（7 E2E，~10s，自动启 preview server）
-npm run test:e2e:ui   # 带浏览器调试 UI
-
-# 手动部署到 Vercel（应急用，正常 push main 自动跑）
-cd /path/to/quantedge   # 项目根目录（不是 frontend）
-vercel --prod --yes
-
-# 检查部署状态
-vercel ls
-vercel inspect <deployment-url>
+npm ci --no-audit --no-fund
+npm run audit:i18n:all
+npm run check:version
+npm run check:vercel-functions
+npm test
+npm run build
+npm run test:e2e
 ```
 
----
+Python 版本为 3.11，Node 版本为 22。Python 直接依赖、测试工具、前端依赖与 Vercel CLI 都必须使用仓库锁定版本。
 
-## 四、邀请码 / 权限
+## 3. CI 与发布顺序
 
-当前邀请码：`MintoQuant`（在 `frontend/src/quant-platform.jsx` `INVITE_CODE` 常量中）
+- backend：精确依赖安装、Ruff 硬门禁、非网络测试、Mining Alpha 合成数据冒烟。
+- frontend：npm ci、依赖审计、import/i18n/版本一致性审计、Vercel 公开函数上限、714 项 Vitest、生产 build、bundle budget。
+- e2e：Chromium、移动端、响应式、axe serious/critical、旋钮与侧栏交互。
+- preview：部署 Preview，检查认证、核心页面、核心 API、Service Worker 与 5xx。
+- production：只从通过全部门禁的 main 发布。
+- post-deploy：核验生产域名、deployment Ready、核心路径、近期错误日志和 Git SHA。
 
-修改后需要重新部署。后续考虑改成 ENV var 或后端验证。
+发布失败时回滚上一条 Ready deployment 或上一提交。若前端资产与旧 Service Worker 冲突，递增 `frontend/public/sw.js` 的 VERSION 后重新构建；不得让 Service Worker 缓存 `/api/`。
 
----
+## 4. 认证验证
 
-## 五、故障排查
+部署前至少覆盖：
 
-| 现象 | 检查 |
+- 未登录访问 `/api/auth/session` 返回 401。
+- 错误邀请码返回 401，连续失败触发 429。
+- 登录响应设置 HttpOnly、Secure、SameSite=Lax Cookie。
+- 过期或被篡改 Cookie 返回 401。
+- 写请求缺失 CSRF 返回 403。
+- 伪造 Origin 返回 403。
+- 注销后浏览器 Cookie 被清除。
+- 直接访问 Render 业务 API 返回 401。
+- `/healthz` 返回 200。
+
+邀请码只能在 Vercel 环境变量中轮换。修改环境变量后需重新部署，不修改前端代码。
+
+## 5. 报价与缓存验证
+
+- 正常上游：`X-Cache-Status` 为 BYPASS 或 MISS，`X-Data-Stale=false`。
+- 失败回退且缓存年龄不超过 30 秒：HIT-FRESH。
+- 失败回退且缓存年龄在 30 秒至 5 分钟：FALLBACK 且 `X-Data-Stale=true`。
+- 缓存超过 5 分钟：返回 502，不得继续展示为实时。
+- Service Worker 的 Cache Storage 中不得新增 `/api/` 响应。
+
+KV 不是必需组件。若未来需要跨实例限流、会话吊销或缓存，新增共享存储属于付费资源与架构变更，必须先确认。
+
+## 6. Sentry
+
+代码仅在已存在 `VITE_SENTRY_DSN` 且为生产构建时异步加载 Sentry。未配置 DSN 时不发送任何外部遥测。
+
+如项目已经有 DSN，可配置：
+
+```env
+VITE_SENTRY_DSN=
+VITE_SENTRY_TRACES_RATE=0.1
+SENTRY_AUTH_TOKEN=
+SENTRY_ORG=
+SENTRY_PROJECT=
+```
+
+release 由 package version 与 CI Git SHA 自动生成。有完整的 Sentry 构建凭据时才生成 sourcemap；上传到既有私有项目后从静态产物删除。没有现成 DSN 或构建凭据时保持关闭，不新增外部遥测。
+
+## 7. 常用运维命令
+
+```bash
+git rev-parse origin/main
+git status --short
+
+cd frontend
+npx vercel@59.9.1 pull --yes --environment=preview
+npx vercel@59.9.1 build
+npx vercel@59.9.1 deploy --prebuilt
+
+npx vercel@59.9.1 ls
+npx vercel@59.9.1 inspect DEPLOYMENT_URL
+npx vercel@59.9.1 logs DEPLOYMENT_URL
+```
+
+生产部署使用同一固定 CLI 版本并加 `--prod`。不要在未保存上一条 Ready deployment URL 时覆盖生产。
+
+## 8. 故障定位
+
+| 现象 | 先检查 |
 |---|---|
-| 页面打不开 / 白屏 | DevTools Console 看是否 `ReferenceError`（被 Sentry / E2E 抓出）|
-| `/api/yahoo` 返回 403 | Referer 不在白名单。生产域名需要在 Vercel env vars 加 `QUANTEDGE_ALLOWED_HOSTS` |
-| Yahoo 数据"离线" | DevTools Network 看 `/api/yahoo` 响应 — 502 = 上游超时；403 = 白名单；HIT/MISS = 正常 |
-| CI 跑了但没部署 | GitHub Actions → 看 deploy-prod 作业，secrets 是否齐 |
-| E2E 在 CI 失败但本地过 | Playwright report artifact 7 天保留，下载看 trace |
+| 登录循环 | session endpoint 状态、Set-Cookie 属性、允许域名、系统时间 |
+| 写请求 403 | Origin 与 X-CSRF-Token |
+| Render API 401 | 两端 BFF secret、时间偏差、签名路径与查询串 |
+| 行情显示 stale | X-Data-As-Of、缓存年龄、Yahoo 上游状态 |
+| 429 | X-RateLimit-Remaining、Retry-After、当前重任务 |
+| 页面白屏 | deployment SHA、动态 chunk、Service Worker 版本、浏览器 console |
+| CI 通过但未发布 | deploy-prod job、Vercel secrets、deployment inspect |
+| 生产 5xx | request_id 关联 Vercel 与 Render 日志，确认 route、status、latency、upstream |

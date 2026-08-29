@@ -26,9 +26,8 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import sys
 import urllib.request
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 
 PROD = "https://quantedge-chi.vercel.app"
 DEFAULT_FAVORITES_URL = f"{PROD}/api/watchlist/favorites"
@@ -122,7 +121,7 @@ def build_snapshot(items, skipped, errors, time_range, scanned_at=None):
     items = sorted(items, key=lambda x: x.get("anomaly_count", 0), reverse=True)
     return {
         "version": 1,
-        "scanned_at": scanned_at or datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "scanned_at": scanned_at or datetime.now(UTC).isoformat(timespec="seconds"),
         "time_range": time_range,
         "items": items,
         "skipped": skipped,

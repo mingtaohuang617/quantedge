@@ -27,10 +27,7 @@ function FactorCard({ f, onSelect, isStarred, onToggleStar, alert }) {
   return (
     <div
       onClick={() => onSelect?.(f)}
-      onKeyDown={(e) => { if ((e.key === "Enter" || e.key === " ") && onSelect) { e.preventDefault(); onSelect(f); } }}
-      role={onSelect ? "button" : undefined}
-      tabIndex={onSelect ? 0 : undefined}
-      className={`bg-white/[0.03] border border-white/[0.08] rounded-xl p-4 hover:border-indigo-400/30 transition-colors flex flex-col ${onSelect ? "cursor-pointer focus:outline-none focus:border-indigo-400/60" : ""}`}
+      className={`bg-white/[0.03] border border-white/[0.08] rounded-xl p-4 hover:border-indigo-400/30 transition-colors flex flex-col ${onSelect ? "cursor-pointer" : ""}`}
     >
       <div className="flex items-center justify-between mb-2 gap-2">
         <div className="flex items-center gap-1.5 min-w-0">
@@ -64,9 +61,13 @@ function FactorCard({ f, onSelect, isStarred, onToggleStar, alert }) {
         </div>
       </div>
 
-      <div className="text-sm font-mono font-semibold text-white/90 mb-1">
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); onSelect?.(f); }}
+        className="text-sm font-mono font-semibold text-white/90 mb-1 text-left rounded focus:outline-none focus:ring-2 focus:ring-indigo-400/60"
+      >
         {f.factor_id}
-      </div>
+      </button>
       <div className="text-[11px] text-white/55 mb-3 line-clamp-2 leading-relaxed min-h-[28px]">
         {f.name}
       </div>

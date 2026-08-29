@@ -1,14 +1,24 @@
 import { test, expect } from '@playwright/test';
 import { skipOnboarding } from './helpers';
 
-const INVITE = 'MintoQuant';
+const INVITE = 'test-invite-from-server';
 
 test.describe('AuthPage', () => {
   test.beforeEach(async ({ page }) => {
     await skipOnboarding(page);
+    await page.route('**/api/auth/session', route => route.fulfill({
+      status: 401,
+      contentType: 'application/json',
+      body: JSON.stringify({ error: { code: 'authentication_required', message: 'expired' } }),
+    }));
   });
 
   test('错误邀请码显示提示', async ({ page }) => {
+    await page.route('**/api/auth/invite', route => route.fulfill({
+      status: 401,
+      contentType: 'application/json',
+      body: JSON.stringify({ error: { code: 'invite_invalid', message: 'invalid' } }),
+    }));
     await page.goto('/');
     const input = page.getByPlaceholder(/邀请码|invit/i).first();
     await expect(input).toBeVisible();
@@ -22,6 +32,18 @@ test.describe('AuthPage', () => {
     const errors: string[] = [];
     page.on('pageerror', (e) => errors.push(e.message));
 
+    await page.route('**/api/auth/invite', route => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        data: {
+          user: { id: 'private-investor', name: 'E2E Tester', plan: 'pro', workspace_id: 'private-default' },
+          csrf_token: 'e2e-csrf-token',
+          expires_at: '2099-01-01T00:00:00.000Z',
+        },
+        meta: { schema_version: '1.0', request_id: 'e2e-invite' },
+      }),
+    }));
     await page.goto('/');
     const input = page.getByPlaceholder(/邀请码|invit/i).first();
     await input.fill(INVITE);

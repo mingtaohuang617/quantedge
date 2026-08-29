@@ -1,19 +1,29 @@
 // 共享 Playwright 测试辅助 — 不能放在 .spec.ts 中（Playwright 禁止跨 spec import）
 import type { Page } from '@playwright/test';
 
-const STORE_KEY = 'quantedge_auth';
 const ONBOARD_KEY = 'quantedge_onboarded_v1';
 
-/** 通过注入 localStorage 跳过 AuthPage 邀请码流程 + Onboarding 教程 */
+/** 通过同源 session API mock 登录；认证状态不再写入 localStorage。 */
 export async function loginViaStorage(page: Page) {
-  await page.addInitScript(({ authKey, onboardKey }) => {
+  await page.route('**/api/auth/session', async route => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        data: {
+          user: { id: 'private-investor', name: 'E2E Tester', plan: 'pro', workspace_id: 'private-default' },
+          csrf_token: 'e2e-csrf-token',
+          expires_at: '2099-01-01T00:00:00.000Z',
+        },
+        meta: { schema_version: '1.0', request_id: 'e2e-session' },
+      }),
+    });
+  });
+  await page.addInitScript((onboardKey) => {
     try {
-      window.localStorage.setItem(authKey, JSON.stringify({
-        name: 'E2E Tester', loggedIn: true, ts: Date.now(),
-      }));
       window.localStorage.setItem(onboardKey, '1'); // 跳过 onboarding
     } catch {}
-  }, { authKey: STORE_KEY, onboardKey: ONBOARD_KEY });
+  }, ONBOARD_KEY);
 }
 
 /** 跳过首次访问的 Onboarding（不需要 auth） */

@@ -5,7 +5,7 @@ stock_gene_scheduler 单测
 不真启动后台线程 — 跑业务逻辑就够。
 """
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from pathlib import Path
 
 import pytest
@@ -88,16 +88,16 @@ def test_set_schedule_clamps_invalid(tmp_sched):
 def test_next_run_today_if_time_not_passed(tmp_sched):
     """当前时刻早于今天的目标 → 今天的目标"""
     # 9:00 时，目标 12:00 → next = 今天 12:00
-    now = datetime(2026, 5, 17, 9, 0, tzinfo=timezone.utc)
+    now = datetime(2026, 5, 17, 9, 0, tzinfo=UTC)
     nxt = sched._next_run_dt(now, 12, 0)
-    assert nxt == datetime(2026, 5, 17, 12, 0, tzinfo=timezone.utc)
+    assert nxt == datetime(2026, 5, 17, 12, 0, tzinfo=UTC)
 
 
 def test_next_run_tomorrow_if_time_passed(tmp_sched):
     """当前时刻晚于今天的目标 → 明天"""
-    now = datetime(2026, 5, 17, 15, 0, tzinfo=timezone.utc)
+    now = datetime(2026, 5, 17, 15, 0, tzinfo=UTC)
     nxt = sched._next_run_dt(now, 12, 0)
-    assert nxt == datetime(2026, 5, 18, 12, 0, tzinfo=timezone.utc)
+    assert nxt == datetime(2026, 5, 18, 12, 0, tzinfo=UTC)
 
 
 # ─── get_status ────────────────────────────────────────────

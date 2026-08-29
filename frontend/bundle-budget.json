@@ -1,0 +1,22 @@
+{
+  "recordedAt": "2026-08-28",
+  "baselineCommit": "tailwind-4-upgrade-local",
+  "originalInitialGzipBytes": 345791,
+  "minimumInitialReductionPercent": 30,
+  "initialGzipBytes": 71627,
+  "maxInitialGrowthPercent": 5,
+  "lazyRouteGzipLimitBytes": 153600,
+  "enforceLazyAbsolute": true,
+  "routeBaselines": {
+    "ScoringDashboard": 127797,
+    "BacktestEngine": 35662,
+    "StockGene": 30556,
+    "Screener10x": 29754,
+    "Journal": 24753,
+    "MacroDashboard": 24146,
+    "MiningAlpha": 15698,
+    "Monitor": 13965,
+    "CompoundPower": 12003,
+    "SmartBeta": 10444
+  }
+}

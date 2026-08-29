@@ -12,6 +12,8 @@
 6. **10x 猎手** — 超级赛道筛选 → AI 校验 → 观察列表（成长型 + 价值型双 strategy）
 7. **股性检测** — 4 引擎（价值 / 技术信号 / 风险）对单只标的评分
 8. **Mining Alpha** — A 股 Alpha191 因子挖掘 + ML 合成 + 回测（详见 [MINING_ALPHA.md](MINING_ALPHA.md)）
+9. **Smart Beta** — ETF 风险层、Core/Sector 轮动与快照回测
+10. **复利的力量** — 长期路径测算与回测预置
 
 ## 2. 目标市场
 
@@ -56,9 +58,9 @@
 ## 6. 技术栈
 
 ### 前端
-- React 18 + Vite
-- Recharts（图表）
-- Tailwind CSS + 自定义 CSS 变量（OKLCH 感知均匀色 / 5 语义 token / 5 字号档 + v5 编辑式 hero 第 6 层）
+- React 19 + Vite 8
+- Recharts 3（图表）
+- Tailwind CSS 4 + 自定义 CSS 变量（OKLCH 感知均匀色 / 5 语义 token / 5 字号档 + v5 编辑式 hero 第 6 层）
 - 字体：DM Sans（UI）+ JetBrains Mono（数字 tabular-nums）+ Noto Sans SC（中文）+ Fraunces serif（v5 编辑式 hero · OPT-IN）
 - 三语 i18n（简 / 繁 / 英）：简体作 key 穿透 + opencc 繁体 + EN 字典，详见 [I18N.md](I18N.md)。加 UI 文案前先读规范；改完跑 `npm run audit:i18n`
 - vitest + jsdom（组件测试）+ Playwright（E2E）
@@ -77,15 +79,15 @@
 - **分钟级落库**：现 `/api/intraday` 按需拉取不落库（避开 yfinance 7/60 天限制），需 TimescaleDB 才有意义
 - **vectorbt 向量化回测**：替代现客户端实现，支持参数扫描 + 止损止盈
 
-## 7. 当前阶段（2026-05 更新 · v0.8.0 已发布）
+## 7. 当前阶段（2026-08-28 更新 · v0.8.0）
 
 - **前后端真实数据流已打通**：`refresh-data` 一键脚本 → pipeline.py → frontend/src/data.js ES module
-- **`backend/server.py` FastAPI** 20+ 路由全部在用，前端 `apiFetch` 直连 + 静态 fallback（离线可用）
-- **8 个前端 tab 模块**：量化评分 / 组合回测 / 实时监控 / 投资日志 / 宏观看板 / 10x 猎手（成长 + 价值双 strategy）/ 股性检测 / Mining Alpha
+- **生产 API 边界**：浏览器只访问同源 Vercel BFF，Render FastAPI 业务路由只接受内部 HMAC 签名
+- **10 个前端 tab 模块**：量化评分 / 组合回测 / Smart Beta / Mining Alpha / 实时监控 / 投资日志 / 宏观看板 / 10x 猎手 / 股性检测 / 复利的力量
 - **数据管道**：yfinance + Finnhub + AKShare + Futu + Tushare 多源容错；Windows GBK UnicodeEncodeError 已修
 - **v0.8.0 UI/UX 优化**：色彩 7→5 语义角色 / 字号 8→5 档 / 玻璃质感 + 玻璃面板 / 命令面板 ⌘K + 全局键盘流 / 移动端底部 Tab Bar
 - **v5 编辑式设计语言**（2026-05 落地）：Fraunces serif Hero + AI Lead Paragraph（紫色 3px 左边线）+ Screener10x 4 阶段漏斗 chip
-- **测试覆盖**：vitest 374+ / backend pytest 963+ 全套绿；Mining Alpha 433 测试独立
+- **测试覆盖**：vitest 714 / backend pytest 1272 / Playwright 33，含十页 axe 和 360–2048px 响应式验收
 - **工程化**：ruff + pytest + vitest + GitHub Actions CI + Vercel preview deploy
 - 架构与数据流细节：[ARCHITECTURE.md](ARCHITECTURE.md)
-- TODO 13/18 完成 72%（详见 [TODO.md](TODO.md)）
+- 历史 TODO 已归档；未来研究基础设施见 [RFC](rfcs/FUTURE_RESEARCH_INFRASTRUCTURE.md)

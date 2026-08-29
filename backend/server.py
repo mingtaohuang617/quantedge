@@ -16,11 +16,15 @@ QuantEdge API Server
 """
 
 import json
+import hashlib
+import hmac
+import logging
 import math
 import os
 import sys
 import time
 import threading
+import uuid
 from pathlib import Path
 from datetime import datetime, date, timedelta
 
@@ -62,9 +66,9 @@ def sanitize(obj):
     return obj
 
 try:
-    from fastapi import FastAPI, HTTPException, Query
-    from fastapi.middleware.cors import CORSMiddleware
-    from pydantic import BaseModel
+    from fastapi import FastAPI, HTTPException, Query, Request
+    from fastapi.responses import JSONResponse
+    from pydantic import BaseModel, ConfigDict, Field
     import uvicorn
 except ImportError:
     print("请先安装依赖: pip install fastapi uvicorn")
@@ -72,6 +76,7 @@ except ImportError:
 
 # ─── Paths ──────────────────────────────────────────────
 BASE_DIR = Path(__file__).resolve().parent
+PROJECT_VERSION = (BASE_DIR.parent / "VERSION").read_text(encoding="utf-8").strip()
 CUSTOM_TICKERS_PATH = BASE_DIR / "tickers_custom.json"
 OUTPUT_DIR = BASE_DIR / "output"
 FRONTEND_DATA_PATH = BASE_DIR.parent / "frontend" / "src" / "data.js"
@@ -604,14 +609,152 @@ async def lifespan(_app):
     # （目前没有需要 shutdown 清理的资源；如果未来加，写在 yield 之后）
 
 
-app = FastAPI(title="QuantEdge API", version="0.3.0", lifespan=lifespan)
+app = FastAPI(title="QuantEdge API", version=PROJECT_VERSION, lifespan=lifespan)
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+_SECURITY_LOG = logging.getLogger("quantedge.security")
+_BFF_MAX_SKEW_SECONDS = 60
+_BFF_MAX_BODY_BYTES = 256 * 1024
+_BFF_REPLAY_LOCK = threading.Lock()
+_BFF_SEEN_REQUESTS: dict[str, float] = {}
+_RESOURCE_LOCK = threading.Lock()
+_RESOURCE_ACTIVE: dict[str, int] = {}
+_RESOURCE_LIMITS = {
+    "llm": int(os.environ.get("QUANTEDGE_LLM_CONCURRENCY", "2")),
+    "backtest": int(os.environ.get("QUANTEDGE_BACKTEST_CONCURRENCY", "1")),
+    "scheduler": int(os.environ.get("QUANTEDGE_SCHEDULER_CONCURRENCY", "1")),
+    "mining": int(os.environ.get("QUANTEDGE_MINING_CONCURRENCY", "1")),
+}
+
+
+def _error_response(status: int, code: str, message: str, request_id: str):
+    return JSONResponse(
+        status_code=status,
+        content={
+            "error": {"code": code, "message": message, "request_id": request_id},
+            "meta": {"schema_version": "1.0", "request_id": request_id},
+        },
+    )
+
+
+def _resource_scope(path: str) -> str | None:
+    if path.startswith("/api/llm/") or path in {"/api/macro/narrative", "/api/stock-gene/explain"}:
+        return "llm"
+    if path == "/api/smart-beta/backtest":
+        return "backtest"
+    if path.startswith("/api/stock-gene/scheduler/"):
+        return "scheduler"
+    if path.startswith("/api/mining-alpha/run/"):
+        return "mining"
+    return None
+
+
+def _is_unsigned_local_request(request: Request) -> bool:
+    if os.environ.get("RENDER") or os.environ.get("QUANTEDGE_ENV") == "production":
+        return False
+    host = request.client.host if request.client else ""
+    return host in {"testclient", "127.0.0.1", "::1", "localhost"}
+
+
+def _verify_bff_signature(request: Request, body: bytes, request_id: str) -> tuple[bool, str]:
+    secret = os.environ.get("QUANTEDGE_BFF_SECRET", "")
+    if len(secret) < 32:
+        return False, "backend signing secret is not configured"
+    timestamp = request.headers.get("x-quantedge-timestamp", "")
+    signed_id = request.headers.get("x-quantedge-request-id", "")
+    body_hash = request.headers.get("x-quantedge-body-sha256", "")
+    signature = request.headers.get("x-quantedge-signature", "")
+    if signed_id != request_id or not timestamp.isdigit() or not signature:
+        return False, "internal signature headers are incomplete"
+    now = int(time.time())
+    if abs(now - int(timestamp)) > _BFF_MAX_SKEW_SECONDS:
+        return False, "internal signature has expired"
+    actual_hash = hashlib.sha256(body).hexdigest()
+    if not hmac.compare_digest(actual_hash, body_hash):
+        return False, "request body digest does not match"
+    raw_path = request.scope.get("raw_path", request.url.path.encode("utf-8")).decode("latin-1")
+    raw_query = request.scope.get("query_string", b"").decode("latin-1")
+    path_with_query = raw_path + (f"?{raw_query}" if raw_query else "")
+    canonical = f"{timestamp}\n{request_id}\n{request.method.upper()}\n{path_with_query}\n{body_hash}"
+    expected = hmac.new(secret.encode("utf-8"), canonical.encode("utf-8"), hashlib.sha256).digest()
+    try:
+        supplied = __import__("base64").urlsafe_b64decode(signature + "=" * (-len(signature) % 4))
+    except Exception:
+        return False, "internal signature encoding is invalid"
+    if not hmac.compare_digest(expected, supplied):
+        return False, "internal signature is invalid"
+    with _BFF_REPLAY_LOCK:
+        cutoff = time.time() - (_BFF_MAX_SKEW_SECONDS * 2)
+        for key, seen_at in list(_BFF_SEEN_REQUESTS.items()):
+            if seen_at < cutoff:
+                _BFF_SEEN_REQUESTS.pop(key, None)
+        if request_id in _BFF_SEEN_REQUESTS:
+            return False, "request id has already been used"
+        _BFF_SEEN_REQUESTS[request_id] = time.time()
+    return True, ""
+
+
+@app.middleware("http")
+async def bff_security_boundary(request: Request, call_next):
+    request_id = request.headers.get("x-quantedge-request-id") or str(uuid.uuid4())
+    started = time.perf_counter()
+    path = request.url.path
+    scope = _resource_scope(path)
+    status = 500
+    acquired = False
+
+    if path == "/healthz":
+        response = await call_next(request)
+        response.headers["X-Request-Id"] = request_id
+        return response
+
+    content_length = request.headers.get("content-length")
+    if content_length and content_length.isdigit() and int(content_length) > _BFF_MAX_BODY_BYTES:
+        return _error_response(413, "request_too_large", "Request body exceeds the allowed size", request_id)
+    body = await request.body()
+    if len(body) > _BFF_MAX_BODY_BYTES:
+        return _error_response(413, "request_too_large", "Request body exceeds the allowed size", request_id)
+
+    if not _is_unsigned_local_request(request):
+        valid, reason = _verify_bff_signature(request, body, request_id)
+        if not valid:
+            return _error_response(401, "bff_signature_invalid", reason, request_id)
+
+    if scope:
+        with _RESOURCE_LOCK:
+            active = _RESOURCE_ACTIVE.get(scope, 0)
+            if active >= max(1, _RESOURCE_LIMITS[scope]):
+                response = _error_response(429, "concurrency_limited", f"{scope} concurrency limit reached", request_id)
+                response.headers["Retry-After"] = "2"
+                return response
+            _RESOURCE_ACTIVE[scope] = active + 1
+            acquired = True
+
+    try:
+        response = await call_next(request)
+        status = response.status_code
+        response.headers["X-Request-Id"] = request_id
+        return response
+    finally:
+        if acquired:
+            with _RESOURCE_LOCK:
+                remaining = _RESOURCE_ACTIVE.get(scope, 1) - 1
+                if remaining <= 0:
+                    _RESOURCE_ACTIVE.pop(scope, None)
+                else:
+                    _RESOURCE_ACTIVE[scope] = remaining
+        _SECURITY_LOG.info(json.dumps({
+            "request_id": request_id,
+            "route": path,
+            "status": status,
+            "latency_ms": round((time.perf_counter() - started) * 1000, 1),
+            "cache": "unknown",
+            "upstream": "bff" if not _is_unsigned_local_request(request) else "local",
+        }, ensure_ascii=False))
+
+
+@app.get("/healthz", include_in_schema=False)
+def healthz():
+    return {"ok": True}
 
 
 class AddTickerRequest(BaseModel):
@@ -2183,6 +2326,24 @@ from pathlib import Path as _Path_ma
 _MA_OUTPUT_ROOT = _Path_ma(__file__).resolve().parent / "output" / "mining_alpha"
 
 
+def _validate_run_id(run_id: str) -> str:
+    """Restrict run IDs to one safe directory segment."""
+    import re as _re_ma
+    value = str(run_id or "").strip()
+    if not _re_ma.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,63}", value):
+        raise HTTPException(400, "run_id 只能包含 1-64 位字母、数字、下划线或连字符")
+    return value
+
+
+def _ma_run_dir(run_id: str) -> _Path_ma:
+    safe_id = _validate_run_id(run_id)
+    runs_root = (_MA_OUTPUT_ROOT / "runs").resolve()
+    candidate = (runs_root / safe_id).resolve()
+    if candidate.parent != runs_root:
+        raise HTTPException(400, "run_id 路径无效")
+    return candidate
+
+
 def _ma_active_dir() -> _Path_ma:
     """
     解析当前激活的 Mining Alpha 输出目录。
@@ -2191,9 +2352,12 @@ def _ma_active_dir() -> _Path_ma:
     latest = _MA_OUTPUT_ROOT / "latest.txt"
     if latest.exists():
         run_id = latest.read_text(encoding="utf-8").strip()
-        candidate = _MA_OUTPUT_ROOT / "runs" / run_id
-        if candidate.exists():
-            return candidate
+        try:
+            candidate = _ma_run_dir(run_id)
+            if candidate.exists():
+                return candidate
+        except HTTPException:
+            pass
     return _MA_OUTPUT_ROOT
 
 
@@ -2205,7 +2369,7 @@ def _ma_dir_for(run_id: str | None) -> _Path_ma:
     显式给的 run_id 必须存在，否则 404。
     """
     if run_id:
-        candidate = _MA_OUTPUT_ROOT / "runs" / run_id
+        candidate = _ma_run_dir(run_id)
         if not candidate.exists():
             raise HTTPException(404, f"run_id={run_id} 不存在")
         return candidate
@@ -2446,7 +2610,8 @@ def mining_alpha_alerts():
 @app.post("/api/mining-alpha/switch-run/{run_id}")
 def mining_alpha_switch_run(run_id: str):
     """切换 latest.txt 指向给定 run_id。"""
-    runs_dir = _MA_OUTPUT_ROOT / "runs" / run_id
+    run_id = _validate_run_id(run_id)
+    runs_dir = _ma_run_dir(run_id)
     if not runs_dir.exists():
         raise HTTPException(404, f"run_id={run_id} 不存在")
     (_MA_OUTPUT_ROOT / "latest.txt").write_text(run_id, encoding="utf-8")
@@ -2609,6 +2774,7 @@ import threading as _threading
 _MA_JOB_LOCK = _threading.Lock()
 _MA_JOB_STATE: dict = {
     "running": False,
+    "job_id": None,
     "step": None,
     "started_at": None,
     "log_tail": [],
@@ -2616,7 +2782,77 @@ _MA_JOB_STATE: dict = {
 }
 
 
-def _ma_run_subprocess(step: str, extra_args: list[str]) -> None:
+class MiningAlphaRunRequest(BaseModel):
+    """Typed allowlist for administrative Mining Alpha jobs."""
+    run_id: str | None = None
+    universe: str | None = Field(default=None, max_length=16)
+    start: str | None = Field(default=None, max_length=10)
+    end: str | None = Field(default=None, max_length=10)
+    factor_sets: str | None = None
+    horizon: int | None = Field(default=None, ge=1, le=60)
+    vol_scale_window: int | None = Field(default=None, ge=2, le=252)
+    filter_redundant: bool | None = None
+    n_trials: int | None = Field(default=None, ge=1, le=200)
+    use_optuna_params: bool | None = None
+    top_n: int | None = Field(default=None, ge=1, le=500)
+    use_tradeable_mask: bool | None = None
+    multi_topn: list[int] | None = Field(default=None, max_length=8)
+    n_stocks: int | None = Field(default=None, ge=10, le=1000)
+    years: float | None = Field(default=None, ge=0.25, le=20)
+    seed: int | None = Field(default=None, ge=0, le=2_147_483_647)
+
+    model_config = ConfigDict(extra="forbid")
+
+
+_MA_STEP_FIELDS = {
+    "synthetic-demo": {"n_stocks", "years", "seed"},
+    "sync-data": {"universe", "start", "end"},
+    "compute-factors": {"run_id", "universe", "start", "end", "factor_sets"},
+    "ic-report": {"run_id", "universe", "start", "end", "horizon", "vol_scale_window", "filter_redundant"},
+    "optuna": {"run_id", "universe", "start", "end", "horizon", "n_trials"},
+    "train": {"run_id", "universe", "start", "end", "horizon", "vol_scale_window", "use_optuna_params"},
+    "backtest": {"run_id", "universe", "start", "end", "top_n", "use_tradeable_mask", "multi_topn"},
+}
+
+
+def _ma_typed_args(step: str, request: MiningAlphaRunRequest) -> list[str]:
+    if step not in _MA_STEP_FIELDS:
+        raise HTTPException(400, f"step 必须是 {sorted(_MA_STEP_FIELDS)}")
+    values = request.model_dump(exclude_none=True)
+    unexpected = set(values) - _MA_STEP_FIELDS[step]
+    if unexpected:
+        raise HTTPException(422, f"{step} 不接受参数: {sorted(unexpected)}")
+    if "run_id" in values:
+        values["run_id"] = _validate_run_id(values["run_id"])
+    if "universe" in values:
+        import re as _re_job
+        if not _re_job.fullmatch(r"[A-Za-z0-9._-]{1,16}", values["universe"]):
+            raise HTTPException(422, "universe 格式无效")
+    for key in ("start", "end"):
+        if key in values:
+            try:
+                datetime.strptime(values[key], "%Y-%m-%d")
+            except ValueError as exc:
+                raise HTTPException(422, f"{key} 必须是 YYYY-MM-DD") from exc
+    if values.get("factor_sets") not in {None, "alpha191", "alpha101", "all"}:
+        raise HTTPException(422, "factor_sets 只能是 alpha191、alpha101 或 all")
+    if "multi_topn" in values:
+        if not values["multi_topn"] or any(not 1 <= item <= 500 for item in values["multi_topn"]):
+            raise HTTPException(422, "multi_topn 每项必须在 1-500")
+        values["multi_topn"] = ",".join(str(item) for item in values["multi_topn"])
+
+    args: list[str] = []
+    for key, value in values.items():
+        flag = "--" + key.replace("_", "-")
+        if isinstance(value, bool):
+            if value:
+                args.append(flag)
+        else:
+            args.extend([flag, str(value)])
+    return args
+
+
+def _ma_run_subprocess(step: str, args_list: list[str]) -> None:
     """在后台线程跑 mining_alpha 子命令，把进度更新到 _MA_JOB_STATE。"""
     import time as _t
     backend_dir = _Path_ma(__file__).resolve().parent
@@ -2625,9 +2861,9 @@ def _ma_run_subprocess(step: str, extra_args: list[str]) -> None:
         venv_python = "python"
     # synthetic-demo 走独立模块，其他走 mining_alpha.run
     if step == "synthetic-demo":
-        cmd = [str(venv_python), "-m", "mining_alpha.synthetic_demo"] + extra_args
+        cmd = [str(venv_python), "-m", "mining_alpha.synthetic_demo"] + args_list
     else:
-        cmd = [str(venv_python), "-m", "mining_alpha.run", step] + extra_args
+        cmd = [str(venv_python), "-m", "mining_alpha.run", step] + args_list
     log_path = _MA_OUTPUT_ROOT / "_run_log.txt"
     log_path.parent.mkdir(parents=True, exist_ok=True)
     with _MA_JOB_LOCK:
@@ -2664,30 +2900,29 @@ def _ma_run_subprocess(step: str, extra_args: list[str]) -> None:
 
 
 @app.post("/api/mining-alpha/run/{step}")
-def mining_alpha_run_step(step: str, run_id: str | None = None,
-                          extra_args: str | None = None):
+def mining_alpha_run_step(step: str, request: MiningAlphaRunRequest):
     """
     异步触发 mining_alpha 子任务。
     step ∈ {synthetic-demo, sync-data, compute-factors, ic-report, train, backtest, optuna}
-    extra_args: 空格分隔的额外参数，如 "--top-n 50 --use-tradeable-mask"
-
     synthetic-demo 走 `mining_alpha.synthetic_demo` 模块（不需 tushare 一键生成数据）。
     其他 step 走 `mining_alpha.run {step}`。
     """
-    allowed_steps = {"synthetic-demo", "sync-data", "compute-factors", "ic-report",
-                     "train", "backtest", "optuna"}
-    if step not in allowed_steps:
-        raise HTTPException(400, f"step 必须是 {allowed_steps}")
+    args_list = _ma_typed_args(step, request)
+    job_id = str(uuid.uuid4())
     with _MA_JOB_LOCK:
         if _MA_JOB_STATE["running"]:
-            return {"ok": False, "error": "已有任务在跑", "state": _MA_JOB_STATE}
-    args_list: list[str] = []
-    if step != "synthetic-demo" and run_id:
-        args_list += ["--run-id", run_id]
-    if extra_args:
-        args_list += extra_args.split()
+            raise HTTPException(409, "已有任务在跑")
+        # Reserve synchronously before the thread starts, closing the duplicate-job race.
+        _MA_JOB_STATE.update({
+            "running": True,
+            "job_id": job_id,
+            "step": step,
+            "started_at": time.time(),
+            "log_tail": [],
+            "exit_code": None,
+        })
     _threading.Thread(target=_ma_run_subprocess, args=(step, args_list), daemon=True).start()
-    return {"ok": True, "step": step, "cmd_args": args_list}
+    return {"ok": True, "job_id": job_id, "step": step, "cmd_args": args_list}
 
 
 @app.get("/api/mining-alpha/run/status")
