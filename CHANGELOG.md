@@ -5,6 +5,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Security, reliability and platform upgrade（2026-08-28）
+
+- 新增服务端邀请码登录、HttpOnly 会话、CSRF、失败限流、同源 Vercel BFF 与 Render HMAC 边界，浏览器不再直连 Render。
+- 统一 `data`/`meta` 数据契约、结构化错误、request ID 日志与 Yahoo network-first 新鲜度策略；Service Worker 不缓存 API。
+- CI 新增依赖审计、Ruff 硬门禁、数据契约、bundle budget、Vercel 函数上限、响应式/axe E2E、固定 Lighthouse、Preview 与生产后冒烟。
+- 认证前首屏仅载入 AuthBootstrap；US/HK/CN 数据按市场分片，首屏 JS gzip 相比原始基线下降 79.3%。
+- 三个独立提交依次升级 Vite 8 + plugin-react 6、React 19 + Recharts 3、Tailwind CSS 4。
+- 根 `VERSION` 成为项目、前端、FastAPI 与 UI 的唯一版本源，CI 检查 package 与 pyproject 声明一致性。
+- 更新十页架构、部署、数据源、后端和历史 TODO 文档；vectorbt、HMM 扩展、TimescaleDB、ETF Universe Manager 和外部通知只保留 RFC，本轮未实施。
+
 ### Added — K线浏览平台 + TradingView 化（PR #232–#247）
 
 评分页「价格走势」从简单面积线升级成完整 K线浏览平台（桌面）：

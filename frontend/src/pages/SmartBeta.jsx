@@ -848,6 +848,7 @@ export default function SmartBeta() {
           <div>
             <label className="text-[10px] text-[#a0aec0] mb-1 block">{t('Core 预设')}</label>
             <select
+              aria-label={t('Core 预设')}
               value={config.core_preset}
               onChange={(e) => setConfig(c => ({ ...c, core_preset: e.target.value }))}
               className="w-full bg-white/[0.03] border border-white/10 rounded px-2 py-1 text-[11px] text-white focus:outline-none focus:border-indigo-500/50"
@@ -858,6 +859,7 @@ export default function SmartBeta() {
           <div>
             <label className="text-[10px] text-[#a0aec0] mb-1 block">{t('行业 ETF 选 K 只')}</label>
             <select
+              aria-label={t('行业 ETF 选 K 只')}
               value={config.k}
               onChange={(e) => setConfig(c => ({ ...c, k: Number(e.target.value) }))}
               className="w-full bg-white/[0.03] border border-white/10 rounded px-2 py-1 text-[11px] text-white"
@@ -868,6 +870,7 @@ export default function SmartBeta() {
           <div>
             <label className="text-[10px] text-[#a0aec0] mb-1 block">{t('权重模式')}</label>
             <select
+              aria-label={t('权重模式')}
               value={config.weight_mode}
               onChange={(e) => setConfig(c => ({ ...c, weight_mode: e.target.value }))}
               className="w-full bg-white/[0.03] border border-white/10 rounded px-2 py-1 text-[11px] text-white"

@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import json
 import sys
-from datetime import timezone
+from datetime import UTC
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -143,7 +143,7 @@ class TestYFinanceSourceFetchHistory:
         assert list(out.columns) == ["Open", "High", "Low", "Close", "Volume"]
         # tz 转 UTC
         assert out.index.tz is not None
-        assert out.index.tz.utcoffset(None) == timezone.utc.utcoffset(None)
+        assert out.index.tz.utcoffset(None) == UTC.utcoffset(None)
         # 09:30 ET (UTC-4 夏令时) → 13:30 UTC
         assert out.index[0].strftime("%H:%M") == "13:30"
 

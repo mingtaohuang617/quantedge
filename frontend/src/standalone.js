@@ -1,13 +1,12 @@
 /**
  * QuantEdge Standalone Module
- * 纯前端独立运行：Yahoo Finance API (vite proxy / allorigins 代理) + localStorage
+ * 纯前端独立运行：Yahoo Finance API（仅同源 Vercel BFF / vite dev proxy）+ localStorage
  * 无需后端服务器，适用于 GitHub Pages 部署
  */
 
 import { withCache, withStockDataCache } from "./lib/priceCache.js";
 
-// 多代理链：Vercel 自建代理（同源/不被墙）→ 第三方代理（备选）
-// 顺序按实测可靠性 + 中国大陆可用性排列
+// 只允许同源代理，避免把证券请求和查询参数泄露给公共 CORS 中转站。
 const CORS_PROXIES = [
   // 主：Vercel serverless function 代理（部署后 /api/yahoo 同源调用）
   { name: "vercel-self", build: (url) => {
@@ -15,17 +14,13 @@ const CORS_PROXIES = [
     const host = u.hostname.includes("query2") ? "query2" : "query1";
     return `/api/yahoo?host=${host}&path=${encodeURIComponent(u.pathname + u.search)}`;
   }, parse: (text) => JSON.parse(text) },
-  // 备选：第三方公共 CORS 代理
-  { name: "corsproxy.io", build: (url) => "https://corsproxy.io/?" + encodeURIComponent(url), parse: (text) => JSON.parse(text) },
-  { name: "allorigins-raw", build: (url) => "https://api.allorigins.win/raw?url=" + encodeURIComponent(url), parse: (text) => JSON.parse(text) },
-  { name: "allorigins", build: (url) => "https://api.allorigins.win/get?url=" + encodeURIComponent(url), parse: (text) => { const json = JSON.parse(text); if (!json.contents) throw new Error("Empty contents"); return JSON.parse(json.contents); } },
 ];
 // 记录每个代理的最近失败次数，用于临时降权（内存级，刷新失效）
 const _proxyFailCount = new Map();
 const PROXY_FAIL_THRESHOLD = 3;
 const CACHE_KEY = "quantedge_standalone_stocks";
 
-// ─── 请求限流（避免 Yahoo 频率墙 / allorigins 被限）──────────
+// ─── 请求限流（避免 Yahoo 频率墙）──────────
 // 最大并发 + 同 URL 去重 + 最小启动间隔
 const RL_MAX_CONCURRENT = 4;
 const RL_MIN_GAP_MS = 60; // 每次启动之间的最小间隔
@@ -602,7 +597,7 @@ export const STOCK_EN_DESCS = {
   ROL: "Global leading pest control service company, with Orkin as the largest pest control brand in North America.",
 };
 
-/** 通过 vite dev proxy 或 allorigins 获取 Yahoo Finance chart 数据 */
+/** 通过同源 Vercel BFF 或 vite dev proxy 获取 Yahoo Finance chart 数据 */
 async function _yahooChartFetchRaw(path, timeout) {
   // 1. 优先 vite dev proxy（本地开发无 CORS 问题）
   // 生产环境 /yahoo-api 会被 SPA fallback 返回 HTML，故检查 content-type

@@ -19,7 +19,7 @@ import json
 import math
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from pathlib import Path
 
 if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf8"):
@@ -185,7 +185,7 @@ def _augment_en(snapshot: dict, composite: dict) -> dict:
         if len(arr) != len(texts):
             print(f"  [warn] _en 长度不一致 {len(arr)}≠{len(texts)}，跳过字段翻译")
             return snapshot
-        m = dict(zip(texts, arr))
+        m = dict(zip(texts, arr, strict=True))
 
         def apply(node):
             if isinstance(node, list):
@@ -239,7 +239,7 @@ def main() -> int:
     print(f"  [ok] composite_history: {len(history.get('dates', []))} days")
 
     snapshot = {
-        "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "factors": factors_data,
         "composite": composite,
         "composite_history": history,

@@ -15,7 +15,7 @@ services:
     # 不拷就会出现 count:0、exists:false → screener 候选永远 0（用户报的 bug）。
     buildCommand: pip install -r requirements.txt && mkdir -p output && cp ../frontend/public/data/universe/*.json output/
     startCommand: python server.py    # 内部已读 $PORT
-    healthCheckPath: /api/llm/stats   # 任何 200 端点都行，避开会卡 Futu 的 /api/status
+    healthCheckPath: /healthz          # 仅健康探针公开；所有 /api/* 必须带 BFF 内部签名
     envVars:
       - key: DEEPSEEK_API_KEY
         sync: false                   # 在 Render dashboard 手动设置，不进 git
@@ -23,6 +23,10 @@ services:
         sync: false
       - key: FRED_API_KEY
         sync: false
+      - key: QUANTEDGE_BFF_SECRET
+        sync: false                   # 与 Vercel 同名 secret，至少 32 字符
+      - key: QUANTEDGE_ENV
+        value: production
       # protobuf 兼容（与 backend/data_sources/__init__.py 默认一致）
       - key: PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION
         value: python

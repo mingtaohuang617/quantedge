@@ -46,11 +46,9 @@ test.describe('主流程冒烟测试', () => {
     const searchInput = page.locator('input[placeholder*="搜索"]').last();
     await expect(searchInput).toBeVisible({ timeout: 3000 });
 
-    // 输入 "动量" 应能触发模板项（"🚀 动量成长"）。
-    // selector 用完整 "动量成长" 避免匹配到 ScoringDashboard 表头的 "动量" 短词
-    // （那个 span 在 ⌘K 浮层之外、被遮罩 hidden，会让 .first() 拿到 hidden 元素）。
-    await searchInput.fill('动量');
-    await expect(page.locator('text=动量成长').first()).toBeVisible({ timeout: 3000 });
+    // 用固定快捷动作验证筛选，不依赖会随标的池与语言变化的股票/模板数据。
+    await searchInput.fill('表格密度');
+    await expect(page.getByText('切换表格密度', { exact: true })).toBeVisible({ timeout: 3000 });
 
     // ESC 关闭
     await page.keyboard.press('Escape');

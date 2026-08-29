@@ -15,10 +15,18 @@ export default function FavoritesAnomalyCard({ t = (x) => x }) {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const d = await apiFetch("/anomaly/scan");
-      if (!cancelled) {
-        setSnap(d && Array.isArray(d.items) ? d : { items: [], skipped: [], errors: [], scanned_at: null });
-        setLoading(false);
+      try {
+        const d = await apiFetch("/anomaly/scan");
+        if (!cancelled) {
+          setSnap(d && Array.isArray(d.items) ? d : { items: [], skipped: [], errors: [], scanned_at: null });
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setSnap({ items: [], skipped: [], errors: [error.message], scanned_at: null });
+          console.warn('[QuantEdge] 异动快照不可用:', error.message);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     })();
     return () => { cancelled = true; };

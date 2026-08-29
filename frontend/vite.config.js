@@ -1,5 +1,18 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { sentryVitePlugin } from '@sentry/vite-plugin';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
+const packageVersion = readFileSync(
+  fileURLToPath(new URL('../VERSION', import.meta.url)),
+  'utf8',
+).trim();
+const gitSha = process.env.VERCEL_GIT_COMMIT_SHA || process.env.GITHUB_SHA || 'local';
+const releaseName = process.env.VITE_SENTRY_RELEASE || `quantedge-frontend@${packageVersion}+${gitSha.slice(0, 12)}`;
+const sentryBuildConfigured = Boolean(
+  process.env.SENTRY_AUTH_TOKEN && process.env.SENTRY_ORG && process.env.SENTRY_PROJECT,
+);
 
 // ─── Yahoo Finance Proxy: 服务端 Cookie 管理 ──────────────────
 // vite dev proxy 在服务端发请求，可跨域维护 cookie 会话
@@ -28,7 +41,22 @@ function configureYahooProxy(proxy) {
 }
 
 export default defineConfig(({ command }) => ({
-  plugins: [react()],
+  plugins: [
+    react(),
+    ...(sentryBuildConfigured ? [sentryVitePlugin({
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+      org: process.env.SENTRY_ORG,
+      project: process.env.SENTRY_PROJECT,
+      release: { name: releaseName },
+      sourcemaps: { filesToDeleteAfterUpload: './dist/**/*.map' },
+      telemetry: false,
+    })] : []),
+  ],
+  define: {
+    __QUANTEDGE_VERSION__: JSON.stringify(packageVersion),
+    __QUANTEDGE_RELEASE__: JSON.stringify(releaseName),
+    __QUANTEDGE_GIT_SHA__: JSON.stringify(gitSha),
+  },
   base: command === 'build' ? './' : '/',
   // vitest 用 rolldown 而 plugin-react 的 esbuild JSX 配置被忽略；
   // 显式给 oxc 加 JSX automatic，让 .jsx 测试文件能解析
@@ -61,7 +89,8 @@ export default defineConfig(({ command }) => ({
     outDir: 'dist',
     assetsDir: 'assets',
     target: 'esnext',
-    sourcemap: false,
+    manifest: true,
+    sourcemap: sentryBuildConfigured ? 'hidden' : false,
     chunkSizeWarningLimit: 1500,
     // C2: 关掉 lazy chunk 的 modulepreload — 让 recharts/各 page chunk 真正按需加载
     // 否则 <link rel="modulepreload"> 会让浏览器在首屏就把它们拉下来，违背懒加载初衷
@@ -84,10 +113,20 @@ export default defineConfig(({ command }) => ({
     },
     rollupOptions: {
       output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom'],
-          'recharts-vendor': ['recharts'],
-          'icons-vendor': ['lucide-react'],
+        manualChunks(id) {
+          const normalized = id.replaceAll('\\', '/');
+          if (
+            normalized.includes('/node_modules/react/') ||
+            normalized.includes('/node_modules/react-dom/') ||
+            normalized.includes('/node_modules/scheduler/')
+          ) return 'react-vendor';
+          if (
+            normalized.includes('/node_modules/recharts/') ||
+            normalized.includes('/node_modules/d3-') ||
+            normalized.includes('/node_modules/victory-vendor/')
+          ) return 'recharts-vendor';
+          if (normalized.includes('/node_modules/lucide-react/')) return 'icons-vendor';
+          return undefined;
         },
       },
     },
@@ -95,6 +134,10 @@ export default defineConfig(({ command }) => ({
   // H6: vitest 排除 Playwright E2E 目录（避免 vitest 误跑 .spec.ts）
   test: {
     exclude: ['node_modules', 'dist', 'tests-e2e/**'],
+    // Tailwind 4's CSS compiler is loaded by component-test workers. Cap worker
+    // fan-out so high-core Windows and CI hosts do not multiply that footprint
+    // into non-deterministic OOM failures.
+    maxWorkers: 4,
     // 组件渲染测试在文件顶部用 `// @vitest-environment jsdom` 注释切换
     // （vitest 4 移除了 environmentMatchGlobs；setupFile 仍在全局 setup jest-dom matchers）
     setupFiles: ['./src/test-setup.js'],

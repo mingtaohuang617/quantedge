@@ -14,7 +14,7 @@ tickers 只做去重 + 去空白 + 排序，**不改大小写**（必须与前�
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from pathlib import Path
 
 FAVORITES_PATH = Path(__file__).resolve().parent / "favorites.json"
@@ -52,7 +52,7 @@ def save_favorites(tickers) -> dict:
     data = {
         "version": 1,
         "tickers": _normalize(tickers),
-        "updated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "updated_at": datetime.now(UTC).isoformat(timespec="seconds"),
     }
     FAVORITES_PATH.parent.mkdir(parents=True, exist_ok=True)
     tmp = FAVORITES_PATH.with_suffix(".json.tmp")

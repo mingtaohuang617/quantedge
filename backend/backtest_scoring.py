@@ -97,9 +97,9 @@ def rolling(stocks, bars_all, horizon: int, ks: range) -> dict:
         if not r:
             continue
         nwin += 1
-        for n in series:
+        for n, values in series.items():
             if r[n] is not None:
-                series[n].append(r[n])
+                values.append(r[n])
     series["_nwin"] = nwin
     return series
 

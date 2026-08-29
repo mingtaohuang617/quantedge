@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import json
 import threading
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, UTC
 from pathlib import Path
 
 STATE_PATH = Path(__file__).resolve().parent / "stock_gene_scheduler.json"
@@ -79,7 +79,7 @@ def _next_run_dt(now: datetime, hour_utc: int, minute_utc: int) -> datetime:
 def get_status() -> dict:
     """对外暴露的当前状态（含 next_run_at 实时计算）。"""
     state = load_state()
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     sched = state.get("schedule") or DEFAULT_STATE["schedule"]
     nxt = _next_run_dt(now, sched.get("hour_utc", 6), sched.get("minute_utc", 0))
     state["next_run_at"] = nxt.isoformat()
@@ -108,7 +108,7 @@ def run_now() -> dict:
     """同步触发一次跑全引擎，记录到 manual_run_at + last_summary。"""
     summary = _do_run()
     state = load_state()
-    state["manual_run_at"] = datetime.now(timezone.utc).isoformat()
+    state["manual_run_at"] = datetime.now(UTC).isoformat()
     state["last_run_at"] = state["manual_run_at"]
     state["last_summary"] = summary
     save_state(state)
@@ -127,7 +127,7 @@ def _loop() -> None:
     while not _stop_event.is_set():
         state = load_state()
         sched = state.get("schedule") or DEFAULT_STATE["schedule"]
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         target = _next_run_dt(now, sched.get("hour_utc", 6), sched.get("minute_utc", 0))
         sleep_sec = (target - now).total_seconds()
         # 上限 1 小时一次轮询，避免长 sleep 时无法响应 enable/schedule 改动
@@ -140,7 +140,7 @@ def _loop() -> None:
         state = load_state()
         if not state.get("enabled"):
             continue
-        now2 = datetime.now(timezone.utc)
+        now2 = datetime.now(UTC)
         sched2 = state.get("schedule") or DEFAULT_STATE["schedule"]
         target2 = _next_run_dt(now2, sched2.get("hour_utc", 6), sched2.get("minute_utc", 0))
         # 仅在已过当天的 target 时刻触发

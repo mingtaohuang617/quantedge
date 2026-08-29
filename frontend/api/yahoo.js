@@ -7,29 +7,7 @@
 // 自动注入 KV_REST_API_URL / KV_REST_API_TOKEN 环境变量，本文件零改动即生效
 // 未配置时自动降级到无缓存（行为与之前完全一致）
 
-// ── 同源/白名单校验：避免 endpoint 被第三方滥用消耗 Vercel 配额 ──
-// VERCEL_URL                    = 当前 deployment 的随机 URL（每次部署变）
-// VERCEL_PROJECT_PRODUCTION_URL = production alias 域名（恒定，如 quantedge-chi.vercel.app）
-// VERCEL_BRANCH_URL             = 分支 alias（preview 部署）
-// 三者都加进白名单，覆盖 production + preview + 本地 dev 全场景
-const ALLOWED_HOSTS = new Set([
-  'localhost',
-  '127.0.0.1',
-  ...(process.env.VERCEL_URL ? [process.env.VERCEL_URL] : []),
-  ...(process.env.VERCEL_PROJECT_PRODUCTION_URL ? [process.env.VERCEL_PROJECT_PRODUCTION_URL] : []),
-  ...(process.env.VERCEL_BRANCH_URL ? [process.env.VERCEL_BRANCH_URL] : []),
-  ...(process.env.QUANTEDGE_ALLOWED_HOSTS || '').split(',').map(s => s.trim()).filter(Boolean),
-]);
-
-function isAllowedReferer(req) {
-  const ref = req.headers.referer || req.headers.origin;
-  if (!ref) return false;
-  try {
-    return ALLOWED_HOSTS.has(new URL(ref).hostname);
-  } catch {
-    return false;
-  }
-}
+import { requireReferer } from './_lib/auth.js';
 
 // ── C15: KV 缓存（Upstash Redis REST），无 SDK 直接 fetch ──
 const KV_URL = process.env.KV_REST_API_URL;
@@ -73,19 +51,27 @@ async function kvSet(key, value, ttlSec) {
   } catch { /* 缓存失败不影响主流程 */ }
 }
 
+export function parseEligibleFallback(cached, now = Date.now()) {
+  try {
+    const parsed = cached ? JSON.parse(cached) : null;
+    const ageMs = parsed?.stored_at ? now - parsed.stored_at : Infinity;
+    if (typeof parsed?.body !== 'string' || ageMs < 0 || ageMs > 5 * 60 * 1000) return null;
+    return { body: parsed.body, storedAt: parsed.stored_at, ageMs, stale: ageMs > 30_000 };
+  } catch {
+    return null;
+  }
+}
+
 export default async function handler(req, res) {
-  // 浏览器 CDN：保留之前的 stale-while-revalidate
-  res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
+  // 行情必须 network-first，禁止 CDN 把旧报价伪装成实时数据。
+  res.setHeader('Cache-Control', 'private, no-store');
 
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
   }
 
-  if (!isAllowedReferer(req)) {
-    res.status(403).json({ error: 'forbidden: referer not in allowlist' });
-    return;
-  }
+  if (!requireReferer(req, res)) return;
 
   const { path, host = 'query1' } = req.query;
   if (!path || typeof path !== 'string') {
@@ -99,21 +85,7 @@ export default async function handler(req, res) {
   const cacheKey = `yh:${host}:${cleanPath}`;
   const ttl = ttlForPath(cleanPath);
 
-  // ── C15: 优先尝试 KV 缓存 ──
-  if (KV_ENABLED) {
-    const cached = await kvGet(cacheKey);
-    if (cached) {
-      // KV 中存的是 JSON 字符串（直接是 Yahoo 返回的 body）
-      res.status(200);
-      res.setHeader('Content-Type', 'application/json');
-      res.setHeader('X-Cache-Status', 'HIT');
-      res.setHeader('X-Cache-TTL', String(ttl));
-      res.send(cached);
-      return;
-    }
-  }
-
-  // ── 未命中：拉上游 ──
+  // ── network-first：先拉上游；仅失败时回退到不超过 5 分钟的缓存 ──
   try {
     const upstream = await fetch(targetUrl, {
       headers: {
@@ -131,14 +103,32 @@ export default async function handler(req, res) {
     res.setHeader('X-Cache-Status', KV_ENABLED ? 'MISS' : 'BYPASS');
     if (KV_ENABLED) res.setHeader('X-Cache-TTL', String(ttl));
 
-    // 仅在成功 + JSON 时写缓存（避免缓存 500 / HTML 错误页）
+    // 仅在成功 + JSON 时写缓存（避免缓存 500 / HTML 错误页）。
     if (upstream.status === 200 && ct.includes('json') && text.length > 50) {
-      // fire-and-forget，不阻塞响应
-      kvSet(cacheKey, text, ttl);
+      kvSet(cacheKey, JSON.stringify({ stored_at: Date.now(), body: text }), 300);
     }
-
+    res.setHeader('X-Data-Stale', 'false');
+    res.setHeader('X-Data-Source', 'Yahoo Finance');
     res.send(text);
   } catch (err) {
-    res.status(502).json({ error: 'upstream fetch failed', message: err.message, target: targetUrl });
+    const cached = KV_ENABLED ? await kvGet(cacheKey) : null;
+    const fallback = parseEligibleFallback(cached);
+    if (fallback) {
+      res.status(200);
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('X-Cache-Status', fallback.stale ? 'FALLBACK' : 'HIT-FRESH');
+      res.setHeader('X-Data-Stale', fallback.stale ? 'true' : 'false');
+      res.setHeader('X-Data-Source', 'Yahoo Finance cache');
+      res.setHeader('X-Data-As-Of', new Date(fallback.storedAt).toISOString());
+      res.send(fallback.body);
+      return;
+    }
+    res.status(502).json({
+      error: { code: 'quote_upstream_failed', message: 'Yahoo Finance request failed' },
+      meta: {
+        as_of: new Date().toISOString(), source: 'Yahoo Finance', cache_status: 'expired',
+        stale: true, quality: 'unavailable', schema_version: '1.0',
+      },
+    });
   }
 }

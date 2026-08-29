@@ -20,7 +20,6 @@ from pathlib import Path
 BACKEND = Path(__file__).resolve().parent
 if str(BACKEND) not in sys.path:
     sys.path.insert(0, str(BACKEND))
-import config
 from refresh_data_js import parse_data_js, write_data_js
 
 DATA_JS = BACKEND.parent / "frontend" / "src" / "data.js"

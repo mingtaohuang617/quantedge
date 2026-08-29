@@ -13,7 +13,7 @@ anomaly_store — 关注股异动扫描结果持久化（本地 / Render 侧）
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from pathlib import Path
 
 ANOMALY_PATH = Path(__file__).resolve().parent / "anomaly_scan.json"
@@ -47,7 +47,7 @@ def save_scan(payload: dict) -> dict:
     data = {
         "version": 1,
         "scanned_at": payload.get("scanned_at")
-        or datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        or datetime.now(UTC).isoformat(timespec="seconds"),
         "time_range": payload.get("time_range", 7),
         "items": payload.get("items") if isinstance(payload.get("items"), list) else [],
         "skipped": payload.get("skipped") if isinstance(payload.get("skipped"), list) else [],

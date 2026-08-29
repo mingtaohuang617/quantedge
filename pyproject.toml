@@ -1,29 +1,43 @@
 [project]
 name = "quantedge-backend"
-version = "0.6.0"
+version = "0.8.0"
 description = "QuantEdge backend — pipeline + API for quantitative scoring/backtest/monitoring"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
-  "yfinance",
-  "pandas",
-  "numpy",
-  "requests",
-  "fastapi",
-  "uvicorn[standard]",
-  "akshare",
-  "python-dotenv",
-  "futu-api",
+  "yfinance==1.3.0",
+  "pandas==2.2.3",
+  "numpy==2.4.3",
+  "requests==2.33.1",
+  "fastapi==0.115.0",
+  "httpx==0.28.1",
+  "uvicorn[standard]==0.30.0",
+  "akshare==1.18.60",
+  "python-dotenv==1.2.2",
+  "futu-api==10.7.6708",
+  "tushare==1.4.29",
+  "duckdb==1.5.5",
+  "pyarrow==25.0.1",
+  "hmmlearn==0.3.3",
+  "openai==2.35.1",
+  "lightgbm==4.7.0",
+  "scikit-learn==1.8.0",
+  "matplotlib==3.11.1",
+  "optuna==4.9.0",
+  "xgboost==3.2.0",
+  "catboost==1.2.10",
+  "shap==0.51.0",
+  "numba==0.67.0",
 ]
 
 [project.optional-dependencies]
 dev = [
-  "pytest>=8",
-  "ruff>=0.6",
+  "pytest==9.0.3",
+  "ruff==0.15.13",
 ]
 
 [tool.ruff]
 line-length = 110
-target-version = "py310"
+target-version = "py311"
 extend-exclude = [".venv", "backend/.venv", "backend/output", "backend/logs"]
 
 [tool.ruff.lint]

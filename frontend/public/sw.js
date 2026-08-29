@@ -1,11 +1,10 @@
 // QuantEdge Service Worker — H5 升级版
 // - 静态资源 cache-first
 // - HTML network-first + 离线兜底
-// - /api/yahoo stale-while-revalidate（即刻返回缓存 + 后台刷新，命中率↑速度↑）
+// - API 始终绕过 Service Worker 缓存，由 BFF 按数据类型执行时效策略
 // 版本号变化会触发新 SW 安装 → 自动清理旧缓存
-const VERSION = "v4";
+const VERSION = "v5";
 const CACHE = `quantedge-${VERSION}`;
-const API_CACHE = `quantedge-api-${VERSION}`;
 const APP_SHELL = ["/", "/index.html", "/manifest.webmanifest", "/icon.svg"];
 
 self.addEventListener("install", (event) => {
@@ -19,9 +18,9 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     (async () => {
       const keys = await caches.keys();
-      // 清理旧版本，但保留当前版本的 API cache
+      // 清理旧版本，包括旧的 API cache，避免过期行情被继续标记为实时
       await Promise.all(
-        keys.filter((k) => k !== CACHE && k !== API_CACHE).map((k) => caches.delete(k))
+        keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))
       );
       await self.clients.claim();
     })()
@@ -35,7 +34,7 @@ self.addEventListener("message", (event) => {
 
 // 策略:
 //  - 同源 GET: 静态资源 cache-first, HTML network-first(带离线兜底)
-//  - /api/yahoo: stale-while-revalidate（行情可短暂陈旧）
+//  - /api/*: 直接 network，缓存和时效边界由同源 BFF 控制
 //  - 跨域 / 其他 API: 直接 network, 不缓存
 self.addEventListener("fetch", (event) => {
   const { request } = event;
@@ -43,26 +42,7 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return; // 让跨域请求自己走
 
-  // /api/yahoo: stale-while-revalidate
-  if (url.pathname.startsWith("/api/yahoo")) {
-    event.respondWith(
-      caches.open(API_CACHE).then((c) =>
-        c.match(request).then((cached) => {
-          // 后台刷新（不阻塞）
-          const fetchPromise = fetch(request).then((res) => {
-            if (res && res.ok) {
-              const copy = res.clone();
-              c.put(request, copy);
-            }
-            return res;
-          }).catch(() => cached); // 网络失败时回退缓存
-          // 立即返回缓存，没有缓存就等网络
-          return cached || fetchPromise;
-        })
-      )
-    );
-    return;
-  }
+  if (url.pathname.startsWith("/api/")) return;
 
   const isAsset = /\.(js|css|woff2?|ttf|svg|png|jpg|webp|ico)$/i.test(url.pathname);
   if (isAsset) {

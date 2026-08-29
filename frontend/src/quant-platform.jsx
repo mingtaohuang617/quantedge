@@ -11,6 +11,8 @@ import { TEMP_TEXT, TEMP_LABEL } from "./components/macro/shared.js";
 import ShortcutsModal from "./components/ShortcutsModal.jsx";
 import { Z_ELEVATED, Z_TOUR } from "./lib/zIndex.js";
 
+const APP_VERSION = typeof __QUANTEDGE_VERSION__ === "string" ? __QUANTEDGE_VERSION__ : "unknown";
+
 // C1/C2: 拆分主文件 + 代码分割 — 各 Tab 按需加载（首屏不打包这些 chunk）
 const Journal = lazy(() => import("./pages/Journal.jsx"));
 const Monitor = lazy(() => import("./pages/Monitor.jsx"));
@@ -23,42 +25,74 @@ const StockGene = lazy(() => import("./pages/StockGene.jsx"));
 const SmartBeta = lazy(() => import("./pages/SmartBeta.jsx"));
 const CompoundPower = lazy(() => import("./pages/CompoundPower.jsx"));
 
-// TODO(perf): data.js 当前 1.09 MB / gzip 264 KB，含 277 个标的的完整 STOCKS
-// + ALERTS。通过 top-level await 在 entry parse 阶段加载，跟主 bundle 并行下载，
-// 因为 ScoringDashboard 首屏需要 STATIC_STOCKS 才能渲染评分列表。
-// 真正优化路径：按 market（US/HK/CN）分片 + lazy load 非首屏市场。需要：
-//   1) backend/export_stocks_to_frontend.py 改成生成 data-us.js / data-hk.js / data-cn.js
-//   2) DataProvider mount 时按 user preference 优先 load 当前市场，其他 idle 时 prefetch
-//   3) 多个 readers（L260/L275/L348）改成 React state（接受首屏空状态 → fetched 后重渲染）
 let STATIC_STOCKS = [];
 let STATIC_ALERTS = [];
-try {
-  const mod = await import("./data.js");
-  STATIC_STOCKS = mod.STOCKS || [];
-  STATIC_ALERTS = mod.ALERTS || [];
-} catch { /* data.js not available in standalone build */ }
+
+const STATIC_MARKET_LOADERS = {
+  US: () => import('./data-markets/us.js'),
+  HK: () => import('./data-markets/hk.js'),
+  CN: () => import('./data-markets/cn.js'),
+};
+const staticMarketPromises = new Map();
+let staticAlertsPromise = null;
+const loadStaticMarket = (market) => {
+  if (!staticMarketPromises.has(market)) {
+    staticMarketPromises.set(market, STATIC_MARKET_LOADERS[market]().then(mod => mod.STOCKS || []));
+  }
+  return staticMarketPromises.get(market);
+};
+const loadStaticAlerts = () => {
+  staticAlertsPromise ||= import('./data-markets/alerts.js').then(mod => mod.ALERTS || []);
+  return staticAlertsPromise;
+};
+
+function preferredStaticMarket() {
+  try {
+    const saved = JSON.parse(sessionStorage.getItem('qe:scoring:filters') || '{}');
+    if (saved.mkt === 'HK') return 'HK';
+    if (saved.mkt === 'SH' || saved.mkt === 'SZ' || saved.mkt === 'CN') return 'CN';
+  } catch {}
+  return 'US';
+}
+
+function mergeStaticStocks(current, incoming) {
+  const incomingByTicker = new Map(incoming.map(stock => [stock.ticker, stock]));
+  const merged = current.map(stock => ({ ...(incomingByTicker.get(stock.ticker) || {}), ...stock }));
+  const seen = new Set(merged.map(stock => stock.ticker));
+  for (const stock of incoming) if (!seen.has(stock.ticker)) merged.push(stock);
+  merged.sort((a, b) => (b.score || 0) - (a.score || 0));
+  merged.forEach((stock, index) => { stock.rank = index + 1; });
+  return merged;
+}
 
 // Mutable references — updated by DataProvider on API load
 let STOCKS = [...STATIC_STOCKS];
 let ALERTS = [...STATIC_ALERTS];
 
 // ─── API helpers ──────────────────────────────────────
-// API_BASE 解析顺序：
-//   1. VITE_API_BASE 已设 → 远端 backend（如 Vercel 接 Render/Railway/Fly）
-//      例 VITE_API_BASE=https://quantedge-backend-p3e1.onrender.com
-//      → 拼接为 https://quantedge-backend-p3e1.onrender.com/api
-//   2. 未设 → 走相对 /api（本地 dev 经 vite proxy → 8001；Vercel 经 rewrite → serverless）
-// 兼容用户填带 trailing slash 的 URL（去尾 / 防双斜杠）
-const API_BASE = (() => {
-  const remote = import.meta.env.VITE_API_BASE;
-  if (!remote || typeof remote !== "string") return "/api";
-  return `${remote.replace(/\/$/, "")}/api`;
-})();
+// 浏览器只访问同源 Vercel BFF。Render 地址与内部签名绝不进入前端 bundle。
+const API_BASE = "/api";
 // Silent retry：Render free tier 有 30s cold start + 偶发 502，第一次失败后静默重试
 // 1 次（800ms 后），不打 console.warn；只有真正不可达才 warn 并返回 null。
 // 对 GET 自动重试；POST 等可能有副作用的，调用方传 opts.noRetry=true 跳过。
 const RETRY_DELAY_MS = 800;
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+let authCsrfToken = null;
+
+export class ApiError extends Error {
+  constructor(message, { status = 0, code = 'request_failed', requestId = null, details = null } = {}) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.code = code;
+    this.requestId = requestId;
+    this.details = details;
+  }
+}
+
+function setAuthCsrfToken(value) {
+  authCsrfToken = typeof value === 'string' && value ? value : null;
+}
 
 export const apiFetch = async (path, opts = {}) => {
   const { noRetry, ...fetchOpts } = opts;
@@ -74,11 +108,39 @@ export const apiFetch = async (path, opts = {}) => {
   const shouldRetry = isGet && !noRetry;
 
   const doFetch = async () => {
+    const method = String(fetchOpts.method || 'GET').toUpperCase();
+    const headers = { "Content-Type": "application/json", ...(fetchOpts.headers || {}) };
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(method) && authCsrfToken) {
+      headers['X-CSRF-Token'] = authCsrfToken;
+    }
     const res = await fetch(`${API_BASE}${path}`, {
-      headers: { "Content-Type": "application/json" },
       ...fetchOpts,
+      headers,
+      credentials: 'same-origin',
     });
-    return await res.json();
+    let payload;
+    try { payload = await res.json(); }
+    catch { throw new ApiError(`API returned HTTP ${res.status} with a non-JSON body`, { status: res.status }); }
+    if (!res.ok) {
+      const structured = payload?.error && typeof payload.error === 'object' ? payload.error : null;
+      throw new ApiError(
+        structured?.message || payload?.detail || payload?.error || `API returned HTTP ${res.status}`,
+        {
+          status: res.status,
+          code: structured?.code || 'request_failed',
+          requestId: structured?.request_id || payload?.meta?.request_id || res.headers.get('x-request-id'),
+          details: structured?.details,
+        },
+      );
+    }
+    if (payload && Object.prototype.hasOwnProperty.call(payload, 'data') && payload.meta) {
+      const data = payload.data;
+      if (data && typeof data === 'object') {
+        Object.defineProperty(data, '_meta', { value: payload.meta, enumerable: false, configurable: true });
+      }
+      return data;
+    }
+    return payload;
   };
 
   try {
@@ -91,11 +153,11 @@ export const apiFetch = async (path, opts = {}) => {
         return await doFetch();
       } catch (e2) {
         console.warn("API unavailable:", e2.message);
-        return null;
+        throw e2;
       }
     }
     console.warn("API unavailable:", e.message);
-    return null;
+    throw e;
   }
 };
 
@@ -166,16 +228,13 @@ function formatCacheAge(timestamp) {
 }
 
 // ── Yahoo Finance 前端直接刷新价格（绕过后端，用于快速更新） ──
-// 多代理链式降级（与 standalone.js 保持一致；Vercel 自建代理优先）
+// 仅使用同源 Vercel BFF，禁止把证券请求发给公共 CORS 代理。
 const _YF_PROXIES = [
   { build: (u) => {
     const url = new URL(u);
     const host = url.hostname.includes("query2") ? "query2" : "query1";
     return `/api/yahoo?host=${host}&path=${encodeURIComponent(url.pathname + url.search)}`;
   }, parse: (t) => JSON.parse(t) },
-  { build: (u) => "https://corsproxy.io/?" + encodeURIComponent(u), parse: (t) => JSON.parse(t) },
-  { build: (u) => "https://api.allorigins.win/raw?url=" + encodeURIComponent(u), parse: (t) => JSON.parse(t) },
-  { build: (u) => "https://api.allorigins.win/get?url=" + encodeURIComponent(u), parse: (t) => { const j = JSON.parse(t); if (!j.contents) throw new Error("empty"); return JSON.parse(j.contents); } },
 ];
 async function _fetchYahooChart(chartPath, timeout = 10000) {
   // 本地 vite proxy 优先
@@ -343,6 +402,45 @@ function DataProvider({ children }) {
   const [standalone, setStandalone] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
+  // 认证成功后只先取用户当前市场；其余市场在浏览器空闲时补齐。
+  // 认证页不再等待 543 个标的，评分页仍会逐步恢复完整跨市场集合。
+  useEffect(() => {
+    let cancelled = false;
+    let idleHandle = null;
+    const preferred = preferredStaticMarket();
+    const applyStocks = (incoming) => {
+      if (cancelled || incoming.length === 0) return;
+      STATIC_STOCKS = mergeStaticStocks(STATIC_STOCKS, incoming);
+      setStocks(current => mergeStaticStocks(current, incoming));
+    };
+
+    Promise.all([loadStaticMarket(preferred), loadStaticAlerts()])
+      .then(([stocksForMarket, staticAlerts]) => {
+        if (cancelled) return;
+        applyStocks(stocksForMarket);
+        STATIC_ALERTS = staticAlerts;
+        setAlerts(current => current.length > 0 ? current : staticAlerts);
+
+        const loadRemaining = () => {
+          Promise.all(Object.keys(STATIC_MARKET_LOADERS)
+            .filter(market => market !== preferred)
+            .map(loadStaticMarket))
+            .then(chunks => applyStocks(chunks.flat()))
+            .catch(error => console.warn('[QuantEdge] Deferred market data failed:', error.message));
+        };
+        if ('requestIdleCallback' in window) idleHandle = window.requestIdleCallback(loadRemaining, { timeout: 1500 });
+        else idleHandle = window.setTimeout(loadRemaining, 250);
+      })
+      .catch(error => console.warn('[QuantEdge] Preferred market data failed:', error.message));
+
+    return () => {
+      cancelled = true;
+      if (idleHandle == null) return;
+      if ('cancelIdleCallback' in window) window.cancelIdleCallback(idleHandle);
+      else window.clearTimeout(idleHandle);
+    };
+  }, []);
+
   // C10: localStorage 为空 → 异步从 IndexedDB hydrate（页面切换浏览器/隐私模式后回来仍能找回数据）
   useEffect(() => {
     if (cached?.stocks?.length > 0) return; // localStorage 已有数据，跳过
@@ -360,7 +458,10 @@ function DataProvider({ children }) {
           console.info('[QuantEdge] 从 IndexedDB 恢复 ' + idbCached.stocks.length + ' 个标的');
         }
       } catch {}
-    })();
+    })().catch((error) => {
+      setApiOnline(false);
+      console.warn('[QuantEdge] 后台数据加载失败，继续使用本地缓存:', error.message);
+    });
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -424,25 +525,33 @@ function DataProvider({ children }) {
           }
         }
       }, 2000);
-    })();
+    })().catch((error) => {
+      setApiOnline(false);
+      console.warn('[QuantEdge] 后台数据加载失败，继续使用本地缓存:', error.message);
+    });
 
     // Poll status every 5s while refreshing (only when backend exists)
     const interval = setInterval(async () => {
       if (standalone) return;
-      const status = await apiFetch("/status");
-      if (status) {
-        setApiOnline(true);
-        if (status.refreshing !== refreshing) setRefreshing(status.refreshing);
-        if (!status.refreshing && refreshing) {
-          const data = await apiFetch("/data");
-          if (data?.stocks?.length > 0) {
-            setStocks(data.stocks);
-            setAlerts(data.alerts || []);
-            setLastRefresh(data.lastRefresh || "");
-            saveCache(data.stocks, data.alerts, data.lastRefresh);
-            setPriceUpdatedAt(Date.now());
+      try {
+        const status = await apiFetch("/status");
+        if (status) {
+          setApiOnline(true);
+          if (status.refreshing !== refreshing) setRefreshing(status.refreshing);
+          if (!status.refreshing && refreshing) {
+            const data = await apiFetch("/data");
+            if (data?.stocks?.length > 0) {
+              setStocks(data.stocks);
+              setAlerts(data.alerts || []);
+              setLastRefresh(data.lastRefresh || "");
+              saveCache(data.stocks, data.alerts, data.lastRefresh);
+              setPriceUpdatedAt(Date.now());
+            }
           }
         }
+      } catch (error) {
+        setApiOnline(false);
+        console.warn('[QuantEdge] 状态轮询失败:', error.message);
       }
     }, 5000);
     return () => clearInterval(interval);
@@ -808,58 +917,62 @@ export const displayTicker = (ticker, stock, lang) => {
 };
 
 // ─── Auth Context ────────────────────────────────────────
-const AUTH_KEY = "quantedge_auth";
-
-function loadAuth() {
-  try {
-    const raw = localStorage.getItem(AUTH_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw);
-  } catch { return null; }
-}
-
-function saveAuth(user) {
-  try { localStorage.setItem(AUTH_KEY, JSON.stringify(user)); } catch {}
-}
-
-function clearAuth() {
-  try { localStorage.removeItem(AUTH_KEY); } catch {}
-}
-
 const AuthContext = createContext(null);
 const useAuth = () => useContext(AuthContext);
 
 function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => loadAuth());
+  const bootstrapSession = typeof window !== 'undefined' ? window.__QUANTEDGE_BOOTSTRAP_SESSION__ : null;
+  const [user, setUser] = useState(bootstrapSession?.user || null);
+  const [loading, setLoading] = useState(!bootstrapSession);
 
-  const login = useCallback((userData) => {
-    setUser(userData);
-    saveAuth(userData);
+  useEffect(() => {
+    if (bootstrapSession) {
+      setAuthCsrfToken(bootstrapSession.csrf_token);
+      delete window.__QUANTEDGE_BOOTSTRAP_SESSION__;
+      return undefined;
+    }
+    let cancelled = false;
+    apiFetch('/auth/session', { noRetry: true })
+      .then(data => {
+        if (cancelled) return;
+        setAuthCsrfToken(data?.csrf_token);
+        setUser(data?.user || null);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setAuthCsrfToken(null);
+        setUser(null);
+      })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, []);
 
-  const logout = useCallback(() => {
-    setUser(null);
-    clearAuth();
+  const login = useCallback((sessionData) => {
+    setAuthCsrfToken(sessionData?.csrf_token);
+    setUser(sessionData?.user || null);
+  }, []);
+
+  const logout = useCallback(async () => {
+    try { await apiFetch('/auth/logout', { method: 'POST', noRetry: true }); }
+    catch (error) { console.warn('Logout request failed:', error.message); }
+    finally {
+      setAuthCsrfToken(null);
+      setUser(null);
+    }
   }, []);
 
   const updateProfile = useCallback((updates) => {
-    setUser(prev => {
-      const next = { ...prev, ...updates };
-      saveAuth(next);
-      return next;
-    });
+    setUser(prev => prev ? { ...prev, ...updates } : prev);
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, updateProfile }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );
 }
 
 // ─── AuthPage（邀请码登录） ───────────────────────────────
-const INVITE_CODE = "MintoQuant";
-
 const AuthPage = () => {
   const { login } = useAuth();
   const { t } = useLang();
@@ -874,25 +987,21 @@ const AuthPage = () => {
 
     if (!code.trim()) return setError(t("请输入邀请码"));
 
-    if (code.trim() !== INVITE_CODE) {
-      setError(t("邀请码无效，请检查后重试"));
+    setLoading(true);
+    try {
+      const sessionData = await apiFetch('/auth/invite', {
+        method: 'POST',
+        body: JSON.stringify({ code: code.trim() }),
+        noRetry: true,
+      });
+      login(sessionData);
+    } catch (err) {
+      setError(err?.status === 429 ? t("尝试次数过多，请稍后再试") : t("邀请码无效，请检查后重试"));
       setShake(true);
       setTimeout(() => setShake(false), 500);
-      return;
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(true);
-    await new Promise(r => setTimeout(r, 600));
-
-    login({
-      id: "u_" + Date.now(),
-      name: "Investor",
-      email: "user@quantedge.pro",
-      avatar: null,
-      plan: "pro",
-      joinedAt: new Date().toISOString(),
-    });
-    setLoading(false);
   };
 
   return (
@@ -1221,7 +1330,7 @@ const UserProfilePanel = ({ open, onClose, theme, toggleTheme, accent, setAccent
           <div className="rounded-lg bg-white/[0.03] border border-white/5 p-3 space-y-1.5 text-[10px]">
             <div className="flex items-center justify-between">
               <span className="text-[#667]">{t('版本')}</span>
-              <span className="text-[#a0aec0] font-mono">v0.8.0</span>
+              <span className="text-[#a0aec0] font-mono">v{APP_VERSION}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-[#667]">{t('许可')}</span>
@@ -2590,9 +2699,6 @@ function QuantPlatformInner() {
     };
   }, []);
 
-  // 未登录显示认证页面
-  if (!user) return <AuthPage />;
-
   // footer 共享：市场计数（IIFE 外也要用，所以提到组件顶层）
   const usCount = stocks.filter(s => s.market === "US").length;
   const hkCount = stocks.filter(s => s.market === "HK").length;
@@ -3014,7 +3120,7 @@ function QuantPlatformInner() {
             <kbd className="px-1 py-[1px] rounded bg-white/5 border border-white/10 font-mono text-[9px]">K</kbd>
             <span>{t('选股')}</span>
           </span>
-          <span className="text-[9px] md:text-[10px] text-[#778] font-mono">v0.8.0 · <span className="text-indigo-400/80">PWA</span></span>
+          <span className="text-[9px] md:text-[10px] text-[#778] font-mono">v{APP_VERSION} · <span className="text-indigo-400/80">PWA</span></span>
         </div>
       </footer>
 
@@ -3056,17 +3162,33 @@ function QuantPlatformInner() {
   );
 }
 
+function AuthenticatedQuantPlatform() {
+  const { user, loading } = useAuth();
+  const { t } = useLang();
+  if (loading) {
+    return (
+      <div className="w-full h-screen flex items-center justify-center bg-[#080b14] text-[#a0aec0]">
+        <Loader size={20} className="animate-spin" aria-label={t('正在验证会话')} />
+      </div>
+    );
+  }
+  if (!user) return <AuthPage />;
+  return (
+    <DataProvider>
+      <WorkspaceProvider>
+        <ConfirmProvider>
+          <QuantPlatformInner />
+        </ConfirmProvider>
+      </WorkspaceProvider>
+    </DataProvider>
+  );
+}
+
 export default function QuantPlatform() {
   return (
     <LangProvider>
       <AuthProvider>
-        <DataProvider>
-          <WorkspaceProvider>
-            <ConfirmProvider>
-              <QuantPlatformInner />
-            </ConfirmProvider>
-          </WorkspaceProvider>
-        </DataProvider>
+        <AuthenticatedQuantPlatform />
       </AuthProvider>
     </LangProvider>
   );

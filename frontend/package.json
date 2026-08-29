@@ -5,11 +5,19 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "data:split": "node scripts/split-market-data.mjs",
+    "prebuild": "npm run data:split",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "test:e2e:a11y": "playwright test accessibility.spec.ts --workers=1",
+    "test:e2e:responsive": "playwright test responsive.spec.ts",
+    "check:bundle": "node scripts/check-bundle-budget.mjs",
+    "check:version": "node scripts/check-version.mjs",
+    "check:vercel-functions": "node scripts/check-vercel-functions.mjs",
+    "check:lighthouse": "node scripts/check-lighthouse.mjs",
     "test:e2e:ui": "playwright test --ui",
     "audit:lucide": "node scripts/audit-lucide.mjs",
     "audit:imports": "node scripts/audit-imports.mjs",
@@ -19,26 +27,29 @@
     "audit:i18n:all": "node scripts/audit-i18n.mjs && node scripts/audit-i18n-keys.mjs && node scripts/audit-i18n-attrs.mjs"
   },
   "dependencies": {
-    "@sentry/react": "^10.50.0",
+    "@sentry/react": "10.71.0",
     "html-to-image": "^1.11.13",
     "lucide-react": "^0.454.0",
-    "opencc-js": "^1.3.1",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "recharts": "^2.12.7"
+    "opencc-js": "1.4.2",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "recharts": "3.10.1"
   },
   "devDependencies": {
-    "@playwright/test": "^1.59.1",
+    "@axe-core/playwright": "4.13.0",
+    "@playwright/test": "1.62.1",
+    "@sentry/vite-plugin": "5.4.0",
+    "@tailwindcss/postcss": "4.3.3",
     "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^16.3.2",
-    "@types/node": "^25.6.0",
-    "@vitejs/plugin-react": "^4.3.1",
-    "autoprefixer": "^10.4.20",
+    "@testing-library/react": "16.3.3",
+    "@types/node": "25.9.5",
+    "@vitejs/plugin-react": "6.1.0",
     "jsdom": "^29.1.1",
-    "postcss": "^8.4.47",
-    "tailwindcss": "^3.4.14",
+    "lighthouse": "13.4.1",
+    "postcss": "8.5.26",
+    "tailwindcss": "4.3.3",
     "typescript": "^6.0.3",
-    "vite": "^5.4.10",
-    "vitest": "^4.1.4"
+    "vite": "8.2.2",
+    "vitest": "4.1.11"
   }
 }

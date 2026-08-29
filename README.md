@@ -1,17 +1,19 @@
 # QuantEdge
 
-自研综合量化投资平台 — 8 个独立子页协同打仗：
+自研综合量化投资平台 — 10 个独立功能页共享同一数据与安全边界：
 
 | Tab | 功能 | 后端 / 数据源 |
 |-----|------|-------------|
 | **量化评分** | 多因子打分 + 组合权重推荐 | factors.py + iTick/Futu/AKShare/yfinance |
 | **组合回测** | 历史回测 + KPI vs 基准 + Underwater | factors + yfinance + 蒙特卡洛 |
+| **Smart Beta** | 三层 ETF 轮动 + 风险层 + 快照回测 | smart_beta + FRED + ETF universe |
+| **Mining Alpha** | Alpha191 因子库 + IC/训练/回测产物 | mining_alpha + Parquet + Tushare |
 | **实时监控** | 价格预警 + macro L5 + sector × regime | server.py 实时 + macro snapshot |
 | **投资日志** | 持仓笔记 + macro context + AI 复盘 | KV + DeepSeek |
 | **10x 猎手** | 三段筛选（赛道 → 候选 → 观察）+ AI 校验/排序 + 价值型 DCF | universe JSON + KV + DeepSeek |
-| **因子挖掘** | Alpha191 因子库 + 信号回测 | mining_alpha 模块 |
 | **股性检测** | 4 引擎（牛势 / 价值健康 / 短线动量 / 风险）+ 横向对比 | stock_gene 模块 + DeepSeek |
 | **宏观看板** | 17 个宏观因子 + HMM regime + 生存分析 + 因子叙事 | FRED + multpl + akshare + macro_snapshot |
+| **复利的力量** | 长期收益路径、参数对比与回测预置 | 前端纯计算 |
 
 ## 快速开始
 
@@ -73,10 +75,10 @@ QuantEdge/
 │   ├── universe/                     # 候选股池同步（US/HK/CN）
 │   ├── mining_alpha/                 # Alpha191 因子挖掘
 │   ├── data_sources/                 # 多源数据（iTick/Futu/AKShare/yfinance/FRED/Finnhub）
-│   └── tests/                        # 933 pytest 用例
+│   └── tests/                        # 1272 pytest 用例
 ├── frontend/                         # React + Vite + Recharts + Tailwind
 │   ├── src/
-│   │   ├── pages/                    # 8 个子页（lazy loaded）
+│   │   ├── pages/                    # 10 个功能页（lazy loaded）
 │   │   ├── components/
 │   │   │   ├── stock-gene/           # 股性检测组件
 │   │   │   ├── macro/                # 宏观看板组件
@@ -94,54 +96,18 @@ QuantEdge/
 - **评分 / 回测 / 监控 / 日志**：手选标的（默认 RKLB / NVDA / SNDK / MU / LITE / 00005.HK / 09988.HK / 03986.HK 等）；在 frontend 主页 / 标的管理里增删
 - **10x 猎手**：覆盖 S&P 500 / Nasdaq 100 / 恒生指数 / 恒生科技指数 / 沪深 300 全部成分（~1500 票）+ ETF + A 股 / 港股核心池
 
-## Vercel production 部署
+## 生产部署
 
-10x 猎手在 production（quantedge-chi.vercel.app）跑在 vercel serverless functions 上，
-不依赖 self-hosted Python backend。一次性配置：
+前端与同源 BFF 部署在 Vercel，FastAPI 部署在 Render。浏览器不直连 Render；Render 除 `/healthz` 外只接受 BFF 内部签名。生产必须经过 CI、Preview、响应式/axe 验收和核心 API 冒烟，并保留上一条 Ready deployment 作为回滚点。
 
-### 1. 环境变量（Vercel Settings → Environment Variables）
-
-| 变量 | 用途 | 必需 |
-|------|------|------|
-| `DEEPSEEK_API_KEY` | LLM 调用（thesis 草稿 / 赛道匹配 / 卡位排序 / 关键词生成） | LLM 功能必需 |
-| `KV_REST_API_URL` / `KV_REST_API_TOKEN` | Vercel KV 自动注入；watchlist + 自定义赛道持久化 | watchlist CRUD 必需 |
-| `QUANTEDGE_ALLOWED_HOSTS` | 自定义域名 hostname 白名单（逗号分隔） | 仅自定义域名时 |
-
-### 2. 启用 Vercel KV
-
-Vercel Dashboard → 项目 → Storage → Create Database → KV → Connect。完成后
-`KV_REST_API_URL` / `KV_REST_API_TOKEN` 自动注入到所有 environments。
-
-### 3. universe 数据上线（候选筛选必需）
-
-```bash
-# 本地拉数据
-python -m backend.universe.sync_us --enrich
-python -m backend.universe.sync_hk --enrich
-python -m backend.universe.sync_cn --enrich
-
-# 复制到 frontend/public/data/universe/（git track）
-python backend/export_universe_to_frontend.py
-
-# commit + push 触发 vercel 部署
-git add frontend/public/data/universe/
-git commit -m "data: refresh universe"
-git push
-```
-
-### 4. 验证
-
-production 上打开 10x 猎手页面：
-- 左栏看到 7 个内置赛道（4 个成长：AI 算力 / 半导体 / 光通信 / 算力中心；3 个价值：高股息蓝筹 / 周期价值 / 消费稳健）+ "+ 自定义赛道" 按钮（KV OK）
-- 勾选任一赛道看到候选股列表（universe data OK）
-- 点 ticker → 公司详情面板（含 30 天迷你 K 线 + 5 维财务）
-- 编辑器里点 "AI 生成草稿" 拿到 5 段文字（DEEPSEEK_API_KEY OK）
-
-任一步骤失败 → 检查 vercel function logs：Dashboard → Deployments → 选 deployment → Functions。
+完整环境变量、固定 Vercel CLI、部署顺序和故障定位见 [部署与运维](docs/DEPLOYMENT.md)。数据库迁移、权限变更、付费资源和外部遥测不得随普通发布自动开启。
 
 ## 文档
 
 - 业务背景与设计决策：[docs/PROJECT_CONTEXT.md](docs/PROJECT_CONTEXT.md)
 - 架构与数据流：[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- 数据源与新鲜度：[docs/DATA_SOURCES.md](docs/DATA_SOURCES.md)
+- 后端运行时：[docs/BACKEND.md](docs/BACKEND.md)
+- 部署与运维：[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 - 待办列表：[docs/TODO.md](docs/TODO.md)
 - 后端管道说明：[backend/README.md](backend/README.md)
