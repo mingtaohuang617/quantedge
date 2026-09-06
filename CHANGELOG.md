@@ -5,6 +5,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed — 生产发布门禁与回滚（2026-09-06）
+
+- `deploy-prod` 显式依赖 backend、frontend 与 e2e，后端失败不再允许生产发布。
+- 部署前记录当前生产 deployment；新部署通过创建但后续状态、核心路径或 5xx 核验失败时，自动回滚并验证 alias 与核心路径。
+- CI 增加发布工作流静态门禁，部署文档同步真实测试数、认证首屏、单 chunk、完整依赖图和 mock E2E 边界。
+
 ### Added — Mobile v8 系统与交互升级（2026-08-29）
 
 - 移动端主导航收敛为评分、监控、日志、宏观、我的五个标签，六个低频研究工具集中到「我的」中心。
