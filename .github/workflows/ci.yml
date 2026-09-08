@@ -63,6 +63,8 @@ jobs:
         run: npm run audit:i18n:all
       - name: Version consistency
         run: npm run check:version
+      - name: Release workflow gates
+        run: npm run check:release-gates
       - name: Vercel function budget
         run: npm run check:vercel-functions
       - name: Vitest
@@ -189,7 +191,7 @@ jobs:
   deploy-prod:
     name: Deploy to Vercel (production)
     runs-on: ubuntu-latest
-    needs: [frontend, e2e]
+    needs: [backend, frontend, e2e]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -211,10 +213,21 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: vercel build --prod --token=$VERCEL_TOKEN
-      - name: Record previous Ready deployments
+      - name: Record current production deployment
+        id: previous
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: vercel list --prod --token=$VERCEL_TOKEN > previous-ready-deployments.txt
+          QUANTEDGE_PRODUCTION_URL: https://quantedge-chi.vercel.app
+        shell: bash
+        run: |
+          vercel inspect "$QUANTEDGE_PRODUCTION_URL" --format=json --token="$VERCEL_TOKEN" > previous-production.json
+          previous_host=$(jq -r '.url // empty' previous-production.json)
+          if [ -z "$previous_host" ]; then
+            echo "Could not resolve the current production deployment"
+            exit 1
+          fi
+          echo "url=https://$previous_host" >> "$GITHUB_OUTPUT"
+          vercel list --prod --token="$VERCEL_TOKEN" > previous-ready-deployments.txt
       - name: Deploy prebuilt artifact
         id: deploy
         env:
@@ -240,9 +253,31 @@ jobs:
         run: |
           vercel logs --deployment "${{ steps.deploy.outputs.url }}" --environment production --status-code 5xx --since 10m --limit 50 --json --token=$VERCEL_TOKEN > recent-5xx.jsonl
           if [ -s recent-5xx.jsonl ]; then cat recent-5xx.jsonl; exit 1; fi
+      - name: Roll back failed production verification
+        if: failure() && steps.deploy.outcome == 'success'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          QUANTEDGE_PRODUCTION_URL: https://quantedge-chi.vercel.app
+        shell: bash
+        run: |
+          previous_url="${{ steps.previous.outputs.url }}"
+          vercel rollback "$previous_url" --timeout=5m --token="$VERCEL_TOKEN"
+          vercel inspect "$QUANTEDGE_PRODUCTION_URL" --wait --timeout=5m --token="$VERCEL_TOKEN" --format=json > rollback-result.json
+          active_host=$(jq -r '.url // empty' rollback-result.json)
+          expected_host="${previous_url#https://}"
+          if [ "$active_host" != "$expected_host" ]; then
+            echo "Rollback target mismatch: expected $expected_host, got $active_host"
+            exit 1
+          fi
+          node frontend/scripts/smoke-production.mjs "$QUANTEDGE_PRODUCTION_URL"
       - name: Upload rollback record
+        if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: previous-ready-deployments
-          path: previous-ready-deployments.txt
+          path: |
+            previous-ready-deployments.txt
+            previous-production.json
+            rollback-result.json
+          if-no-files-found: ignore
           retention-days: 14

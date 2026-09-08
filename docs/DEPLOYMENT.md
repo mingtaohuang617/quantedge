@@ -57,13 +57,15 @@ Python 版本为 3.11，Node 版本为 22。Python 直接依赖、测试工具�
 ## 3. CI 与发布顺序
 
 - backend：精确依赖安装、Ruff 硬门禁、非网络测试、Mining Alpha 合成数据冒烟。
-- frontend：npm ci、依赖审计、import/i18n/版本一致性审计、Vercel 公开函数上限、714 项 Vitest、生产 build、bundle budget。
+- frontend：npm ci、依赖审计、import/i18n/版本与发布工作流门禁审计、Vercel 公开函数上限、716 项 Vitest、生产 build、bundle budget。
 - e2e：Chromium、移动端、响应式、axe serious/critical、旋钮与侧栏交互。
 - preview：部署 Preview，检查认证、核心页面、核心 API、Service Worker 与 5xx。
-- production：只从通过全部门禁的 main 发布。
-- post-deploy：核验生产域名、deployment Ready、核心路径、近期错误日志和 Git SHA。
+- production：只从 backend、frontend、e2e 三项全部通过的 main 发布。
+- post-deploy：核验生产域名、deployment Ready、核心路径、近期错误日志和 Git SHA。部署前记录当前生产 deployment；新 deployment 已创建但后续核验失败时，自动回滚到该记录并再次核验 alias 与核心路径，工作流仍保持失败供排查。
 
-发布失败时回滚上一条 Ready deployment 或上一提交。若前端资产与旧 Service Worker 冲突，递增 `frontend/public/sw.js` 的 VERSION 后重新构建；不得让 Service Worker 缓存 `/api/`。
+构建或部署创建前失败时不改变生产；新 production deployment 创建后核验失败时自动执行 Vercel Instant Rollback。手工事故恢复仍可回滚上一条 Ready deployment 或上一提交。若前端资产与旧 Service Worker 冲突，递增 `frontend/public/sw.js` 的 VERSION 后重新构建；不得让 Service Worker 缓存 `/api/`。
+
+当前自动化验收口径：固定 Lighthouse 与首屏预算测量认证入口；150 KB 是页面自身 chunk 门禁，完整增量依赖图仅报告。Playwright 的大多数登录态使用 mock session，125%/150% 检查使用 CSS zoom；这些结果不等价于真实生产 Cookie/BFF/Render 链路或真实浏览器缩放矩阵。
 
 ## 4. 认证验证
 

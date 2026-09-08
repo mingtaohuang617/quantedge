@@ -118,7 +118,7 @@ src/
 
 `npm run data:split` 从 `data.js` 生成三个市场分片。认证成功后先加载用户上次使用的市场；未指定时先加载 US，其他市场在浏览器空闲阶段补齐。认证页不下载标的快照、Recharts 或功能页。
 
-2026-08-28 完成 React 19、Recharts 3 与 Tailwind 4 独立升级后，首屏 JS gzip 从原始 345,791 B 降至 71,627 B，下降 79.3%；最大 lazy route chunk 为 ScoringDashboard 的 126,669 B，低于 150 KB 门禁。当次固定 Lighthouse 为 performance 0.98、LCP 1.96s、CLS 0、TBT 0ms。无真实用户遥测时，TBT 仅作为 INP 的实验室代理。
+2026-08-28 完成 React 19、Recharts 3 与 Tailwind 4 独立升级后，认证入口首屏 JS gzip 从原始 345,791 B 降至 71,627 B，下降 79.3%。2026-08-30 CI 中最大页面自身 chunk 为 ScoringDashboard 的 126,760 B，低于当前 150 KB 单 chunk 门禁；其完整增量依赖图为 433,978 B，当前只报告、不拦截，不能把 150 KB 表述为完整路由加载量目标已经达标。当次固定 Lighthouse 为 performance 0.98、LCP 1.98s、CLS 0、TBT 0ms，测量对象同样是认证入口；无真实用户遥测时，TBT 不能替代实测 INP。
 
 评分页与回测页已经移除对全量 `data.js` 的直接依赖，统一消费 DataContext。继续拆分时不得改变组合回测旋钮的外观、拖动方向、0.1 精度、刻度点击与 pointer-lock。
 
