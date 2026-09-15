@@ -26,7 +26,10 @@ export function fetchTradingView(query) {
       settled = true;
       clearTimeout(timer);
       child.kill();
-      if (error) reject(Object.assign(new Error(error), { progress })); else resolve(data);
+      if (error) {
+        console.warn('TradingView worker failure', { code: ['upstream_timeout','upstream_unavailable'].includes(error) ? error : 'worker_failed', progress: progress || null });
+        reject(Object.assign(new Error(error), { progress }));
+      } else resolve(data);
     };
     const timer = setTimeout(() => finish('upstream_timeout'), 28000);
     child.once('error', () => finish('upstream_unavailable'));

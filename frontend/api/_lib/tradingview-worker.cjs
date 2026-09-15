@@ -2,7 +2,7 @@
 process.on('message', async ({ symbol, timeframe }) => {
   let client;
   let done = false;
-  const progress = { symbol: false, chart: false, rsi: false, macd: false };
+  const progress = { dependencies: false, symbol: false, chart: false, rsi: false, macd: false };
   const finish = payload => {
     if (done) return;
     done = true;
@@ -10,7 +10,7 @@ process.on('message', async ({ symbol, timeframe }) => {
     if (process.connected) process.send(payload, () => process.exit(0));
     else process.exit(0);
   };
-  const fail = () => finish({ error: 'upstream_unavailable' });
+  const fail = () => finish({ error: 'upstream_unavailable', progress });
   if (timeframe !== '1D') return finish({ error: 'invalid_query' });
   process.on('uncaughtException', fail);
   process.on('unhandledRejection', fail);
@@ -29,6 +29,7 @@ process.on('message', async ({ symbol, timeframe }) => {
       };
     }
     const TV = require('@mathieuc/tradingview');
+    progress.dependencies = true;
     client = new TV.Client({ token: process.env.TV_SESSION, signature: process.env.TV_SIGNATURE });
     client.onError(fail);
     const chart = new client.Session.Chart();

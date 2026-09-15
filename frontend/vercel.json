@@ -11,7 +11,7 @@
   ],
   "functions": {
     "api/**/*.js": {
-      "includeFiles": "public/data/universe/**"
+      "includeFiles": "{public/data/universe/**,api/_lib/tradingview-worker.cjs,node_modules/@mathieuc/tradingview/**,node_modules/axios/**,node_modules/follow-redirects/**,node_modules/form-data/**,node_modules/asynckit/**,node_modules/combined-stream/**,node_modules/delayed-stream/**,node_modules/es-set-tostringtag/**,node_modules/es-errors/**,node_modules/get-intrinsic/**,node_modules/call-bind-apply-helpers/**,node_modules/function-bind/**,node_modules/es-define-property/**,node_modules/es-object-atoms/**,node_modules/get-proto/**,node_modules/dunder-proto/**,node_modules/gopd/**,node_modules/has-symbols/**,node_modules/hasown/**,node_modules/math-intrinsics/**,node_modules/has-tostringtag/**,node_modules/mime-types/**,node_modules/mime-db/**,node_modules/debug/**,node_modules/ms/**,node_modules/jszip/**,node_modules/lie/**,node_modules/immediate/**,node_modules/pako/**,node_modules/readable-stream/**,node_modules/core-util-is/**,node_modules/inherits/**,node_modules/isarray/**,node_modules/process-nextick-args/**,node_modules/safe-buffer/**,node_modules/string_decoder/**,node_modules/util-deprecate/**,node_modules/setimmediate/**,node_modules/ws/**,node_modules/https-proxy-agent/**,node_modules/agent-base/**}"
     }
   }
 }
