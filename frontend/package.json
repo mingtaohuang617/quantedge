@@ -28,8 +28,10 @@
     "audit:i18n:all": "node scripts/audit-i18n.mjs && node scripts/audit-i18n-keys.mjs && node scripts/audit-i18n-attrs.mjs"
   },
   "dependencies": {
+    "@mathieuc/tradingview": "3.5.2",
     "@sentry/react": "10.71.0",
     "html-to-image": "^1.11.13",
+    "https-proxy-agent": "7.0.6",
     "lucide-react": "^0.454.0",
     "opencc-js": "1.4.2",
     "react": "19.2.8",

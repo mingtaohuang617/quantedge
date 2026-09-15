@@ -25,6 +25,7 @@ const MiningAlpha = lazy(() => import("./pages/MiningAlpha.jsx"));
 const StockGene = lazy(() => import("./pages/StockGene.jsx"));
 const SmartBeta = lazy(() => import("./pages/SmartBeta.jsx"));
 const CompoundPower = lazy(() => import("./pages/CompoundPower.jsx"));
+const DailyResearch = lazy(() => import("./pages/DailyResearch.jsx"));
 
 let STATIC_STOCKS = [];
 let STATIC_ALERTS = [];
@@ -1463,6 +1464,7 @@ const TAB_CFG = [
   { id: "screener10x", label: "10x 猎手",     short: ["10x", "猎手"],      icon: Target },
   { id: "stockgene",   label: "股性检测",     short: ["股性", "检测"],     icon: Zap },
   { id: "compound",    label: "复利的力量",   short: ["复利", "之力"],     icon: TrendingUp },
+  { id: "dailyResearch", label: "日线研究", short: ["日线", "研究"], icon: Activity },
 ];
 
 // 移动端底栏 5 个主目的地（v6 原则①：5 个常驻目的地）；其余 6 个功能页收进「我的」hub
@@ -1473,7 +1475,7 @@ const MOBILE_PRIMARY_TABS = [
   { id: "macro",   label: "宏观看板", short: "宏观", icon: Globe },
   { id: "me",      label: "更多",     short: "更多", icon: LayoutGrid },
 ];
-const MOBILE_HUB_IDS = ["backtest", "smartBeta", "miningAlpha", "screener10x", "stockgene", "compound"];
+const MOBILE_HUB_IDS = ["backtest", "smartBeta", "miningAlpha", "screener10x", "stockgene", "compound", "dailyResearch"];
 const MOBILE_TAB_IDS = new Set([...TAB_CFG.map((item) => item.id), "me"]);
 
 const readTabFromLocation = () => {
@@ -3058,6 +3060,7 @@ function QuantPlatformInner() {
           {tab === "screener10x" && <Screener10x />}
           {tab === "miningAlpha" && <MiningAlpha />}
           {tab === "stockgene" && <StockGene />}
+          {tab === "dailyResearch" && <DailyResearch />}
           {tab === "smartBeta" && <SmartBeta />}
           {tab === "compound" && (
             <CompoundPower onOneClickBacktest={handleOneClickBacktest} />

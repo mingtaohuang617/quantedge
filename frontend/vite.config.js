@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import tradingviewDevPlugin from './api/_lib/tradingviewDevPlugin.js';
 
 const packageVersion = readFileSync(
   fileURLToPath(new URL('../VERSION', import.meta.url)),
@@ -42,6 +43,7 @@ function configureYahooProxy(proxy) {
 
 export default defineConfig(({ command }) => ({
   plugins: [
+    tradingviewDevPlugin(),
     react(),
     ...(sentryBuildConfigured ? [sentryVitePlugin({
       authToken: process.env.SENTRY_AUTH_TOKEN,

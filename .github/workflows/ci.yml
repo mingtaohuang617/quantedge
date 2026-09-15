@@ -158,8 +158,11 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          TV_SESSION: ${{ secrets.QUANTEDGE_TV_SESSION }}
+          TV_SIGNATURE: ${{ secrets.QUANTEDGE_TV_SIGNATURE }}
         run: |
-          deployment_url=$(vercel deploy --prebuilt --token=$VERCEL_TOKEN)
+          test -n "$TV_SESSION" && test -n "$TV_SIGNATURE"
+          deployment_url=$(vercel deploy --prebuilt --token=$VERCEL_TOKEN --env QUANTEDGE_TRADINGVIEW_ENABLED=1 --env TV_SESSION="$TV_SESSION" --env TV_SIGNATURE="$TV_SIGNATURE")
           echo "url=$deployment_url" >> "$GITHUB_OUTPUT"
       - name: Verify Preview
         env:
@@ -182,6 +185,10 @@ jobs:
           check_preview "/api/auth/session" "401,403"
           check_preview "/api/yahoo?path=%2Fv8%2Ffinance%2Fchart%2FSPY" "401,403"
           check_preview "/api/mining-alpha/status" "401,403"
+      - name: Verify private daily data on Preview
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: node --env-file=.vercel/.env.preview.local frontend/scripts/smoke-tradingview-deployment.mjs "${{ steps.preview.outputs.url }}" --protected
 
   # H6: 自动部署到 Vercel — 仅 push 到 main 时触发，需配置 secrets
   # 必需 secrets:
@@ -234,8 +241,11 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          TV_SESSION: ${{ secrets.QUANTEDGE_TV_SESSION }}
+          TV_SIGNATURE: ${{ secrets.QUANTEDGE_TV_SIGNATURE }}
         run: |
-          deployment_url=$(vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN)
+          test -n "$TV_SESSION" && test -n "$TV_SIGNATURE"
+          deployment_url=$(vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN --env QUANTEDGE_TRADINGVIEW_ENABLED=1 --env TV_SESSION="$TV_SESSION" --env TV_SIGNATURE="$TV_SIGNATURE")
           echo "url=$deployment_url" >> "$GITHUB_OUTPUT"
       - name: Verify deployment status and core paths
         env:
@@ -246,6 +256,8 @@ jobs:
           # own 200 HTML login page. Verify application routes through the public
           # production alias after `vercel deploy --prod` has promoted it.
           node frontend/scripts/smoke-production.mjs "https://quantedge-chi.vercel.app"
+      - name: Verify private daily data on production
+        run: node --env-file=.vercel/.env.production.local frontend/scripts/smoke-tradingview-deployment.mjs "https://quantedge-chi.vercel.app"
       - name: Check recent production errors
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
