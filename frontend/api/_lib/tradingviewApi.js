@@ -1,4 +1,5 @@
 import { fork } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { requireOrigin, requireSession, sendError, enforceRateLimit, runWithConcurrency } from './auth.js';
 
@@ -16,7 +17,9 @@ export function fetchTradingView(query) {
   if (!validated) return Promise.reject(new Error('invalid_query'));
   return new Promise((resolve, reject) => {
     // No secrets in argv/stdout. Only this worker receives provider credentials.
-    const child = fork(fileURLToPath(new URL('./tradingview-worker.cjs', import.meta.url)), [], {
+    const bundled = new URL('./tradingview-runtime/worker.cjs', import.meta.url);
+    const worker = existsSync(bundled) ? bundled : new URL('./tradingview-worker.cjs', import.meta.url);
+    const child = fork(fileURLToPath(worker), [], {
       execArgv: [], stdio: ['ignore', 'ignore', 'ignore', 'ipc'],
       env: Object.fromEntries(Object.entries(process.env).filter(([key]) => ['PATH', 'Path', 'SystemRoot', 'TEMP', 'TMP', 'TV_SESSION', 'TV_SIGNATURE', 'TV_PROXY'].includes(key))),
     });

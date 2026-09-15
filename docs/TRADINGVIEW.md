@@ -56,6 +56,10 @@ Vite dev 和 preview 使用与生产相同的私有接口鉴权；其余 API 仍
 
 ## 上线边界
 
+预览验收使用每轮独立随机 QUANTEDGE_SESSION_SECRET，由 CI 掩码并仅注入该预览部署，不替换生产登录密钥。Vercel 拉取敏感变量时可能只返回占位符，不能用占位符签发测试会话。
+
+构建时运行 scripts/prepare-tradingview-runtime.mjs，将行情子进程及其已安装依赖整理到 api/_lib/tradingview-runtime；该目录是忽略提交的构建产物，通过短 includeFiles 规则随函数部署，不依赖动态子进程的自动追踪。
+
 默认关闭。生产部署和将个人 Cookie 配置到云端需单独确认，不能因为本地测试成功就宣称线上已启用。Node 运行环境须打包 api/_lib/tradingview-worker.cjs 和 npm 依赖，并允许子进程和出站 WSS/HTTPS。平台函数时限为 60 秒，大于内部 28 秒硬超时。本机 127.0.0.1 代理不能直接用于云端。
 
 技术连通不等于市场数据使用许可。正式商业化、自动化处理或转发前需核对 TradingView 和交易所授权。凭据失效时在服务端更新，勿在错误日志中打印请求配置或 Cookie。
