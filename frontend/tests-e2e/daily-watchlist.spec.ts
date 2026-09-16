@@ -1,9 +1,12 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { loginViaStorage } from './helpers';
+import { STOCKS } from '../src/data.js';
+import { dailySymbol } from '../src/lib/dailyWatchlist.js';
 for (const width of [1440,390]) test(`favorites daily queue ${width}`, async ({page})=>{
   await page.setViewportSize({width,height:900}); await loginViaStorage(page);
   await page.route('**/api/watchlist/favorites',route=>route.fulfill({json:{tickers:['00700.HK'],kv:true,updated_at:'2026-09-15'}}));
+  await page.route('**/api/private/market-data/daily-snapshots',route=>route.fulfill({json:{meta:{schema_version:'1.0'},data:{timeframe:'1D',generated_at:'2026-09-16T09:00:00Z',rows:[{ticker:'7203.T',status:'success',snapshot:{timeframe:'1D',resolved_symbol:'TSE_DLY:7203',timezone:'Asia/Tokyo',received_at:'2026-09-16T09:00:00Z',bar:{time:1789516800,close:3320},indicators:{time:1789516800,rsi:47,macd:1,signal:2,histogram:-1}}}]}}}));
   await page.route('**/api/private/objects/research',route=>route.fulfill({json:{data:[],meta:{}}}));
   const requests:string[]=[];
   await page.route('**/api/private/market-data/tradingview?**',route=>{
@@ -12,10 +15,32 @@ for (const width of [1440,390]) test(`favorites daily queue ${width}`, async ({p
   });
   await page.goto('/?tab=dailyResearch');
   const panel=page.locator('section[aria-labelledby="daily-watchlist-title"]');
+  await expect(panel.getByRole('cell',{name:'3320',exact:true}).or(panel.getByRole('cell',{name:'3,320',exact:true}))).toBeVisible();
+  await expect(panel.getByRole('cell',{name:'TSE_DLY:7203',exact:true})).toBeVisible();
+  expect(requests).toHaveLength(0);
   await panel.getByRole('button',{name:'更新全部星标日线',exact:true}).click();
   await expect(panel.getByRole('cell',{name:'438.8',exact:true})).toBeVisible();
   expect(requests).toHaveLength(1);expect(new URL(requests[0]).searchParams.get('timeframe')).toBe('1D');
   expect(await page.evaluate(()=>document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   expect((await new AxeBuilder({page}).include('section[aria-labelledby="daily-watchlist-title"]').withTags(['wcag2a','wcag2aa']).analyze()).violations).toEqual([]);
   await panel.screenshot({path:`test-results/daily-watchlist-${width}.png`});
+});
+for(const width of [1440,390])test(`full published universe loads without per-symbol requests ${width}`,async({page})=>{
+  await page.setViewportSize({width,height:900});await loginViaStorage(page);
+  const tickers=[...new Set(['DRAM',...STOCKS.map(stock=>stock.ticker)])];
+  const rows=tickers.map(ticker=>({ticker,status:'success',snapshot:{timeframe:'1D',resolved_symbol:dailySymbol(ticker),timezone:'UTC',received_at:'2026-09-16T09:00:00Z',bar:{time:1789516800,close:100},indicators:{time:1789516800,rsi:50,macd:1,signal:1,histogram:0}}}));
+  await page.route('**/api/watchlist/favorites',route=>route.fulfill({json:{tickers:['DRAM'],kv:true,updated_at:'2026-09-16'}}));
+  await page.route('**/api/private/objects/research',route=>route.fulfill({json:{data:[],meta:{}}}));
+  await page.route('**/api/private/market-data/daily-snapshots',route=>route.fulfill({json:{meta:{schema_version:'1.0'},data:{timeframe:'1D',total:rows.length,success:rows.length,generated_at:'2026-09-16T09:00:00Z',rows}}}));
+  const requests:string[]=[];const errors:string[]=[];
+  page.on('pageerror',error=>errors.push(error.message));
+  await page.route('**/api/private/market-data/tradingview?**',route=>{requests.push(route.request().url());return route.fulfill({status:500,json:{error:{code:'unexpected_request'}}});});
+  await page.goto('/?tab=dailyResearch');
+  const panel=page.locator('section[aria-labelledby="daily-watchlist-title"]');
+  await expect(panel.getByRole('row')).toHaveCount(tickers.length+1);
+  await expect(panel.getByRole('row').nth(1)).toContainText('★ DRAM');
+  await panel.getByRole('row').last().scrollIntoViewIfNeeded();
+  await expect(panel.getByRole('row').last()).toBeVisible();
+  expect(requests).toEqual([]);expect(errors).toEqual([]);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);
 });

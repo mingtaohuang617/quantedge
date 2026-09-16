@@ -1,5 +1,6 @@
+import { DAILY_INACTIVE } from './dailyInstrumentStatus.js';
 export const DAILY_SNAPSHOT_KEY = 'quantedge_daily_snapshots_v1';
-const supported = /^(NASDAQ|NYSE|AMEX|BATS|HKEX|KRX|SSE|SZSE|BINANCE):[A-Z0-9.\-]{1,24}$/;
+const supported = /^(NASDAQ|NYSE|AMEX|BATS|HKEX|KRX|TSE|SSE|SZSE|BINANCE):[A-Z0-9.\-]{1,24}$/;
 export function dailySymbol(ticker) {
   const value = String(ticker || '').trim().toUpperCase();
   if (supported.test(value)) return value;
@@ -7,6 +8,8 @@ export function dailySymbol(ticker) {
   if (hk) return `HKEX:${Number(hk[1])}`;
   const kr = value.match(/^(\d{6})\.KS$/);
   if (kr) return `KRX:${kr[1]}`;
+  const jp = value.match(/^(\d{4})\.T$/);
+  if (jp) return `TSE:${jp[1]}`;
   const cn = value.match(/^(\d{6})\.(SH|SS|SZ)$/);
   if (cn) return `${cn[2] === 'SZ' ? 'SZSE' : 'SSE'}:${cn[1]}`;
   // Bare US symbols use the explicit Cboe source, never pretend to be primary exchange quotes.
@@ -21,7 +24,7 @@ export function buildDailyQueue(favorites, stocks = [], expand = false) {
     const key = String(ticker || '').trim();
     if (!key || seen.has(key)) return;
     seen.add(key);
-    rows.push({ ticker: key, favorite, symbol: dailySymbol(key) });
+    rows.push({ ticker: key, favorite, symbol: dailySymbol(key), ...(DAILY_INACTIVE[key] ? {inactive:DAILY_INACTIVE[key]} : {}) });
   };
   favorites.forEach(ticker => add(ticker, true));
   if (expand) stocks.forEach(stock => add(stock.ticker, false));
@@ -61,11 +64,32 @@ export function loadDailySnapshots(storage) {
   return output;
 }
 
+export async function loadPublishedDaily(request, storage) {
+  const snapshots = loadDailySnapshots(storage);
+  let published = null;
+  try {
+    const data = await request('/private/market-data/daily-snapshots', { noRetry: true });
+    if (data?.timeframe !== '1D' || !Array.isArray(data.rows)) throw new Error('invalid_snapshot');
+    published = data;
+    for (const row of data.rows) {
+      if (row.status !== 'success' || typeof row.ticker !== 'string') continue;
+      try {
+        const snapshot = dailySummary({ ...row.snapshot, bars: [row.snapshot?.bar] });
+        const existing = snapshots[row.ticker];
+        if (!existing || (snapshot.bar.time >= existing.bar.time && Date.parse(snapshot.received_at) > Date.parse(existing.received_at))) snapshots[row.ticker] = snapshot;
+      } catch { /* Invalid published rows never replace a valid local copy. */ }
+    }
+    try { storage.setItem(DAILY_SNAPSHOT_KEY, JSON.stringify(snapshots)); } catch { /* still usable in memory */ }
+  } catch { /* Manual daily fetch and local snapshots remain available. */ }
+  return { snapshots, published };
+}
+
 export async function runDailyQueue(queue, { request, onResult, signal, wait = ms => new Promise(resolve => setTimeout(resolve, ms)), spacingMs = 6000 }) {
   const result = { success: 0, failed: 0, skipped: 0, stopped: false };
   let firstRequest = true;
   for (const row of queue) {
     if (signal?.aborted) { result.stopped = true; break; }
+    if (row.inactive) { result.skipped++; onResult({...row,status:'inactive'}); continue; }
     if (!row.symbol) { result.skipped++; onResult({ ...row, status: 'unsupported' }); continue; }
     if (!firstRequest) await wait(spacingMs);
     if (signal?.aborted) { result.stopped = true; break; }

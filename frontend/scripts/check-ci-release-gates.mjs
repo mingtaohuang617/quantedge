@@ -24,6 +24,9 @@ const requiredPatterns = [
 const failures = requiredPatterns
   .filter(([pattern]) => !pattern.test(deploy))
   .map(([, message]) => message);
+const vercelConfig = JSON.parse(readFileSync(path.resolve(scriptDir, '..', 'vercel.json'), 'utf8'));
+if (vercelConfig.git?.deploymentEnabled !== false) failures.push('Git deployment must not bypass private snapshot preparation and CI gates');
+if (!deploy.includes('node frontend/scripts/restore-daily-snapshot.mjs')) failures.push('Production must restore the encrypted daily snapshot before building');
 
 const captureIndex = deploy.indexOf('id: previous');
 const deployIndex = deploy.indexOf('id: deploy');
