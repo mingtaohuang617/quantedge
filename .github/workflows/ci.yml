@@ -192,6 +192,10 @@ jobs:
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: node --env-file=.vercel/.env.preview.local frontend/scripts/smoke-tradingview-deployment.mjs "${{ steps.preview.outputs.url }}" --protected
+      - name: Verify existing production login without changing its secret
+        env:
+          QUANTEDGE_SMOKE_INVITE_CODE: ${{ secrets.QUANTEDGE_SMOKE_INVITE_CODE }}
+        run: node --input-type=module -e "import {loginForSmoke} from './frontend/scripts/smoke-login.mjs'; await loginForSmoke(new URL('https://quantedge-chi.vercel.app'),process.env.QUANTEDGE_SMOKE_INVITE_CODE); console.log('Existing production login verified');"
 
   # H6: 自动部署到 Vercel — 仅 push 到 main 时触发，需配置 secrets
   # 必需 secrets:
@@ -260,7 +264,9 @@ jobs:
           # production alias after `vercel deploy --prod` has promoted it.
           node frontend/scripts/smoke-production.mjs "https://quantedge-chi.vercel.app"
       - name: Verify private daily data on production
-        run: node --env-file=.vercel/.env.production.local frontend/scripts/smoke-tradingview-deployment.mjs "https://quantedge-chi.vercel.app"
+        env:
+          QUANTEDGE_SMOKE_INVITE_CODE: ${{ secrets.QUANTEDGE_SMOKE_INVITE_CODE }}
+        run: node frontend/scripts/smoke-tradingview-deployment.mjs "https://quantedge-chi.vercel.app"
       - name: Check recent production errors
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}

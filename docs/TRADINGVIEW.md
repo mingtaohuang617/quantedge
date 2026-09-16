@@ -56,6 +56,8 @@ Vite dev 和 preview 使用与生产相同的私有接口鉴权；其余 API 仍
 
 ## 上线边界
 
+生产 CI 验收通过正常 /api/auth/invite 登录，邀请码仅从 GitHub 加密 Secret QUANTEDGE_SMOKE_INVITE_CODE 注入，Cookie 仅保留于验收进程内存。预览阶段先验证既有生产登录，正式发布后再逐只验证 19 个星标。禁止用生产密钥占位符签发会话；生产登录密钥不变。
+
 预览验收使用每轮独立随机 QUANTEDGE_SESSION_SECRET，由 CI 掩码并仅注入该预览部署，不替换生产登录密钥。Vercel 拉取敏感变量时可能只返回占位符，不能用占位符签发测试会话。
 
 构建时运行 scripts/prepare-tradingview-runtime.mjs，将行情子进程及其已安装依赖整理到 api/_lib/tradingview-runtime；该目录是忽略提交的构建产物，通过短 includeFiles 规则随函数部署，不依赖动态子进程的自动追踪。

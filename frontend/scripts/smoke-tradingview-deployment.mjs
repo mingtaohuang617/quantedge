@@ -2,9 +2,12 @@
 import { execFileSync } from 'node:child_process';
 import { createSession } from '../api/_lib/auth.js';
 import { dailySymbol } from '../src/lib/dailyWatchlist.js';
+import { loginForSmoke } from './smoke-login.mjs';
 const base = new URL(process.argv[2]);
 if (base.protocol !== 'https:' || !base.hostname.endsWith('.vercel.app')) throw new Error('Expected verified Vercel deployment');
-const cookie = `__Host-qe_session=${createSession().token}`;
+const cookie = process.argv.includes('--protected')
+  ? `__Host-qe_session=${createSession().token}`
+  : await loginForSmoke(base, process.env.QUANTEDGE_SMOKE_INVITE_CODE);
 const request = async (path, authenticated = true) => {
   if (process.argv.includes('--protected')) {
     const args = ['curl', path, '--deployment', base.origin, '--', '--silent', '--show-error', '--max-time', '45',
