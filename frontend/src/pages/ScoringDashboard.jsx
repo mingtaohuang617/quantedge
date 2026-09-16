@@ -1,5 +1,8 @@
 import { reweightUniverse, scoreRadar, scoreUniverse, ASSET_LABELS, formatAmount } from '../lib/scoring.js';
 import ScoringProvenance from '../components/ScoringProvenance.jsx';
+import DailyQuoteProvenance from '../components/DailyQuoteProvenance.jsx';
+import useDailyQuotes from '../hooks/useDailyQuotes.js';
+import { dailyScoringStock } from '../lib/dailyScoring.js';
 // ─────────────────────────────────────────────────────────────
 // ScoringDashboard — 评分仪表盘 / 股票列表 / 详情面板
 // 从 quant-platform.jsx 抽出（C1 重构第四步），通过 React.lazy 懒加载
@@ -141,7 +144,7 @@ const INDICATOR_GROUPS = [
 ];
 // 放大弹窗的 K 线周期集合（与收起态 8 档不同）。从收起态打开放大图时，
 // 不在此集合的区间(1M/6M/YTD/1D/ALL)归一到「日线」，避免放大工具栏无高亮档。
-const MODAL_RANGES = ["5D", "1Y", "5Y", "MONK", "QUARK", "YEARK"];
+const MODAL_RANGES = ["1Y", "5Y", "MONK", "QUARK", "YEARK"];
 // 画线持久化 key：趋势线/测量锚定周期相关的 K 线标签，跨周期无法映射，故按 (标的, 周期) 分桶。
 const drawingsKey = (ticker, range) => `quantedge_drawings_${ticker}_${range}`;
 // 水平线仅锚 price（无日期），天然跨周期通用 → 按标的单独存，所有周期共享同一套。
@@ -933,7 +936,11 @@ const ScoringDashboard = () => {
     const iv = setInterval(fetchIndices, 60_000);
     return () => clearInterval(iv);
   }, [fetchIndices]);
-  const { stocks: ctxStocks, setStocks: ctxSetStocks, addTicker, removeTicker, apiOnline, standalone, quickPriceRefresh, priceUpdatedAt, priceRefreshing } = useData() || {};
+  const { stocks: ctxStocks, setStocks: ctxSetStocks, addTicker, removeTicker, apiOnline, standalone } = useData() || {};
+  const dailyQuotes = useDailyQuotes(apiFetch);
+  const quickPriceRefresh = dailyQuotes.refresh;
+  const priceUpdatedAt = dailyQuotes.published?.generated_at ? Date.parse(dailyQuotes.published.generated_at) : 0;
+  const priceRefreshing = dailyQuotes.loading;
 
   // 股票可调整质量 / 趋势权重；ETF 和加密资产始终保留独立分项。
   const applyWeights = useCallback(() => (ctxStocks || []).filter(s => s.scoring?.status === 'ready').length, [ctxStocks]);
@@ -976,7 +983,7 @@ const ScoringDashboard = () => {
     setPullDist(0);
   }, [pullDist, quickPriceRefresh]);
   // 使用 context 中的 stocks（响应式），而非模块级 STOCKS（可能过时）
-  const liveStocks = useMemo(() => reweightUniverse(ctxStocks || [], weights), [ctxStocks, weights]);
+  const liveStocks = useMemo(() => reweightUniverse(ctxStocks || [], weights).map(stock => dailyScoringStock(stock, dailyQuotes.snapshots)), [ctxStocks, weights, dailyQuotes.snapshots]);
   // 保持 sel 与 liveStocks 同步：初始化 + 数据更新时刷新 sel 对象
   useEffect(() => {
     if (!liveStocks || liveStocks.length === 0) return;
@@ -1754,7 +1761,7 @@ const ScoringDashboard = () => {
                     {pillars.map((p) => <MPillar key={p.name} {...p} />)}
                   </div>
                 )}
-                <div className="mb-4"><ScoringProvenance stock={sel} weights={weights} />
+                <div className="mb-4"><DailyQuoteProvenance stock={sel} refresh={quickPriceRefresh} loading={priceRefreshing} /><ScoringProvenance stock={sel} weights={weights} />
                   <ScoreExplainCard stock={sel} weights={weights} /></div>
                 {!sel.isETF && <div className="mb-4"><ValuationReadCard stock={sel} /></div>}
                 <div className="mb-4"><StockProfileCard stock={sel} /></div>
@@ -1829,7 +1836,7 @@ const ScoringDashboard = () => {
               {chartType === "candle" && !hasOHLC && <span className="text-[10px]" style={{ color: "var(--fg-3)" }}>{t("K线数据加载中，刷新后显示")}</span>}
             </>
           }
-          ranges={["1D", "5D", "1M", "6M", "YTD", "1Y", "5Y", "ALL"]} activeRange={chartRange} onRangeChange={setChartRange}>
+          ranges={["1M", "6M", "YTD", "1Y", "5Y", "ALL"]} activeRange={chartRange} onRangeChange={setChartRange}>
           {chartData.length >= 2 ? (
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={chartSeries} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
@@ -2558,11 +2565,11 @@ const ScoringDashboard = () => {
                       letterSpacing: '-0.02em',
                     }}
                   >
-                    <CountUp value={parseFloat(sel.price) || 0} decimals={(sel.currency === "KRW" || sel.currency === "JPY") ? 0 : 2} duration={600} prefix={currencySymbol(sel.currency)} thousands />
+                    {sel.price == null ? '—' : <CountUp value={Number(sel.price)} decimals={(sel.currency === "KRW" || sel.currency === "JPY") ? 0 : 2} duration={600} prefix={currencySymbol(sel.currency)} thousands />}
                   </div>
                   <div className={`text-sm font-bold tabular-nums ${safeChange(sel.change) >= 0 ? "text-up" : "text-down"}`}>
                     <span>{safeChange(sel.change) >= 0 ? "▲" : "▼"} </span>
-                    <CountUp value={Math.abs(safeChange(sel.change))} decimals={2} duration={500} suffix="%" />
+                    {sel.change == null ? '—' : <CountUp value={Math.abs(safeChange(sel.change))} decimals={2} duration={500} suffix="%" />}
                   </div>
                 </div>
               </div>
@@ -2574,6 +2581,7 @@ const ScoringDashboard = () => {
                 if (enDesc && !hasCJK(enDesc)) return enDesc;
                 return sel.name || sel.ticker;
               })()}</p>
+              <DailyQuoteProvenance stock={sel} refresh={quickPriceRefresh} loading={priceRefreshing} />
               {/* PDF2 抛光：AI 评分解读卡前置 — 紧贴评分块，回答「为什么是这个分」（默认折叠） */}
               {sel.subScores && (
                 <div className="mb-2">
@@ -2694,7 +2702,7 @@ const ScoringDashboard = () => {
               </div>
               {/* 时间维度选择器 */}
               <div className="flex items-center gap-0.5 mb-2 bg-white/5 rounded-lg p-0.5 border border-white/8 w-full md:w-fit overflow-x-auto">
-                {["1D","5D","1M","6M","YTD","1Y","5Y","ALL"].map(r => {
+                {["1M","6M","YTD","1Y","5Y","ALL"].map(r => {
                   const label = r === "1D" ? t("分时") : r === "5D" ? t("五日") : r === "1M" ? t("月") : r === "6M" ? t("6月") : r === "YTD" ? t("今年") : r === "1Y" ? t("1年") : r === "5Y" ? t("5年") : t("全部");
                   const hasData = sel.priceRanges && sel.priceRanges[r];
                   return (

@@ -10,6 +10,7 @@ export default function DailyWatchlistPanel({ request, stocks = [] }) {
   const [rows, setRows] = useState([]);
   const [notice, setNotice] = useState('');
   const [publishedAt, setPublishedAt] = useState(null);
+  const [health, setHealth] = useState(null);
   const controller = useRef(null);
   useEffect(() => {
     let active = true;
@@ -17,6 +18,7 @@ export default function DailyWatchlistPanel({ request, stocks = [] }) {
       setFavorites(value); setReady(true);
       const { snapshots, published } = initial;
       setPublishedAt(published?.generated_at || null);
+      setHealth(published?.refresh_health || null);
       const publishedRows = published?.rows || [];
       const states = new Map(publishedRows.map(row => [row.ticker, row]));
       setRows(buildDailyQueue(value.tickers, publishedRows, true).map(row => ({ ...row,
@@ -57,6 +59,8 @@ export default function DailyWatchlistPanel({ request, stocks = [] }) {
     </div>
     <p className="text-xs leading-relaxed" style={{ color:'var(--fg-1)' }}>{t('仅日线价格及 RSI/MACD；美股默认 Cboe 来源。逐只限速更新，失败不会覆盖旧快照，不改写财报或综合评分。')}</p>
     {publishedAt && <p className="text-xs" style={{color:'var(--fg-1)'}}>{t('已加载服务端日线快照')} · {new Date(publishedAt).toLocaleString()} · {t('历史快照')} {rows.filter(row=>row.status==='saved').length}</p>}
+    {health && <p className="text-xs" role="status">{t('最近自动更新')} · {health.market || '—'} · {health.status} · {health.completed_at || health.started_at} · {health.success ?? health.processed ?? 0}/{health.total ?? '—'}
+      {['failed', 'degraded'].includes(health.status) && <> · {t('自动更新存在失败项，已保留上次成功数据')}</>}</p>}
     {notice && <p role="status" className="text-sm">{t(notice)}</p>}
     {rows.filter(row=>row.inactive).map(row=><p key={row.ticker} className="text-xs"><a className="underline" href={row.inactive.source} target="_blank" rel="noopener noreferrer">{row.ticker} · {t('已停止交易')} · {row.inactive.effective_at}</a></p>)}
     {rows.length > 0 && <><p role="status" className="text-xs">{t('本轮已获取')} {rows.filter(x=>x.status==='success').length} / {rows.length} · {t('获取失败')} {rows.filter(x=>x.status==='failed').length}</p>

@@ -49,7 +49,9 @@ export function dailySummary(data) {
     || data?.indicators?.time !== bar.time || !['rsi','macd','signal','histogram'].every(key => Number.isFinite(data.indicators[key]))
     || !data.resolved_symbol || !Number.isFinite(Date.parse(data.received_at))) throw new Error('invalid_daily_data');
   return { resolved_symbol: data.resolved_symbol, timeframe: '1D', currency: data.currency, timezone: data.timezone,
-    delay_seconds: data.delay_seconds, received_at: data.received_at, bar, indicators: data.indicators };
+    delay_seconds: data.delay_seconds, received_at: data.received_at, bar, indicators: data.indicators,
+    ...(Number.isFinite(data.previous_close ?? data.bars?.[1]?.close) && (data.previous_close ?? data.bars?.[1]?.close) > 0
+      ? { previous_close: data.previous_close ?? data.bars[1].close } : {}) };
 }
 
 export function loadDailySnapshots(storage) {

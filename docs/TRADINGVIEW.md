@@ -107,3 +107,15 @@ node --env-file='C:/path/to/tradingview-test/.env' scripts/test-tradingview-live
 - CI 对发布快照逐项验证，并比较整个线上快照与构建输入一致；保留原有 19 星标在线测试，新增 3 个日本股票实测。
 - 发布统一走现有 GitHub Actions 预构建通道。`vercel.json` 关闭旁路 Git 自动部署，避免未恢复加密快照、未通过门禁的版本抢先覆盖正式站；没有断开 GitHub 连接或改变账户权限。
 - 本节是实现说明，不代表全量采集或生产发布已经完成。实际结果见当次验收记录。
+# 2026-09-16：评分页日线展示与云端刷新（本轮验收中）
+
+- 评分页在原评分计算之后叠加日线价格、前收盘价计算的涨跌幅、RSI/MACD；不改财报、评分公式、评分输入或回测数据。评分仍显示原行情日期，明确尚未按新快照重算。
+- 日线研究与评分页读取同一个已认证 daily-snapshots 接口。日线缺失时旧行情明确标注；停止交易不显示旧价为现价；没有前收盘价时涨跌幅留空。
+- 历史图表仍由 Yahoo 提供，已注明不同来源。评分页移除分时/五日入口，保留日线及更粗粒度历史范围，不伪造超过 100 根的 TradingView 历史。
+- 新增独立 Daily market refresh 工作流：香港时间工作日 18:37 更新亚洲，周二至周六 07:37 更新美股（对应美股前一交易日）。GitHub schedule 可能延迟，并非精确到点的 SLA；公共仓库长期无活动可能停用计划任务。
+- 云端复用已有生产 KV，仅新增 qe:market:daily:v1 和 qe:market:daily:health:v1 两个键，不修改星标、权限、财报或生产密钥。无数据库迁移、无新增付费资源。
+- 每次请求仅 1D，最少间隔 6 秒，单标的最多三次尝试，连续五个标的均失败时提前退出。每 20 个处理结果保存经过验证的数据；失败保留旧值及其日期，运行失败在 Actions 和页面状态中可见。
+- 数据获取超过 36 小时或 K 线超过 7 天会提示检查；休市/停牌不自动补价格，也不把“获取成功”当成“当日有交易”。通知邮件取决于 GitHub 用户通知设置。
+- 发布包保留私有静态基线作为存储不可用时的回退，不再要求生产快照与旧基线逐字节相同，而是验证覆盖、来源、时间不倒退。云端运行不上传行情文件或凭据到公开 CI artifacts。
+
+调度与通知依据：[GitHub scheduled events](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule)、[GitHub workflow notifications](https://docs.github.com/en/actions/concepts/workflows-and-actions/notifications-for-workflow-runs)。

@@ -23,6 +23,7 @@ async function _cmd(args, timeoutMs = 2000) {
   });
   if (!r.ok) throw new Error(`KV ${args[0]} failed: HTTP ${r.status}`);
   const j = await r.json();
+  if (j.error) throw new Error('KV command rejected');
   return j.result;
 }
 
@@ -33,6 +34,13 @@ export async function kvGet(key) {
   } catch {
     return null;
   }
+}
+
+// Writers must distinguish an empty key from an unavailable database. The
+// forgiving UI reader above is deliberately not suitable for read/modify/write.
+export async function kvGetJsonStrict(key) {
+  const value = await _cmd(['GET', key], 10000);
+  return value == null ? null : JSON.parse(value);
 }
 
 export async function kvSet(key, value, ttlSec) {
