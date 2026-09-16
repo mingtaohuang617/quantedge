@@ -1,0 +1,26 @@
+{
+  "start": "2023-01-01",
+  "end_exclusive": "2026-09-16",
+  "results": [
+    {
+      "symbol": "RKLB",
+      "first": "2023-01-03",
+      "last": "2026-09-15",
+      "rows": 928,
+      "actions": {
+        "dividends": 0,
+        "splits": 0,
+        "capitalGains": 0
+      },
+      "issues": [],
+      "return_basis": "vendor_adjusted_proxy",
+      "strict_total_return_eligible": false,
+      "excluded_sessions": [],
+      "raw_sha256": "d4993ca5fdd18b9a81fdc3838783ca951a8d0e0afb0c4c68104a93fb4c749c1f",
+      "evidence_folder": "C:\\Users\\Minto\\Downloads\\自研量化投资平台\\release\\scoring-v32\\backend\\data\\price_evidence\\9f1d3dae0258f2f5db05de65763585eb5566fde232e22cc65bf671da0825b738",
+      "status": "captured"
+    }
+  ],
+  "production_database_modified": false,
+  "model_change_allowed": false
+}

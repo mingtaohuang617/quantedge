@@ -45,10 +45,11 @@ def load_inputs(database, snapshot):
     with sqlite3.connect(database.resolve().as_uri() + '?mode=ro', uri=True) as conn:
         conn.execute('BEGIN')
         tables = [r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")]
-        for ticker, day, close, source, factor, ingested in conn.execute(
-            'SELECT ticker,trade_date,close,source,adj_factor,ingested_at FROM daily_bars ORDER BY ticker,trade_date'
+        for ticker, day, close, source, factor, ingested, opening, high, low in conn.execute(
+            'SELECT ticker,trade_date,close,source,adj_factor,ingested_at,open,high,low FROM daily_bars ORDER BY ticker,trade_date'
         ):
-            row = {'date': day, 'close': close, 'source': source, 'adj_factor': factor, 'ingested_at': ingested}
+            row = {'date': day, 'close': close, 'source': source, 'adj_factor': factor, 'ingested_at': ingested,
+                   'open': opening, 'high': high, 'low': low}
             bars[ticker].append(row)
             digest.update(json.dumps([ticker, row], sort_keys=True).encode())
     if len({s['ticker'] for s in stocks}) != len(stocks):
@@ -67,6 +68,10 @@ def inspect_series(rows):
         issues.append('invalid_or_duplicate_dates')
     if any(not finite_positive(r.get('close')) for r in rows):
         issues.append('invalid_close')
+    # Additive forward adjustment can produce nonpositive OHLC even with positive
+    # closes. This is unsuitable for ratio returns, not proof of bad raw trades.
+    if any(any(k in r and not finite_positive(r[k]) for k in ('open', 'high', 'low')) for r in rows):
+        issues.append('nonpositive_or_missing_ohlc_not_return_eligible')
     if len({r.get('source') for r in rows}) > 1:
         issues.append('mixed_sources')
     if 'invalid_close' not in issues and any(abs(b['close'] / a['close'] - 1) > .5 for a, b in zip(rows[:-1], rows[1:], strict=True)):

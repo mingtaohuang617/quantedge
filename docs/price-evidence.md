@@ -42,7 +42,18 @@ python backend/audit_price_evidence.py --database ../../backend/data/quantedge.d
 
 七个数据包的 return_basis 均为 vendor_adjusted_proxy，strict_total_return_eligible 均为 false。尚未独立核验所有现金分配金额及份额单位、交易日历、全部公司行动和历史修订版本，因此不接入严格评分有效性结论。
 
-下一步先处理 RKLX 样本差异并核对发行商现金分配与价格份额口径；满足价格准入后接入历史财报公开时间与修订版本。不能通过手改一个 eligible 标志或复制当前值解除准入。
+2026-09-16 后续核查已解释 RKLX 的加法复权特征，核对发行商现金分配，并检查其 379 个候选交易日。完整结果见 [RKLX 核查报告](reviews/rklx-reconciliation-2026-09-16/review.md)。独立价格/NAV 与完整份额单位仍待认证；不能通过手改一个 eligible 标志或复制当前值解除准入。
+
+## RKLX 只读复现
+
+在本轮隔离工作树根目录运行，需保留此前的原始归档：
+
+```powershell
+python backend/reconcile_rklx.py --database ../../backend/data/quantedge.db --etf-folder backend/data/price_evidence/85acf4781490961359436e37c9b51f3b9f64ad594bbe0ceabaf74692fb85885e --underlying-folder backend/data/price_evidence/9f1d3dae0258f2f5db05de65763585eb5566fde232e22cc65bf671da0825b738 --issuer-folder ../../backend/data/product_sources/2026-09-16 --output docs/reviews/rklx-reconciliation-2026-09-16/reconciliation.json
+python -m pytest backend/tests/test_rklx_reconciliation.py backend/tests/test_price_evidence.py backend/tests/test_validate_scoring.py -q
+```
+
+research_calendar 仅适用明确边界内的美股日线，不自动扩展到港股、加密资产、其他年份或盘中交易。现有全市场严格回测的日历阻断仍然保留。旧库读取现在包含 OHLC，故新审计的数据哈希与此前只读收盘价时不同；这不是旧库被改写。
 
 ## 验证
 
