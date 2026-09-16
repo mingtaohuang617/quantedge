@@ -315,6 +315,7 @@ def explain_score(stock: dict, weights: dict, ttl_seconds: int = 86400, lang: st
         )
 
     prompt = _lang_wrap(prompt, lang)
+    prompt += "\n模型与数据限制：" + str(stock.get("scoring") or {}) + "；缺失值不作中性分，规模仅为流动性代理；趋势分不是买点或上涨概率。"
     cache_key = _db.llm_cache_key("explain-score", DEFAULT_MODEL, prompt)
     cached = None if force else _db.llm_cache_get(cache_key)
     if cached:

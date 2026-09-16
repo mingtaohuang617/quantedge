@@ -1,0 +1,17 @@
+{
+  "EWY": {
+    "source": "https://www.ishares.com/us/products/239681/ishares-msci-south-korea-capped-etf",
+    "parser": "ishares",
+    "metadata": { "isETF": true, "name": "iShares MSCI South Korea ETF", "issuer": "iShares", "leverage": "1x", "underlyingType": "index", "benchmark": "MSCI Korea 25/50 Index (Net)", "underlyingSymbol": "M1KR2550", "targetReturnBasis": "net_total_return", "currency": "USD", "inceptionDate": "2000-05-09", "classificationVerifiedAt": "2026-09-16" }
+  },
+  "TQQQ": {
+    "source": "https://www.proshares.com/our-etfs/leveraged-and-inverse/tqqq",
+    "parser": "proshares",
+    "metadata": { "isETF": true, "name": "ProShares UltraPro QQQ", "issuer": "ProShares", "leverage": "3x", "underlyingType": "index", "benchmark": "Nasdaq-100 Index", "underlyingSymbol": "NDX", "targetReturnBasis": "price_return", "resetPeriod": "daily", "currency": "USD", "inceptionDate": "2010-02-09", "classificationVerifiedAt": "2026-09-16" }
+  },
+  "RKLX": {
+    "source": "https://www.defianceetfs.com/rklx/",
+    "parser": "defiance",
+    "metadata": { "isETF": true, "name": "Defiance Daily Target 2X Long RKLB ETF", "issuer": "Defiance", "leverage": "2x", "underlyingType": "stock", "underlyingSymbol": "RKLB", "benchmark": "Rocket Lab (RKLB)", "targetReturnBasis": "price_return", "resetPeriod": "daily", "currency": "USD", "inceptionDate": "2025-03-12", "classificationVerifiedAt": "2026-09-16" }
+  }
+}

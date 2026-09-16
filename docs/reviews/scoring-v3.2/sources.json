@@ -1,0 +1,60 @@
+{
+  "files": {
+    "EWY.html": {
+      "source": "https://www.ishares.com/us/products/239681/ishares-msci-south-korea-capped-etf",
+      "params": null,
+      "retrievedAt": "2026-09-16",
+      "sha256": "3e5632cda738c645991c4627534a7ad0d1a4507c22e942a021d794bdb4d66378"
+    },
+    "TQQQ.html": {
+      "source": "https://www.proshares.com/our-etfs/leveraged-and-inverse/tqqq",
+      "params": null,
+      "retrievedAt": "2026-09-16",
+      "sha256": "440351981834c3753e4e4767767e56faeaaaa9b7f7c6b50eb6fd6e1e4a923a3f"
+    },
+    "RKLX.html": {
+      "source": "https://www.defianceetfs.com/rklx/",
+      "params": null,
+      "retrievedAt": "2026-09-16",
+      "sha256": "c30a513eef2ab13c61708da58e564a8f52c36cd88836a44e2e14d6f366fd66cf"
+    },
+    "TQQQ-nav.csv": {
+      "source": "https://accounts.profunds.com/etfdata/ByFund/TQQQ-historical_nav.csv",
+      "params": null,
+      "retrievedAt": "2026-09-16",
+      "sha256": "4717ea2f53b4b24f1980b647455ba0c637388169ffc8135bf57cab7285a3f883"
+    },
+    "NDX-chart.json": {
+      "source": "https://query1.finance.yahoo.com/v8/finance/chart/%5ENDX",
+      "params": {
+        "period1": 1782864000,
+        "period2": 1789516800,
+        "interval": "1d",
+        "events": "div,splits"
+      },
+      "retrievedAt": "2026-09-16",
+      "sha256": "f1f3983c420890e2246803fa5ab259326f941357c385a5e8fa57cbb1cb5aac3d"
+    },
+    "TQQQ-actions.json": {
+      "source": "https://query1.finance.yahoo.com/v8/finance/chart/TQQQ",
+      "params": {
+        "period1": 1782864000,
+        "period2": 1789516800,
+        "interval": "1d",
+        "events": "div,splits"
+      },
+      "retrievedAt": "2026-09-16",
+      "sha256": "0100fb8f3f9545b4812f9730f9716adac00383178df8de8733051a891064716f"
+    },
+    "TQQQ-distributions.json": {
+      "source": "https://www.proshares.com/api/distributionsummary/",
+      "params": {
+        "fund": "TQQQ",
+        "year": "2026"
+      },
+      "retrievedAt": "2026-09-16",
+      "sha256": "042ded6df685054d729eb17bea328032e474675c5f1567d81588a38589b0ffba"
+    }
+  },
+  "issues": []
+}

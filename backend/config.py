@@ -405,7 +405,7 @@ TICKERS = {
         "description": "阿里巴巴个股2倍杠杆ETF，放大BABA每日收益",
     },
     "RKLX": {
-        "name": "GraniteShares 2x Long RKLB Daily ETF",
+        "name": "Defiance Daily Target 2X Long RKLB ETF",
         "yf_symbol": "RKLX",
         "type": "etf",
         "etf_type": "2倍杠杆ETF",
@@ -414,9 +414,9 @@ TICKERS = {
         "currency": "USD",
         "leverage": "2x",
         "benchmark": "Rocket Lab (RKLB) 每日2倍",
-        "issuer": "GraniteShares",
+        "issuer": "Defiance",
         "dividend_policy": "不分红",
-        "inception_date": "2024-06-01",
+        "inception_date": "2025-03-12",
         "description": "Rocket Lab个股2倍杠杆ETF，放大RKLB每日收益",
     },
 

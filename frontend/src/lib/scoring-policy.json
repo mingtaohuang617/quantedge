@@ -1,0 +1,31 @@
+{
+  "version": "3.2.0",
+  "quality": {
+    "valuation": 0.35,
+    "profitability": 0.35,
+    "growth": 0.3
+  },
+  "timing": {
+    "momentum": 0.5,
+    "trend": 0.3,
+    "rsi": 0.2
+  },
+  "composite": {
+    "quality": 60,
+    "timing": 40
+  },
+  "minimumPeers": 8,
+  "anchorWeight": 0.3,
+  "minimumCoverage": 0.65,
+  "verifiedAssets": {
+    "SOXS": {
+      "isETF": true,
+      "leverage": "-3x",
+      "etfType": "指数杠杆 ETF",
+      "underlyingType": "index",
+      "benchmark": "NYSE Semiconductor Index",
+      "classificationSource": "https://www.direxion.com/product/daily-semiconductor-bull-bear-3x-etfs",
+      "classificationVerifiedAt": "2026-09-15"
+    }
+  }
+}

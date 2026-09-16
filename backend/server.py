@@ -15,6 +15,7 @@ QuantEdge API Server
     cd backend && python server.py
 """
 
+from scoring import score_universe, attach_scoring, record_score_history
 import json
 import hashlib
 import hmac
@@ -83,7 +84,7 @@ FRONTEND_DATA_PATH = BASE_DIR.parent / "frontend" / "src" / "data.js"
 
 # ─── Import pipeline components ────────────────────────
 from config import TICKERS as BUILTIN_TICKERS, SECTOR_ETF_MAP
-from factors import calc_rsi, calc_momentum, calc_stock_score, calc_etf_score
+from factors import calc_rsi, calc_momentum
 
 # 宏观因子库（Phase 1）— 副作用：导入子模块时装饰器把因子注册进 _REGISTRY
 import db as _macro_db
@@ -239,24 +240,18 @@ def fetch_single_stock(ticker_key: str, cfg: dict) -> dict | None:
 
         if is_etf:
             # ETF
-            expense_ratio = safe_get(info, "annualReportExpenseRatio") or safe_get(info, "totalExpenseRatio")
-            if expense_ratio:
+            expense_ratio = safe_get(info, "annualReportExpenseRatio")
+            if expense_ratio is None:
+                expense_ratio = safe_get(info, "totalExpenseRatio")
+            if expense_ratio is not None:
                 expense_ratio = round(expense_ratio * 100, 2)
             else:
-                expense_ratio = cfg.get("static_overrides", {}).get("expenseRatio", 0.5)
+                expense_ratio = cfg.get("static_overrides", {}).get("expenseRatio")
 
             leverage_str = cfg.get("leverage")
 
             aum_raw = safe_get(info, "totalAssets")
-            score, sub_scores = calc_etf_score(
-                expense_ratio=expense_ratio or 0.5,
-                premium_discount=0,
-                aum_usd=float(aum_raw) if aum_raw else None,
-                momentum=momentum,
-                concentration_top3=cfg.get("static_overrides", {}).get("concentrationTop3", 50),
-                leverage=leverage_str,
-                detailed=True,
-            )
+            score, sub_scores = (None, {})
 
             result = {
                 "ticker": ticker_key,
@@ -272,7 +267,7 @@ def fetch_single_stock(ticker_key: str, cfg: dict) -> dict | None:
                 "etfType": cfg.get("etf_type", "主题ETF"),
                 "leverage": leverage_str,
                 "expenseRatio": expense_ratio,
-                "premiumDiscount": 0,
+                "premiumDiscount": None,
                 "aum": fmt_big(safe_get(info, "totalAssets")) or "N/A",
                 "adv": fmt_big(safe_get(info, "averageVolume")) or "N/A",
                 "benchmark": cfg.get("benchmark", "N/A"),
@@ -305,7 +300,7 @@ def fetch_single_stock(ticker_key: str, cfg: dict) -> dict | None:
             if profit_margin is not None:
                 profit_margin = round(profit_margin * 100, 1)
 
-            score, sub_scores = calc_stock_score(pe, roe, revenue_growth, profit_margin, momentum, rsi, detailed=True)
+            score, sub_scores = (None, {})
 
             result = {
                 "ticker": ticker_key,
@@ -344,7 +339,7 @@ def fetch_single_stock(ticker_key: str, cfg: dict) -> dict | None:
             if result.get(key) is None:
                 result[key] = val
 
-        return result
+        return attach_scoring(result, hist, info)
     except Exception as e:
         print(f"  [X] {ticker_key}: {e}")
         return None
@@ -468,6 +463,7 @@ class DataCache:
             if alerts_path.exists():
                 with open(alerts_path, encoding="utf-8") as f:
                     self.alerts = json.load(f)
+            score_universe(self.stocks)
             self.last_refresh = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         except Exception as e:
             print(f"载入缓存数据失败: {e}")
@@ -511,9 +507,7 @@ class DataCache:
                     else:
                         print(f"    [X] {key}: {e}")
 
-            new_stocks.sort(key=lambda x: x["score"], reverse=True)
-            for i, stk in enumerate(new_stocks):
-                stk["rank"] = i + 1
+            score_universe(new_stocks)
 
             alerts = generate_alerts(new_stocks)
 
@@ -538,9 +532,7 @@ class DataCache:
                 self.stocks = [s for s in self.stocks if s["ticker"] != ticker_key]
                 self.stocks.append(result)
                 # Re-rank
-                self.stocks.sort(key=lambda x: x["score"], reverse=True)
-                for i, stk in enumerate(self.stocks):
-                    stk["rank"] = i + 1
+                score_universe(self.stocks)
                 self.alerts = generate_alerts(self.stocks)
             self._save_to_files(self.stocks, self.alerts)
         return result
@@ -548,12 +540,12 @@ class DataCache:
     def remove(self, ticker_key: str):
         with self._lock:
             self.stocks = [s for s in self.stocks if s["ticker"] != ticker_key]
-            for i, stk in enumerate(self.stocks):
-                stk["rank"] = i + 1
+            score_universe(self.stocks)
             self.alerts = generate_alerts(self.stocks)
         self._save_to_files(self.stocks, self.alerts)
 
     def _save_to_files(self, stocks, alerts):
+        record_score_history(stocks)
         OUTPUT_DIR.mkdir(exist_ok=True)
         # Sanitize NaN/Inf before any serialization
         clean_stocks = sanitize(stocks)
@@ -1718,7 +1710,11 @@ class LLMExplainScoreReq(BaseModel):
     score: float | None = None
     isETF: bool = False
     subScores: dict = {}
-    weights: dict = {"fundamental": 40, "technical": 30, "growth": 30}
+    weights: dict = {"quality": 60, "timing": 40}
+    modelVersion: str | None = None
+    qualityScore: float | None = None
+    timingScore: float | None = None
+    scoring: dict = {}
 
 
 @app.post("/api/llm/explain-score")
@@ -1731,6 +1727,8 @@ def llm_explain_score(req: LLMExplainScoreReq, lang: str = "zh", force: bool = F
         "score": req.score,
         "isETF": req.isETF,
         "subScores": req.subScores,
+        "qualityScore": req.qualityScore, "timingScore": req.timingScore,
+        "scoring": req.scoring, "modelVersion": req.modelVersion,
     }
     return sanitize(_llm_mod.explain_score(stock, req.weights, lang=lang, force=force))
 
