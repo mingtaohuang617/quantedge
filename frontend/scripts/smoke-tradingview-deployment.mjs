@@ -31,6 +31,13 @@ const request = async (path, authenticated = true) => {
   return { status: response.status, body };
 };
 const endpoint = '/api/private/market-data/tradingview';
+const readFavorites = async () => {
+  const result = await request('/api/watchlist/favorites');
+  if(result.status!==200 || result.body.kv===false || !Array.isArray(result.body.tickers))throw new Error('Server favorites verification unavailable');
+  return [...result.body.tickers].sort();
+};
+// Preview may use an isolated data store; check user favorites on production only.
+const beforeFavorites = process.argv.includes('--protected') ? null : await readFavorites();
 const unauth = await request(endpoint, false);
 if (unauth.status !== 401) throw new Error('Authentication gate failed');
 const intraday = await request(endpoint + '?symbol=NASDAQ:AAPL&timeframe=60');
@@ -41,6 +48,7 @@ if((await request(snapshotPath,false)).status!==401)throw new Error('Published s
 const expected=await readDailySnapshot();
 const publishedTickers=new Set(expected.rows.map(row=>row.ticker));
 if(STOCKS.some(stock=>!publishedTickers.has(stock.ticker)))throw new Error('Snapshot omits a published universe ticker');
+if(beforeFavorites?.some(ticker=>!publishedTickers.has(ticker)))throw new Error('Snapshot omits a current server favorite');
 const published=await request(snapshotPath);
 if(published.status!==200||JSON.stringify(published.body.data)!==JSON.stringify(expected))throw new Error('Published universe snapshot mismatch');
 for(const row of expected.rows)if(row.status==='success')dailySummary({...row.snapshot,bars:[row.snapshot.bar]});
@@ -64,4 +72,9 @@ for (const ticker of favorites) {
   }
   console.log(JSON.stringify({ tested_at: new Date().toISOString(), symbol, resolved: data.resolved_symbol,
     timeframe: data.timeframe, bars: data.bars.length, indicators_aligned: true, received_at: data.received_at }));
+}
+if(beforeFavorites) {
+  const afterFavorites=await readFavorites();
+  if(JSON.stringify(beforeFavorites)!==JSON.stringify(afterFavorites))throw new Error('Favorites changed during read-only daily verification');
+  console.log(JSON.stringify({favorites_count:afterFavorites.length,favorites_unchanged:true}));
 }
