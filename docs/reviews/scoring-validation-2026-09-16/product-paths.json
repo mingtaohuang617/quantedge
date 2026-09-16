@@ -1,0 +1,678 @@
+{
+  "ticker": "TQQQ",
+  "available_at": "2026-09-16",
+  "tracking": {
+    "value": 2.523494,
+    "unit": "bps",
+    "asOf": "2026-09-15",
+    "windowStart": "2026-07-01",
+    "observations": 52,
+    "targetMultiple": 3,
+    "benchmark": "Nasdaq-100 Index",
+    "source": "https://accounts.profunds.com/etfdata/ByFund/TQQQ-historical_nav.csv",
+    "benchmarkSource": "https://query1.finance.yahoo.com/v8/finance/chart/%5ENDX",
+    "fundBasis": "nav_total_return",
+    "benchmarkBasis": "price_return",
+    "currency": "USD",
+    "closeConvention": "America/New_York 16:00",
+    "method": "sample_std_daily_difference",
+    "meanDifferenceBps": -3.73143,
+    "maxAbsDifferenceBps": 12.984332,
+    "availableAt": "2026-09-16",
+    "retrievedAt": "2026-09-16",
+    "actionCheck": "No splits or distributions in the selected window",
+    "distributionSource": "https://www.proshares.com/api/distributionsummary/?fund=TQQQ&year=2026"
+  },
+  "paths": [
+    {
+      "horizon": 1,
+      "windows": [
+        {
+          "start": "2026-07-01",
+          "end": "2026-07-02",
+          "nav_return": -0.049597720155847846,
+          "daily_reset_target": -0.0482992869673754,
+          "multiple_of_period_return": -0.0482992869673754,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -0.0012984331884724476
+        },
+        {
+          "start": "2026-07-02",
+          "end": "2026-07-06",
+          "nav_return": 0.03760525761354905,
+          "daily_reset_target": 0.037708979342533366,
+          "multiple_of_period_return": 0.037708979342533366,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -0.00010372172898431842
+        },
+        {
+          "start": "2026-07-06",
+          "end": "2026-07-07",
+          "nav_return": -0.05339675461544402,
+          "daily_reset_target": -0.053018915958893076,
+          "multiple_of_period_return": -0.053018915958893076,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -0.00037783865655094395
+        },
+        {
+          "start": "2026-07-07",
+          "end": "2026-07-08",
+          "nav_return": 0.007878494326044816,
+          "daily_reset_target": 0.008179579992375619,
+          "multiple_of_period_return": 0.008179579992375619,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -0.0003010856663308026
+        },
+        {
+          "start": "2026-07-08",
+          "end": "2026-07-09",
+          "nav_return": 0.048385745846795114,
+          "daily_reset_target": 0.04866641281602524,
+          "multiple_of_period_return": 0.04866641281602524,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -0.0002806669692301256
+        },
+        {
+          "start": "2026-07-09",
+          "end": "2026-07-10",
+          "nav_return": 0.009090647150348685,
+          "daily_reset_target": 0.009890951378999091,
+          "multiple_of_period_return": 0.009890951378999091,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -0.0008003042286504058
+        },
+        {
+          "start": "2026-07-10",
+          "end": "2026-07-13",
+          "nav_return": -0.05671191592696956,
+          "daily_reset_target": -0.056429945510468094,
+          "multiple_of_period_return": -0.056429945510468094,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -0.0002819704165014647
+        },
+        {
+          "start": "2026-07-13",
+          "end": "2026-07-14",
+          "nav_return": 0.032677103599723756,
+          "daily_reset_target": 0.03302915081198532,
+          "multiple_of_period_return": 0.03302915081198532,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -0.00035204721226156366
+        },
+        {
+          "start": "2026-07-14",
+          "end": "2026-07-15",
+          "nav_return": -0.008819136420142204,
+          "daily_reset_target": -0.008485969931701254,
+          "multiple_of_period_return": -0.008485969931701254,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -0.0003331664884409502
+        },
+        {
+          "start": "2026-07-15",
+          "end": "2026-07-16",
+          "nav_return": -0.04870494738596709,
+          "daily_reset_target": -0.048486921604035116,
+          "multiple_of_period_return": -0.048486921604035116,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -0.0002180257819319742
+        },
+        {
+          "start": "2026-07-16",
+          "end": "2026-07-17",
+          "nav_return": -0.045633877650224086,
+          "daily_reset_target": -0.04476464004170866,
+          "multiple_of_period_return": -0.04476464004170866,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -0.0008692376085154274
+        },
+        {
+          "start": "2026-07-17",
+          "end": "2026-07-20",
+          "nav_return": 0.0008128733072543248,
+          "daily_reset_target": 0.00121398069680545,
+          "multiple_of_period_return": 0.00121398069680545,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -0.00040110738955112524
+        },
+        {
+          "start": "2026-07-20",
+          "end": "2026-07-21",
+          "nav_return": 0.05741710322503324,
+          "daily_reset_target": 0.057783328870033124,
+          "multiple_of_period_return": 0.057783328870033124,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -0.00036622564499988464
+        },
+        {
+          "start": "2026-07-21",
+          "end": "2026-07-22",
+          "nav_return": -0.016331790116979605,
+          "daily_reset_target": -0.016163173728510283,
+          "multiple_of_period_return": -0.016163173728510283,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -0.0001686163884693226
+        },
+        {
+          "start": "2026-07-22",
+          "end": "2026-07-23",
+          "nav_return": -0.05657489744946431,
+          "daily_reset_target": -0.05620600002950071,
+          "multiple_of_period_return": -0.05620600002950071,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -0.0003688974199635986
+        },
+        {
+          "start": "2026-07-23",
+          "end": "2026-07-24",
+          "nav_return": -0.035234858855526685,
+          "daily_reset_target": -0.034419913208052044,
+          "multiple_of_period_return": -0.034419913208052044,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -0.0008149456474746408
+        },
+        {
+          "start": "2026-07-24",
+          "end": "2026-07-27",
+          "nav_return": -0.00986059216684565,
+          "daily_reset_target": -0.009505954501236369,
+          "multiple_of_period_return": -0.009505954501236369,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -0.0003546376656092809
+        },
+        {
+          "start": "2026-07-27",
+          "end": "2026-07-28",
+          "nav_return": -0.029603337063277002,
+          "daily_reset_target": -0.02953864273217821,
+          "multiple_of_period_return": -0.02953864273217821,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -6.46943310987913e-05
+        },
+        {
+          "start": "2026-07-28",
+          "end": "2026-07-29",
+          "nav_return": -0.06195779811142155,
+          "daily_reset_target": -0.0616811175286357,
+          "multiple_of_period_return": -0.0616811175286357,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -0.00027668058278584873
+        },
+        {
+          "start": "2026-07-29",
+          "end": "2026-07-30",
+          "nav_return": 0.10037294606586111,
+          "daily_reset_target": 0.1008416398736347,
+          "multiple_of_period_return": 0.1008416398736347,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -0.00046869380777359027
+        },
+        {
+          "start": "2026-07-30",
+          "end": "2026-07-31",
+          "nav_return": 0.017228393602773284,
+          "daily_reset_target": 0.017915838773920445,
+          "multiple_of_period_return": 0.017915838773920445,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -0.0006874451711471607
+        },
+        {
+          "start": "2026-07-31",
+          "end": "2026-08-03",
+          "nav_return": 0.05291178220030224,
+          "daily_reset_target": 0.05332793603930264,
+          "multiple_of_period_return": 0.05332793603930264,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -0.00041615383900039937
+        },
+        {
+          "start": "2026-08-03",
+          "end": "2026-08-04",
+          "nav_return": 0.09946700444138457,
+          "daily_reset_target": 0.09970108028371949,
+          "multiple_of_period_return": 0.09970108028371949,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -0.0002340758423349243
+        },
+        {
+          "start": "2026-08-04",
+          "end": "2026-08-05",
+          "nav_return": -0.025071084022987744,
+          "daily_reset_target": -0.024757317331278172,
+          "multiple_of_period_return": -0.024757317331278172,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -0.0003137666917095716
+        },
+        {
+          "start": "2026-08-05",
+          "end": "2026-08-06",
+          "nav_return": -0.011947275527093848,
+          "daily_reset_target": -0.011644716814719791,
+          "multiple_of_period_return": -0.011644716814719791,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -0.00030255871237405696
+        },
+        {
+          "start": "2026-08-06",
+          "end": "2026-08-07",
+          "nav_return": 0.034816707018764825,
+          "daily_reset_target": 0.03564158733757772,
+          "multiple_of_period_return": 0.03564158733757772,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -0.0008248803188128928
+        },
+        {
+          "start": "2026-08-07",
+          "end": "2026-08-10",
+          "nav_return": -0.010213724432130755,
+          "daily_reset_target": -0.010143898422231179,
+          "multiple_of_period_return": -0.010143898422231179,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -6.982600989957621e-05
+        },
+        {
+          "start": "2026-08-10",
+          "end": "2026-08-11",
+          "nav_return": -0.010081790799450596,
+          "daily_reset_target": -0.009755009144579385,
+          "multiple_of_period_return": -0.009755009144579385,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -0.000326781654871211
+        },
+        {
+          "start": "2026-08-11",
+          "end": "2026-08-12",
+          "nav_return": 0.02183071095371525,
+          "daily_reset_target": 0.02206085765697874,
+          "multiple_of_period_return": 0.02206085765697874,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -0.00023014670326348963
+        },
+        {
+          "start": "2026-08-12",
+          "end": "2026-08-13",
+          "nav_return": 0.034204351964819635,
+          "daily_reset_target": 0.034485928780471964,
+          "multiple_of_period_return": 0.034485928780471964,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -0.00028157681565232906
+        },
+        {
+          "start": "2026-08-13",
+          "end": "2026-08-14",
+          "nav_return": -0.0045269399597086535,
+          "daily_reset_target": -0.0038251632900662136,
+          "multiple_of_period_return": -0.0038251632900662136,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -0.0007017766696424399
+        },
+        {
+          "start": "2026-08-14",
+          "end": "2026-08-17",
+          "nav_return": -0.005310656474234565,
+          "daily_reset_target": -0.005068181593621768,
+          "multiple_of_period_return": -0.005068181593621768,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -0.00024247488061279743
+        },
+        {
+          "start": "2026-08-17",
+          "end": "2026-08-18",
+          "nav_return": -0.050703576272695505,
+          "daily_reset_target": -0.050449760005365274,
+          "multiple_of_period_return": -0.050449760005365274,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -0.0002538162673302313
+        },
+        {
+          "start": "2026-08-18",
+          "end": "2026-08-19",
+          "nav_return": -0.006920577477919632,
+          "daily_reset_target": -0.006606235014277484,
+          "multiple_of_period_return": -0.006606235014277484,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -0.0003143424636421477
+        },
+        {
+          "start": "2026-08-19",
+          "end": "2026-08-20",
+          "nav_return": -0.021568856188182717,
+          "daily_reset_target": -0.021701138488059435,
+          "multiple_of_period_return": -0.021701138488059435,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": 0.00013228229987671813
+        },
+        {
+          "start": "2026-08-20",
+          "end": "2026-08-21",
+          "nav_return": 0.009274202133321863,
+          "daily_reset_target": 0.009827682274510252,
+          "multiple_of_period_return": 0.009827682274510252,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -0.0005534801411883894
+        },
+        {
+          "start": "2026-08-21",
+          "end": "2026-08-24",
+          "nav_return": -0.029487996242277492,
+          "daily_reset_target": -0.02924163822052528,
+          "multiple_of_period_return": -0.02924163822052528,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -0.0002463580217522132
+        },
+        {
+          "start": "2026-08-24",
+          "end": "2026-08-25",
+          "nav_return": 0.01886970168134816,
+          "daily_reset_target": 0.01923126100447159,
+          "multiple_of_period_return": 0.01923126100447159,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -0.0003615593231234282
+        },
+        {
+          "start": "2026-08-25",
+          "end": "2026-08-26",
+          "nav_return": 0.001284270319702463,
+          "daily_reset_target": 0.0015702977026068599,
+          "multiple_of_period_return": 0.0015702977026068599,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -0.0002860273829043969
+        },
+        {
+          "start": "2026-08-26",
+          "end": "2026-08-27",
+          "nav_return": 0.042455818393070555,
+          "daily_reset_target": 0.04281073108959621,
+          "multiple_of_period_return": 0.04281073108959621,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -0.0003549126965256555
+        },
+        {
+          "start": "2026-08-27",
+          "end": "2026-08-28",
+          "nav_return": -0.021690493189956306,
+          "daily_reset_target": -0.021064767394334383,
+          "multiple_of_period_return": -0.021064767394334383,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -0.0006257257956219231
+        },
+        {
+          "start": "2026-08-28",
+          "end": "2026-08-31",
+          "nav_return": 0.0020640754766385605,
+          "daily_reset_target": 0.0023994161613110077,
+          "multiple_of_period_return": 0.0023994161613110077,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -0.00033534068467244715
+        },
+        {
+          "start": "2026-08-31",
+          "end": "2026-09-01",
+          "nav_return": -0.03892538906625498,
+          "daily_reset_target": -0.03867505628741197,
+          "multiple_of_period_return": -0.03867505628741197,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -0.00025033277884300986
+        },
+        {
+          "start": "2026-09-01",
+          "end": "2026-09-02",
+          "nav_return": 0.00652086198593449,
+          "daily_reset_target": 0.006820738715880514,
+          "multiple_of_period_return": 0.006820738715880514,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -0.00029987672994602477
+        },
+        {
+          "start": "2026-09-02",
+          "end": "2026-09-03",
+          "nav_return": 0.034837107856237726,
+          "daily_reset_target": 0.0348954872486702,
+          "multiple_of_period_return": 0.0348954872486702,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -5.83793924324727e-05
+        },
+        {
+          "start": "2026-09-03",
+          "end": "2026-09-04",
+          "nav_return": 0.005652376747363297,
+          "daily_reset_target": 0.0062915751680625576,
+          "multiple_of_period_return": 0.0062915751680625576,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -0.0006391984206992607
+        },
+        {
+          "start": "2026-09-04",
+          "end": "2026-09-08",
+          "nav_return": -0.004003871329381958,
+          "daily_reset_target": -0.0037013592937741313,
+          "multiple_of_period_return": -0.0037013592937741313,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -0.000302512035607827
+        },
+        {
+          "start": "2026-09-08",
+          "end": "2026-09-09",
+          "nav_return": -0.00902274608087883,
+          "daily_reset_target": -0.008758572147020582,
+          "multiple_of_period_return": -0.008758572147020582,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -0.00026417393385824717
+        },
+        {
+          "start": "2026-09-09",
+          "end": "2026-09-10",
+          "nav_return": -0.032448348697002305,
+          "daily_reset_target": -0.03242939347313556,
+          "multiple_of_period_return": -0.03242939347313556,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -1.895522386674564e-05
+        },
+        {
+          "start": "2026-09-10",
+          "end": "2026-09-11",
+          "nav_return": 0.0265623622040414,
+          "daily_reset_target": 0.027309045159864098,
+          "multiple_of_period_return": 0.027309045159864098,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -0.0007466829558226973
+        },
+        {
+          "start": "2026-09-11",
+          "end": "2026-09-14",
+          "nav_return": -0.024963876597386858,
+          "daily_reset_target": -0.024646794453628273,
+          "multiple_of_period_return": -0.024646794453628273,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -0.0003170821437585847
+        },
+        {
+          "start": "2026-09-14",
+          "end": "2026-09-15",
+          "nav_return": -0.019673859664326776,
+          "daily_reset_target": -0.01949935848373907,
+          "multiple_of_period_return": -0.01949935848373907,
+          "path_compounding_effect": 0.0,
+          "actual_minus_daily_target": -0.00017450118058770503
+        }
+      ],
+      "count": 52
+    },
+    {
+      "horizon": 5,
+      "windows": [
+        {
+          "start": "2026-07-01",
+          "end": "2026-07-09",
+          "nav_return": -0.013636692469073286,
+          "daily_reset_target": -0.011236266411739249,
+          "multiple_of_period_return": -0.008255649960441591,
+          "path_compounding_effect": -0.0029806164512976574,
+          "actual_minus_daily_target": -0.0024004260573340375
+        },
+        {
+          "start": "2026-07-09",
+          "end": "2026-07-16",
+          "nav_return": -0.07315475972192387,
+          "daily_reset_target": -0.07130130930528056,
+          "multiple_of_period_return": -0.07077684207414126,
+          "path_compounding_effect": -0.0005244672311393028,
+          "actual_minus_daily_target": -0.0018534504166433097
+        },
+        {
+          "start": "2026-07-16",
+          "end": "2026-07-23",
+          "nav_return": -0.06271796697923915,
+          "daily_reset_target": -0.06063516030071747,
+          "multiple_of_period_return": -0.059012283938962184,
+          "path_compounding_effect": -0.0016228763617552877,
+          "actual_minus_daily_target": -0.002082806678521676
+        },
+        {
+          "start": "2026-07-23",
+          "end": "2026-07-30",
+          "nav_return": -0.04318158518420234,
+          "daily_reset_target": -0.04127573066082746,
+          "multiple_of_period_return": -0.0367383508239455,
+          "path_compounding_effect": -0.004537379836881961,
+          "actual_minus_daily_target": -0.0019058545233748836
+        },
+        {
+          "start": "2026-07-30",
+          "end": "2026-08-06",
+          "nav_return": 0.13434649019144396,
+          "daily_reset_target": 0.13651694387442004,
+          "multiple_of_period_return": 0.1352342605523622,
+          "path_compounding_effect": 0.0012826833220578315,
+          "actual_minus_daily_target": -0.002170453682976081
+        },
+        {
+          "start": "2026-08-06",
+          "end": "2026-08-13",
+          "nav_return": 0.07149336100334347,
+          "daily_reset_target": 0.07331091097204512,
+          "multiple_of_period_return": 0.0726342488219911,
+          "path_compounding_effect": 0.0006766621500540193,
+          "actual_minus_daily_target": -0.0018175499687016483
+        },
+        {
+          "start": "2026-08-13",
+          "end": "2026-08-20",
+          "nav_return": -0.0866587501393602,
+          "daily_reset_target": -0.08538185476835869,
+          "multiple_of_period_return": -0.08688924633116735,
+          "path_compounding_effect": 0.0015073915628086576,
+          "actual_minus_daily_target": -0.0012768953710015074
+        },
+        {
+          "start": "2026-08-20",
+          "end": "2026-08-27",
+          "nav_return": 0.04170268333013971,
+          "daily_reset_target": 0.04356156590605509,
+          "multiple_of_period_return": 0.04399391113460327,
+          "path_compounding_effect": -0.000432345228548181,
+          "actual_minus_daily_target": -0.001858882575915377
+        },
+        {
+          "start": "2026-08-27",
+          "end": "2026-09-03",
+          "nav_return": -0.01865063576758097,
+          "daily_reset_target": -0.017090299004756893,
+          "multiple_of_period_return": -0.016116584090420494,
+          "path_compounding_effect": -0.0009737149143363988,
+          "actual_minus_daily_target": -0.0015603367628240772
+        },
+        {
+          "start": "2026-09-03",
+          "end": "2026-09-11",
+          "nav_return": -0.014109420905602077,
+          "daily_reset_target": -0.012182768546240674,
+          "multiple_of_period_return": -0.011588049193677175,
+          "path_compounding_effect": -0.0005947193525634997,
+          "actual_minus_daily_target": -0.0019266523593614027
+        }
+      ],
+      "count": 10
+    },
+    {
+      "horizon": 20,
+      "windows": [
+        {
+          "start": "2026-07-01",
+          "end": "2026-07-30",
+          "nav_return": -0.18013197465921182,
+          "daily_reset_target": -0.1730192814035757,
+          "multiple_of_period_return": -0.17136842312171663,
+          "path_compounding_effect": -0.001650858281859069,
+          "actual_minus_daily_target": -0.007112693255636127
+        },
+        {
+          "start": "2026-07-30",
+          "end": "2026-08-27",
+          "nav_return": 0.1564106200267863,
+          "daily_reset_target": 0.1642851227022859,
+          "multiple_of_period_return": 0.1638644959772282,
+          "path_compounding_effect": 0.0004206267250577156,
+          "actual_minus_daily_target": -0.007874502675499606
+        }
+      ],
+      "count": 2
+    },
+    {
+      "horizon": 60,
+      "windows": [],
+      "count": 0
+    },
+    {
+      "horizon": 120,
+      "windows": [],
+      "count": 0
+    }
+  ],
+  "sources": {
+    "TQQQ-nav.csv": {
+      "source": "https://accounts.profunds.com/etfdata/ByFund/TQQQ-historical_nav.csv",
+      "params": null,
+      "retrievedAt": "2026-09-16",
+      "sha256": "4717ea2f53b4b24f1980b647455ba0c637388169ffc8135bf57cab7285a3f883"
+    },
+    "NDX-chart.json": {
+      "source": "https://query1.finance.yahoo.com/v8/finance/chart/%5ENDX",
+      "params": {
+        "period1": 1782864000,
+        "period2": 1789516800,
+        "interval": "1d",
+        "events": "div,splits"
+      },
+      "retrievedAt": "2026-09-16",
+      "sha256": "f1f3983c420890e2246803fa5ab259326f941357c385a5e8fa57cbb1cb5aac3d"
+    },
+    "TQQQ-distributions.json": {
+      "source": "https://www.proshares.com/api/distributionsummary/",
+      "params": {
+        "fund": "TQQQ",
+        "year": "2026"
+      },
+      "retrievedAt": "2026-09-16",
+      "sha256": "042ded6df685054d729eb17bea328032e474675c5f1567d81588a38589b0ffba"
+    },
+    "TQQQ-actions.json": {
+      "source": "https://query1.finance.yahoo.com/v8/finance/chart/TQQQ",
+      "params": {
+        "period1": 1782864000,
+        "period2": 1789516800,
+        "interval": "1d",
+        "events": "div,splits"
+      },
+      "retrievedAt": "2026-09-16",
+      "sha256": "0100fb8f3f9545b4812f9730f9716adac00383178df8de8733051a891064716f"
+    }
+  },
+  "model_change_allowed": false,
+  "limitations": [
+    "NAV, not executable market prices; spread and commission excluded",
+    "52 daily returns do not validate product score thresholds or predict returns",
+    "fees are already embedded in NAV; do not subtract expense ratio twice",
+    "60/120-day paths unavailable; no extrapolation"
+  ]
+}
