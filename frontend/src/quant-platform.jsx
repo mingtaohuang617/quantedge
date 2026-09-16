@@ -1,3 +1,4 @@
+import { scoreUniverse } from './lib/scoring.js';
 import React, { useState, useEffect, useCallback, useMemo, useRef, createContext, useContext, lazy, Suspense } from "react";
 // C1/C2: Recharts 已下沉到各 lazy page chunk（CompareModal 已迁至 ScoringDashboard），主文件不再直接依赖
 import { TrendingUp, TrendingDown, Search, Bell, BookOpen, BarChart3, Activity, Settings, ChevronRight, ChevronDown, ChevronLeft, Star, AlertTriangle, Clock, Target, Zap, Filter, ArrowUpRight, ArrowDownRight, Minus, RefreshCw, Plus, X, Check, Eye, EyeOff, Layers, Globe, Briefcase, Info, Database, Trash2, Loader, ExternalLink, Sun, Moon, Calendar, User, LogOut, Mail, Lock, Shield, KeyRound, UserCircle, Share2, GripVertical, Maximize2, AlertCircle, GraduationCap, Palette, LayoutGrid, Download, Languages, Pin } from "lucide-react";
@@ -398,7 +399,8 @@ function DataProvider({ children }) {
     base.forEach((s, i) => { s.rank = i + 1; });
     return base;
   })();
-  const [stocks, setStocks] = useState(initialStocks);
+  const [rawStocks, setStocks] = useState(initialStocks);
+  const stocks = useMemo(() => scoreUniverse(rawStocks), [rawStocks]);
   const [alerts, setAlerts] = useState(cached?.alerts || STATIC_ALERTS);
   const [apiOnline, setApiOnline] = useState(false);
   const [standalone, setStandalone] = useState(false);
@@ -615,7 +617,7 @@ function DataProvider({ children }) {
       let updated = 0;
       for (const stk of stocks) {
         try {
-          const freshData = await fetchStockData(stk.ticker);
+          const freshData = await fetchStockData(stk.ticker, stk);
           if (freshData) {
             setStocks(prev => {
               const next = prev.map(s => s.ticker === freshData.ticker ? { ...s, ...freshData, rank: s.rank } : s);
@@ -660,7 +662,7 @@ function DataProvider({ children }) {
 
     // ── 独立模式：前端直接从 Yahoo Finance 获取 ──
     try {
-      const data = await fetchStockData(tickerData.ticker);
+      const data = await fetchStockData(tickerData.ticker, tickerData);
       setStocks(prev => {
         const filtered = prev.filter(s => s.ticker !== data.ticker);
         const updated = [...filtered, data].sort((a, b) => b.score - a.score);

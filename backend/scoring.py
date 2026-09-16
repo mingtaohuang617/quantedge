@@ -3,16 +3,16 @@ scoring.py — 双轨横截面评分引擎（P2）
 ========================================================================
 把评分从"硬阈值揉一个综合分"改成：
 
-  综合分 = 质量分 × 0.6 + 时机分 × 0.4
+  股票综合分 = 质量分 × 0.6 + 趋势分 × 0.4
 
-- 质量分(慢，值不值得持有)：个股在「市场×GICS行业」内做横截面分位
+- 质量分(基本面相对评价)：个股在「市场×GICS行业」内做横截面分位，缺失数据不补分
     估值(便宜) 35% + 盈利质量 35% + 成长 30%
-- 时机分(快，现在是不是买点)：
+- 趋势分(多月趋势描述，非买点)：
     动量(多周期·市场内真分位) 50% + 趋势(MA) 30% + RSI(极端扣分) 20%
-- ETF 按 4 类(宽基/行业/国家/杠杆)专属质量分；杠杆 ETF 质量封顶 + 波动磨损入分
+- ETF 产品质量、底层资产与趋势分别展示，不合成买入评分。
 
 两遍法：pass1 算每个标的的裸指标 → pass2 在同类组内转百分位、加权。
-组内样本不足 MIN_PEERS 时按 行业→市场 回退，保证分位稳健。
+组内有效样本不足 MIN_PEERS 时使用绝对锚；无绝对锚的因子暂缺。
 
 入口：score_universe(stocks, bars_by_ticker) —— 原地写 score / qualityScore /
 timingScore / subScores。bars_by_ticker: {ticker: [{'close':..}, ...]}（升序）。
@@ -22,24 +22,8 @@ from __future__ import annotations
 import math
 from collections import defaultdict
 
-from factors import calc_rsi, calc_leverage_decay, parse_aum_to_usd, parse_leverage
+from factors import calc_rsi, calc_leverage_decay, parse_leverage
 import pandas as pd
-
-MIN_PEERS = 8  # 同类组少于此数 → 回退到更宽的分组
-
-# 权重
-QW = {"valuation": 0.35, "profitability": 0.35, "growth": 0.30}
-TW = {"momentum": 0.50, "trend": 0.30, "rsi": 0.20}
-COMPOSITE = {"quality": 0.6, "timing": 0.4}
-# 合成 score 时把两轨各自标准化到同方差再混合，让 0.6/0.4 名义权重 = 实际影响。
-# 病灶：时机分横截面离散度≈2×质量分，不标准化的话时机会主导排序，质量权重名不副实
-# （体检实测 corr(score,时机)>corr(score,质量)，与 0.6 质量权重相悖）。
-# 标准化目标标准差：让合成分布 std≈STD_TARGET×√(0.6²+0.4²)≈14，区间与原来相近。
-STD_TARGET = 20.0
-ETF_QW = {"cost": 0.35, "liquidity": 0.30, "diversification": 0.35}
-LEV_QUALITY_CAP = 60.0  # 杠杆 ETF 质量分封顶
-ANCHOR_W = 0.30  # 个股质量分：分位为主(0.7) + 绝对锚为辅(0.3)，让真正优秀的能冲 90+
-
 
 # ── 绝对锚：市场无关的硬标尺（0-100），只占 30% 权重 ──
 def _val_abs(ey, by) -> float:
@@ -158,152 +142,207 @@ def etf_class(s: dict) -> str:
     return "行业"  # 行业 / 主题
 
 
-def _etf_cost(s: dict) -> float:
-    er = s.get("expenseRatio")
-    er_score = 50.0 if er is None else (95 if er <= 0.3 else 75 if er <= 0.65 else 55 if er <= 1.0 else 30)
-    pd_abs = abs(s.get("premiumDiscount") or 0)
-    pd_score = 95 if pd_abs < 0.5 else 75 if pd_abs < 2 else 55 if pd_abs < 5 else 35 if pd_abs < 10 else 15
-    return (er_score + pd_score) / 2
+# v3: the browser and Python share a versioned policy and parity fixtures.
+import json
+import re
+from pathlib import Path
+
+POLICY = json.loads((Path(__file__).resolve().parents[1] / "frontend/src/lib/scoring-policy.json").read_text(encoding="utf-8"))
+MODEL_VERSION = POLICY["version"]
+QW, TW = POLICY["quality"], POLICY["timing"]
 
 
-def _etf_liquidity(s: dict) -> float:
-    aum = parse_aum_to_usd(s.get("aum"))
-    if aum is None:
-        return 40.0
-    return 90.0 if aum > 1e9 else 70.0 if aum > 1e8 else 50.0 if aum > 1e7 else 30.0
+def score_round(value, places=1):
+    if value is None:
+        return None
+    return math.floor(value * 10 ** places + .5 + 1e-9) / 10 ** places
 
 
-def _etf_diversification(s: dict, cls: str) -> float:
-    base = {"宽基": 90, "行业": 65, "国家": 55, "杠杆": 50}.get(cls, 60)
-    c3 = s.get("concentrationTop3")
-    if c3 is not None:  # 有持仓集中度数据则覆盖（越集中越低）
-        return 90.0 if c3 < 50 else 60.0 if c3 < 70 else 35.0 if c3 < 90 else 15.0
-    return float(base)
+def number(value):
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, str):
+        value = value.strip().replace(",", "")
+        match = re.fullmatch(r"([-+]?(?:\d+(?:\.\d*)?|\.\d+))([KMBT])?", value.upper())
+        if not match:
+            return None
+        return _num(match[1]) * {None: 1, "K": 1e3, "M": 1e6, "B": 1e9, "T": 1e12}[match[2]]
+    return _num(value)
 
 
-# ── 主入口 ────────────────────────────────────────────
-def score_universe(stocks: list[dict], bars_by_ticker: dict[str, list[dict]]) -> None:
-    """原地为所有标的写 score/qualityScore/timingScore/subScores。"""
-    # ---- pass1：裸指标 ----
+def asset_metadata(s):
+    from product_data import product_enrichment
+    verified = {**POLICY.get("verifiedAssets", {}).get(s.get("ticker"), {}), **product_enrichment(s)}
+    s = {**s, **verified}
+    quote = str(s.get("quoteType", "")).upper()
+    explicit = s.get("assetType")
+    crypto = explicit == "crypto" or quote == "CRYPTOCURRENCY" or s.get("market") == "CRYPTO" or str(s.get("ticker", "")).endswith(("-USD", "-USDT"))
+    leverage = number(str(s.get("leverage", "")).lower().replace("x", ""))
+    underlying = s.get("underlyingType")
+    benchmark = str(s.get("benchmark") or "")
+    if not underlying:
+        if re.search(r"Gold|WTI|Crude|Silver|黄金|原油|白银", benchmark, re.I):
+            underlying = "commodity"
+        elif re.search(r"Index|指数", benchmark, re.I):
+            underlying = "index"
+        elif re.search(r"\([A-Z]+\)|KRX:", benchmark):
+            underlying = "stock"
+    leveraged = leverage is not None and leverage not in (0, 1)
+    etf = not crypto and (bool(s.get("isETF")) or quote == "ETF")
+    if crypto:
+        kind = "crypto"
+    elif etf and leveraged:
+        kind = {"stock": "leveraged_stock_etf", "index": "leveraged_index_etf"}.get(underlying, "leveraged_other_etf")
+    elif etf and (re.search(r"杠杆|反向|[23]倍", str(s.get("etfType") or "")) or (leverage is not None and leverage == 0)):
+        kind = "unclassified_etf"
+    elif etf:
+        kind = "index_etf" if underlying == "index" else "other_etf"
+    else:
+        kind = "stock"
+    return {**verified, "isETF": etf, "assetType": kind, "underlyingType": underlying, "underlyingSymbol": s.get("underlyingSymbol"),
+            "leverageMultiple": leverage if leveraged else (None if kind == "unclassified_etf" else 1),
+            "direction": "inverse" if leveraged and leverage < 0 else "long"}
+
+
+def prepare_inputs(s, bars):
+    # Reject malformed series rather than silently filling gaps or treating sampled charts as daily bars.
+    valid = bool(bars) and all(number(b.get("close")) is not None and number(b.get("close")) > 0 for b in bars)
+    dates = [b.get("date") or b.get("trade_date") for b in bars]
+    if all(dates) and (dates != sorted(dates) or len(set(dates)) != len(dates)):
+        valid = False
+    closes = [number(b["close"]) for b in bars] if valid else []
+    return {"version": MODEL_VERSION, "momentum": blended_momentum(closes),
+            "trend": trend_score(closes) if len(closes) >= 200 else None,
+            "rsi": rsi_timing_score(calc_rsi(pd.Series(closes))) if len(closes) >= 15 else None,
+            "decay": calc_leverage_decay(pd.Series(closes, dtype=float), s.get("leverage")),
+            "observations": len(closes), "priceAsOf": dates[-1] if valid and dates else None}
+
+
+def weighted(values, weights):
+    available = {k: w for k, w in weights.items() if values.get(k) is not None}
+    coverage = sum(available.values())
+    return (sum(values[k] * w for k, w in available.items()) / coverage if coverage else None), coverage
+
+
+def score_universe(stocks, bars_by_ticker=None):
+    """Versioned score contract. Missing / unsupported scores are null; no cross-asset z-score."""
+    previous = {s["ticker"]: {k: s.get(k) for k in ("score", "scoreSmoothed", "scoreDelta5d", "scoreHistoryVersion")} for s in stocks}
+    rows = []
     for s in stocks:
-        closes = [b["close"] for b in bars_by_ticker.get(s["ticker"], []) if b.get("close") is not None]
-        s["_mom"] = blended_momentum(closes)
-        s["_trend"] = trend_score(closes)
-        rsi = calc_rsi(pd.Series(closes)) if len(closes) >= 15 else s.get("rsi")
-        s["_rsiT"] = rsi_timing_score(rsi)
-        s["_closes"] = closes
-        if not s.get("isETF"):
-            # 健全性钳制：剔除 yfinance 偶发的不可能值，避免污染横截面分位
-            pe = _sane(s.get("pe"), 0.5, 1500)        # 极端高 PE 多为坏数据
-            pb = _sane(s.get("pb"), 0, 100)           # PB>100 必坏(如 ASML 1453)
-            mc, rev = _num(s.get("marketCap")), _num(s.get("revenue"))
-            s["_ey"] = (1.0 / pe) if (pe and pe > 0) else None       # 盈利收益率(越高越便宜)
-            s["_by"] = (1.0 / pb) if (pb and pb > 0) else None       # 账面收益率
-            s["_sy"] = (rev / mc) if (rev and mc and mc > 0) else None  # 营收/市值
-            s["_roe"] = _sane(s.get("roe"), -300, 500)               # ROE 极值多为坏数据
-            s["_margin"] = _sane(s.get("profitMargin"), -200, 100)   # 净利率 >100% 物理不可能
-            s["_grow"] = _sane(s.get("revenueGrowth"), -100, 2000)   # 营收增速 <-100% 不可能
+        meta = asset_metadata(s)
+        s.update(meta)
+        if bars_by_ticker is not None:
+            s["scoringInputs"] = prepare_inputs(s, bars_by_ticker.get(s["ticker"], []))
+        inp = s.get("scoringInputs") or {}
+        if inp.get("version") != MODEL_VERSION:
+            inp = {}
+        pe, pb = _sane(number(s.get("pe")), .5, 1500), _sane(number(s.get("pb")), 0, 100)
+        mc, rev = number(s.get("marketCap")), number(s.get("revenue"))
+        currency_ok = bool(s.get("financialCurrency")) and s.get("financialCurrency") == s.get("marketCapCurrency")
+        raw = {"ey": 1 / pe if pe else None, "by": 1 / pb if pb else None,
+               "sy": rev / mc if mc and mc > 0 and rev is not None and rev >= 0 and currency_ok else None,
+               "roe": _sane(number(s.get("roe")), -300, 500), "margin": _sane(number(s.get("profitMargin")), -200, 100),
+               "grow": _sane(number(s.get("revenueGrowth")), -100, 2000)}
+        rows.append((s, inp, raw))
+    for s, inp, raw in rows:
+        kind = s["assetType"]
+        supported = (kind == "crypto" and s.get("cryptoCategory") in ("monetary", "network", "application")) or kind in ("stock", "index_etf", "other_etf", "leveraged_stock_etf", "leveraged_index_etf")
+        group = s.get("gicsSector") or s.get("yfSector") or "unknown"
+        same = [(p, r) for p, _, r in rows if group != "unknown" and p["assetType"] == kind and (p.get("gicsSector") or p.get("yfSector") or "unknown") == group and p.get("market") == s.get("market")]
+        peers = {}; sub = {}; warnings = []; deduction = 0.0
+        if kind == "stock":
+            def factor(key, anchor):
+                if raw[key] is None:
+                    peers[key] = 0
+                    return None
+                candidates = [r[key] for p, r in same if r[key] is not None]
+                peers[key] = len(candidates)
+                # Too few comparable observations: disclose absolute anchor, never cross industries or markets.
+                if len(candidates) < POLICY["minimumPeers"]:
+                    return anchor
+                return (1 - POLICY["anchorWeight"]) * _pct_in(raw[key], candidates) + POLICY["anchorWeight"] * anchor if anchor is not None else _pct_in(raw[key], candidates)
+            vals = [factor("ey", _val_abs(raw["ey"], None)), factor("by", _val_abs(None, raw["by"])), factor("sy", None)]
+            prof = [factor("roe", _prof_abs(raw["roe"], None)), factor("margin", _prof_abs(None, raw["margin"]))]
+            mean = lambda v: sum(x for x in v if x is not None) / len([x for x in v if x is not None]) if any(x is not None for x in v) else None
+            sub = {"valuation": mean(vals), "profitability": mean(prof), "growth": factor("grow", _growth_abs(raw["grow"]))}
+            coverage = (sum(v is not None for v in vals + prof) + (sub["growth"] is not None)) / 6
+            q, _ = weighted(sub, QW)
+            if coverage + 1e-9 < POLICY["minimumCoverage"] or sum(v is not None for v in sub.values()) < 2:
+                q = None
+            if any(n < POLICY["minimumPeers"] for n in peers.values()):
+                warnings.append("部分因子同类样本不足，使用绝对锚或暂缺")
+            if not s.get("financialCurrency") or not s.get("marketCapCurrency"):
+                warnings.append("财务币种未完整标注，营收／市值因子暂不参与")
+        else:
+            sub = {"cost": None, "liquidity": None, "diversification": None}
+            q, coverage = None, 0
 
-    non_etf = [s for s in stocks if not s.get("isETF")]
-
-    # ---- 分组：质量(市场×GICS, 回退 GICS→市场) / 动量(市场) ----
-    by_mg, by_g, by_m = defaultdict(list), defaultdict(list), defaultdict(list)
-    for s in non_etf:
-        mk, g = s["market"], s.get("gicsSector") or "其他"
-        by_mg[(mk, g)].append(s); by_g[g].append(s); by_m[mk].append(s)
-
-    def qpool(s):
-        mk, g = s["market"], s.get("gicsSector") or "其他"
-        if len(by_mg[(mk, g)]) >= MIN_PEERS:
-            return by_mg[(mk, g)]
-        if len(by_g[g]) >= MIN_PEERS:
-            return by_g[g]
-        return by_m[mk]
-
-    mom_pool = defaultdict(list)  # 动量分位池：按市场（含 ETF）
+        mp = [i.get("momentum") for p, i, _ in rows if p["assetType"] == kind and p.get("market") == s.get("market") and p["direction"] == s["direction"] and (kind != "crypto" or p.get("cryptoCategory") == s.get("cryptoCategory")) and i.get("momentum") is not None]
+        sub.update({"momentum": _pct_in(inp["momentum"], mp) if inp.get("momentum") is not None and len(mp) >= POLICY["minimumPeers"] else None,
+                    "trend": inp.get("trend"), "rsi": inp.get("rsi")})
+        t, tc = weighted(sub, TW)
+        if tc + 1e-9 < POLICY["minimumCoverage"]: t = None
+        if not supported:
+            q = t = None
+            sub = {k: None for k in sub}
+            warnings.append("该资产类型尚未启用专属模型")
+        q = score_round(q, 1) if q is not None else None
+        t = score_round(t, 1) if t is not None else None
+        s["qualityScore"], s["timingScore"] = q, t
+        s["score"] = score_round(q * .6 + t * .4, 1) if q is not None and t is not None else None
+        s["subScores"] = {k: score_round(v, 1) if v is not None else None for k, v in sub.items()}
+        old = previous[s["ticker"]]
+        same_history = old.get("scoreHistoryVersion") == MODEL_VERSION and old.get("score") == s["score"]
+        s["scoreSmoothed"] = old.get("scoreSmoothed") if same_history else None
+        s["scoreDelta5d"] = old.get("scoreDelta5d") if same_history else None
+        s["scoreHistoryVersion"] = MODEL_VERSION if same_history else None
+        s["scoring"] = {"version": MODEL_VERSION, "status": "ready" if s["score"] is not None else "insufficient_data" if supported else "unsupported",
+                        "coverage": score_round(100 * (.6 * coverage + .4 * tc), 0) if supported else 0,
+                        "qualityCoverage": score_round(100 * coverage, 0) if supported else 0, "timingCoverage": score_round(100 * tc, 0) if supported else 0,
+                        "peerGroup": f"{s.get('market', 'unknown')} / {kind} / {group}", "factorPeerCounts": peers, "momentumPeers": len(mp),
+                        "priceAsOf": inp.get("priceAsOf"), "financialPeriod": s.get("financialPeriod"),
+                        "financialPublishedAt": s.get("financialPublishedAt"), "warnings": warnings,
+                        "qualityDeduction": score_round(deduction, 1),
+                        "weights": POLICY["composite"], "horizon": "多月趋势描述，非买点或上涨概率"}
+    from asset_assessment import attach_assessments
+    attach_assessments(stocks)
+    stocks.sort(key=lambda x: x["score"] if x["score"] is not None else -1, reverse=True)
+    counters = defaultdict(int)
     for s in stocks:
-        mom_pool[s["market"]].append(s)
+        key = (s["assetType"], s.get("market"), s["direction"])
+        counters[key] += 1
+        s["rank"] = counters[key] if s["score"] is not None else None
 
-    # ---- pass2：个股质量分（分位为主 + 绝对锚为辅）----
-    for s in non_etf:
-        pool = qpool(s)
-        val_p = _avg([
-            _pct_in(s["_ey"], [p.get("_ey") for p in pool]),
-            _pct_in(s["_by"], [p.get("_by") for p in pool]),
-            _pct_in(s["_sy"], [p.get("_sy") for p in pool]),
-        ], [s["_ey"], s["_by"], s["_sy"]])
-        prof_p = _avg([
-            _pct_in(s["_roe"], [p.get("_roe") for p in pool]),
-            _pct_in(s["_margin"], [p.get("_margin") for p in pool]),
-        ], [s["_roe"], s["_margin"]])
-        grow_p = _pct_in(s["_grow"], [p.get("_grow") for p in pool])
-        # 叠加绝对锚（每维 0.7 分位 + 0.3 绝对）
-        val = (1 - ANCHOR_W) * val_p + ANCHOR_W * _val_abs(s["_ey"], s["_by"])
-        prof = (1 - ANCHOR_W) * prof_p + ANCHOR_W * _prof_abs(s["_roe"], s["_margin"])
-        grow = (1 - ANCHOR_W) * grow_p + ANCHOR_W * _growth_abs(s["_grow"])
-        q = QW["valuation"] * val + QW["profitability"] * prof + QW["growth"] * grow
-        s["_q"] = q
-        s["_qsub"] = {"valuation": round(val, 1), "profitability": round(prof, 1), "growth": round(grow, 1)}
 
-    # ---- pass2：ETF 质量分 ----
+def attach_scoring(result, hist, info=None):
+    """Prepare actual daily inputs at every fetch entry; final ranks are computed on the universe."""
+    from datetime import datetime, timezone
+    info = info or {}
+    result["quoteType"] = info.get("quoteType")
+    result["financialCurrency"] = info.get("financialCurrency")
+    result["marketCapCurrency"] = info.get("currency") or result.get("currency")
+    result["aumCurrency"] = info.get("currency") or result.get("currency")
+    period = info.get("mostRecentQuarter")
+    result["financialPeriod"] = datetime.fromtimestamp(period, timezone.utc).date().isoformat() if isinstance(period, (int, float)) and period > 0 else None
+    for name, field in (("marketCap", "marketCap"), ("revenue", "totalRevenue"), ("aum", "totalAssets"), ("pb", "priceToBook")):
+        if number(info.get(field)) is not None:
+            result[name] = number(info[field])
+    bars = [{"date": idx.strftime("%Y-%m-%d"), "close": float(row["Close"])} for idx, row in hist.iterrows()]
+    score_universe([result], {result["ticker"]: bars})
+    return result
+
+
+def record_score_history(stocks, path=None):
+    """Keep v3 observations separate from legacy history; never backfill the old model."""
+    import score_history
+    history_path = Path(path) if path else Path(__file__).resolve().parent / "output" / f"score_history.v{MODEL_VERSION}.json"
+    history = score_history.load_history(history_path)
     for s in stocks:
-        if not s.get("isETF"):
+        as_of = (s.get("scoring") or {}).get("priceAsOf")
+        day = score_history.date_from_price_as_of(as_of)
+        if s.get("score") is None or not day:
             continue
-        cls = etf_class(s)
-        cost = _etf_cost(s); liq = _etf_liquidity(s); div = _etf_diversification(s, cls)
-        q = ETF_QW["cost"] * cost + ETF_QW["liquidity"] * liq + ETF_QW["diversification"] * div
-        if cls == "杠杆":
-            q = min(q, LEV_QUALITY_CAP)
-            drag = calc_leverage_decay(pd.Series(s["_closes"]), s.get("leverage"))
-            if drag:  # 年化磨损 %，每 1% 扣 1.2 分，最多扣 25
-                q -= min(25.0, drag * 1.2)
-            q = max(0.0, q)
-        s["_q"] = q
-        s["_qsub"] = {"cost": round(cost, 1), "liquidity": round(liq, 1),
-                      "diversification": round(div, 1), "etfClass": cls}
-
-    # ---- pass2：时机分（个股 + ETF 同框）----
-    for s in stocks:
-        mp = mom_pool[s["market"]]
-        mom = _pct_in(s["_mom"], [p.get("_mom") for p in mp])
-        t = TW["momentum"] * mom + TW["trend"] * s["_trend"] + TW["rsi"] * s["_rsiT"]
-        s["_t"] = t
-        s["_tsub"] = {"momentum": round(mom, 1), "trend": round(s["_trend"], 1), "rsi": round(s["_rsiT"], 1)}
-
-    # ---- 合成 + 写回，清理临时键 ----
-    # qualityScore/timingScore 仍报【原始值】(保留绝对锚 / 杠杆封顶等语义)；
-    # 只有 score 用【两轨等方差标准化】后混合，让 0.6/0.4 名义权重 = 实际影响。
-    mq, sq = _mean_std([s["_q"] for s in stocks if s.get("_q") is not None])
-    mt, st = _mean_std([s["_t"] for s in stocks if s.get("_t") is not None])
-    for s in stocks:
-        q = s.get("_q", 50.0); t = s.get("_t", 50.0)
-        qz = (q - mq) / sq if sq > 1e-9 else 0.0
-        tz = (t - mt) / st if st > 1e-9 else 0.0
-        comp = 50.0 + STD_TARGET * (COMPOSITE["quality"] * qz + COMPOSITE["timing"] * tz)
-        s["qualityScore"] = round(q, 1)
-        s["timingScore"] = round(t, 1)
-        s["score"] = round(max(0.0, min(100.0, comp)), 1)
-        s["subScores"] = {**s["_qsub"], **s["_tsub"]}
-        for k in ("_mom", "_trend", "_rsiT", "_closes", "_ey", "_by", "_sy",
-                  "_roe", "_margin", "_grow", "_q", "_t", "_qsub", "_tsub"):
-            s.pop(k, None)
-
-    stocks.sort(key=lambda x: x.get("score", 0) or 0, reverse=True)
-    for i, s in enumerate(stocks):
-        s["rank"] = i + 1
-
-
-def _mean_std(vals: list[float]) -> tuple[float, float]:
-    """横截面均值与总体标准差；空/单元素 → (50, 1) 兜底避免除零。"""
-    n = len(vals)
-    if n == 0:
-        return 50.0, 1.0
-    m = sum(vals) / n
-    sd = (sum((v - m) ** 2 for v in vals) / n) ** 0.5
-    return m, (sd if sd > 1e-9 else 1.0)
-
-
-def _avg(pcts: list[float], raws: list) -> float:
-    """只对「原始值非 None」的维度求百分位均值；全缺 → 50。"""
-    kept = [p for p, r in zip(pcts, raws, strict=True) if r is not None]
-    return sum(kept) / len(kept) if kept else 50.0
+        smoothed, delta = score_history.update_for_ticker(history, s["ticker"], s["score"], date_str=day)
+        s.update(scoreSmoothed=smoothed, scoreDelta5d=delta, scoreHistoryVersion=MODEL_VERSION)
+    history_path.parent.mkdir(parents=True, exist_ok=True)
+    score_history.save_history(history, history_path)

@@ -15,6 +15,7 @@ QuantEdge 数据管道
     output/pipeline_log.txt     — 运行日志
 """
 
+from scoring import score_universe, attach_scoring, record_score_history
 import json
 import sys
 
@@ -35,11 +36,10 @@ import yfinance as yf
 
 from config import TICKERS
 from factors import (
-    calc_rsi, calc_momentum, calc_stock_score, calc_etf_score,
+    calc_rsi, calc_momentum,
     calc_leverage_decay, parse_leverage,
 )
 from data_sources import fetch_history, fetch_hk_fundamentals, health_check
-import score_history
 from _format import fmt_big
 
 
@@ -104,21 +104,12 @@ def apply_overrides(result: dict, cfg: dict, latest_price: float = None) -> dict
     if not overrides:
         return result
 
-    # 杠杆 ETF：禁止用静态 NAV 兜底（NAV 概念不适用，会被误算成离谱溢价率）
-    is_leveraged = parse_leverage(cfg.get("leverage")) is not None
-    skip_keys = {"nav"} if is_leveraged else set()
-
+    # Static NAV/premiums without synchronized timestamps must not enter scoring.
     for key, val in overrides.items():
-        if key in skip_keys:
+        if key in {"nav", "premiumDiscount"}:
             continue
         if result.get(key) is None:
             result[key] = val
-
-    # 如果 ETF 有 NAV 兜底但没有溢价率，自动重算
-    if result.get("isETF") and result.get("nav") and latest_price:
-        if result.get("premiumDiscount") is None:
-            nav = result["nav"]
-            result["premiumDiscount"] = round((latest_price - nav) / nav * 100, 2)
 
     return result
 
@@ -185,7 +176,7 @@ def fetch_stock_data(ticker_key: str, cfg: dict) -> dict | None:
             profit_margin = round(profit_margin * 100, 1)
 
         # 综合评分
-        score, sub_scores = calc_stock_score(pe, roe, revenue_growth, profit_margin, momentum, rsi, detailed=True)
+        score, sub_scores = (None, {})
 
         # 构建价格历史 (用于前端图表)
         # 输出全部交易日，前端 Recharts 用 interval="preserveStartEnd" 自动稀疏化标签
@@ -235,11 +226,11 @@ def fetch_stock_data(ticker_key: str, cfg: dict) -> dict | None:
             "subScores": sub_scores,
             # 数据时效性（ISO 8601）：
             #   priceAsOf       = 最后一根日 K 线的收盘日（来自 yfinance hist）
-            #   fundamentalsAsOf = pipeline 运行时刻（yfinance 不暴露财报精确日期，先用运行时间占位）
+            #   fundamentalsFetchedAt is retrieval time, never a financial reporting or publication date.
             #   source           = "yfinance"（未来多源时改为枚举：yfinance / aastocks / static）
             "dataFreshness": {
                 "priceAsOf": hist.index[-1].isoformat(),
-                "fundamentalsAsOf": datetime.now().isoformat(),
+                "fundamentalsFetchedAt": datetime.now().isoformat(),
                 "source": "yfinance",
             },
         }
@@ -260,13 +251,8 @@ def fetch_stock_data(ticker_key: str, cfg: dict) -> dict | None:
         result = apply_overrides(result, cfg, latest_price)
         # 兜底后重新计算评分（如果财务字段被补充了）
         if cfg.get("static_overrides"):
-            result["score"], result["subScores"] = calc_stock_score(
-                result.get("pe"), result.get("roe"),
-                result.get("revenueGrowth"), result.get("profitMargin"),
-                result.get("momentum"), result.get("rsi"),
-                detailed=True,
-            )
-        return result
+            result["score"], result["subScores"] = (None, {})
+        return attach_scoring(result, hist, info)
 
     except Exception as e:
         log(f"  ✗ {ticker_key}: 拉取失败 - {e}")
@@ -312,7 +298,7 @@ def fetch_etf_data(ticker_key: str, cfg: dict) -> dict | None:
             expense_ratio = None
 
         nav = safe_get(info, "navPrice")
-        # 杠杆 ETF 不计算溢价率（NAV 概念不适用），改算波动磨损率
+        # 杠杆 ETF 同样有 NAV；净值时间未经核验时不计算折溢价
         is_leveraged = parse_leverage(cfg.get("leverage")) is not None
         if is_leveraged:
             premium_discount = None
@@ -321,7 +307,7 @@ def fetch_etf_data(ticker_key: str, cfg: dict) -> dict | None:
             decay_rate = None
             premium_discount = None
             if nav and nav > 0:
-                premium_discount = round((latest_price - nav) / nav * 100, 2)
+                premium_discount = None  # NAV timestamp is unavailable; do not compare asynchronous values
 
         # AUM
         total_assets = safe_get(info, "totalAssets")
@@ -361,15 +347,7 @@ def fetch_etf_data(ticker_key: str, cfg: dict) -> dict | None:
             log(f"  ⚠ {ticker_key}: 持仓数据获取失败 ({e})")
 
         # ETF 评分
-        score, sub_scores = calc_etf_score(
-            expense_ratio=expense_ratio,
-            premium_discount=premium_discount,
-            aum_usd=total_assets,
-            momentum=momentum,
-            concentration_top3=concentration_top3,
-            leverage=cfg.get("leverage"),
-            detailed=True,
-        )
+        score, sub_scores = (None, {})
 
         # 价格历史 — 输出全部交易日（ETF 同上 schema）
         price_history = [
@@ -397,8 +375,8 @@ def fetch_etf_data(ticker_key: str, cfg: dict) -> dict | None:
             "expenseRatio": expense_ratio,
             "premiumDiscount": premium_discount,  # 杠杆 ETF 为 None
             "decayRate": decay_rate,              # 杠杆 ETF 的年化波动磨损率（%）
-            "nav": nav if not is_leveraged else None,
-            "navDate": datetime.now().strftime("%Y-%m-%d") if not is_leveraged else None,
+            "nav": nav,
+            "navDate": None,
             "trackingError": (
                 f"年化波动磨损 ≈ {decay_rate}%" if decay_rate is not None
                 else ("较高 (杠杆损耗)" if cfg.get("leverage") else None)
@@ -429,7 +407,7 @@ def fetch_etf_data(ticker_key: str, cfg: dict) -> dict | None:
             # 数据时效性（schema 与个股一致）
             "dataFreshness": {
                 "priceAsOf": hist.index[-1].isoformat(),
-                "fundamentalsAsOf": datetime.now().isoformat(),
+                "fundamentalsFetchedAt": datetime.now().isoformat(),
                 "source": "yfinance",
             },
         }
@@ -451,16 +429,8 @@ def fetch_etf_data(ticker_key: str, cfg: dict) -> dict | None:
         result = apply_overrides(result, cfg, latest_price)
         # 兜底后重算 ETF 评分
         if cfg.get("static_overrides"):
-            result["score"], result["subScores"] = calc_etf_score(
-                expense_ratio=result.get("expenseRatio"),
-                premium_discount=result.get("premiumDiscount"),
-                aum_usd=total_assets,
-                momentum=result.get("momentum"),
-                concentration_top3=result.get("concentrationTop3"),
-                leverage=cfg.get("leverage"),
-                detailed=True,
-            )
-        return result
+            result["score"], result["subScores"] = (None, {})
+        return attach_scoring(result, hist, info)
 
     except Exception as e:
         log(f"  ✗ {ticker_key}: 拉取失败 - {e}")
@@ -589,27 +559,9 @@ def run_pipeline():
         else:
             failed.append(ticker_key)
 
-    # 按评分排序并分配排名
-    all_stocks.sort(key=lambda x: x["score"], reverse=True)
-    for i, stk in enumerate(all_stocks):
-        stk["rank"] = i + 1
-
-    # 评分平滑（P1）：写入历史 + 计算 scoreSmoothed / scoreDelta5d
-    # 用 priceAsOf 作为 history 的日期 key，避免周末多次运行污染均值。
-    log("\n─── 评分平滑（5 日均值 + 5 日变化）───")
-    score_hist = score_history.load_history()
-    today_fallback = datetime.now().strftime("%Y-%m-%d")
-    for stk in all_stocks:
-        ticker = stk["ticker"]
-        price_as_of = (stk.get("dataFreshness") or {}).get("priceAsOf")
-        date_str = score_history.date_from_price_as_of(price_as_of) or today_fallback
-        smoothed, delta = score_history.update_for_ticker(
-            score_hist, ticker, stk["score"], date_str=date_str,
-        )
-        stk["scoreSmoothed"] = smoothed
-        stk["scoreDelta5d"] = delta
-    score_history.save_history(score_hist)
-    log(f"✓ {score_history.HISTORY_PATH} ({len(score_hist)} 个 ticker 历史)")
+    # v3 model boundary: no mixing with unversioned score history.
+    score_universe(all_stocks)
+    record_score_history(all_stocks)
 
     # 生成预警
     alerts = generate_alerts(all_stocks)

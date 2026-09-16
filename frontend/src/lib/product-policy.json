@@ -1,0 +1,5 @@
+{
+  "expenseRatio": { "unit": "percent", "maxAge": 370, "limit": 20, "thresholds": [0.1, 0.3, 0.65, 1], "weight": 0.25 },
+  "medianSpread30d": { "unit": "bps", "maxAge": 45, "limit": 10000, "thresholds": [5, 10, 25, 50], "weight": 0.35 },
+  "dailyTrackingError": { "unit": "bps", "maxAge": 45, "limit": 10000, "thresholds": [5, 10, 25, 50], "weight": 0.4 }
+}
