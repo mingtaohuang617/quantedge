@@ -38,3 +38,9 @@ it('retains explicitly failed rows and flags stale candles without inventing rep
   const stale=fixture();stale.results[0].snapshot.received_at='2026-09-30T11:00:00Z';
   expect(build(stale).rows[0].stale).toBe(true);
 });
+it('retains a ceased-trading code as an evidenced exception, not a successful current quote',()=>{
+  const input=fixture();input.results=[{ticker:'EA',status:'failed',error:'HTTP_502'}];
+  const out=buildDailySnapshot(input,[{ticker:'EA'}]);
+  expect(out.success).toBe(0);expect(out.rows[0]).toMatchObject({ticker:'EA',status:'inactive',effective_at:'2026-08-04'});
+  expect(out.rows[0].snapshot).toBeUndefined();
+});

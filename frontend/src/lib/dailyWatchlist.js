@@ -1,3 +1,4 @@
+import { DAILY_INACTIVE } from './dailyInstrumentStatus.js';
 export const DAILY_SNAPSHOT_KEY = 'quantedge_daily_snapshots_v1';
 const supported = /^(NASDAQ|NYSE|AMEX|BATS|HKEX|KRX|TSE|SSE|SZSE|BINANCE):[A-Z0-9.\-]{1,24}$/;
 export function dailySymbol(ticker) {
@@ -23,7 +24,7 @@ export function buildDailyQueue(favorites, stocks = [], expand = false) {
     const key = String(ticker || '').trim();
     if (!key || seen.has(key)) return;
     seen.add(key);
-    rows.push({ ticker: key, favorite, symbol: dailySymbol(key) });
+    rows.push({ ticker: key, favorite, symbol: dailySymbol(key), ...(DAILY_INACTIVE[key] ? {inactive:DAILY_INACTIVE[key]} : {}) });
   };
   favorites.forEach(ticker => add(ticker, true));
   if (expand) stocks.forEach(stock => add(stock.ticker, false));
@@ -88,6 +89,7 @@ export async function runDailyQueue(queue, { request, onResult, signal, wait = m
   let firstRequest = true;
   for (const row of queue) {
     if (signal?.aborted) { result.stopped = true; break; }
+    if (row.inactive) { result.skipped++; onResult({...row,status:'inactive'}); continue; }
     if (!row.symbol) { result.skipped++; onResult({ ...row, status: 'unsupported' }); continue; }
     if (!firstRequest) await wait(spacingMs);
     if (signal?.aborted) { result.stopped = true; break; }

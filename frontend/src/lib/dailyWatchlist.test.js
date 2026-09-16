@@ -25,6 +25,12 @@ it('maps supported markets without inventing primary US exchanges',()=>{
 it('includes every star first, including stars outside the pool, then deduplicates expansion',()=>{
   expect(buildDailyQueue(['MSFT','AAPL','MSFT'],[{ticker:'AAPL'},{ticker:'SPY'}],true).map(x=>[x.ticker,x.favorite])).toEqual([['MSFT',true],['AAPL',true],['SPY',false]]);
 });
+it('retains ceased-trading codes with issuer evidence and never requests fabricated current quotes',async()=>{
+  const queue=buildDailyQueue(['EA']);const request=vi.fn();const onResult=vi.fn();
+  const result=await runDailyQueue(queue,{request,onResult});
+  expect(result.skipped).toBe(1);expect(result.failed).toBe(0);expect(request).not.toHaveBeenCalled();
+  expect(onResult.mock.calls[0][0]).toMatchObject({ticker:'EA',status:'inactive',inactive:{effective_at:'2026-08-04',reason:'ceased_trading'}});
+});
 it('respects authoritative empty favorites, labels fallback and never writes stars',async()=>{
   const storage={getItem:()=> '["AAPL"]',setItem:vi.fn()};
   expect((await loadDailyFavorites(async()=>({tickers:[],updated_at:'2026-09-15',kv:true}),storage)).tickers).toEqual([]);

@@ -95,6 +95,7 @@ node --env-file='C:/path/to/tradingview-test/.env' scripts/test-tradingview-live
 ## 全股票池日线快照（2026-09-16 扩展）
 
 - 增加日本股票 `.T` → `TSE:` 映射；东京电子、丰田和索尼已用实际账户读取验证，返回源为 `TSE_DLY`，不是实时行情。
+- EA 为有日期证据的停止交易例外：[发行人 2026-08-04 公告](https://www.ea.com/amp/news/ea-announces-completion-of-acquisition)及 [SEC 8-K](https://www.sec.gov/Archives/edgar/data/712515/000114036126031157/ef20079099_8k.htm)确认收购完成及股票停止交易。保留代码并显示公告，不展示旧缓存为当前日线，不把停止交易算作成功报价，也不继续对其刷新当前行情。未改动原评分股票池。
 - `/api/private/market-data/daily-snapshots` 为只读、登录及同源保护接口。快照加载不覆盖收藏、财报或评分；本机更新版本较新时优先保留本机值。
 - 快照保留原始采集时间与 K 线日期，未支持或失败标的独立列出。全量指发布股票池和服务端收藏的去重并集，不包括无法读取的浏览器额外自定义标的。
 - GitHub 仓库公开，因此 `frontend/api/_lib/daily-data/` 已忽略，不提交批量行情数据、用户星标或任何凭据。经验证的快照压缩后拆分到 `QUANTEDGE_DAILY_SNAPSHOT_1` 至 `_4` 加密 Secrets，在可信部署任务中恢复并打包；不会加入公共前端资源，也不传入行情 worker 环境。

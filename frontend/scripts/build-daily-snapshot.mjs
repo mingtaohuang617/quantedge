@@ -3,6 +3,7 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { dailySummary, dailySymbol } from '../src/lib/dailyWatchlist.js';
 import { STOCKS } from '../src/data.js';
+import { DAILY_INACTIVE } from '../src/lib/dailyInstrumentStatus.js';
 import { pathToFileURL } from 'node:url';
 export function buildDailySnapshot(report, universe = STOCKS) {
 if(!Number.isFinite(Date.parse(report?.completed_at)) || !Array.isArray(report.results) || report.results.length!==report.total)throw new Error('Full universe probe has not completed');
@@ -10,6 +11,7 @@ const seen=new Set();
 const rows=report.results.map(row=>{
   if(typeof row.ticker!=='string'||seen.has(row.ticker))throw new Error('Invalid or duplicate ticker');
   seen.add(row.ticker);
+  if(DAILY_INACTIVE[row.ticker])return {ticker:row.ticker,status:'inactive',...DAILY_INACTIVE[row.ticker]};
   if(row.status!=='success')return {ticker:row.ticker,status:row.status==='unsupported'?'unsupported':'failed',error:row.error||'unsupported_symbol'};
   const snapshot=dailySummary({...row.snapshot,bars:[row.snapshot?.bar]});
   if(snapshot.resolved_symbol.replace('_DLY:',':')!==dailySymbol(row.ticker))throw new Error(`Resolved symbol mismatch: ${row.ticker}`);

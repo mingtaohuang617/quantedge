@@ -106,6 +106,7 @@ const EN = {
   "名单来自本机浏览器": "Local browser favorites",
   "当前股票池": "Current stock universe",
   "已加载服务端日线快照": "Published daily snapshot loaded",
+  "已停止交易": "Trading ceased",
   "更新全部星标日线": "Update all favorite daily bars",
   "先星标，再扩展当前股票池": "Favorites first, then current universe",
   "停止更新": "Stop update",

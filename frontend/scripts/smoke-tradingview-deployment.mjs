@@ -5,6 +5,7 @@ import { dailySymbol } from '../src/lib/dailyWatchlist.js';
 import { dailySummary } from '../src/lib/dailyWatchlist.js';
 import { readDailySnapshot } from '../api/_lib/dailySnapshots.js';
 import { STOCKS } from '../src/data.js';
+import { DAILY_INACTIVE } from '../src/lib/dailyInstrumentStatus.js';
 import { loginForSmoke } from './smoke-login.mjs';
 const base = new URL(process.argv[2]);
 if (base.protocol !== 'https:' || !base.hostname.endsWith('.vercel.app')) throw new Error('Expected verified Vercel deployment');
@@ -51,7 +52,10 @@ if(STOCKS.some(stock=>!publishedTickers.has(stock.ticker)))throw new Error('Snap
 if(beforeFavorites?.some(ticker=>!publishedTickers.has(ticker)))throw new Error('Snapshot omits a current server favorite');
 const published=await request(snapshotPath);
 if(published.status!==200||JSON.stringify(published.body.data)!==JSON.stringify(expected))throw new Error('Published universe snapshot mismatch');
-for(const row of expected.rows)if(row.status==='success')dailySummary({...row.snapshot,bars:[row.snapshot.bar]});
+for(const row of expected.rows) {
+  if(row.status==='success')dailySummary({...row.snapshot,bars:[row.snapshot.bar]});
+  else if(row.status!=='inactive'||!DAILY_INACTIVE[row.ticker]||row.effective_at!==DAILY_INACTIVE[row.ticker].effective_at)throw new Error('Published active universe contains an unresolved daily row');
+}
 console.log(JSON.stringify({published_daily_total:expected.total,published_daily_success:expected.success,generated_at:expected.generated_at}));
 const favorites = ['MU','EWY','000660.KS','NVDA','DRAM','GOOG','005930.KS','GOOGL','RKLB','AAOI','QQQ','TQQQ','SOXL','UGL','07747.HK','RKLX','KORU','07709.HK','07552.HK','8035.T','7203.T','6758.T'];
 for (const ticker of favorites) {
