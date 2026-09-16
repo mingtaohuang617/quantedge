@@ -2,6 +2,9 @@
 import { execFileSync } from 'node:child_process';
 import { createSession } from '../api/_lib/auth.js';
 import { dailySymbol } from '../src/lib/dailyWatchlist.js';
+import { dailySummary } from '../src/lib/dailyWatchlist.js';
+import { readDailySnapshot } from '../api/_lib/dailySnapshots.js';
+import { STOCKS } from '../src/data.js';
 import { loginForSmoke } from './smoke-login.mjs';
 const base = new URL(process.argv[2]);
 if (base.protocol !== 'https:' || !base.hostname.endsWith('.vercel.app')) throw new Error('Expected verified Vercel deployment');
@@ -33,7 +36,16 @@ if (unauth.status !== 401) throw new Error('Authentication gate failed');
 const intraday = await request(endpoint + '?symbol=NASDAQ:AAPL&timeframe=60');
 if (intraday.status !== 400) throw new Error('Daily-only gate failed');
 console.log('Private authentication and daily-only gates: PASS');
-const favorites = ['MU','EWY','000660.KS','NVDA','DRAM','GOOG','005930.KS','GOOGL','RKLB','AAOI','QQQ','TQQQ','SOXL','UGL','07747.HK','RKLX','KORU','07709.HK','07552.HK'];
+const snapshotPath='/api/private/market-data/daily-snapshots';
+if((await request(snapshotPath,false)).status!==401)throw new Error('Published snapshot authentication gate failed');
+const expected=await readDailySnapshot();
+const publishedTickers=new Set(expected.rows.map(row=>row.ticker));
+if(STOCKS.some(stock=>!publishedTickers.has(stock.ticker)))throw new Error('Snapshot omits a published universe ticker');
+const published=await request(snapshotPath);
+if(published.status!==200||JSON.stringify(published.body.data)!==JSON.stringify(expected))throw new Error('Published universe snapshot mismatch');
+for(const row of expected.rows)if(row.status==='success')dailySummary({...row.snapshot,bars:[row.snapshot.bar]});
+console.log(JSON.stringify({published_daily_total:expected.total,published_daily_success:expected.success,generated_at:expected.generated_at}));
+const favorites = ['MU','EWY','000660.KS','NVDA','DRAM','GOOG','005930.KS','GOOGL','RKLB','AAOI','QQQ','TQQQ','SOXL','UGL','07747.HK','RKLX','KORU','07709.HK','07552.HK','8035.T','7203.T','6758.T'];
 for (const ticker of favorites) {
   const symbol = dailySymbol(ticker);
   await new Promise(resolve => setTimeout(resolve, 6000));

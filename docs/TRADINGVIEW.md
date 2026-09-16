@@ -84,3 +84,13 @@ node --env-file='C:/path/to/tradingview-test/.env' scripts/test-tradingview-live
 ```
 
 测试脚本仅在自身进程设置临时 QuantEdge 会话密钥，监听 127.0.0.1:5187，完成后关闭，不改变既有登录配置。
+# 全股票池日线快照（2026-09-16 扩展）
+
+- 增加日本股票 `.T` → `TSE:` 映射；东京电子、丰田和索尼已用实际账户读取验证，返回源为 `TSE_DLY`，不是实时行情。
+- `/api/private/market-data/daily-snapshots` 为只读、登录及同源保护接口。快照加载不覆盖收藏、财报或评分；本机更新版本较新时优先保留本机值。
+- 快照保留原始采集时间与 K 线日期，未支持或失败标的独立列出。全量指发布股票池和服务端收藏的去重并集，不包括无法读取的浏览器额外自定义标的。
+- GitHub 仓库公开，因此 `frontend/api/_lib/daily-data/` 已忽略，不提交批量行情数据、用户星标或任何凭据。经验证的快照压缩后拆分到 `QUANTEDGE_DAILY_SNAPSHOT_1` 至 `_4` 加密 Secrets，在可信部署任务中恢复并打包；不会加入公共前端资源，也不传入行情 worker 环境。
+- 更新流程：全量采集报告完成 → `node frontend/scripts/build-daily-snapshot.mjs <report.json>` 检查 OHLC、时间顺序、指标与覆盖率 → `node frontend/scripts/upload-daily-snapshot.mjs` 上传加密快照 → 常规预览验收与发布。仍需遵守正式站发布确认，不因脚本存在而自动发布。
+- CI 对发布快照逐项验证，并比较整个线上快照与构建输入一致；保留原有 19 星标在线测试，新增 3 个日本股票实测。
+- 发布统一走现有 GitHub Actions 预构建通道。`vercel.json` 关闭旁路 Git 自动部署，避免未恢复加密快照、未通过门禁的版本抢先覆盖正式站；没有断开 GitHub 连接或改变账户权限。
+- 本节是实现说明，不代表全量采集或生产发布已经完成。实际结果见当次验收记录。

@@ -4,6 +4,7 @@ import { loginViaStorage } from './helpers';
 for (const width of [1440,390]) test(`favorites daily queue ${width}`, async ({page})=>{
   await page.setViewportSize({width,height:900}); await loginViaStorage(page);
   await page.route('**/api/watchlist/favorites',route=>route.fulfill({json:{tickers:['00700.HK'],kv:true,updated_at:'2026-09-15'}}));
+  await page.route('**/api/private/market-data/daily-snapshots',route=>route.fulfill({json:{meta:{schema_version:'1.0'},data:{timeframe:'1D',generated_at:'2026-09-16T09:00:00Z',rows:[{ticker:'7203.T',status:'success',snapshot:{timeframe:'1D',resolved_symbol:'TSE_DLY:7203',timezone:'Asia/Tokyo',received_at:'2026-09-16T09:00:00Z',bar:{time:1789516800,close:3320},indicators:{time:1789516800,rsi:47,macd:1,signal:2,histogram:-1}}}]}}}));
   await page.route('**/api/private/objects/research',route=>route.fulfill({json:{data:[],meta:{}}}));
   const requests:string[]=[];
   await page.route('**/api/private/market-data/tradingview?**',route=>{
@@ -12,6 +13,9 @@ for (const width of [1440,390]) test(`favorites daily queue ${width}`, async ({p
   });
   await page.goto('/?tab=dailyResearch');
   const panel=page.locator('section[aria-labelledby="daily-watchlist-title"]');
+  await expect(panel.getByRole('cell',{name:'3320',exact:true}).or(panel.getByRole('cell',{name:'3,320',exact:true}))).toBeVisible();
+  await expect(panel.getByRole('cell',{name:'TSE_DLY:7203',exact:true})).toBeVisible();
+  expect(requests).toHaveLength(0);
   await panel.getByRole('button',{name:'更新全部星标日线',exact:true}).click();
   await expect(panel.getByRole('cell',{name:'438.8',exact:true})).toBeVisible();
   expect(requests).toHaveLength(1);expect(new URL(requests[0]).searchParams.get('timeframe')).toBe('1D');

@@ -7,7 +7,7 @@ const cache = new Map();
 export function parseTradingViewQuery(query) {
   const symbol = String(query.symbol || 'NASDAQ:AAPL').trim().toUpperCase();
   const timeframe = String(query.timeframe ?? '1D');
-  if (!/^(NASDAQ|NYSE|AMEX|BATS|HKEX|KRX|SSE|SZSE|BINANCE):[A-Z0-9.\-]{1,24}$/.test(symbol)
+  if (!/^(NASDAQ|NYSE|AMEX|BATS|HKEX|KRX|TSE|SSE|SZSE|BINANCE):[A-Z0-9.\-]{1,24}$/.test(symbol)
     || timeframe !== '1D') return null;
   return { symbol, timeframe };
 }

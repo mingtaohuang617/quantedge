@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useLang } from '../i18n.jsx';
-import { DAILY_SNAPSHOT_KEY, buildDailyQueue, loadDailyFavorites, loadDailySnapshots, runDailyQueue } from '../lib/dailyWatchlist.js';
+import { DAILY_SNAPSHOT_KEY, buildDailyQueue, loadDailyFavorites, loadDailySnapshots, loadPublishedDaily, runDailyQueue } from '../lib/dailyWatchlist.js';
 const number = value => Number.isFinite(value) ? value.toLocaleString(undefined, { maximumFractionDigits: 4 }) : '—';
 export default function DailyWatchlistPanel({ request, stocks = [] }) {
   const { t } = useLang();
@@ -9,13 +9,19 @@ export default function DailyWatchlistPanel({ request, stocks = [] }) {
   const [running, setRunning] = useState(false);
   const [rows, setRows] = useState([]);
   const [notice, setNotice] = useState('');
+  const [publishedAt, setPublishedAt] = useState(null);
   const controller = useRef(null);
   useEffect(() => {
     let active = true;
-    loadDailyFavorites(request, localStorage).then(value => { if (active) {
+    Promise.all([loadDailyFavorites(request, localStorage), loadPublishedDaily(request, localStorage)]).then(([value, initial]) => { if (active) {
       setFavorites(value); setReady(true);
-      const snapshots = loadDailySnapshots(localStorage);
-      setRows(buildDailyQueue(value.tickers).map(row => ({ ...row, status: snapshots[row.ticker] ? 'saved' : 'pending', snapshot: snapshots[row.ticker] })));
+      const { snapshots, published } = initial;
+      setPublishedAt(published?.generated_at || null);
+      const publishedRows = published?.rows || [];
+      const states = new Map(publishedRows.map(row => [row.ticker, row]));
+      setRows(buildDailyQueue(value.tickers, publishedRows, true).map(row => ({ ...row,
+        status: snapshots[row.ticker] ? 'saved' : ['failed','unsupported'].includes(states.get(row.ticker)?.status) ? states.get(row.ticker).status : 'pending',
+        snapshot: snapshots[row.ticker], code: snapshots[row.ticker] ? undefined : states.get(row.ticker)?.error })));
     } });
     return () => { active = false; controller.current?.abort(); };
   }, [request]);
@@ -50,6 +56,7 @@ export default function DailyWatchlistPanel({ request, stocks = [] }) {
       {running && <button className="mobile-secondary-button min-h-11" onClick={()=>controller.current?.abort()}>{t('停止更新')}</button>}
     </div>
     <p className="text-xs leading-relaxed" style={{ color:'var(--fg-1)' }}>{t('仅日线价格及 RSI/MACD；美股默认 Cboe 来源。逐只限速更新，失败不会覆盖旧快照，不改写财报或综合评分。')}</p>
+    {publishedAt && <p className="text-xs" style={{color:'var(--fg-1)'}}>{t('已加载服务端日线快照')} · {new Date(publishedAt).toLocaleString()} · {t('历史快照')} {rows.filter(row=>row.status==='saved').length}</p>}
     {notice && <p role="status" className="text-sm">{t(notice)}</p>}
     {rows.length > 0 && <><p role="status" className="text-xs">{t('本轮已获取')} {rows.filter(x=>x.status==='success').length} / {rows.length} · {t('获取失败')} {rows.filter(x=>x.status==='failed').length}</p>
       <div tabIndex={0} role="region" aria-label={t('星标优先 · 日线更新')} className="max-h-96 overflow-auto rounded-xl border" style={{borderColor:'var(--line)'}}><table className="w-full text-xs text-left"><thead><tr>{['标的代码','状态','日线收盘价','RSI','MACD','数据日期','实际来源'].map(label=><th key={label} className="p-3 whitespace-nowrap">{t(label)}</th>)}</tr></thead><tbody>{rows.map(row=><tr key={row.ticker} className="border-t" style={{borderColor:'var(--line)'}}><td className="p-3 whitespace-nowrap">{row.favorite?'★ ':''}{row.ticker}</td><td className="p-3 whitespace-nowrap">{t(labels[row.status])}{row.code ? ` (${row.code})` : ''}</td><td className="p-3">{number(row.snapshot?.bar.close)}</td><td className="p-3">{number(row.snapshot?.indicators.rsi)}</td><td className="p-3">{number(row.snapshot?.indicators.macd)}</td><td className="p-3 whitespace-nowrap">{row.snapshot ? new Date(row.snapshot.bar.time*1000).toLocaleDateString('en-CA',{timeZone:row.snapshot.timezone || 'UTC'}) : '—'}</td><td className="p-3 whitespace-nowrap">{row.snapshot?.resolved_symbol || row.symbol || '—'}</td></tr>)}</tbody></table></div></>}
