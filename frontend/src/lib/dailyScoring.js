@@ -16,7 +16,7 @@ export function dailyScoringStock(stock, snapshots, now = Date.now()) {
     return { ...stock, dailyQuote: { status: 'unavailable' } };
   }
   const ageHours = (now - Date.parse(snapshot.received_at)) / 3600000;
-  return { ...stock, price: snapshot.bar.close,
+  return { ...stock, price: snapshot.bar.close, currency: snapshot.currency || stock.currency,
     change: snapshot.previous_close ? (snapshot.bar.close / snapshot.previous_close - 1) * 100 : null,
     rsi: snapshot.indicators.rsi, macd: snapshot.indicators.macd,
     dailyQuote: { status: ageHours > 36 ? 'stale' : 'available', ...snapshot,

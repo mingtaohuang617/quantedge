@@ -8,6 +8,7 @@ export function selectDailyMarket(ticker, market) {
 export function mergeDailyReleases(baseline, update) {
   if (baseline?.timeframe !== '1D' || !Array.isArray(baseline.rows)) throw Error('invalid_baseline');
   const rows = new Map(baseline.rows.map(row => [row.ticker, row]));
+  let updated = false;
   if (update?.timeframe !== '1D' || !Array.isArray(update.rows)) return baseline;
   for (const row of update.rows) {
     try {
@@ -18,11 +19,12 @@ export function mergeDailyReleases(baseline, update) {
       if (old?.status === 'inactive') continue;
       if (old?.snapshot && (candidate.bar.time < old.snapshot.bar.time || Date.parse(candidate.received_at) <= Date.parse(old.snapshot.received_at))) continue;
       rows.set(row.ticker, row);
+      updated = true;
     } catch { /* malformed updates must not replace usable records */ }
   }
   const merged = [...rows.values()];
   return { ...baseline, rows: merged, total: merged.length, success: merged.filter(row => row.status === 'success').length,
-    generated_at: Date.parse(update.generated_at) > Date.parse(baseline.generated_at) ? update.generated_at : baseline.generated_at };
+    generated_at: updated && Date.parse(update.generated_at) > Date.parse(baseline.generated_at) ? update.generated_at : baseline.generated_at };
 }
 
 // The caller injects persistence/network. Retries remain bounded and spaced;

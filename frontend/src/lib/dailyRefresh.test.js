@@ -11,6 +11,7 @@ it('keeps previous rows on failure, rejects older bars and preserves inactive ex
   const baseline = { timeframe: '1D', generated_at: '2026-09-16T22:00:00Z', rows: [row(), { ticker: 'EA', status: 'inactive' }] };
   const out = mergeDailyReleases(baseline, { timeframe: '1D', generated_at: '2026-09-17T22:00:00Z', rows: [{ ticker:'MU',status:'failed' }, row(1789430400,'2026-09-17T22:00:00Z')] });
   expect(out.rows).toEqual(baseline.rows); expect(out.total).toBe(2);
+  expect(out.generated_at).toBe(baseline.generated_at);
 });
 it('retries transport and validation errors, then reports partial failure without overwriting', async () => {
   const fetcher = vi.fn().mockRejectedValueOnce(Error()).mockResolvedValue({});
