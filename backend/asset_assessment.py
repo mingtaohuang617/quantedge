@@ -42,7 +42,7 @@ def product_assessment(stock):
                       and isinstance(entry.get('observations'), (int, float))
                       and math.isfinite(entry['observations']) and entry['observations'] >= 20 and isinstance(stock.get('leverageMultiple'), (int, float)) and bool(stock.get('benchmark')) and entry.get('targetMultiple') == stock.get('leverageMultiple')
                       and entry.get('benchmark') == stock.get('benchmark'))))
-        score = next((v for threshold, v in zip(spec['thresholds'], [95, 80, 60, 40]) if value <= threshold), 20) if valid else None
+        score = next((v for threshold, v in zip(spec['thresholds'], [95, 80, 60, 40], strict=True) if value <= threshold), 20) if valid else None
         fields[key] = {**entry, 'score': score} if valid else None
         if not valid:
             missing.append(key)

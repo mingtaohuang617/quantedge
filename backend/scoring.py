@@ -146,6 +146,7 @@ def etf_class(s: dict) -> str:
 import json
 import re
 from pathlib import Path
+from datetime import UTC
 
 POLICY = json.loads((Path(__file__).resolve().parents[1] / "frontend/src/lib/scoring-policy.json").read_text(encoding="utf-8"))
 MODEL_VERSION = POLICY["version"]
@@ -251,7 +252,7 @@ def score_universe(stocks, bars_by_ticker=None):
         same = [(p, r) for p, _, r in rows if group != "unknown" and p["assetType"] == kind and (p.get("gicsSector") or p.get("yfSector") or "unknown") == group and p.get("market") == s.get("market")]
         peers = {}; sub = {}; warnings = []; deduction = 0.0
         if kind == "stock":
-            def factor(key, anchor):
+            def factor(key, anchor, raw=raw, peers=peers, same=same):
                 if raw[key] is None:
                     peers[key] = 0
                     return None
@@ -316,14 +317,14 @@ def score_universe(stocks, bars_by_ticker=None):
 
 def attach_scoring(result, hist, info=None):
     """Prepare actual daily inputs at every fetch entry; final ranks are computed on the universe."""
-    from datetime import datetime, timezone
+    from datetime import datetime
     info = info or {}
     result["quoteType"] = info.get("quoteType")
     result["financialCurrency"] = info.get("financialCurrency")
     result["marketCapCurrency"] = info.get("currency") or result.get("currency")
     result["aumCurrency"] = info.get("currency") or result.get("currency")
     period = info.get("mostRecentQuarter")
-    result["financialPeriod"] = datetime.fromtimestamp(period, timezone.utc).date().isoformat() if isinstance(period, (int, float)) and period > 0 else None
+    result["financialPeriod"] = datetime.fromtimestamp(period, UTC).date().isoformat() if isinstance(period, (int, float)) and period > 0 else None
     for name, field in (("marketCap", "marketCap"), ("revenue", "totalRevenue"), ("aum", "totalAssets"), ("pb", "priceToBook")):
         if number(info.get(field)) is not None:
             result[name] = number(info[field])

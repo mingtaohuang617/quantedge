@@ -7,7 +7,7 @@ import argparse
 import hashlib
 import json
 import os
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, UTC
 from pathlib import Path
 
 import requests
@@ -41,8 +41,8 @@ def refresh(as_of, cache_only=False, output=OUTPUT):
             issues.append({'ticker': ticker, 'stage': 'issuer', 'error': type(exc).__name__})
 
     start = date.fromisoformat(as_of) - timedelta(days=77)
-    params = {'period1': int(datetime.combine(start, datetime.min.time(), timezone.utc).timestamp()),
-              'period2': int(datetime.combine(date.fromisoformat(as_of), datetime.min.time(), timezone.utc).timestamp()),
+    params = {'period1': int(datetime.combine(start, datetime.min.time(), UTC).timestamp()),
+              'period2': int(datetime.combine(date.fromisoformat(as_of), datetime.min.time(), UTC).timestamp()),
               'interval': '1d', 'events': 'div,splits'}
     try:
         nav = read('TQQQ-nav.csv', 'https://accounts.profunds.com/etfdata/ByFund/TQQQ-historical_nav.csv')

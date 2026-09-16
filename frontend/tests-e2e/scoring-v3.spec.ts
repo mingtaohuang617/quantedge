@@ -8,6 +8,7 @@ test.beforeEach(async ({ page }) => {
   await page.route('**/*', route => {
     const u = new URL(route.request().url());
     if (!['localhost', '127.0.0.1'].includes(u.hostname)) return route.abort();
+    if (u.pathname === '/api/auth/session') return route.fallback();
     if (/^\/(api|yahoo|yahoo-cookie|v8)\//.test(u.pathname)) return route.fulfill({ status: 503, contentType: 'application/json', body: '{}' });
     return route.continue();
   });

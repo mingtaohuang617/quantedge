@@ -125,7 +125,7 @@ def tracking_diagnostics(fund, benchmark, *, multiple, benchmark_name, currency,
     if len(fund) < 21 or [r['date'] for r in fund] != [r['date'] for r in benchmark]:
         raise ValueError('At least 21 exactly aligned levels required; missing sessions are not filled')
     errors = [(f1['level'] / f0['level'] - 1) - multiple * (b1['level'] / b0['level'] - 1)
-              for f0, f1, b0, b1 in zip(fund, fund[1:], benchmark, benchmark[1:])]
+              for f0, f1, b0, b1 in zip(fund[:-1], fund[1:], benchmark[:-1], benchmark[1:], strict=True)]
     # Large discontinuities require corporate-action review, not winsorization.
     if max(map(abs, errors)) > .1:
         raise ValueError('Tracking discontinuity exceeds 10%; inspect actions and data')
@@ -149,7 +149,7 @@ def tqqq_tracking(nav_csv, ndx_json, distributions, actions_json, as_of):
     if len(closes) != len(chart['timestamp']):
         raise ValueError('Index timestamp and level counts differ')
     index = [{'date': datetime.fromtimestamp(ts, ZoneInfo('America/New_York')).date().isoformat(), 'level': close}
-             for ts, close in zip(chart['timestamp'], closes)]
+             for ts, close in zip(chart['timestamp'], closes, strict=True)]
     index = [r for r in index if r['date'] <= as_of]
     if not index:
         raise ValueError('Index observations unavailable')
