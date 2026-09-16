@@ -1,0 +1,289 @@
+{
+  "results": [
+    {
+      "symbol": "NVDA",
+      "legacy_rows": 816,
+      "matched_return_intervals": 815,
+      "median_absolute_difference_bps": 0.0006431306065479703,
+      "intervals_over_10bps": 1,
+      "largest_differences": [
+        {
+          "date": "2026-04-09",
+          "legacy_source": "futu",
+          "legacy_return": 0.008874681969463838,
+          "vendor_proxy_return": 0.01005057963567002,
+          "difference_bps": -11.758976662061826
+        },
+        {
+          "date": "2024-04-29",
+          "legacy_source": "futu",
+          "legacy_return": -0.00031341328044987016,
+          "vendor_proxy_return": 0.00025054707428950884,
+          "difference_bps": -5.63960354739379
+        },
+        {
+          "date": "2023-06-07",
+          "legacy_source": "yfinance",
+          "legacy_return": -0.030501393774781893,
+          "vendor_proxy_return": -0.030401062720971206,
+          "difference_bps": -1.0033105381068719
+        },
+        {
+          "date": "2023-12-05",
+          "legacy_source": "yfinance",
+          "legacy_return": 0.023203770808688295,
+          "vendor_proxy_return": 0.023293583526508455,
+          "difference_bps": -0.8981271782015909
+        },
+        {
+          "date": "2023-09-06",
+          "legacy_source": "yfinance",
+          "legacy_return": -0.030629469832673673,
+          "vendor_proxy_return": -0.030549610348666545,
+          "difference_bps": -0.7985948400712761
+        }
+      ],
+      "reviewed_splits": [
+        {
+          "symbol": "NVDA",
+          "date": "2024-06-10",
+          "ratio": 10,
+          "source": "https://www.sec.gov/Archives/edgar/data/1045810/000104581024000144/nvda-20240607.htm",
+          "date_basis": "first split-adjusted trading date",
+          "matches_provider": true
+        }
+      ],
+      "strict_total_return_eligible": false
+    },
+    {
+      "symbol": "MU",
+      "legacy_rows": 816,
+      "matched_return_intervals": 815,
+      "median_absolute_difference_bps": 0.0005519916301821581,
+      "intervals_over_10bps": 4,
+      "largest_differences": [
+        {
+          "date": "2024-04-29",
+          "legacy_source": "futu",
+          "legacy_return": -0.011116081893059238,
+          "vendor_proxy_return": -0.004179746985697008,
+          "difference_bps": -69.36334907362229
+        },
+        {
+          "date": "2023-07-07",
+          "legacy_source": "yfinance",
+          "legacy_return": -0.009472448484297957,
+          "vendor_proxy_return": -0.007608621353786704,
+          "difference_bps": -18.638271305112532
+        },
+        {
+          "date": "2023-10-06",
+          "legacy_source": "yfinance",
+          "legacy_return": 0.013178797863813818,
+          "vendor_proxy_return": 0.014869008376742432,
+          "difference_bps": -16.902105129286138
+        },
+        {
+          "date": "2023-12-29",
+          "legacy_source": "yfinance",
+          "legacy_return": -0.007674461187318293,
+          "vendor_proxy_return": -0.006345663630840437,
+          "difference_bps": -13.287975564778565
+        },
+        {
+          "date": "2024-03-28",
+          "legacy_source": "yfinance",
+          "legacy_return": -0.011404617277581242,
+          "vendor_proxy_return": -0.010450261927338111,
+          "difference_bps": -9.543553502431301
+        }
+      ],
+      "reviewed_splits": [],
+      "strict_total_return_eligible": false
+    },
+    {
+      "symbol": "EWY",
+      "legacy_rows": 588,
+      "matched_return_intervals": 587,
+      "median_absolute_difference_bps": 0.0003011988247703101,
+      "intervals_over_10bps": 0,
+      "largest_differences": [
+        {
+          "date": "2024-12-17",
+          "legacy_source": "futu",
+          "legacy_return": -0.013114140585425038,
+          "vendor_proxy_return": -0.013116796164263311,
+          "difference_bps": 0.02655578838273165
+        },
+        {
+          "date": "2025-12-16",
+          "legacy_source": "futu",
+          "legacy_return": -0.012932981503421037,
+          "vendor_proxy_return": -0.012933789158239506,
+          "difference_bps": 0.008076548184687837
+        },
+        {
+          "date": "2024-07-23",
+          "legacy_source": "futu",
+          "legacy_return": -0.004559963517135279,
+          "vendor_proxy_return": -0.004560122294464675,
+          "difference_bps": 0.0015877732939539868
+        },
+        {
+          "date": "2024-07-08",
+          "legacy_source": "futu",
+          "legacy_return": -0.010875870069711246,
+          "vendor_proxy_return": -0.010875729117923671,
+          "difference_bps": -0.0014095178757500548
+        },
+        {
+          "date": "2025-06-20",
+          "legacy_source": "futu",
+          "legacy_return": 0.009724473257136879,
+          "vendor_proxy_return": 0.009724333545353181,
+          "difference_bps": 0.0013971178369764914
+        }
+      ],
+      "reviewed_splits": [],
+      "strict_total_return_eligible": false
+    },
+    {
+      "symbol": "TQQQ",
+      "legacy_rows": 588,
+      "matched_return_intervals": 587,
+      "median_absolute_difference_bps": 0.0005296567251455997,
+      "intervals_over_10bps": 1,
+      "largest_differences": [
+        {
+          "date": "2026-05-05",
+          "legacy_source": "futu",
+          "legacy_return": 0.03581862102911737,
+          "vendor_proxy_return": 0.038206645822386864,
+          "difference_bps": -23.880247932694942
+        },
+        {
+          "date": "2024-05-01",
+          "legacy_source": "futu",
+          "legacy_return": -0.021522707879017777,
+          "vendor_proxy_return": -0.021615558396253398,
+          "difference_bps": 0.9285051723562088
+        },
+        {
+          "date": "2024-04-30",
+          "legacy_source": "futu",
+          "legacy_return": -0.05729352878083649,
+          "vendor_proxy_return": -0.057204114508527804,
+          "difference_bps": -0.8941427230868548
+        },
+        {
+          "date": "2025-07-28",
+          "legacy_source": "futu",
+          "legacy_return": 0.009727845271632507,
+          "vendor_proxy_return": 0.009784074524669562,
+          "difference_bps": -0.562292530370545
+        },
+        {
+          "date": "2025-07-29",
+          "legacy_source": "futu",
+          "legacy_return": -0.004510775757831542,
+          "vendor_proxy_return": -0.00456622332289669,
+          "difference_bps": 0.5544756506514759
+        }
+      ],
+      "reviewed_splits": [
+        {
+          "symbol": "TQQQ",
+          "date": "2025-11-20",
+          "ratio": 2,
+          "source": "https://www.proshares.com/press-releases/proshares-announces-etf-share-splits5",
+          "corroborating_source": "https://www.proshares.com/globalassets/proshares/form-8937/tqqq-form-8937.pdf",
+          "date_basis": "first split-adjusted trading date",
+          "matches_provider": true
+        }
+      ],
+      "strict_total_return_eligible": false
+    },
+    {
+      "symbol": "RKLX",
+      "legacy_rows": 367,
+      "matched_return_intervals": 365,
+      "median_absolute_difference_bps": 29.69459471980351,
+      "intervals_over_10bps": 193,
+      "largest_differences": [
+        {
+          "date": "2025-03-14",
+          "legacy_source": "futu",
+          "legacy_return": 7.571784926390263,
+          "vendor_proxy_return": 0.13392081133763778,
+          "difference_bps": 74378.64115052625
+        },
+        {
+          "date": "2025-04-02",
+          "legacy_source": "futu",
+          "legacy_return": 2.497918450206463,
+          "vendor_proxy_return": 0.12765955960425357,
+          "difference_bps": 23702.588906022094
+        },
+        {
+          "date": "2025-04-15",
+          "legacy_source": "futu",
+          "legacy_return": 2.5612194207806143,
+          "vendor_proxy_return": 0.21090538124582503,
+          "difference_bps": 23503.14039534789
+        },
+        {
+          "date": "2025-04-01",
+          "legacy_source": "futu",
+          "legacy_return": 2.091377235903867,
+          "vendor_proxy_return": 0.03581271079921522,
+          "difference_bps": 20555.645251046517
+        },
+        {
+          "date": "2025-04-23",
+          "legacy_source": "futu",
+          "legacy_return": 2.0941953797168082,
+          "vendor_proxy_return": 0.1269088772957685,
+          "difference_bps": 19672.865024210398
+        }
+      ],
+      "reviewed_splits": [
+        {
+          "symbol": "RKLX",
+          "date": "2025-12-09",
+          "ratio": 3,
+          "source": "https://www.sec.gov/Archives/edgar/data/1924868/000199937125018306/defiance-497_112125.htm",
+          "corroborating_source": "https://www.sec.gov/Archives/edgar/data/1924868/000199937126018558/defiance2xlong-ncsr_043026.htm",
+          "date_basis": "first split-adjusted trading date; effective after December 8 close",
+          "source_conflict": "Older semiannual shareholder report mentions December 2; use the split-specific supplement and subsequent annual report, retain discrepancy.",
+          "matches_provider": true
+        }
+      ],
+      "strict_total_return_eligible": false
+    },
+    {
+      "symbol": "BTC-USD",
+      "legacy_rows": 0,
+      "matched_return_intervals": 0,
+      "median_absolute_difference_bps": null,
+      "intervals_over_10bps": 0,
+      "largest_differences": [],
+      "reviewed_splits": [],
+      "strict_total_return_eligible": false
+    },
+    {
+      "symbol": "ETH-USD",
+      "legacy_rows": 0,
+      "matched_return_intervals": 0,
+      "median_absolute_difference_bps": null,
+      "intervals_over_10bps": 0,
+      "largest_differences": [],
+      "reviewed_splits": [],
+      "strict_total_return_eligible": false
+    }
+  ],
+  "method": "matched consecutive dates only; absolute difference threshold is diagnostic, not a validation rule",
+  "limitations": [
+    "differences can reflect legitimate dividend adjustment or vendor revision, not necessarily bad prices",
+    "split spot checks do not certify dividends, calendars, the absence of missing actions or PIT availability"
+  ]
+}
