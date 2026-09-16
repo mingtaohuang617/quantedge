@@ -28,3 +28,4 @@ backend/stock_gene_scheduler.json
 files.zip
 quant-pipeline.tar.gz
 backend/data/
+frontend/api/_lib/tradingview-runtime/
