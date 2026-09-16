@@ -13,19 +13,21 @@ from research_calendar import sessions, audit_sessions
 
 
 class PerformanceTables(HTMLParser):
-    def __init__(self):
+    def __init__(self, include_one_year=False):
         super().__init__()
         self.tables = []
         self.active = None
         self.cell = None
         self.row = []
+        self.include_one_year = include_one_year
 
     def handle_starttag(self, tag, attrs):
         attrs = dict(attrs)
-        if tag == 'table' and attrs.get('id', '').startswith('cumulative-'):
+        kind = attrs.get('id', '').split('-')[0]
+        if tag == 'table' and (kind == 'cumulative' or (kind == 'average' and self.include_one_year)):
             if self.active is not None:
                 raise ValueError('Nested performance table')
-            self.active = {'date': datetime.strptime(attrs['data-date'], '%m-%d-%Y').date().isoformat(), 'rows': []}
+            self.active = {'date': datetime.strptime(attrs['data-date'], '%m-%d-%Y').date().isoformat(), 'kind': kind, 'rows': []}
         if self.active is not None:
             if tag == 'tr':
                 self.row = []
@@ -56,18 +58,29 @@ def percent(value):
     return float(value[:-1]) / 100
 
 
-def checkpoints(html):
-    parser = PerformanceTables()
+def checkpoints(html, include_one_year=False):
+    parser = PerformanceTables(include_one_year)
     parser.feed(html)
     if parser.active is not None or not parser.tables:
         raise ValueError('Missing/incomplete cumulative performance table')
     output, seen = [], set()
     labels = ['', 'YTD', '1 Month', '3 Months', '6 Months', 'Since Inception']
     for table in parser.tables:
-        if table['date'] in seen:
+        identity = (table['date'], table['kind'])
+        if identity in seen:
             raise ValueError('Duplicate performance date')
-        seen.add(table['date'])
+        seen.add(identity)
         rows = table['rows']
+        if table['kind'] == 'average':
+            expected = ['', '1 Year', '3 Years', '5 Years', 'Since Inception']
+            if (len(rows) != 3 or rows[0] != expected or any(len(r) != 5 for r in rows)
+                    or rows[1][0] != 'Total Return (%)' or rows[2][0] != 'Market Price (%)'):
+                raise ValueError('Unrecognized annual performance schema')
+            # Exactly one year: annualized return equals that year's cumulative
+            # return. Do not apply this identity to multi-year or inception cells.
+            output.append({'as_of': table['date'], 'period': '1 Year',
+                           'issuer_nav_return': percent(rows[1][1]), 'issuer_market_return': percent(rows[2][1])})
+            continue
         if (len(rows) != 3 or rows[0] != labels or any(len(r) != len(labels) for r in rows)
                 or rows[1][0] != 'Total Return NAV (%)' or rows[2][0] != 'Market Price (%)'):
             raise ValueError('Unrecognized performance schema')
@@ -84,7 +97,7 @@ def boundaries(as_of, period):
     if period == 'YTD':
         start = date(end.year - 1, 12, 31)
     else:
-        months = {'1 Month': 1, '3 Months': 3, '6 Months': 6}[period]
+        months = {'1 Month': 1, '3 Months': 3, '6 Months': 6, '1 Year': 12}[period]
         serial = end.year * 12 + end.month - 1 - months
         year, month = divmod(serial, 12)
         start = date(year, month + 1, calendar.monthrange(year, month + 1)[1])
@@ -122,13 +135,14 @@ def evaluate(points, bundle):
             'passed_checkpoints': sum(r['status'] == 'within_display_rounding' for r in results),
             'strict_total_return_eligible': False, 'model_change_allowed': False,
             'scope': 'Cumulative market-price return checkpoints only. Overlapping periods are not independent samples. NAV is reference only.',
-            'excluded': 'Since inception: inception NAV is not the first exchange closing price. Annualized tables are not mixed with cumulative returns.'}
+            'excluded': 'Since inception and multi-year annualized returns excluded. Only an explicit one-year cell is comparable to one-year cumulative return.'}
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for arg in ('issuer-folder', 'evidence-folder', 'output'):
         parser.add_argument('--' + arg, type=Path, required=True)
+    parser.add_argument('--include-one-year', action='store_true', help='Include the one-year cell only from annualized tables')
     args = parser.parse_args()
     manifest = json.loads((args.issuer_folder / 'manifest.json').read_text(encoding='utf-8'))['files']['RKLX.html']
     raw = (args.issuer_folder / 'RKLX.html').read_bytes()
@@ -137,7 +151,7 @@ def main():
     bundle = normalize_folder(args.evidence_folder)
     if bundle['symbol'] != 'RKLX':
         raise ValueError('Expected RKLX evidence')
-    result = evaluate(checkpoints(raw.decode('utf-8')), bundle)
+    result = evaluate(checkpoints(raw.decode('utf-8'), args.include_one_year), bundle)
     result['sources'] = {'issuer': manifest, 'candidate': bundle['source_manifest']}
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, ensure_ascii=False, indent=2, allow_nan=False), encoding='utf-8')
