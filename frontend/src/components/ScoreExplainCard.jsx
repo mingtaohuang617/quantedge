@@ -26,9 +26,9 @@ export default function ScoreExplainCard({ stock, weights }) {
   // 当 ticker 变化时清空（避免显示上一只标的的解读）
   useEffect(() => {
     setState({ loading: false, text: null, cached: false, error: null, expanded: false });
-  }, [stock?.ticker]);
+  }, [stock?.ticker, stock?.score, stock?.scoring?.version, weights?.quality, weights?.timing]);
 
-  if (!stock || !stock.ticker || !stock.subScores) return null;
+  if (!stock || !stock.ticker || !stock.subScores || stock.score == null) return null;
 
   const handleGenerate = async () => {
     setState((s) => ({ ...s, loading: true, error: null, expanded: true }));
@@ -41,6 +41,10 @@ export default function ScoreExplainCard({ stock, weights }) {
           score: stock.score ?? null,
           isETF: !!stock.isETF,
           subScores: stock.subScores || {},
+          modelVersion: stock.scoring?.version,
+          qualityScore: stock.qualityScore,
+          timingScore: stock.timingScore,
+          scoring: stock.scoring,
           weights: weights || { quality: 60, timing: 40 },
         }),
       });

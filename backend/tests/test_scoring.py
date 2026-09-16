@@ -136,9 +136,8 @@ def test_score_universe_quality_ranks_within_sector():
     assert "qualityScore" in a and "timingScore" in a
 
 
-def test_composite_quality_dominates_after_standardization():
-    # A: 高质量+弱时机(下跌)；B: 低质量+强时机(上涨)。两轨等方差标准化后，
-    # 质量权重 0.6 应主导 → A.score > B.score（修复前时机离散度大，B 可能反超）。
+def test_composite_is_explainable_weighted_sum():
+    # The displayed tracks must reproduce the total under the documented weights.
     down = [200 - i * 0.5 for i in range(250)]   # 持续下跌 → 低动量/趋势
     up = [100 + i for i in range(250)]           # 持续上涨 → 高动量/趋势
     flat = [150 + (i % 5) for i in range(250)]
@@ -154,16 +153,18 @@ def test_composite_quality_dominates_after_standardization():
     b = next(s for s in stocks if s["ticker"] == "B")
     assert a["qualityScore"] > b["qualityScore"]   # A 质量更高
     assert a["timingScore"] < b["timingScore"]     # A 时机更弱
-    assert a["score"] > b["score"]                 # 质量(0.6)主导 → A 综合分仍更高
+    assert a["score"] == round(a["qualityScore"] * .6 + a["timingScore"] * .4, 1)
 
 
-def test_leveraged_etf_quality_capped():
+def test_leveraged_etf_separates_product_and_underlying():
     up = [100 * (1.01 ** i) for i in range(250)]  # 强涨但波动
     etf = {"ticker": "TQQQ", "market": "US", "isETF": True, "etfType": "3倍杠杆ETF",
-           "leverage": "3x", "expenseRatio": 0.5, "premiumDiscount": 0, "aum": "30B"}
+           "leverage": "3x", "expenseRatio": 0.5, "premiumDiscount": 0, "aum": "30B", "currency": "USD", "underlyingType": "index", "concentrationTop3": 40}
     peers = [_stock(f"S{i}", "US", "信息技术", 25, 15, 10, 12) for i in range(8)]
     bars = {"TQQQ": [{"close": c} for c in up]}
     for s in peers:
         bars[s["ticker"]] = [{"close": c} for c in [100 + i for i in range(250)]]
     score_universe([etf] + peers, bars)
-    assert etf["qualityScore"] <= 60.0  # 杠杆封顶
+    assert etf["qualityScore"] is None
+    assert etf["score"] is None
+    assert len(etf["assetAssessment"]["scenarios"]) == 9

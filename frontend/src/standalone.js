@@ -1,3 +1,4 @@
+import { prepareInputs, scoreUniverse, SCORE_VERSION } from './lib/scoring.js';
 /**
  * QuantEdge Standalone Module
  * 纯前端独立运行：Yahoo Finance API（仅同源 Vercel BFF / vite dev proxy）+ localStorage
@@ -960,19 +961,19 @@ export async function searchTickers(query) {
 
 // ─── 获取单个标的完整数据（多时间范围）──────────────────
 // 外层包 IndexedDB 缓存（withStockDataCache），TTL 1h；网络挂时返回 stale。
-export async function fetchStockData(ticker) {
-  const { data, source, error } = await withStockDataCache(ticker, () =>
-    _fetchStockDataNoCache(ticker)
+export async function fetchStockData(ticker, metadata = {}) {
+  const { data, source, error } = await withStockDataCache(`${ticker}:scoring-${SCORE_VERSION}`, () =>
+    _fetchStockDataNoCache(ticker, metadata)
   );
   if (source === "stale-idb") {
     console.warn(`[Cache] ${ticker} stockData 用了 stale 缓存 (${error})`);
   }
   if (!data) throw new Error(`No data for ${ticker}`);
-  return data;
+  return scoreUniverse([{ ...metadata, ...data }])[0];
 }
 
 // 内部：实际拉取 Yahoo + 解析 + 算分（不经过缓存）
-async function _fetchStockDataNoCache(ticker) {
+async function _fetchStockDataNoCache(ticker, metadata = {}) {
   // Determine Yahoo symbol
   let yfSym = ticker;
   if (ticker.endsWith(".HK")) {
@@ -1075,6 +1076,7 @@ async function _fetchStockDataNoCache(ticker) {
   let isETF = meta.instrumentType === "ETF";
   let quoteType = meta.instrumentType || "EQUITY";
   let nextEarningsDate = null;
+  let financialCurrency = null, financialPeriod = null, pb = null, expenseRatio = null, aum = null;
 
   try {
     const summary = summaryResult.status === "fulfilled" ? summaryResult.value : null;
@@ -1087,10 +1089,15 @@ async function _fetchStockDataNoCache(ticker) {
     const result2 = summary?.quoteSummary?.result?.[0];
     if (result2) {
       const fin = result2.financialData || {};
+      financialCurrency = fin.financialCurrency || null;
       const stats = result2.defaultKeyStatistics || {};
+      if (stats.mostRecentQuarter?.raw) financialPeriod = new Date(stats.mostRecentQuarter.raw * 1000).toISOString().slice(0, 10);
+      pb = stats.priceToBook?.raw ?? null;
       const profile = result2.summaryProfile || {};
       const priceData = result2.price || {};
       const detail = result2.summaryDetail || {};
+      expenseRatio = detail.annualReportExpenseRatio?.raw == null ? null : detail.annualReportExpenseRatio.raw * 100;
+      aum = detail.totalAssets?.raw ?? null;
       const calendar = result2.calendarEvents || {};
 
       // PE — 多路径取值
@@ -1098,9 +1105,9 @@ async function _fetchStockDataNoCache(ticker) {
       if (!pe && priceData.trailingPE?.raw) pe = +(priceData.trailingPE.raw.toFixed(2));
       if (!pe && stats.trailingPE?.raw) pe = +(stats.trailingPE.raw.toFixed(2));
 
-      roe = fin.returnOnEquity?.raw ? +(fin.returnOnEquity.raw * 100).toFixed(1) : null;
-      revenueGrowth = fin.revenueGrowth?.raw ? +(fin.revenueGrowth.raw * 100).toFixed(1) : null;
-      profitMargin = fin.profitMargins?.raw ? +(fin.profitMargins.raw * 100).toFixed(1) : null;
+      roe = fin.returnOnEquity?.raw != null ? +(fin.returnOnEquity.raw * 100).toFixed(1) : null;
+      revenueGrowth = fin.revenueGrowth?.raw != null ? +(fin.revenueGrowth.raw * 100).toFixed(1) : null;
+      profitMargin = fin.profitMargins?.raw != null ? +(fin.profitMargins.raw * 100).toFixed(1) : null;
       ebitda = fin.ebitda?.raw || null;
       revenue = fin.totalRevenue?.raw || null;
       eps = stats.trailingEps?.raw ?? (fin.earningsPerShare?.raw || null);
@@ -1140,15 +1147,11 @@ async function _fetchStockDataNoCache(ticker) {
     }
   } catch { /* Chinese profile fetch failed — ok */ }
 
-  // Compute score
-  const { score, subScores } = isETF
-    ? calcETFScore({ momentum })
-    : calcStockScore({ pe, roe, revenueGrowth, profitMargin, momentum, rsi });
-
   // Sector 解析（优先映射表 → Yahoo API → 兜底）
   const sectorCN = resolveSector(ticker, sector, isETF);
 
   const stockData = {
+    ...metadata,
     ticker,
     name: shortName,
     nameCN,
@@ -1157,14 +1160,18 @@ async function _fetchStockDataNoCache(ticker) {
     currency,
     price,
     change,
-    score,
-    subScores,
+    score: null,
+    subScores: {},
+    quoteType: meta.instrumentType,
     isETF,
     pe, roe, momentum, rsi,
     revenueGrowth, profitMargin,
     ebitda: fmtBig(ebitda),
-    marketCap: fmtBig(marketCap),
-    revenue: fmtBig(revenue),
+    marketCap,
+    revenue,
+    marketCapCurrency: currency,
+    financialCurrency, financialPeriod, pb,
+    ...(isETF ? { expenseRatio, aum, aumCurrency: currency } : {}),
     eps: typeof eps === "number" ? +eps.toFixed(2) : null,
     beta,
     week52High, week52Low,
@@ -1177,6 +1184,8 @@ async function _fetchStockDataNoCache(ticker) {
     _fetchedAt: Date.now(),
   };
 
+  stockData.scoringInputs = prepareInputs(stockData, timestamps.map((ts, i) => ({ date: new Date(ts * 1000).toISOString().slice(0, 10), close: closes[i] })));
+
   // 3. 运行数据质量检查
   const dqReport = validateStockData(stockData);
   stockData._dataQuality = dqReport;
@@ -1184,7 +1193,7 @@ async function _fetchStockDataNoCache(ticker) {
     console.warn(`[DQ] ${ticker} 数据质量问题:`, dqReport.issues.map(i => i.msg));
   }
 
-  return stockData;
+  return scoreUniverse([stockData])[0];
 }
 
 // ─── 基准指数价格数据获取（单范围）──────────────────────
@@ -1498,58 +1507,6 @@ function calcMomentum(closes, period = 20) {
   if (!base || base === 0) return 50;
   const ret = (closes[closes.length - 1] / base - 1) * 100;
   return +Math.max(0, Math.min(100, 50 + ret * 2.5)).toFixed(1);
-}
-
-function calcStockScore({ pe, roe, revenueGrowth, profitMargin, momentum, rsi }) {
-  // PE score
-  let peS = 20;
-  if (pe != null && pe >= 0) {
-    if (pe < 15) peS = 95; else if (pe < 25) peS = 80;
-    else if (pe < 40) peS = 60; else if (pe < 80) peS = 40; else peS = 20;
-  }
-  // ROE score
-  let roeS = 30;
-  if (roe != null) {
-    if (roe > 30) roeS = 95; else if (roe > 20) roeS = 80;
-    else if (roe > 10) roeS = 60; else if (roe > 0) roeS = 40; else roeS = 15;
-  }
-  // Margin score
-  let mS = 30;
-  if (profitMargin != null) {
-    if (profitMargin > 30) mS = 95; else if (profitMargin > 15) mS = 75;
-    else if (profitMargin > 5) mS = 55; else if (profitMargin > 0) mS = 35; else mS = 15;
-  }
-  const fundamental = (peS + roeS + mS) / 3;
-
-  // Technical
-  let rsiS = 35;
-  if (rsi >= 40 && rsi <= 60) rsiS = 70; else if (rsi >= 30 && rsi <= 70) rsiS = 55;
-  const technical = (momentum + rsiS) / 2;
-
-  // Growth
-  let growth = 40;
-  if (revenueGrowth != null) {
-    if (revenueGrowth > 50) growth = 95; else if (revenueGrowth > 25) growth = 80;
-    else if (revenueGrowth > 10) growth = 65; else if (revenueGrowth > 0) growth = 45; else growth = 20;
-  }
-
-  const score = +(fundamental * 0.4 + technical * 0.3 + growth * 0.3).toFixed(1);
-  return {
-    score: Math.max(0, Math.min(100, score)),
-    subScores: {
-      fundamental: +fundamental.toFixed(1),
-      technical: +technical.toFixed(1),
-      growth: +growth.toFixed(1),
-    },
-  };
-}
-
-function calcETFScore({ momentum }) {
-  const score = +(50 * 0.4 + momentum * 0.35 + 50 * 0.25).toFixed(1);
-  return {
-    score: Math.max(0, Math.min(100, score)),
-    subScores: { cost: 50, liquidity: 50, momentum: +momentum.toFixed(1), risk: 50 },
-  };
 }
 
 function fmtBig(n) {

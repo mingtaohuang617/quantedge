@@ -65,7 +65,9 @@ def run(stocks, bars_all, top_frac: float):
         work = copy.deepcopy([s for s in stocks if s["ticker"] in trunc])
         score_universe(work, trunc)
         rows = [({"score": s["score"], "qualityScore": s["qualityScore"],
-                  "timingScore": s["timingScore"]}, fwd[s["ticker"]]) for s in work]
+                  "timingScore": s["timingScore"]}, fwd[s["ticker"]]) for s in work if all(s[k] is not None for k in ("score", "qualityScore", "timingScore"))]
+        if len(rows) < 8:
+            continue
         series["综合top"].append(_basket_ret(rows, "score", top_frac))
         series["质量top"].append(_basket_ret(rows, "qualityScore", top_frac))
         series["时机top"].append(_basket_ret(rows, "timingScore", top_frac))

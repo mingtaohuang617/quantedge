@@ -1,3 +1,5 @@
+import { reweightUniverse, scoreRadar, scoreUniverse, ASSET_LABELS, formatAmount } from '../lib/scoring.js';
+import ScoringProvenance from '../components/ScoringProvenance.jsx';
 // ─────────────────────────────────────────────────────────────
 // ScoringDashboard — 评分仪表盘 / 股票列表 / 详情面板
 // 从 quant-platform.jsx 抽出（C1 重构第四步），通过 React.lazy 懒加载
@@ -42,14 +44,14 @@ import useIsMobile from "../hooks/useIsMobile";
 import { AppStatusChip, BottomSheet, ThumbActionBar, MobileAppBar, FullscreenChart, Segmented, useMobileLayerHistory } from "../components/mobile";
 
 // P3 双轨权重：质量/时机两档（localStorage key: quantedge_weights_<wsId>）
-// 综合分 = 质量分 × quality% + 时机分 × timing%（对齐后端 COMPOSITE 0.6/0.4）
+// 综合分 = 质量分 × quality% + 趋势分 × timing%（对齐后端 COMPOSITE 0.6/0.4）
 const DEFAULT_WEIGHTS = { quality: 60, timing: 40 };
 function loadWeights(wsId) {
   try {
     const raw = localStorage.getItem(`quantedge_weights_${wsId || 'default'}`);
     if (raw) {
       const w = JSON.parse(raw);
-      if (typeof w?.quality === 'number' && typeof w?.timing === 'number') {
+      if (Number.isFinite(w?.quality) && Number.isFinite(w?.timing) && w.quality >= 0 && w.timing >= 0 && w.quality + w.timing === 100) {
         return w;
       }
     }
@@ -61,14 +63,14 @@ function loadWeights(wsId) {
 // 质量轨：个股 估值/盈利/成长；ETF 成本/流动性/分散。时机轨（通用）：动量/趋势/RSI。
 const SUB_LABELS = {
   valuation: '估值', profitability: '盈利', growth: '成长',
-  cost: '成本', liquidity: '流动性', diversification: '分散',
+  cost: '成本', liquidity: '规模代理', diversification: '分散',
   momentum: '动量', trend: '趋势', rsi: 'RSI',
 };
 const TIMING_KEYS = ['momentum', 'trend', 'rsi'];
 const qualityKeys = (isETF) => (isETF ? ['cost', 'liquidity', 'diversification'] : ['valuation', 'profitability', 'growth']);
 
 // ─── 移动端：评分环 + 要素条（v6 全屏个股卡用）──────────────
-function ScoreRing({ score = 0, size = 76 }) {
+function ScoreRing({ score = null, size = 76 }) {
   const r = 42, C = 2 * Math.PI * r;
   const pct = Math.max(0, Math.min(100, score)) / 100;
   const col = score >= 75 ? "var(--up)" : score >= 50 ? "var(--indigo-2)" : "var(--warn)";
@@ -456,18 +458,12 @@ const CompareModal = ({ open, onClose, stocks }) => {
   const { t, lang } = useLang();
   const [overlay, setOverlay] = useState(true);
   if (!open || !stocks || stocks.length === 0) return null;
-  // 统一 6 维度（个股）
-  const axes = [
-    { key: "pe", label: t("PE估值"), fn: s => s.pe && s.pe > 0 ? Math.max(0, 100 - s.pe * 0.8) : 20 },
-    { key: "roe", label: "ROE", fn: s => s.roe ? Math.min(100, Math.max(0, s.roe * 0.8)) : 10 },
-    { key: "mom", label: t("动量"), fn: s => s.momentum ?? 0 },
-    { key: "rsi", label: "RSI", fn: s => s.rsi ?? 0 },
-    { key: "rev", label: t("营收增长"), fn: s => s.revenueGrowth ? Math.min(100, s.revenueGrowth * 0.6) : 0 },
-    { key: "mar", label: t("利润率"), fn: s => s.profitMargin ? Math.min(100, Math.max(0, s.profitMargin * 1.5)) : 0 },
-  ];
+  const sameClass = stocks.every(s => s.assetType === stocks[0].assetType);
+  const axes = (sameClass ? [...qualityKeys(stocks[0].isETF), ...TIMING_KEYS] : TIMING_KEYS)
+    .map(key => ({ key, label: t(SUB_LABELS[key]), fn: s => s.subScores?.[key] ?? null }));
   const radarData = axes.map(a => {
     const row = { factor: a.label };
-    stocks.forEach(s => { row[s.ticker] = +a.fn(s).toFixed(1); });
+    stocks.forEach(s => { row[s.ticker] = a.fn(s); });
     return row;
   });
 
@@ -614,7 +610,7 @@ const StockRow = memo(function StockRow({ stk, i, isSel, isFav, density, searchT
           <span className="font-semibold text-[11px] text-white shrink-0 font-mono"><Highlight text={stk.ticker} query={searchTerm} /></span>
           <span className="text-[9px] text-[#a0aec0] truncate flex-1"><Highlight text={displayName} query={searchTerm} /></span>
           <MiniSparkline data={get5DSparkData(stk)} w={56} h={16} />
-          <span className="text-[10px] font-mono tabular-nums text-indigo-300 shrink-0">{stk.score?.toFixed(1)}</span>
+          <span className="text-[10px] font-mono tabular-nums text-indigo-300 shrink-0">{stk.score?.toFixed(1) ?? '—'}</span>
           <span className={`text-[10px] font-mono tabular-nums shrink-0 w-14 text-right ${safeChange(stk.change) >= 0 ? "text-up" : "text-down"}`}>
             {safeChange(stk.change) >= 0 ? "+" : ""}{fmtChange(stk.change)}%
           </span>
@@ -939,32 +935,8 @@ const ScoringDashboard = () => {
   }, [fetchIndices]);
   const { stocks: ctxStocks, setStocks: ctxSetStocks, addTicker, removeTicker, apiOnline, standalone, quickPriceRefresh, priceUpdatedAt, priceRefreshing } = useData() || {};
 
-  // P3 双轨：综合分 = 质量分 × wQ + 时机分 × wT。个股与 ETF 都有 qualityScore/timingScore，
-  // 故统一重算（不再像旧三轴那样把 ETF 排除）。返回变更标的数。
-  const applyWeights = useCallback((w) => {
-    const tw = (w?.quality || 0) + (w?.timing || 0);
-    if (tw === 0 || !ctxSetStocks) return 0;
-    const wq = w.quality / tw, wt = w.timing / tw;
-    let n = 0;
-    ctxSetStocks(prev => {
-      // 体检修复：合成前把两轨各自横截面标准化到同方差(与后端 scoring.py 一致)。
-      // 否则时机分离散度≈2×质量，会主导排序、令 0.6 质量权重名不副实。qualityScore/timingScore 显示值不变。
-      const ms = (arr) => { const a = arr.filter(v => v != null); if (!a.length) return [50, 1]; const m = a.reduce((x, y) => x + y, 0) / a.length; const sd = Math.sqrt(a.reduce((x, y) => x + (y - m) ** 2, 0) / a.length); return [m, sd > 1e-9 ? sd : 1]; };
-      const [mq, sq] = ms(prev.map(s => s.qualityScore));
-      const [mt, st] = ms(prev.map(s => s.timingScore));
-      let changed = false;
-      const next = prev.map(s => {
-        if (s.qualityScore == null || s.timingScore == null) return s;
-        const qz = (s.qualityScore - mq) / sq, tz = (s.timingScore - mt) / st;
-        const newScore = Math.round(Math.max(0, Math.min(100, 50 + 20 * (qz * wq + tz * wt))) * 10) / 10;
-        if (newScore === s.score) return s;
-        changed = true; n++;
-        return { ...s, score: newScore };
-      });
-      return changed ? next : prev;   // 无变化返回原引用，避免无谓 re-render 循环
-    });
-    return n;
-  }, [ctxSetStocks]);
+  // 股票可调整质量 / 趋势权重；ETF 和加密资产始终保留独立分项。
+  const applyWeights = useCallback(() => (ctxStocks || []).filter(s => s.scoring?.status === 'ready').length, [ctxStocks]);
 
   // C16: 工作区切换 → 重载该工作区权重 + 自动重新评分（首次挂载跳过，useState 已加载）
   const wsMountedRef = useRef(false);
@@ -980,12 +952,7 @@ const ScoringDashboard = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wsId]);
 
-  // 体检修复：挂载/数据刷新后用当前权重重算一次综合分（两轨等方差标准化），
-  // 让现有 data.js 的旧 score 立即标准化、不必等后端数据重生。applyWeights 无变化时返回原引用，幂等防循环。
-  useEffect(() => {
-    if (ctxStocks && ctxStocks.length && ctxStocks.some(s => s.qualityScore != null)) applyWeights(weights);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ctxStocks]);
+
 
   // F3 移动端 pull-to-refresh — 列表容器顶部下拉超过 60px 触发刷新
   const [pullDist, setPullDist] = useState(0);
@@ -1009,7 +976,7 @@ const ScoringDashboard = () => {
     setPullDist(0);
   }, [pullDist, quickPriceRefresh]);
   // 使用 context 中的 stocks（响应式），而非模块级 STOCKS（可能过时）
-  const liveStocks = ctxStocks || [];
+  const liveStocks = useMemo(() => reweightUniverse(ctxStocks || [], weights), [ctxStocks, weights]);
   // 保持 sel 与 liveStocks 同步：初始化 + 数据更新时刷新 sel 对象
   useEffect(() => {
     if (!liveStocks || liveStocks.length === 0) return;
@@ -1504,9 +1471,10 @@ const ScoringDashboard = () => {
     // 市场筛选
     if (mkt !== "ALL") list = list.filter(s => s.market === mkt);
     // 类型筛选
-    if (typeFilter === "STOCK") list = list.filter(s => !s.isETF);
+    if (typeFilter === "STOCK") list = list.filter(s => s.assetType === "stock");
     else if (typeFilter === "ETF") list = list.filter(s => s.isETF && !s.leverage);
-    else if (typeFilter === "LEV") list = list.filter(s => s.isETF && s.leverage);
+    else if (typeFilter === "LEV") list = list.filter(s => s.assetType?.startsWith("leveraged_"));
+    else if (ASSET_LABELS[typeFilter]) list = list.filter(s => s.assetType === typeFilter);
     // 关注列表筛选
     if (showFavOnly) list = list.filter(s => favorites.has(s.ticker));
     // 搜索
@@ -1521,7 +1489,7 @@ const ScoringDashboard = () => {
       );
     }
     // 排序
-    if (sortBy === "score") return [...list].sort((a, b) => b.score - a.score);
+    if (sortBy === "score") return [...list].sort((a, b) => (b.score ?? -1) - (a.score ?? -1));
     if (sortBy === "change") return [...list].sort((a, b) => b.change - a.change);
     if (sortBy === "name") return [...list].sort((a, b) => a.ticker.localeCompare(b.ticker));
     if (sortBy === "macroAdj") {
@@ -1551,7 +1519,7 @@ const ScoringDashboard = () => {
       name,
       stocks,
       count: stocks.length,
-      avgScore: stocks.reduce((a, s) => a + (s.score || 0), 0) / stocks.length,
+      avgScore: stocks.reduce((a, s) => a + (s.score || 0), 0) / Math.max(1, stocks.filter(s => s.score != null).length),
       avgChange: stocks.reduce((a, s) => a + safeChange(s.change), 0) / stocks.length,
       top: [...stocks].sort((a, b) => b.score - a.score).slice(0, 3),
     })).sort((a, b) => b.avgScore - a.avgScore);
@@ -1577,7 +1545,7 @@ const ScoringDashboard = () => {
       const m = Math.floor(a.length / 2);
       return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2;
     };
-    const peers = liveStocks.filter(s => s.sector === sel.sector && s.isETF === sel.isETF && s.ticker !== sel.ticker);
+    const peers = liveStocks.filter(s => s.scoring?.peerGroup === sel.scoring?.peerGroup && s.direction === sel.direction && s.ticker !== sel.ticker);
     if (peers.length === 0) return null;
     // v5.3：最佳同行（同业评分最高者）— 给三要素卡一个具体参照锚点（"对比 AVGO 74.9"）
     const best = peers.reduce((b, s) => (s.score != null && Number.isFinite(s.score) && (b == null || s.score > b.score)) ? s : b, null);
@@ -1595,23 +1563,7 @@ const ScoringDashboard = () => {
     return med;
   }, [sel, liveStocks]);
 
-  const radar = sel ? (sel.isETF ? [
-    { factor: t("费率优势"), value: sel.expenseRatio <= 0.5 ? 90 : sel.expenseRatio <= 1 ? 70 : sel.expenseRatio <= 2 ? 40 : 20, fullMark: 100 },
-    sel.leverage
-      ? { factor: t("波动磨损"), value: sel.decayRate == null ? 50 : sel.decayRate < 5 ? 90 : sel.decayRate < 15 ? 60 : sel.decayRate < 30 ? 35 : 15, fullMark: 100 }
-      : { factor: t("折溢价"), value: Math.abs(sel.premiumDiscount || 0) < 1 ? 95 : Math.abs(sel.premiumDiscount || 0) < 5 ? 70 : Math.abs(sel.premiumDiscount || 0) < 10 ? 40 : 20, fullMark: 100 },
-    { factor: t("规模(AUM)"), value: parseFloat(sel.aum) > 1000 ? 90 : parseFloat(sel.aum) > 100 ? 60 : 30, fullMark: 100 },
-    { factor: t("动量"), value: sel.momentum, fullMark: 100 },
-    { factor: t("流动性"), value: sel.adv && sel.adv !== "N/A" ? 70 : 40, fullMark: 100 },
-    { factor: t("集中度风险"), value: sel.concentrationTop3 > 70 ? 25 : sel.concentrationTop3 > 50 ? 50 : 80, fullMark: 100 },
-  ] : [
-    { factor: t("PE估值"), value: sel.pe && sel.pe > 0 ? Math.max(0, 100 - sel.pe * 0.8) : 20, fullMark: 100 },
-    { factor: "ROE", value: sel.roe ? Math.min(100, Math.max(0, sel.roe * 0.8)) : 10, fullMark: 100 },
-    { factor: t("动量"), value: sel.momentum, fullMark: 100 },
-    { factor: "RSI", value: sel.rsi, fullMark: 100 },
-    { factor: t("营收增长"), value: sel.revenueGrowth ? Math.min(100, sel.revenueGrowth * 0.6) : 0, fullMark: 100 },
-    { factor: t("利润率"), value: sel.profitMargin ? Math.min(100, Math.max(0, sel.profitMargin * 1.5)) : 0, fullMark: 100 },
-  ]) : [];
+  const radar = sel ? scoreRadar(sel).map(d => ({ ...d, factor: t(SUB_LABELS[d.key]) })) : [];
 
   // Quick-add search
   const quickAddSearch = useCallback(async (q) => {
@@ -1687,7 +1639,7 @@ const ScoringDashboard = () => {
     const isFav = sel ? favorites.has(sel.ticker) : false;
     const pillars = sel?.qualityScore != null ? [
       { name: t("质量分"), v: sel.qualityScore, w: weights.quality, c: "#818CF8", hl: sel.isETF ? "成本 / 流动性 / 分散" : "估值 / 盈利 / 成长" },
-      { name: t("时机分"), v: sel.timingScore, w: weights.timing, c: "#F5B53C", hl: "动量 / 趋势 / RSI" },
+      { name: t("趋势分"), v: sel.timingScore, w: weights.timing, c: "#F5B53C", hl: "动量 / 趋势 / RSI" },
     ] : [];
     let tStart = null;
     const onTS = (e) => { const p = e.touches[0]; tStart = { x: p.clientX, y: p.clientY }; };
@@ -1743,7 +1695,7 @@ const ScoringDashboard = () => {
                     </div>
                   </div>
                   <div className="w-[54px] shrink-0"><MiniSparkline data={get5DSparkData(stk)} w={54} h={20} /></div>
-                  <span className="font-mono text-[19px] font-bold w-8 text-right" style={{ color: (stk.score ?? 0) >= 75 ? "var(--up)" : "var(--indigo-2)", lineHeight: 1 }}>{stk.score?.toFixed?.(0)}</span>
+                  <span className="font-mono text-[19px] font-bold w-8 text-right" style={{ color: (stk.score ?? 0) >= 75 ? "var(--up)" : "var(--indigo-2)", lineHeight: 1 }}>{stk.score?.toFixed?.(0) ?? '—'}</span>
                   <ChevronRight size={16} style={{ color: "var(--fg-4)" }} />
                 </button>
               );
@@ -1758,7 +1710,7 @@ const ScoringDashboard = () => {
               <MobileAppBar onBack={closeMobileDetail}
               title={<span className="flex items-center gap-2">
                 <span className="font-mono text-[15px] font-bold" style={{ color: "var(--fg-0)" }}>{sel.ticker}</span>
-                <span className="font-mono text-[10px] px-1.5 py-0.5 rounded" style={{ background: "rgba(30,211,149,.12)", color: "var(--up)" }}>{(sel.score ?? 0).toFixed(0)}</span>
+                <span className="font-mono text-[10px] px-1.5 py-0.5 rounded" style={{ background: "rgba(30,211,149,.12)", color: "var(--up)" }}>{sel.score == null ? '—' : sel.score.toFixed(0)}</span>
               </span>}
               actions={<button onClick={() => toggleFav(sel.ticker)} aria-label={t("自选")} className="-mr-1.5 w-11 h-11 inline-flex items-center justify-center active:scale-90"><Star size={19} style={{ color: isFav ? "var(--warn)" : "var(--fg-3)" }} fill={isFav ? "var(--warn)" : "none"} /></button>}
             />
@@ -1779,7 +1731,7 @@ const ScoringDashboard = () => {
                       </span>
                     </div>
                   </div>
-                  <ScoreRing score={sel.score ?? 0} />
+                  <ScoreRing score={sel.score} />
                 </div>
                 {sel.week52Low != null && sel.week52High != null && sel.price != null && (() => {
                   const lo = sel.week52Low, hi = sel.week52High, pct = Math.max(0, Math.min(100, ((sel.price - lo) / ((hi - lo) || 1)) * 100));
@@ -1802,7 +1754,8 @@ const ScoringDashboard = () => {
                     {pillars.map((p) => <MPillar key={p.name} {...p} />)}
                   </div>
                 )}
-                <div className="mb-4"><ScoreExplainCard stock={sel} weights={weights} /></div>
+                <div className="mb-4"><ScoringProvenance stock={sel} weights={weights} />
+                  <ScoreExplainCard stock={sel} weights={weights} /></div>
                 {!sel.isETF && <div className="mb-4"><ValuationReadCard stock={sel} /></div>}
                 <div className="mb-4"><StockProfileCard stock={sel} /></div>
                 <div className="mb-4"><StockNewsCard stock={sel} /></div>
@@ -1838,15 +1791,15 @@ const ScoringDashboard = () => {
         <BottomSheet open={mFilterOpen} onClose={() => setMFilterOpen(false)} title={t("筛选标的")}
           footer={<button onClick={() => setMFilterOpen(false)} className="w-full h-12 rounded-[13px] text-white text-[15px] font-bold" style={{ background: "linear-gradient(180deg,var(--indigo-2),var(--indigo))", boxShadow: "0 8px 22px -6px rgba(99,102,241,.6)" }}>{t("显示")} {rows.length} {t("只标的")}</button>}>
           <div className="text-[11px] font-mono uppercase tracking-wider mb-2.5" style={{ color: "var(--fg-3)" }}>{t("类型")}</div>
-          <div className="flex gap-2 mb-5">
-            {[["ALL", t("全部")], ["STOCK", t("个股")], ["ETF", "ETF"], ["LEV", t("杠杆")]].map(([v, l]) => (
-              <button key={v} onClick={() => setTypeFilter(v)} className="flex-1 py-2.5 rounded-[10px] text-[12px] font-medium border" style={segBtn(typeFilter === v)}>{l}</button>
+          <div className="grid grid-cols-2 gap-2 mb-5">
+            {[["ALL", t("全部")], ["STOCK", t("个股")], ...Object.entries(ASSET_LABELS).filter(([key]) => key !== "stock")].map(([v, l]) => (
+              <button key={v} onClick={() => setTypeFilter(v)} className="flex-1 py-2.5 rounded-[10px] text-[12px] font-medium border" style={segBtn(typeFilter === v)}>{t(l)}</button>
             ))}
           </div>
           <div className="text-[11px] font-mono uppercase tracking-wider mb-2.5" style={{ color: "var(--fg-3)" }}>{t("排序")}</div>
           <div className="flex flex-wrap gap-2 mb-5">
             {[["score", t("评分")], ["change", t("涨跌")], ["name", t("代码")], ["macroAdj", t("宏观调整")]].map(([v, l]) => (
-              <button key={v} onClick={() => setSortBy(v)} className="px-3.5 py-2 rounded-full text-[12px] font-medium border" style={segBtn(sortBy === v)}>{l}</button>
+              <button key={v} onClick={() => setSortBy(v)} className="px-3.5 py-2 rounded-full text-[12px] font-medium border" style={segBtn(sortBy === v)}>{t(l)}</button>
             ))}
           </div>
           <button onClick={() => setShowFavOnly((v) => !v)} className="w-full flex items-center justify-between py-3 mb-2">
@@ -1864,7 +1817,7 @@ const ScoringDashboard = () => {
               <div className="flex gap-0.5 p-0.5 rounded-lg" style={{ background: "rgba(255,255,255,.04)" }}>
                 {[["candle", t("K线")], ["area", t("面积")]].map(([v, l]) => (
                   <button key={v} onClick={() => setChartType(v)} className="px-2.5 py-1 rounded-md text-[11px] transition active:scale-95"
-                    style={chartType === v ? { background: "var(--bg-2)", color: "var(--fg-0)", fontWeight: 600 } : { color: "var(--fg-3)" }}>{l}</button>
+                    style={chartType === v ? { background: "var(--bg-2)", color: "var(--fg-0)", fontWeight: 600 } : { color: "var(--fg-3)" }}>{t(l)}</button>
                 ))}
               </div>
               {maSignal && (
@@ -2185,7 +2138,7 @@ const ScoringDashboard = () => {
                         mkt === key ? "bg-indigo-500/20 text-indigo-300" : "text-[#a0aec0] hover:bg-white/5 hover:text-white"
                       }`}
                     >
-                      {label}
+                      {t(label)}
                     </button>
                   ))}
                 </div>
@@ -2194,7 +2147,7 @@ const ScoringDashboard = () => {
             {/* 类型下拉 */}
             <div className="relative shrink-0">
               <button
-                onClick={() => { setTypeOpen(v => !v); setMktOpen(false); }}
+                data-testid="scoring-type-filter" aria-label={t('类型')} onClick={() => { setTypeOpen(v => !v); setMktOpen(false); }}
                 className={`flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium border transition-all active:scale-95 ${
                   typeFilter !== "ALL" || typeOpen
                     ? "bg-indigo-500/15 text-indigo-300 border-indigo-500/40"
@@ -2205,7 +2158,7 @@ const ScoringDashboard = () => {
                   {typeFilter === "ALL" ? `${t("全部")} ${counts.all}`
                     : typeFilter === "STOCK" ? `${t("个股")} ${counts.stocks}`
                     : typeFilter === "ETF" ? `ETF ${counts.etfs}`
-                    : `${t("杠杆")} ${counts.lev}`}
+                    : typeFilter === "LEV" ? `${t("杠杆")} ${counts.lev}` : t(ASSET_LABELS[typeFilter])}
                 </span>
                 <ChevronDown size={10} className={`transition-transform ${typeOpen ? "rotate-180" : ""}`} />
               </button>
@@ -2216,6 +2169,7 @@ const ScoringDashboard = () => {
                     ["STOCK", `${t("个股")} ${counts.stocks}`],
                     ["ETF", `ETF ${counts.etfs}`],
                     ["LEV", `${t("杠杆")} ${counts.lev}`],
+                    ...Object.entries(ASSET_LABELS).filter(([key]) => key !== "stock"),
                   ].map(([key, label]) => (
                     <button
                       key={key}
@@ -2224,7 +2178,7 @@ const ScoringDashboard = () => {
                         typeFilter === key ? "bg-indigo-500/20 text-indigo-300" : "text-[#a0aec0] hover:bg-white/5 hover:text-white"
                       }`}
                     >
-                      {label}
+                      {t(label)}
                     </button>
                   ))}
                 </div>
@@ -2253,7 +2207,7 @@ const ScoringDashboard = () => {
           >
             {density === "standard" ? <Minus size={12} /> : <Filter size={12} />}
           </button>
-          <button
+          <button data-testid="score-weights-toggle"
             onClick={() => setShowW(!showW)}
             title={t('评分权重设置')}
             aria-label={t('评分权重设置')}
@@ -2313,9 +2267,9 @@ const ScoringDashboard = () => {
             <div className="flex items-center gap-1 flex-wrap">
               <span className="text-[9px] text-[#778] mr-1">{t('预设')}</span>
               {[
-                [t('持有视角'), { quality: 70, timing: 30 }],
+                [t('偏重质量'), { quality: 70, timing: 30 }],
                 [t('均衡'), { quality: 60, timing: 40 }],
-                [t('交易视角'), { quality: 30, timing: 70 }],
+                [t('偏重趋势'), { quality: 30, timing: 70 }],
               ].map(([label, preset]) => {
                 const isActive = weights.quality === preset.quality && weights.timing === preset.timing;
                 return (
@@ -2332,7 +2286,7 @@ const ScoringDashboard = () => {
                   <span className="w-2 h-2 rounded-full" style={{ background: "#818CF8" }} />{t('质量分')} {weights.quality}%
                 </span>
                 <span className="flex items-center gap-1" style={{ color: "#F5B53C" }}>
-                  {t('时机分')} {weights.timing}%<span className="w-2 h-2 rounded-full" style={{ background: "#F5B53C" }} />
+                  {t('趋势分')} {weights.timing}%<span className="w-2 h-2 rounded-full" style={{ background: "#F5B53C" }} />
                 </span>
               </div>
               <div className="relative h-6 flex items-center">
@@ -2352,7 +2306,7 @@ const ScoringDashboard = () => {
             {/* 公式说明 */}
             <div className="text-[9px] leading-relaxed px-2 py-1.5 rounded-md flex items-start gap-1.5" style={{ background: "var(--bg-muted)", color: "var(--text-muted)" }}>
               <Info size={11} className="shrink-0 mt-px opacity-70" />
-              <span>{t('综合分 = 质量分 × 质量权重 + 时机分 × 时机权重；个股与 ETF 同此公式')}</span>
+              <span>{t('股票综合分 = 质量分 × 质量权重 + 趋势分 × 趋势权重；ETF 分项展示')}</span>
             </div>
             {/* 确认应用按钮 */}
             <button
@@ -2453,7 +2407,7 @@ const ScoringDashboard = () => {
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                           <MiniSparkline data={get5DSparkData(stk)} w={40} h={12} />
-                          <span className="text-[10px] font-mono tabular-nums text-indigo-300">{stk.score?.toFixed(1)}</span>
+                          <span className="text-[10px] font-mono tabular-nums text-indigo-300">{stk.score?.toFixed(1) ?? '—'}</span>
                           <span className={`text-[10px] font-mono tabular-nums ${safeChange(stk.change) >= 0 ? "text-up" : "text-down"}`}>
                             {safeChange(stk.change) >= 0 ? "+" : ""}{fmtChange(stk.change)}%
                           </span>
@@ -2577,10 +2531,10 @@ const ScoringDashboard = () => {
                     })()}
                     {/* PDF1 P0：评分数字 + vs 行业中位 ▲▼ delta（chip 与环并排） */}
                     <span className="inline-flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-white/5 border border-white/10 text-white">
-                      <CountUp value={sel.score} decimals={1} duration={500} />
+                      {sel.score == null ? t('暂不评分') : <CountUp value={sel.score} decimals={1} duration={500} />}
                       <span className="text-[#778] font-normal">/100</span>
                     </span>
-                    {sectorMedians?.score != null && (
+                    {sel.score != null && sectorMedians?.score != null && (
                       <span
                         className={`text-[9px] font-mono ${(sel.score - sectorMedians.score) >= 0 ? 'text-up' : 'text-down'}`}
                         title={t('vs 行业中位 {n}（{p} 同行）', { n: sectorMedians.score.toFixed(1), p: sectorMedians.peerCount })}
@@ -2623,6 +2577,7 @@ const ScoringDashboard = () => {
               {/* PDF2 抛光：AI 评分解读卡前置 — 紧贴评分块，回答「为什么是这个分」（默认折叠） */}
               {sel.subScores && (
                 <div className="mb-2">
+                  <ScoringProvenance stock={sel} weights={weights} />
                   <ScoreExplainCard stock={sel} weights={weights} />
                 </div>
               )}
@@ -2630,7 +2585,7 @@ const ScoringDashboard = () => {
               {sel.subScores && sel.isETF && (
                 <div className="hidden md:block mb-3">
                   <div className="flex items-baseline justify-between mb-1.5">
-                    <h3 className="text-[11px] font-medium text-white/90">{t('评分构成 · ETF 四维')}</h3>
+                    <h3 className="text-[11px] font-medium text-white/90">{t('评分构成 · ETF')}</h3>
                     {sectorMedians?.score != null && (
                       <span className="text-[9px] text-[#778] font-mono">{t('行业中位')} <span className="text-white/70">{sectorMedians.score.toFixed(0)}</span></span>
                     )}
@@ -2638,9 +2593,9 @@ const ScoringDashboard = () => {
                   <div className="grid grid-cols-2 gap-2">
                     {[
                       ['cost', t('成本效率'), '#818cf8'],
-                      ['liquidity', t('流动性'), '#8b5cf6'],
+                      ['liquidity', t('规模代理'), '#8b5cf6'],
                       ['momentum', t('动量趋势'), '#06b6d4'],
-                      ['risk', t('风险分散'), '#f5b53c'],
+                      ['diversification', t('风险分散'), '#f5b53c'],
                     ].filter(([k]) => Number.isFinite(sel.subScores[k])).map(([k, label, color]) => {
                       const v = Number(sel.subScores[k]);
                       return (
@@ -2664,7 +2619,7 @@ const ScoringDashboard = () => {
               {sel.qualityScore != null && (
                 <div className="mb-3">
                   <div className="flex items-baseline justify-between mb-1.5">
-                    <h3 className="text-[11px] font-medium text-white/90">{t('双轨评分：质量 + 时机')}</h3>
+                    <h3 className="text-[11px] font-medium text-white/90">{t('双轨评分：质量 + 趋势')}</h3>
                     {/* 给综合分一个坐标系 — 对比同业最佳 + 行业中位的绝对锚点 */}
                     {sectorMedians?.score != null && (
                       <span className="text-[9px] text-[#778] font-mono">
@@ -2677,8 +2632,8 @@ const ScoringDashboard = () => {
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     {[
-                      { key: 'quality', label: t('质量分'), color: '#818cf8', score: sel.qualityScore, weight: weights.quality, med: sectorMedians?.quality, dims: qualityKeys(sel.isETF), sub: sel.isETF ? t('费率·流动性·分散') : t('值不值得长期持有') },
-                      { key: 'timing', label: t('时机分'), color: '#f5b53c', score: sel.timingScore, weight: weights.timing, med: sectorMedians?.timing, dims: TIMING_KEYS, sub: t('现在是不是买点') },
+                      { key: 'quality', label: t('质量分'), color: '#818cf8', score: sel.qualityScore, weight: weights.quality, med: sectorMedians?.quality, dims: qualityKeys(sel.isETF), sub: sel.isETF ? t('费率·流动性·分散') : t('基本面相对评价') },
+                      { key: 'timing', label: t('趋势分'), color: '#f5b53c', score: sel.timingScore, weight: weights.timing, med: sectorMedians?.timing, dims: TIMING_KEYS, sub: t('多月趋势强弱') },
                     ].map(trk => {
                       const sc = Number.isFinite(trk.score) ? trk.score : 0;
                       return (
@@ -2686,14 +2641,14 @@ const ScoringDashboard = () => {
                           key={trk.key}
                           className="pillar-card"
                           style={{ '--pillar-color': trk.color }}
-                          title={`${trk.label} ${sc.toFixed(1)} / 100 · ${t('权重')} ${trk.weight}%`}
+                          title={`${trk.label} ${trk.score == null ? '—' : sc.toFixed(1)} / 100 · ${t('权重')} ${trk.weight}%`}
                         >
                           <div className="flex items-baseline justify-between mb-1.5">
                             <span className="text-[11px] font-semibold text-white">{trk.label}</span>
                             <span className="text-[9px] font-mono" style={{ color: trk.color }}>{t('权重')} {trk.weight}%</span>
                           </div>
                           <div className="flex items-baseline gap-1 mb-1.5">
-                            <span className="pillar-card__num">{sc.toFixed(0)}</span>
+                            <span className="pillar-card__num">{trk.score == null ? '—' : sc.toFixed(0)}</span>
                             <span className="text-[9px] text-[#778] font-mono">/100</span>
                             {trk.med != null && Number.isFinite(trk.score) && (
                               <span className={`text-[9px] font-mono ml-1 ${sc >= trk.med ? 'text-up' : 'text-down'}`} title={t('vs 行业中位')}>
@@ -2975,12 +2930,12 @@ const ScoringDashboard = () => {
                   <Info size={9} className="opacity-40 group-hover:opacity-80 transition" />
                 </div>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-lg font-bold font-mono tabular-nums text-white">{sel.score?.toFixed(1)}</span>
+                  <span className="text-lg font-bold font-mono tabular-nums text-white">{sel.score?.toFixed(1) ?? '—'}</span>
                   <span className="text-[10px] text-[#778] font-mono">/100</span>
                 </div>
                 <div className="mt-1 h-1 rounded-full bg-white/5 overflow-hidden">
                   <div className="h-full rounded-full transition-all duration-500"
-                    style={{ width: `${sel.score}%`, background: sel.score >= 80 ? "var(--accent-up)" : sel.score >= 60 ? "var(--accent-amber)" : "var(--accent-down)" }} />
+                    style={{ width: `${sel.score ?? 0}%`, background: sel.score >= 80 ? "var(--accent-up)" : sel.score >= 60 ? "var(--accent-amber)" : "var(--accent-down)" }} />
                 </div>
                 {/* 子分数 Tooltip */}
                 {sel.subScores && Object.keys(sel.subScores).length > 0 && (
@@ -3023,7 +2978,7 @@ const ScoringDashboard = () => {
                   <div className="glass-card p-2.5">
                     <div className="text-[9px] text-[#778] uppercase tracking-wider mb-0.5">AUM</div>
                     <div className="flex items-baseline gap-1">
-                      <span className="text-lg font-bold font-mono tabular-nums text-white truncate">{sel.aum || '—'}</span>
+                      <span className="text-lg font-bold font-mono tabular-nums text-white truncate">{formatAmount(sel.aum)}</span>
                     </div>
                     <div className="text-[9px] text-[#a0aec0] mt-1">{t('资产规模')}</div>
                   </div>
@@ -3221,7 +3176,7 @@ const ScoringDashboard = () => {
                     </div>
                     <div className="flex items-center justify-between mb-2.5">
                       <span className="text-xs font-medium text-[#a0aec0]">{t('评分归因')}</span>
-                      <span className="text-xs font-mono font-bold text-white">{sel.score}<span className="text-[10px] text-[#a0aec0] font-normal">/100</span></span>
+                      <span className="text-xs font-mono font-bold text-white">{sel.score ?? '—'}<span className="text-[10px] text-[#a0aec0] font-normal">/100</span></span>
                     </div>
                     <div className="space-y-2.5">
                       {(sel.isETF ? [
@@ -3229,9 +3184,9 @@ const ScoringDashboard = () => {
                           [
                             sel.expenseRatio != null && [t('费率'), `${sel.expenseRatio}%`],
                           ].filter(Boolean)],
-                        [t("流动性"), sel.subScores.liquidity, "violet", sectorMedians?.liquidity,
+                        [t("规模代理"), sel.subScores.liquidity, "violet", sectorMedians?.liquidity,
                           [
-                            sel.aum && ['AUM', sel.aum],
+                            sel.aum && ['AUM', formatAmount(sel.aum)],
                             sel.adv && [t('日均'), sel.adv],
                           ].filter(Boolean)],
                         [t("分散"), sel.subScores.diversification, "amber", sectorMedians?.diversification,
@@ -3295,7 +3250,7 @@ const ScoringDashboard = () => {
                                     {delta >= 0 ? '▲' : '▼'} {Math.abs(delta).toFixed(1)}
                                   </span>
                                 )}
-                                <span className="text-[10px] font-mono text-white">{value}</span>
+                                <span className="text-[10px] font-mono text-white">{value ?? '—'}</span>
                                 {contribution != null && (
                                   <span className="text-[9px] font-mono text-indigo-300/90" title={t('贡献 = 分值 × 权重')}>
                                     +{contribution.toFixed(1)}
@@ -3304,7 +3259,7 @@ const ScoringDashboard = () => {
                               </div>
                             </div>
                             <div className="w-full h-1.5 rounded-full bg-white/5 overflow-hidden relative">
-                              <div className="h-full rounded-full transition-all duration-500" style={{ width: `${value}%`, background: `linear-gradient(90deg, var(--accent-${colorKey}-soft), var(--accent-${colorKey}))` }} />
+                              <div className="h-full rounded-full transition-all duration-500" style={{ width: `${value ?? 0}%`, background: `linear-gradient(90deg, var(--accent-${colorKey}-soft), var(--accent-${colorKey}))` }} />
                               {peerMed != null && (
                                 <div className="absolute top-0 h-full w-px bg-white/40" style={{ left: `${peerMed}%` }} title={`${t('行业中位')} ${peerMed.toFixed(1)}`} />
                               )}
@@ -3354,8 +3309,8 @@ const ScoringDashboard = () => {
                       {/* 成本与费用 */}
                       <div className="text-[10px] text-indigo-400 font-medium mt-1 mb-0.5">{t('成本与费用')}</div>
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-[#a0aec0]">{t('总费率 (ER)')}</span>
-                        <Badge variant={sel.expenseRatio <= 0.5 ? "success" : sel.expenseRatio <= 1 ? "warning" : "danger"}>{sel.expenseRatio}%</Badge>
+                        <span className="text-xs text-[#a0aec0]">{t('年费率')}</span>
+                        <Badge variant={sel.expenseRatio == null ? "default" : sel.expenseRatio <= 0.5 ? "success" : sel.expenseRatio <= 1 ? "warning" : "danger"}>{sel.expenseRatio == null ? '—' : `${sel.expenseRatio}%`}</Badge>
                       </div>
                       {sel.leverage ? (
                         <div className="flex items-center justify-between">
@@ -3397,7 +3352,7 @@ const ScoringDashboard = () => {
                       <div className="text-[10px] text-indigo-400 font-medium mt-2 mb-0.5">{t('流动性与规模')}</div>
                       <div className="flex items-center justify-between">
                         <span className="text-xs text-[#a0aec0]">AUM</span>
-                        <Badge variant="info">{sel.aum}</Badge>
+                        <Badge variant="info">{formatAmount(sel.aum)}</Badge>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-xs text-[#a0aec0]">{t('日均成交')}</span>
@@ -3460,8 +3415,8 @@ const ScoringDashboard = () => {
                         [t("52周区间"), `${fmtPrice(sel.week52Low, sel.currency)} – ${fmtPrice(sel.week52High, sel.currency)}`, "info"],
                         [t("营收增长"), sel.revenueGrowth ? `${sel.revenueGrowth}%` : "N/A", sel.revenueGrowth && sel.revenueGrowth > 20 ? "success" : sel.revenueGrowth && sel.revenueGrowth > 5 ? "warning" : "default"],
                         [t("利润率"), sel.profitMargin ? `${sel.profitMargin}%` : "N/A", sel.profitMargin && sel.profitMargin > 20 ? "success" : sel.profitMargin && sel.profitMargin > 0 ? "warning" : "danger"],
-                        [t("年营收"), sel.revenue || "N/A", "info"],
-                        [t("市值"), sel.marketCap, "info"],
+                        [t("年营收"), formatAmount(sel.revenue), "info"],
+                        [t("市值"), formatAmount(sel.marketCap), "info"],
                         ["EBITDA", sel.ebitda || "N/A", "info"],
                         ["EPS", sel.eps != null ? String(sel.eps) : "N/A", sel.eps != null && !String(sel.eps).startsWith("-") ? "success" : "danger"],
                         ["Beta", sel.beta || "N/A", "default"],
@@ -3732,7 +3687,7 @@ const ScoringDashboard = () => {
               {[["area", t("面积")], ["candle", t("K线")]].map(([v, l]) => (
                 <button key={v} onClick={() => setChartType(v)}
                   className={`px-2.5 py-0.5 rounded text-[11px] font-medium transition-all active:scale-95 ${chartType === v ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20" : "text-[#a0aec0] hover:text-white"}`}
-                >{l}</button>
+                >{t(l)}</button>
               ))}
             </div>
             {/* K 线周期切换（每根 K 的跨度） —— 放大后直接改周期 */}
@@ -3748,7 +3703,7 @@ const ScoringDashboard = () => {
               {[["linear", t("线性")], ["log", t("对数")]].map(([v, l]) => (
                 <button key={v} onClick={() => setPriceScale(v)}
                   className={`px-2.5 py-0.5 rounded text-[11px] font-medium transition-all active:scale-95 ${priceScale === v ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20" : "text-[#a0aec0] hover:text-white"}`}
-                >{l}</button>
+                >{t(l)}</button>
               ))}
             </div>
             {/* 画线工具：光标/趋势线/水平线/测量 + 清空 */}
@@ -3756,7 +3711,7 @@ const ScoringDashboard = () => {
               {[["none", t("光标")], ["trend", t("趋势线")], ["hline", t("水平线")], ["measure", t("测量")]].map(([v, l]) => (
                 <button key={v} onClick={() => { setDrawTool(v); setDraftPoint(null); setCursorData(null); }}
                   className={`px-2 py-0.5 rounded text-[11px] font-medium transition-all active:scale-95 ${drawTool === v ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20" : "text-[#a0aec0] hover:text-white"}`}
-                >{l}</button>
+                >{t(l)}</button>
               ))}
               {drawings.length > 0 && (
                 <button onClick={() => { setDrawings([]); setDraftPoint(null); setCursorData(null); }} title={t("清空画线")} className="ml-0.5 px-1 py-0.5 rounded text-[#889] hover:text-white hover:bg-white/10 inline-flex items-center gap-0.5"><Trash2 size={11} /><span className="text-[10px]">{drawings.length}</span></button>
@@ -3767,7 +3722,7 @@ const ScoringDashboard = () => {
               {[["sma", "MA"], ["ema", "EMA"]].map(([v, l]) => (
                 <button key={v} onClick={() => setCustomType(v)}
                   className={`px-1.5 py-0.5 rounded text-[10px] font-medium transition-all ${customType === v ? "bg-white/15 text-white" : "text-[#a0aec0] hover:text-white"}`}
-                >{l}</button>
+                >{t(l)}</button>
               ))}
               <input type="number" min="2" max="400" value={customPeriod} onChange={(e) => setCustomPeriod(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") { addCustomInd(customType, customPeriod); setCustomPeriod(""); } }}

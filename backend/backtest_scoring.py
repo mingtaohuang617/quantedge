@@ -83,8 +83,10 @@ def window_ic(stocks, bars_all, k: int, H: int) -> dict | None:
     fwd = [r[1] for r in keep]
     out = {}
     for key, name in [("score", "综合"), ("qualityScore", "质量"), ("timingScore", "时机")]:
-        out[name] = spearman([by[t][key] for t, _ in keep], fwd)
-    out["动量"] = spearman([by[t]["subScores"].get("momentum", 50) for t, _ in keep], fwd)
+        valid = [(by[t][key], ret) for t, ret in keep if by[t][key] is not None]
+        out[name] = spearman([v for v, _ in valid], [r for _, r in valid])
+    valid = [(by[t]["subScores"].get("momentum"), ret) for t, ret in keep if by[t]["subScores"].get("momentum") is not None]
+    out["动量"] = spearman([v for v, _ in valid], [r for _, r in valid])
     return out
 
 

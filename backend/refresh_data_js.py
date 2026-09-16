@@ -35,7 +35,7 @@ except ImportError:
 
 import db
 from factors import calc_rsi, calc_momentum
-from scoring import score_universe
+from scoring import score_universe, record_score_history
 from gen_data_js import build_ranges
 
 DATA_JS = BACKEND.parent / "frontend" / "src" / "data.js"
@@ -111,6 +111,7 @@ def main():
     #    质量分(同行业分位+绝对锚) + 时机分(动量分位/趋势/RSI)，综合=质×0.6+时×0.4。
     #    需全量一起算分位，故批处理；内部完成排序 + 排名。
     score_universe(stocks, bars_by_ticker)
+    record_score_history(stocks)
     print(f"[评分] 双轨引擎完成，{len(stocks)} 标的")
 
     write_data_js(out_path, stocks, alerts)
