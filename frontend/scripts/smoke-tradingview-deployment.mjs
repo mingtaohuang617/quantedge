@@ -12,11 +12,12 @@ if (base.protocol !== 'https:' || !base.hostname.endsWith('.vercel.app')) throw 
 const cookie = process.argv.includes('--protected')
   ? `__Host-qe_session=${createSession().token}`
   : await loginForSmoke(base, process.env.QUANTEDGE_SMOKE_INVITE_CODE);
-const request = async (path, authenticated = true) => {
+const request = async (path, authenticated = true, payload = null) => {
   if (process.argv.includes('--protected')) {
     const args = ['curl', path, '--deployment', base.origin, '--', '--silent', '--show-error', '--max-time', '45',
       '--header', `Origin: ${base.origin}`, '--write-out', '\\n%{http_code}'];
     if (authenticated) args.push('--header', `Cookie: ${cookie}`);
+    if (payload !== null) args.push('--request', 'POST', '--header', 'Content-Type: application/json', '--data', JSON.stringify(payload));
     let output;
     try { output = execFileSync('vercel', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 55000 }); }
     catch { throw new Error('Protected deployment request failed'); }
@@ -26,7 +27,8 @@ const request = async (path, authenticated = true) => {
     return { status: Number(output.slice(split + 1)), body };
   }
   const response = await fetch(new URL(path, base), { redirect: 'error', signal: AbortSignal.timeout(45000),
-    headers: { origin: base.origin, ...(authenticated ? { cookie } : {}) } });
+    ...(payload !== null ? { method: 'POST', body: JSON.stringify(payload) } : {}),
+    headers: { origin: base.origin, ...(authenticated ? { cookie } : {}), ...(payload !== null ? { 'content-type': 'application/json' } : {}) } });
   let body;
   try { body = await response.json(); } catch { throw new Error('Deployment returned non-JSON'); }
   return { status: response.status, body };
@@ -44,6 +46,10 @@ if (unauth.status !== 401) throw new Error('Authentication gate failed');
 const intraday = await request(endpoint + '?symbol=NASDAQ:AAPL&timeframe=60');
 if (intraday.status !== 400) throw new Error('Daily-only gate failed');
 console.log('Private authentication and daily-only gates: PASS');
+// Reject before cache/model access; this does not call a paid model or write data.
+const scoreProbe = await request('/api/llm/explain-score', true, { ticker: 'SMOKE', assetType: 'crypto', score: null });
+if (scoreProbe.status !== 400 || scoreProbe.body.code !== 'invalid_score_contract') throw new Error('Score explanation contract gate failed');
+console.log('Local scoring explanation contract gate: PASS');
 const snapshotPath='/api/private/market-data/daily-snapshots';
 if((await request(snapshotPath,false)).status!==401)throw new Error('Published snapshot authentication gate failed');
 const expected=await readDailySnapshot();

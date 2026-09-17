@@ -5,11 +5,11 @@
 //   2) 兜底反向代理到 Render 后端 FastAPI /api/llm/{endpoint}
 //
 // 本地 handler（不走代理，独立 lambda 上限不变）：
-//   - generate-keywords / match-supertrend / rank-candidates / 10x-thesis
+//   - generate-keywords / match-supertrend / rank-candidates / 10x-thesis / valuation-read / explain-score
 //   handler 文件 _*.js 同目录，Vercel 自动忽略不当 function
 //
 // 代理（后端已实现，本地无 handler 的）：
-//   summary / backtest-narrate / journal-structure / explain-score / monthly-review /
+//   summary / backtest-narrate / journal-structure / monthly-review /
 //   parse-strategy / value-thesis / health / stats
 //
 // 设计选择回顾：原本 4 个独立 lambda + 1 catch-all proxy（合计 5）。v0.8 整合到 1 个
@@ -29,6 +29,7 @@ import matchSupertrend from './_match-supertrend.js';
 import rankCandidates from './_rank-candidates.js';
 import tenXThesis from './_10x-thesis.js';
 import valuationRead from './_valuation-read.js';
+import explainScore from './_explain-score.js';
 
 const KNOWN_HANDLERS = {
   'generate-keywords': generateKeywords,
@@ -36,6 +37,7 @@ const KNOWN_HANDLERS = {
   'rank-candidates': rankCandidates,
   '10x-thesis': tenXThesis,
   'valuation-read': valuationRead,
+  'explain-score': explainScore,
 };
 
 export const config = {
