@@ -57,10 +57,12 @@ export default function DailyWatchlistPanel({ request, stocks = [] }) {
       <button className="mobile-secondary-button min-h-11" disabled={!ready || running} onClick={()=>start(true)}>{t('先星标，再扩展当前股票池')}</button>
       {running && <button className="mobile-secondary-button min-h-11" onClick={()=>controller.current?.abort()}>{t('停止更新')}</button>}
     </div>
+    <p className="text-xs leading-relaxed">{t('仅手动更新：页面按钮更新本机快照，运行期间请勿关闭页面；云端更新需在 GitHub 点击 Run workflow，结果供各设备读取。')}</p>
+    <a className="inline-flex items-center min-h-11 underline text-xs" href="https://github.com/mingtaohuang617/quantedge/actions/workflows/daily-market.yml" target="_blank" rel="noopener noreferrer">{t('打开云端手动更新（GitHub）')}</a>
     <p className="text-xs leading-relaxed" style={{ color:'var(--fg-1)' }}>{t('仅日线价格及 RSI/MACD；美股默认 Cboe 来源。逐只限速更新，失败不会覆盖旧快照，不改写财报或综合评分。')}</p>
     {publishedAt && <p className="text-xs" style={{color:'var(--fg-1)'}}>{t('已加载服务端日线快照')} · {new Date(publishedAt).toLocaleString()} · {t('历史快照')} {rows.filter(row=>row.status==='saved').length}</p>}
-    {health && <p className="text-xs" role="status">{t('最近自动更新')} · {health.market || '—'} · {health.status} · {health.completed_at || health.started_at} · {health.success ?? health.processed ?? 0}/{health.total ?? '—'}
-      {['failed', 'degraded'].includes(health.status) && <> · {t('自动更新存在失败项，已保留上次成功数据')}</>}</p>}
+    {health && <p className="text-xs" role="status">{t('最近云端手动更新')} · {health.market || '—'} · {health.status} · {health.completed_at || health.started_at} · {health.success ?? health.processed ?? 0}/{health.total ?? '—'}
+      {['failed', 'degraded'].includes(health.status) && <> · {t('手动更新存在失败项，已保留上次成功数据')}</>}</p>}
     {notice && <p role="status" className="text-sm">{t(notice)}</p>}
     {rows.filter(row=>row.inactive).map(row=><p key={row.ticker} className="text-xs"><a className="underline" href={row.inactive.source} target="_blank" rel="noopener noreferrer">{row.ticker} · {t('已停止交易')} · {row.inactive.effective_at}</a></p>)}
     {rows.length > 0 && <><p role="status" className="text-xs">{t('本轮已获取')} {rows.filter(x=>x.status==='success').length} / {rows.length} · {t('获取失败')} {rows.filter(x=>x.status==='failed').length}</p>

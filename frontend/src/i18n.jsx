@@ -91,6 +91,10 @@ const toTW = (text) => {
 
 // ─── English Translation Dictionary ─────────────────────────
 const EN = {
+  '仅手动更新：页面按钮更新本机快照，运行期间请勿关闭页面；云端更新需在 GitHub 点击 Run workflow，结果供各设备读取。': 'Manual updates only. Page buttons update this browser; keep the page open. For a shared cloud update, click Run workflow on GitHub.',
+  '打开云端手动更新（GitHub）': 'Open manual cloud refresh (GitHub)',
+  '最近云端手动更新': 'Last manual cloud refresh',
+  '手动更新存在失败项，已保留上次成功数据': 'Manual refresh has failures; last successful data is retained.',
   '刷新日线快照': 'Refresh daily snapshot',
   '日线快照不可用，当前显示旧行情，日期与来源未统一': 'Daily snapshot unavailable. Legacy quotes are shown; dates and sources are not unified.',
   '获取时间': 'Retrieved at',
