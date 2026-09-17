@@ -51,7 +51,16 @@ const publishedTickers=new Set(expected.rows.map(row=>row.ticker));
 if(STOCKS.some(stock=>!publishedTickers.has(stock.ticker)))throw new Error('Snapshot omits a published universe ticker');
 if(beforeFavorites?.some(ticker=>!publishedTickers.has(ticker)))throw new Error('Snapshot omits a current server favorite');
 const published=await request(snapshotPath);
-if(published.status!==200||JSON.stringify(published.body.data)!==JSON.stringify(expected))throw new Error('Published universe snapshot mismatch');
+if(published.status!==200 || published.body.data?.timeframe!=='1D')throw new Error('Published universe snapshot unavailable');
+const actualRows = new Map(published.body.data.rows.map(row=>[row.ticker,row]));
+for(const row of expected.rows) {
+  const actual=actualRows.get(row.ticker);
+  if(!actual || actual.status!==row.status)throw new Error('Published universe coverage mismatch');
+  if(row.status==='success') {
+    const snap=dailySummary({...actual.snapshot,bars:[actual.snapshot?.bar]});
+    if(snap.resolved_symbol!==row.snapshot.resolved_symbol || snap.bar.time<row.snapshot.bar.time || Date.parse(snap.received_at)<Date.parse(row.snapshot.received_at))throw new Error('Published universe regressed');
+  }
+}
 for(const row of expected.rows) {
   if(row.status==='success')dailySummary({...row.snapshot,bars:[row.snapshot.bar]});
   else if(row.status!=='inactive'||!DAILY_INACTIVE[row.ticker]||row.effective_at!==DAILY_INACTIVE[row.ticker].effective_at)throw new Error('Published active universe contains an unresolved daily row');

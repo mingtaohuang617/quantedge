@@ -1,12 +1,19 @@
 import { readFile } from 'node:fs/promises';
 import { requireOrigin, requireSession, sendError } from './auth.js';
+import { kvGetJson } from './kv.js';
+import { DAILY_LIVE_KEY, DAILY_HEALTH_KEY, mergeDailyReleases } from '../../src/lib/dailyRefresh.js';
 
 // Private release snapshot: never put provider data or favorites in public/ assets.
 export async function readDailySnapshot() {
   return JSON.parse(await readFile(new URL('./daily-data/snapshot.json', import.meta.url), 'utf8'));
 }
 
-export default async function dailySnapshots(req, res, load = readDailySnapshot) {
+export async function readCurrentDailySnapshot() {
+  const [baseline, live, health] = await Promise.all([readDailySnapshot(), kvGetJson(DAILY_LIVE_KEY), kvGetJson(DAILY_HEALTH_KEY)]);
+  return { ...mergeDailyReleases(baseline, live), ...(health ? { refresh_health: health } : {}) };
+}
+
+export default async function dailySnapshots(req, res, load = readCurrentDailySnapshot) {
   res.setHeader('Cache-Control', 'private, no-store, max-age=0');
   if (!requireOrigin(req, res) || !requireSession(req, res)) return;
   if (req.method !== 'GET') {

@@ -91,6 +91,18 @@ const toTW = (text) => {
 
 // ─── English Translation Dictionary ─────────────────────────
 const EN = {
+  '仅手动更新：页面按钮更新本机快照，运行期间请勿关闭页面；云端更新需在 GitHub 点击 Run workflow，结果供各设备读取。': 'Manual updates only. Page buttons update this browser; keep the page open. For a shared cloud update, click Run workflow on GitHub.',
+  '打开云端手动更新（GitHub）': 'Open manual cloud refresh (GitHub)',
+  '最近云端手动更新': 'Last manual cloud refresh',
+  '手动更新存在失败项，已保留上次成功数据': 'Manual refresh has failures; last successful data is retained.',
+  '刷新日线快照': 'Refresh daily snapshot',
+  '日线快照不可用，当前显示旧行情，日期与来源未统一': 'Daily snapshot unavailable. Legacy quotes are shown; dates and sources are not unified.',
+  '获取时间': 'Retrieved at',
+  '日线当日未收盘时仍会变化；美股为 Cboe，其他市场可能延迟': 'An open daily candle may change. US source: Cboe; other markets may be delayed.',
+  '日线数据已过期或交易日较旧，请核对休市、停牌及更新状态': 'Daily data is stale or the trading date is old. Check holidays, suspensions and refresh status.',
+  '评分仍使用原有输入，尚未按这份日线重算；历史图表另用 Yahoo 日线': 'Scores retain their original inputs and have not been recalculated from this snapshot. Historical charts use Yahoo daily-or-coarser bars.',
+  '自动更新存在失败项，已保留上次成功数据': 'Automatic refresh has failures. Last successful data is retained.',
+  '最近自动更新': 'Last automatic refresh',
   '标的代码': 'Symbol',
 "未读取到星标名单，未开始更新": "No favorites list was found; update has not started",
   "浏览器存储不足，本轮结果仅保留在页面": "Browser storage is full; results remain on this page only",

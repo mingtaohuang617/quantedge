@@ -4,7 +4,7 @@
 
 19 个星标的生产日线验收已在 [PR #332 对应发布流程](https://github.com/mingtaohuang617/quantedge/actions/runs/35087647620) 通过，生产登录与行情凭据授权已完成。下方 2026-09-15 的“未发布、未授权、未取得名单”等文字是带日期的历史排障记录，不代表当前状态。全股票池实现见文末“全股票池日线快照”；实际发布结果以对应 CI 记录为准。
 
-本轮仍仅提供 1D 数据和同周期指标，不自动覆盖财报、评分或回测输入。服务端发布快照是有明确采集日期的一次批量结果；逐只按需刷新仍可用，但没有新增每日定时采集任务。
+当前代码仅提供 1D 行情和同周期指标，不自动覆盖财报、评分或回测输入。[PR #335](https://github.com/mingtaohuang617/quantedge/pull/335) 增加评分页行情展示叠加和云端手动刷新。2026-09-17 用户明确取消定时更新：没有 schedule、后台定时采集或 Codex 异常检查计划。是否已部署及手动任务是否成功，以 CI / Daily market refresh 实际运行记录为准。
 
 ## 历史排障记录（2026-09-15）
 
@@ -107,3 +107,15 @@ node --env-file='C:/path/to/tradingview-test/.env' scripts/test-tradingview-live
 - CI 对发布快照逐项验证，并比较整个线上快照与构建输入一致；保留原有 19 星标在线测试，新增 3 个日本股票实测。
 - 发布统一走现有 GitHub Actions 预构建通道。`vercel.json` 关闭旁路 Git 自动部署，避免未恢复加密快照、未通过门禁的版本抢先覆盖正式站；没有断开 GitHub 连接或改变账户权限。
 - 本节是实现说明，不代表全量采集或生产发布已经完成。实际结果见当次验收记录。
+## 2026-09-16：评分页日线展示与云端刷新
+
+- 评分页在原评分计算之后叠加日线价格、前收盘价计算的涨跌幅、RSI/MACD；不改财报、评分公式、评分输入或回测数据。评分仍显示原行情日期，明确尚未按新快照重算。
+- 日线研究与评分页读取同一个已认证 daily-snapshots 接口。日线缺失时旧行情明确标注；停止交易不显示旧价为现价；没有前收盘价时涨跌幅留空。
+- 历史图表仍由 Yahoo 提供，已注明不同来源。评分页移除分时/五日入口，保留日线及更粗粒度历史范围，不伪造超过 100 根的 TradingView 历史。
+- Daily market refresh 工作流仅接受 workflow_dispatch 手动触发，不按时间运行。打开日线研究页的“打开云端手动更新（GitHub）”，登录仓库账户后点击 Run workflow，选择 main 和 all / asia / us。云端结果跨设备共用；页面原有按钮逐只更新当前浏览器，期间应保持页面打开。评分页“刷新日线快照”仅重新读取已保存结果，不启动全量采集。
+- 云端复用已有生产 KV，仅新增 qe:market:daily:v1 和 qe:market:daily:health:v1 两个键，不修改星标、权限、财报或生产密钥。无数据库迁移、无新增付费资源。
+- 每次请求仅 1D，最少间隔 6 秒，单标的最多三次尝试，连续五个标的均失败时提前退出。每 20 个处理结果保存经过验证的数据；失败保留旧值及其日期，运行失败在 Actions 和页面状态中可见。
+- 数据获取超过 36 小时或 K 线超过 7 天会提示检查；休市/停牌不自动补价格，也不把“获取成功”当成“当日有交易”。通知邮件取决于 GitHub 用户通知设置。
+- 发布包保留私有静态基线作为存储不可用时的回退，不再要求生产快照与旧基线逐字节相同，而是验证覆盖、来源、时间不倒退。云端运行不上传行情文件或凭据到公开 CI artifacts。
+
+调度与通知依据：[GitHub scheduled events](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule)、[GitHub workflow notifications](https://docs.github.com/en/actions/concepts/workflows-and-actions/notifications-for-workflow-runs)。

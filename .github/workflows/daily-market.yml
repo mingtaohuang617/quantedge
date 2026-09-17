@@ -1,0 +1,53 @@
+name: Daily market refresh
+on:
+  workflow_dispatch:
+    inputs:
+      market:
+        type: choice
+        options: [all, asia, us]
+        default: all
+        description: Daily market batch
+permissions:
+  contents: read
+concurrency:
+  group: daily-market-refresh
+  cancel-in-progress: false
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 110
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --no-audit --no-fund
+        working-directory: frontend
+      - run: npm install --global vercel@59.9.1
+      - name: Read existing production storage configuration
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+      - name: Restore private baseline
+        env:
+          QUANTEDGE_DAILY_SNAPSHOT_1: ${{ secrets.QUANTEDGE_DAILY_SNAPSHOT_1 }}
+          QUANTEDGE_DAILY_SNAPSHOT_2: ${{ secrets.QUANTEDGE_DAILY_SNAPSHOT_2 }}
+          QUANTEDGE_DAILY_SNAPSHOT_3: ${{ secrets.QUANTEDGE_DAILY_SNAPSHOT_3 }}
+          QUANTEDGE_DAILY_SNAPSHOT_4: ${{ secrets.QUANTEDGE_DAILY_SNAPSHOT_4 }}
+        run: node frontend/scripts/restore-daily-snapshot.mjs
+      - name: Refresh validated daily records
+        env:
+          TV_SESSION: ${{ secrets.QUANTEDGE_TV_SESSION }}
+          TV_SIGNATURE: ${{ secrets.QUANTEDGE_TV_SIGNATURE }}
+          REQUESTED_MARKET: ${{ inputs.market }}
+        shell: bash
+        run: |
+          market="${REQUESTED_MARKET:-all}"
+          node --env-file=.vercel/.env.production.local frontend/scripts/refresh-daily-market.mjs "$market"
+      - name: Failure notice
+        if: failure()
+        run: echo '::error::Daily refresh did not complete. Last successful rows remain available with original timestamps. Inspect the authenticated daily research page.'

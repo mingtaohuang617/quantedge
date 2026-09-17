@@ -13,7 +13,7 @@ const rows=report.results.map(row=>{
   seen.add(row.ticker);
   if(DAILY_INACTIVE[row.ticker])return {ticker:row.ticker,status:'inactive',...DAILY_INACTIVE[row.ticker]};
   if(row.status!=='success')return {ticker:row.ticker,status:row.status==='unsupported'?'unsupported':'failed',error:row.error||'unsupported_symbol'};
-  const snapshot=dailySummary({...row.snapshot,bars:[row.snapshot?.bar]});
+  const snapshot=dailySummary({...row.snapshot,bars:row.bars || [row.snapshot?.bar]});
   if(snapshot.resolved_symbol.replace('_DLY:',':')!==dailySymbol(row.ticker))throw new Error(`Resolved symbol mismatch: ${row.ticker}`);
   const bars=row.bars;
   if(!Array.isArray(bars)||bars.length<2||bars.length>100)throw new Error(`Invalid history: ${row.ticker}`);
