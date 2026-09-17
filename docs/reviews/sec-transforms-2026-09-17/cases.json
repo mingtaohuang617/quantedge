@@ -1,0 +1,293 @@
+{
+  "duration_case": {
+    "concept": "NetIncomeLoss",
+    "unit": "USD",
+    "start": "2024-01-29",
+    "end": "2024-04-28",
+    "value": "14881000000",
+    "available_at": "2024-08-29T00:00:00-04:00",
+    "source_accession": "0001045810-24-000264",
+    "source_contexts": [
+      {
+        "cik": "0001045810",
+        "taxonomy": "us-gaap",
+        "concept": "NetIncomeLoss",
+        "unit": "USD",
+        "start": "2024-01-29",
+        "end": "2024-07-28",
+        "value": 31480000000,
+        "accession": "0001045810-24-000264",
+        "form": "10-Q",
+        "filed": "2024-08-28",
+        "accepted_at": "2024-08-28T21:05:08+00:00",
+        "available_at": "2024-08-29T00:00:00-04:00",
+        "primary_document": "nvda-20240728.htm",
+        "source": "https://www.sec.gov/Archives/edgar/data/1045810/000104581024000264/nvda-20240728.htm",
+        "status": "filing_linked_candidate",
+        "original_check": "matched",
+        "original_facts": [
+          {
+            "concept": "NetIncomeLoss",
+            "unit": "USD",
+            "start": "2024-01-29",
+            "end": "2024-07-28",
+            "value": "31480000000",
+            "context_id": "c-1",
+            "fact_id": "f-84",
+            "decimals": "-6"
+          },
+          {
+            "concept": "NetIncomeLoss",
+            "unit": "USD",
+            "start": "2024-01-29",
+            "end": "2024-07-28",
+            "value": "31480000000",
+            "context_id": "c-1",
+            "fact_id": "f-104",
+            "decimals": "-6"
+          },
+          {
+            "concept": "NetIncomeLoss",
+            "unit": "USD",
+            "start": "2024-01-29",
+            "end": "2024-07-28",
+            "value": "31480000000",
+            "context_id": "c-1",
+            "fact_id": "f-256",
+            "decimals": "-6"
+          },
+          {
+            "concept": "NetIncomeLoss",
+            "unit": "USD",
+            "start": "2024-01-29",
+            "end": "2024-07-28",
+            "value": "31480000000",
+            "context_id": "c-1",
+            "fact_id": "f-312",
+            "decimals": "-6"
+          },
+          {
+            "concept": "NetIncomeLoss",
+            "unit": "USD",
+            "start": "2024-01-29",
+            "end": "2024-07-28",
+            "value": "31480000000",
+            "context_id": "c-1",
+            "fact_id": "f-459",
+            "decimals": "-6"
+          }
+        ]
+      },
+      {
+        "cik": "0001045810",
+        "taxonomy": "us-gaap",
+        "concept": "NetIncomeLoss",
+        "unit": "USD",
+        "start": "2024-04-29",
+        "end": "2024-07-28",
+        "value": 16599000000,
+        "accession": "0001045810-24-000264",
+        "form": "10-Q",
+        "filed": "2024-08-28",
+        "accepted_at": "2024-08-28T21:05:08+00:00",
+        "available_at": "2024-08-29T00:00:00-04:00",
+        "primary_document": "nvda-20240728.htm",
+        "source": "https://www.sec.gov/Archives/edgar/data/1045810/000104581024000264/nvda-20240728.htm",
+        "status": "filing_linked_candidate",
+        "original_check": "matched",
+        "original_facts": [
+          {
+            "concept": "NetIncomeLoss",
+            "unit": "USD",
+            "start": "2024-04-29",
+            "end": "2024-07-28",
+            "value": "16599000000",
+            "context_id": "c-3",
+            "fact_id": "f-82",
+            "decimals": "-6"
+          },
+          {
+            "concept": "NetIncomeLoss",
+            "unit": "USD",
+            "start": "2024-04-29",
+            "end": "2024-07-28",
+            "value": "16599000000",
+            "context_id": "c-3",
+            "fact_id": "f-102",
+            "decimals": "-6"
+          },
+          {
+            "concept": "NetIncomeLoss",
+            "unit": "USD",
+            "start": "2024-04-29",
+            "end": "2024-07-28",
+            "value": "16599000000",
+            "context_id": "c-3",
+            "fact_id": "f-195",
+            "decimals": "-6"
+          },
+          {
+            "concept": "NetIncomeLoss",
+            "unit": "USD",
+            "start": "2024-04-29",
+            "end": "2024-07-28",
+            "value": "16599000000",
+            "context_id": "c-3",
+            "fact_id": "f-457",
+            "decimals": "-6"
+          }
+        ]
+      }
+    ],
+    "method": "same_filing_duration_difference",
+    "strict_pit_eligible": false,
+    "earlier_original_value": 14881000000,
+    "earlier_original_available_at": "2024-05-30T00:00:00-04:00",
+    "agrees_with_earlier_original": true
+  },
+  "eps_case": {
+    "original_value": "5.98",
+    "aligned_value": "0.598",
+    "factor": "0.1",
+    "period_start": "2024-01-29",
+    "period_end": "2024-04-28",
+    "source_record": {
+      "cik": "0001045810",
+      "taxonomy": "us-gaap",
+      "concept": "EarningsPerShareDiluted",
+      "unit": "USD/shares",
+      "start": "2024-01-29",
+      "end": "2024-04-28",
+      "value": 5.98,
+      "accession": "0001045810-24-000124",
+      "form": "10-Q",
+      "filed": "2024-05-29",
+      "accepted_at": "2024-05-29T20:36:32+00:00",
+      "available_at": "2024-05-30T00:00:00-04:00",
+      "primary_document": "nvda-20240428.htm",
+      "source": "https://www.sec.gov/Archives/edgar/data/1045810/000104581024000124/nvda-20240428.htm",
+      "status": "filing_linked_candidate",
+      "original_check": "matched",
+      "original_facts": [
+        {
+          "concept": "EarningsPerShareDiluted",
+          "unit": "USD/shares",
+          "start": "2024-01-29",
+          "end": "2024-04-28",
+          "value": "5.98",
+          "context_id": "c-1",
+          "fact_id": "f-60",
+          "decimals": "2"
+        },
+        {
+          "concept": "EarningsPerShareDiluted",
+          "unit": "USD/shares",
+          "start": "2024-01-29",
+          "end": "2024-04-28",
+          "value": "5.98",
+          "context_id": "c-1",
+          "fact_id": "f-321",
+          "decimals": "2"
+        }
+      ]
+    },
+    "source_basis": {
+      "cik": "0001045810",
+      "split_ids": [],
+      "evidence": "https://www.sec.gov/Archives/edgar/data/1045810/000104581024000124/nvda-20240428.htm"
+    },
+    "target_basis": {
+      "cik": "0001045810",
+      "split_ids": [
+        "NVDA-2024-06-10-10for1"
+      ],
+      "evidence": "https://www.sec.gov/Archives/edgar/data/1045810/000104581024000144/nvda-20240607.htm"
+    },
+    "events": [
+      {
+        "id": "NVDA-2024-06-10-10for1",
+        "cik": "0001045810",
+        "ratio": 10,
+        "known_at": "2024-06-08T00:00:00-04:00",
+        "effective_at": "2024-06-10T09:30:00-04:00",
+        "source": "https://www.sec.gov/Archives/edgar/data/1045810/000104581024000144/nvda-20240607.htm",
+        "date_basis": "First split-adjusted trading session; known_at is conservative next-day use of June 7 filing, not first announcement"
+      }
+    ],
+    "strict_pit_eligible": false,
+    "valuation_ready": false,
+    "limitation": "Share-unit conversion only; quarterly EPS is not TTM EPS; event-list completeness requires review"
+  },
+  "revision_queries": [
+    {
+      "as_of": "2021-05-14T12:00:00-04:00",
+      "fact": {
+        "cik": "0001093691",
+        "taxonomy": "us-gaap",
+        "concept": "NetIncomeLoss",
+        "unit": "USD",
+        "start": "2019-01-01",
+        "end": "2019-12-31",
+        "value": -85465000,
+        "accession": "0001558370-20-002267",
+        "form": "10-K",
+        "filed": "2020-03-10",
+        "accepted_at": "2020-03-10T01:56:15+00:00",
+        "available_at": "2020-03-11T00:00:00-04:00",
+        "primary_document": "plug-20191231x10k.htm",
+        "source": "https://www.sec.gov/Archives/edgar/data/1093691/000155837020002267/plug-20191231x10k.htm",
+        "status": "filing_linked_candidate"
+      },
+      "original_check": "matched"
+    },
+    {
+      "as_of": "2021-05-15T12:00:00-04:00",
+      "fact": {
+        "cik": "0001093691",
+        "taxonomy": "us-gaap",
+        "concept": "NetIncomeLoss",
+        "unit": "USD",
+        "start": "2019-01-01",
+        "end": "2019-12-31",
+        "value": -83743000,
+        "accession": "0001558370-21-007147",
+        "form": "10-K",
+        "filed": "2021-05-14",
+        "accepted_at": "2021-05-14T10:20:25+00:00",
+        "available_at": "2021-05-15T00:00:00-04:00",
+        "primary_document": "plug-20201231x10k.htm",
+        "source": "https://www.sec.gov/Archives/edgar/data/1093691/000155837021007147/plug-20201231x10k.htm",
+        "status": "filing_linked_candidate"
+      },
+      "original_check": "matched"
+    },
+    {
+      "as_of": "2022-03-15T12:00:00-04:00",
+      "fact": {
+        "cik": "0001093691",
+        "taxonomy": "us-gaap",
+        "concept": "NetIncomeLoss",
+        "unit": "USD",
+        "start": "2019-01-01",
+        "end": "2019-12-31",
+        "value": -83743000,
+        "accession": "0001558370-22-003577",
+        "form": "10-K/A",
+        "filed": "2022-03-14",
+        "accepted_at": "2022-03-14T21:30:04+00:00",
+        "available_at": "2022-03-15T00:00:00-04:00",
+        "primary_document": "plug-20201231x10ka.htm",
+        "source": "https://www.sec.gov/Archives/edgar/data/1093691/000155837022003577/plug-20201231x10ka.htm",
+        "status": "filing_linked_candidate"
+      },
+      "original_check": "matched"
+    }
+  ],
+  "strict_pit_eligible": false,
+  "model_change_allowed": false,
+  "limitations": [
+    "Selected cases only, no complete revision or split-chain certification",
+    "Non-reliance notices and earlier earnings releases not yet modeled",
+    "Quarterly EPS is not a TTM valuation denominator"
+  ]
+}

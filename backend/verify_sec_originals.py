@@ -3,6 +3,7 @@ import argparse
 import hashlib
 import json
 import re
+from html.entities import html5
 from collections import Counter, defaultdict
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
@@ -33,7 +34,7 @@ def numeric(element):
         uri, name = qualified(element, fmt)
         if not uri.startswith('http://www.xbrl.org/inlineXBRL/transformation/'):
             raise ValueError('Unsupported transformation namespace')
-        if name not in ('num-dot-decimal', 'fixed-zero'):
+        if name not in ('num-dot-decimal', 'numdotdecimal', 'fixed-zero'):
             raise ValueError('Unsupported transformation')
     else:
         name = None
@@ -43,7 +44,7 @@ def numeric(element):
     if name == 'fixed-zero':
         value = Decimal(0)
     else:
-        if name == 'num-dot-decimal':
+        if name in ('num-dot-decimal', 'numdotdecimal'):
             if not re.fullmatch(r'(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?', text):
                 raise ValueError('Invalid decimal transformation input')
             text = text.replace(',', '')
@@ -57,6 +58,18 @@ def numeric(element):
 
 
 def parse_original(html, cik):
+    if re.search(r'<!\s*(?:DOCTYPE|ENTITY)\b', html, re.I):
+        raise ValueError('DTD/entity declarations not supported')
+    # Older issuer XHTML uses standard HTML named entities. Resolve only this
+    # fixed local table; never fetch a DTD or recover malformed XML silently.
+    def entity(match):
+        name = match[1]
+        if name in ('amp', 'lt', 'gt', 'apos', 'quot'):
+            return match[0]
+        if name + ';' not in html5:
+            raise ValueError('Unknown named entity')
+        return ''.join(f'&#{ord(c)};' for c in html5[name + ';'])
+    html = re.sub(r'&([A-Za-z][A-Za-z0-9]+);', entity, html)
     parser = etree.XMLParser(resolve_entities=False, no_network=True, load_dtd=False)
     root = etree.fromstring(html.encode('utf-8'), parser)
     if root.getroottree().docinfo.internalDTD or root.getroottree().docinfo.externalDTD:
@@ -108,10 +121,17 @@ def parse_original(html, cik):
         except (ValueError, AttributeError):
             continue
     records = []
-    for fact in root.iter(f'{{{IX}}}nonFraction'):
+    instance = root.tag == f'{{{X}}}xbrl'
+    facts = list(root) if instance else root.iter(f'{{{IX}}}nonFraction')
+    for fact in facts:
         try:
-            uri, concept = qualified(fact, fact.get('name', ''))
-            if not re.fullmatch(r'https?://fasb.org/us-gaap/\d{4}', uri) or concept not in TAGS:
+            if not isinstance(fact.tag, str):
+                continue
+            if instance:
+                uri, concept = etree.QName(fact).namespace, etree.QName(fact).localname
+            else:
+                uri, concept = qualified(fact, fact.get('name', ''))
+            if not re.fullmatch(r'https?://fasb.org/us-gaap/\d{4}(?:-\d{2}-\d{2})?', uri or '') or concept not in TAGS:
                 continue
             context, unit = contexts.get(fact.get('contextRef')), units.get(fact.get('unitRef'))
             if context is None or unit is None:
@@ -153,10 +173,12 @@ def main():
     for entry in collection:
         payload, manifest = read_evidence(Path(entry['folder']))
         candidates = [r for r in bundle['records'] if r['accession'] == entry['accession']]
+        primary_url = entry.get('primary_url', entry['url'])
         if (not candidates or manifest['request']['accession'] != entry['accession']
-                or manifest['request']['url'] != entry['url'] or any(r['source'] != entry['url'] for r in candidates)):
+                or manifest['request']['url'] != entry['url'] or any(r['source'] != primary_url for r in candidates)
+                or entry['url'].rsplit('/', 1)[0] != primary_url.rsplit('/', 1)[0]):
             raise ValueError('Original/candidate accession or URL mismatch')
-        rows, issues = parse_original(payload['html'], bundle['cik'])
+        rows, issues = parse_original(payload.get('html', payload.get('xml')), bundle['cik'])
         checks = compare(candidates, rows)
         results.append({'accession': entry['accession'], 'evidence': manifest, 'issues': issues,
                         'counts': dict(Counter(r['original_check'] for r in checks)), 'checks': checks})

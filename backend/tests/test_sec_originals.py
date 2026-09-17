@@ -79,3 +79,17 @@ def test_duplicate_context_and_dtd_are_rejected():
         parse(html.replace('</html>', context + '</html>'))
     with pytest.raises(ValueError):
         parse('<!DOCTYPE html [<!ENTITY bad "123">]>' + html)
+
+
+def test_old_taxonomy_transform_and_local_html_entity():
+    html = document('1,234&nbsp;', 'scale="3" format="ixt:numdotdecimal"')
+    html = html.replace('http://fasb.org/us-gaap/2024', 'http://fasb.org/us-gaap/2020-01-31')
+    assert parse(html)[0][0]['value'] == '1234000'
+
+
+def test_traditional_instance_uses_explicit_value_without_scale_inference():
+    html = document('-51522000', '')
+    html = html.replace('<html ', '<x:xbrl ').replace('</html>', '</x:xbrl>')
+    html = html.replace('<ix:nonFraction name="us-gaap:NetIncomeLoss"', '<us-gaap:NetIncomeLoss')
+    html = html.replace('</ix:nonFraction>', '</us-gaap:NetIncomeLoss>')
+    assert parse(html)[0][0]['value'] == '-51522000'
