@@ -6,6 +6,8 @@ const request = (query = {}, authenticated = true) => ({ method: 'GET', query, h
 beforeEach(() => { vi.stubEnv('QUANTEDGE_SESSION_SECRET', 'test-tradingview-session-secret-32-characters'); vi.stubEnv('QUANTEDGE_TRADINGVIEW_ENABLED','1'); vi.stubEnv('TV_SESSION','secret-token'); vi.stubEnv('TV_SIGNATURE','secret-signature'); });
 afterEach(() => vi.unstubAllEnvs());
 it('validates exchange, timeframe and rejects injection', () => {
+  expect(parseTradingViewQuery({symbol:'TSE:8035'})).toEqual({symbol:'TSE:8035',timeframe:'1D'});
+  expect(parseTradingViewQuery({symbol:'TSE:7203',timeframe:'60'})).toBeNull();
   expect(parseTradingViewQuery({symbol:'KRX:000660'})).toEqual({symbol:'KRX:000660',timeframe:'1D'});
   expect(parseTradingViewQuery({symbol:'KRX:005930',timeframe:'60'})).toBeNull();
   expect(parseTradingViewQuery({symbol:'hkex:700'})).toEqual({symbol:'HKEX:700',timeframe:'1D'});

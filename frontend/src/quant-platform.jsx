@@ -884,6 +884,7 @@ export const safeChange = (v) => {
   return typeof v === "number" ? v : parseFloat(v) || 0;
 };
 export const fmtChange = (v) => {
+  if (v == null || !isFinite(v)) return '—';
   const n = safeChange(v);
   return n.toFixed(2);
 };

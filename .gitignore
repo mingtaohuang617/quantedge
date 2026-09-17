@@ -29,3 +29,4 @@ files.zip
 quant-pipeline.tar.gz
 backend/data/
 frontend/api/_lib/tradingview-runtime/
+frontend/api/_lib/daily-data/
