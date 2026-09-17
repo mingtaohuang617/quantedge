@@ -155,7 +155,28 @@ def compare(candidates, originals):
         values = {Decimal(m['value']) for m in matches}
         status = ('missing_original_context' if not values else 'ambiguous_original_context' if len(values) > 1
                   else 'matched' if row['value'] is not None and Decimal(str(row['value'])) in values else 'value_mismatch')
-        checks.append({**row, 'original_check': status, 'original_facts': matches})
+        rounding = []
+        if status == 'ambiguous_original_context' and row['value'] is not None:
+            candidate = Decimal(str(row['value']))
+            try:
+                for m in matches:
+                    d = m.get('decimals')
+                    if d == 'INF':
+                        radius = Decimal(0)
+                    elif re.fullmatch(r'-?\d+', d or '') and abs(int(d)) <= 18:
+                        radius = Decimal('0.5') * Decimal(10) ** -int(d)
+                    else:
+                        raise ValueError('Missing/unsupported decimals')
+                    value = Decimal(m['value'])
+                    rounding.append({'fact_id': m.get('fact_id'), 'decimals': d,
+                                     'lower': str(value - radius), 'upper': str(value + radius)})
+                # Require an exact reported value, plus compatibility with EVERY
+                # original's declared accuracy interval. Never choose an average.
+                if candidate in values and all(Decimal(r['lower']) <= candidate <= Decimal(r['upper']) for r in rounding):
+                    status = 'matched_with_rounding'
+            except (ValueError, InvalidOperation):
+                pass
+        checks.append({**row, 'original_check': status, 'original_facts': matches, 'rounding_intervals': rounding})
     return checks
 
 
@@ -188,7 +209,7 @@ def main():
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding='utf-8')
     print(json.dumps([{'accession': r['accession'], 'counts': r['counts'], 'issues': r['issues']} for r in results]))
-    return 0 if all(r['original_check'] == 'matched' for f in results for r in f['checks']) else 2
+    return 0 if all(r['original_check'] in ('matched', 'matched_with_rounding') for f in results for r in f['checks']) else 2
 
 
 if __name__ == '__main__':

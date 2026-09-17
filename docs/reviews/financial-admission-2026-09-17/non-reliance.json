@@ -1,0 +1,27 @@
+[
+  {
+    "cik": "0001093691",
+    "known_at": "2021-03-16T20:52:21+00:00",
+    "decision_date": "2021-03-12",
+    "source": "https://www.sec.gov/Archives/edgar/data/1093691/000110465921037184/tm219753d1_8k.htm",
+    "evidence_folder": "C:\\Users\\Minto\\Downloads\\自研量化投资平台\\release\\scoring-v32\\backend\\data\\sec_filing_evidence\\eb4caeda428ff8072da3dbba3a8ed12bc7e8a4ffb50d47cdb57f4d9b5f3b8371",
+    "affected_period_ends": [
+      "2018-12-31",
+      "2019-03-31",
+      "2019-06-30",
+      "2019-09-30",
+      "2019-12-31",
+      "2020-03-31",
+      "2020-06-30",
+      "2020-09-30",
+      "2020-12-31"
+    ],
+    "replacement_accessions": [
+      "0001558370-21-007147",
+      "0001558370-22-003577"
+    ],
+    "review_scope": "Selected notice and original-verified replacements only; no claim of full notice coverage",
+    "accession": "0001104659-21-037184",
+    "acceptance_evidence_folder": "C:\\Users\\Minto\\Downloads\\自研量化投资平台\\release\\scoring-v32\\backend\\data\\sec_evidence\\37cfd03393bc74fa94e39f047e90dc6cfbac36679e0ee5997f5d2048b3219716"
+  }
+]
