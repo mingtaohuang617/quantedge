@@ -91,6 +91,10 @@ const toTW = (text) => {
 
 // ─── English Translation Dictionary ─────────────────────────
 const EN = {
+  '验证状态：实验性研究，尚未通过完整样本外验证。': 'Validation: experimental research; full out-of-sample validation is pending.',
+  '数据覆盖率表示可计算的输入比例，不是准确率或上涨概率。': 'Coverage measures available inputs, not accuracy or the probability of a price rise.',
+  '资产分类尚缺一手来源核验。': 'Asset classification still requires primary-source verification.',
+  '发行商本次响应缺少有效价差观测': 'The current issuer response has no valid spread observation',
   '标的代码': 'Symbol',
 "未读取到星标名单，未开始更新": "No favorites list was found; update has not started",
   "浏览器存储不足，本轮结果仅保留在页面": "Browser storage is full; results remain on this page only",

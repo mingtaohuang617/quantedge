@@ -11,6 +11,15 @@ const fixture = () => ({
   ].map(([key, value, unit]) => [key, { value, unit, asOf: '2026-09-14', source: 'https://example.com/fund', method: 'sample_std_daily_difference', fundBasis: 'nav_total_return', observations: 30, targetMultiple: 3, benchmark: 'Test Index' }])),
 });
 describe('separate asset assessments', () => {
+  it('does not advance an explicit historical evaluation date to a current observation', () => {
+    const s = fixture(); s.evaluationAsOf = '2024-01-01'; s.productDataAsOf = '2026-09-16';
+    expect(productAssessment(s).coverage).toBe(0);
+    expect(productAssessment(s).asOf).toBe('2024-01-01');
+    const result = scoreUniverse([{ ticker: 'TQQQ', evaluationAsOf: '2024-01-01', isETF: true, underlyingType: 'index', leverage: '3x' }])[0];
+    expect(result.productMetrics).toBeUndefined();
+    expect(result.scoring.validation.predictiveStatus).toBe('not_validated');
+    expect(scoreUniverse([{ ticker: 'SOXS', evaluationAsOf: '2024-01-01' }])[0].classificationSource).toBeUndefined();
+  });
   it('rejects expired fee waivers and observations unavailable at the evaluation time', () => {
     const s = fixture();
     s.productMetrics.expenseRatio.validThrough = '2026-09-14';

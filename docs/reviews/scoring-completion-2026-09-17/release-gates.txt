@@ -1,0 +1,5 @@
+
+> quantedge-frontend@0.8.0 check:release-gates
+> node scripts/check-ci-release-gates.mjs
+
+Release workflow gates are enforced.

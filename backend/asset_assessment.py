@@ -21,7 +21,7 @@ def day(value):
 
 def product_assessment(stock):
     dates = [d for d in (day(stock.get('scoring', {}).get('priceAsOf')), day(stock.get('productDataAsOf'))) if d is not None]
-    reference = max(dates) if dates else None
+    reference = day(stock['evaluationAsOf']) if stock.get('evaluationAsOf') else max(dates) if dates else None
     fields, missing, reasons = {}, [], {}
     metrics = stock.get('productMetrics')
     if not isinstance(metrics, dict):

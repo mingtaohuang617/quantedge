@@ -21,6 +21,7 @@ export default function ScoringProvenance({ stock, weights }) {
     {!stock.assetAssessment && <p className="mt-2">{t('质量覆盖 {q}% · 趋势覆盖 {v}%', { q: m?.qualityCoverage ?? 0, v: m?.timingCoverage ?? 0 })}</p>}
     <AssetAssessment stock={stock} />
     <p className="mt-1">{t('多月趋势描述，非买点或上涨概率')}</p>
+    <p data-testid="scoring-validation-status" className="mt-2" style={{ color: 'var(--warn)' }}>{t('验证状态：实验性研究，尚未通过完整样本外验证。')}</p>
     <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 mt-2">
       <div><dt className="inline">{t('评分行情截至')}：</dt><dd className="inline">{m?.priceAsOf || unknown}</dd></div>
       {stock.assetType === 'stock' && <div><dt className="inline">{t('财报期')}：</dt><dd className="inline">{m?.financialPeriod || unknown}</dd></div>}
@@ -31,6 +32,8 @@ export default function ScoringProvenance({ stock, weights }) {
     <details className="mt-2">
       <summary className="cursor-pointer" style={{ color: 'var(--indigo-2)' }}>{t('查看模型与数据限制')}</summary>
       <p className="mt-2 break-words">v{m?.version || unknown} · {m?.peerGroup || t('同类范围未知')}</p>
+      <p className="mt-1">{t('数据覆盖率表示可计算的输入比例，不是准确率或上涨概率。')}</p>
+      {m?.validation?.classificationStatus === 'needs_review' && <p className="mt-1" style={{ color: 'var(--warn)' }}>{t('资产分类尚缺一手来源核验。')}</p>}
       {counts.length > 0 && <p className="mt-1">{t('基本面各因子有效样本 {min}–{max} 个；不足 8 个不使用同类分位。', { min: Math.min(...counts), max: Math.max(...counts) })}</p>}
       {stock.leverageMultiple !== 1 && <p className="mt-1">{t('杠杆')} {stock.leverageMultiple ?? unknown} · {t(stock.direction === 'inverse' ? '反向' : '正向')} · {stock.underlyingSymbol || stock.benchmark || t('待核验')}</p>}
       {m?.qualityDeduction > 0 && <p className="mt-1">{t('杠杆封顶与波动磨损合计扣减 {n} 分', { n: m.qualityDeduction })}</p>}

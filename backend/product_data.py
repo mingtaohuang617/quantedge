@@ -17,9 +17,12 @@ def product_enrichment(stock):
     config = REGISTRY.get(stock.get('ticker'))
     if not config:
         return {}
+    as_of = stock.get('evaluationAsOf')
+    if as_of and config['metadata'].get('classificationVerifiedAt', '9999') > as_of:
+        return {}
     result = {**config['metadata'], 'classificationSource': config['source']}
     snapshot = _snapshot(SNAPSHOT.stat().st_mtime_ns) if SNAPSHOT.exists() else {}
     record = snapshot.get('products', {}).get(stock.get('ticker'))
-    if record and record['productDataAsOf'] >= (stock.get('productDataAsOf') or ''):
+    if record and (not as_of or record['productDataAsOf'] <= as_of) and record['productDataAsOf'] >= (stock.get('productDataAsOf') or ''):
         result.update(record)
     return result

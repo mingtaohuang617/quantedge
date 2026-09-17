@@ -2,6 +2,7 @@
 import policy from './scoring-policy.json' with { type: 'json' };
 import { attachAssessments } from './asset-assessment.js';
 import { productEnrichment } from './product-data.js';
+import { scoreValidation } from './score-validation.js';
 export const SCORE_VERSION = policy.version;
 export const ASSET_LABELS = { stock: '股票', index_etf: '指数 ETF', other_etf: '其他 ETF', leveraged_stock_etf: '单股杠杆 ETF', leveraged_index_etf: '指数杠杆 ETF', leveraged_other_etf: '其他杠杆 ETF', unclassified_etf: '待分类 ETF', crypto: '加密货币' };
 export const number = v => {
@@ -16,7 +17,9 @@ const mean = a => { const v = a.filter(x => x != null); return v.length ? v.redu
 const pct = (v, pool) => (pool.filter(x => x < v).length + .5 * pool.filter(x => x === v).length) / pool.length * 100;
 const weighted = (values, weights) => { const entries = Object.entries(weights).filter(([k]) => values[k] != null); const coverage = entries.reduce((s, [, w]) => s + w, 0); return [coverage ? entries.reduce((s, [k, w]) => s + values[k] * w, 0) / coverage : null, coverage]; };
 export function assetMetadata(s) {
-  const verified = { ...(policy.verifiedAssets?.[s.ticker] || {}), ...productEnrichment(s) };
+  let override = policy.verifiedAssets?.[s.ticker] || {};
+  if (s.evaluationAsOf && (override.classificationVerifiedAt || '9999') > s.evaluationAsOf) override = {};
+  const verified = { ...override, ...productEnrichment(s) };
   s = { ...s, ...verified };
   const crypto = s.assetType === 'crypto' || s.quoteType === 'CRYPTOCURRENCY' || s.market === 'CRYPTO' || /-(USD|USDT)$/.test(s.ticker || '');
   const leverage = number(String(s.leverage ?? '').toLowerCase().replace('x', ''));
@@ -62,7 +65,7 @@ export function reweightUniverse(stocks, weights) {
         coverage: s.scoring?.compositeEligible === false ? s.scoring.coverage : total > 0 ? round(((s.scoring?.qualityCoverage ?? 0) * weights.quality + (s.scoring?.timingCoverage ?? 0) * weights.timing) / total, 0) : 0 } };
   }).sort((a, b) => (b.score ?? -1) - (a.score ?? -1));
   const counts = {};
-  for (const s of result) { const key = `${s.assetType}/${s.market}/${s.direction}`; counts[key] = (counts[key] || 0) + 1; s.rank = s.score == null ? null : counts[key]; }
+  for (const s of result) { if (s.scoring) s.scoring.validation = scoreValidation(s); const key = `${s.assetType}/${s.market}/${s.direction}`; counts[key] = (counts[key] || 0) + 1; s.rank = s.score == null ? null : counts[key]; }
   return result;
 }
 const valAbs = (ey, by) => mean([ey == null ? null : ey >= .08 ? 85 : ey >= .05 ? 70 : ey >= .033 ? 55 : ey >= .0125 ? 40 : 25, by == null ? null : by >= .67 ? 80 : by >= .4 ? 65 : by >= .2 ? 50 : 35]) ?? 50;
@@ -112,7 +115,7 @@ export function scoreUniverse(stocks) {
     s.scoring = { version: SCORE_VERSION, status: s.score != null ? 'ready' : supported ? 'insufficient_data' : 'unsupported', coverage: supported ? round(100 * (.6 * coverage + .4 * tc), 0) : 0, qualityCoverage: supported ? round(100 * coverage, 0) : 0, timingCoverage: supported ? round(100 * tc, 0) : 0, peerGroup: `${s.market || 'unknown'} / ${kind} / ${group}`, factorPeerCounts: peers, momentumPeers: mp.length, priceAsOf: inp.priceAsOf || null, financialPeriod: s.financialPeriod || null, financialPublishedAt: s.financialPublishedAt || null, warnings, qualityDeduction: round(deduction), weights: policy.composite, horizon: '多月趋势描述，非买点或上涨概率' };
   }
   const result = attachAssessments(rows.map(r => r.s)).sort((a, b) => (b.score ?? -1) - (a.score ?? -1)), counts = {};
-  for (const s of result) { const key = `${s.assetType}/${s.market}/${s.direction}`; counts[key] = (counts[key] || 0) + 1; s.rank = s.score == null ? null : counts[key]; }
+  for (const s of result) { s.scoring.validation = scoreValidation(s); const key = `${s.assetType}/${s.market}/${s.direction}`; counts[key] = (counts[key] || 0) + 1; s.rank = s.score == null ? null : counts[key]; }
   return result;
 }
 

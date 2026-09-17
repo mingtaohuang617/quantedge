@@ -76,7 +76,8 @@ def issuer_observations(ticker, html, retrieved_at):
     elif config['parser'] == 'proshares':
         observed = parse_date(match(text, r'Price as of (\d+/\d+/\d{4})'))
         expense = float(match(text, r'Net Expense Ratio\s+([\d.]+)\s*%'))
-        spread = float(match(text, r'30-Day Median Bid Ask Spread\s+([\d.]+)\s*%'))
+        spread_match = re.search(r'30-Day Median Bid Ask Spread\s+([\d.]+)\s*%', text, re.I)
+        spread = float(spread_match.group(1)) if spread_match else None
         expiry = parse_date(match(text, r'fee waiver through ([A-Za-z]+ \d+, \d{4})'))
         # The fee has no separately published effective date. Record when observed, not a guessed date.
         expense_date, basis = retrieved_at, 'net'
@@ -91,16 +92,18 @@ def issuer_observations(ticker, html, retrieved_at):
             raise ValueError('EWY benchmark changed')
     if observed > retrieved_at:
         raise ValueError('Future issuer observation')
-    if not (0 <= expense <= 20 and 0 <= spread <= 100):
+    if not (0 <= expense <= 20 and (spread is None or 0 <= spread <= 100)):
         raise ValueError('Invalid fee or spread')
     common = {'source': source, 'availableAt': retrieved_at, 'retrievedAt': retrieved_at, 'sourceHash': digest}
     metrics = {
         'expenseRatio': {**common, 'value': expense, 'unit': 'percent', 'asOf': expense_date, 'basis': basis},
-        'medianSpread30d': {**common, 'value': round(spread * 100, 6), 'unit': 'bps', 'asOf': observed},
     }
+    if spread is not None:
+        metrics['medianSpread30d'] = {**common, 'value': round(spread * 100, 6), 'unit': 'bps', 'asOf': observed}
     if expiry:
         metrics['expenseRatio']['validThrough'] = expiry
-    return {'productDataAsOf': retrieved_at, 'productMetrics': metrics, 'productDataIssues': []}
+    return {'productDataAsOf': retrieved_at, 'productMetrics': metrics,
+            'productDataIssues': [] if spread is not None else ['median_spread_unavailable']}
 
 
 def tracking_diagnostics(fund, benchmark, *, multiple, benchmark_name, currency, benchmark_currency,

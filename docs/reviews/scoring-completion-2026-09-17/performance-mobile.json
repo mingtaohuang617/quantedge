@@ -1,0 +1,16 @@
+{
+  "lcpMs": 92,
+  "cls": 0.000968024884828191,
+  "shifts": [
+    {
+      "value": 0.000968024884828191,
+      "time": 496.59999999403954,
+      "nodes": [
+        "",
+        "<div class=\"flex items-center gap-2\"><button type=\"button\" class=\"mobile-status-chip is-compact \" aria-label=\"数据滞后，暂无更新时间，查看数据状态\" style=\"color: var(--sem-warn); background: color-mix(in srgb, var(--sem-warn) 12%, transpa"
+      ]
+    }
+  ],
+  "domContentLoadedMs": 32.099999994039536,
+  "scope": "Local unthrottled Chromium, offline snapshot; not real-user INP or a Lighthouse audit"
+}

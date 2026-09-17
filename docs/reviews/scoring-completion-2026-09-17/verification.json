@@ -1,0 +1,102 @@
+{
+  "reviewed_at": "2026-09-17",
+  "baseline_commit": "a52f256",
+  "code_sha256": {
+    "backend\\asset_assessment.py": "3dbe001ed0223cc2dbadbd672254e9b396bfbdd3b4cd7d2f283aa05f4017c50c",
+    "backend\\historical_valuation.py": "87b77a01f2202927789c8744da2027b7d9c2889599c7ff2415182a10fbfe4e8b",
+    "backend\\llm.py": "5b85c8c62f0918719658fb940cda8993f9a7901f7e1c22896354d8ef840ca949",
+    "backend\\product_data.py": "1d7708d6a4eafaeec0b89001c8f4372dec3739307d386deea10ae4bf4f702eb6",
+    "backend\\product_ingestion.py": "87236e3c317fb83d3e266c0b7b07e29b7863f92b1c2ebd871d885e31e555d704",
+    "backend\\scoring.py": "d683504a42ac8fc631c3a625b4e300209abbcd748b9da89c63d17169b0fa910f",
+    "backend\\tests\\test_product_ingestion.py": "d9f96090c33c63f350fbba3c501995b593d3f3f06d6985797b799950b8588e4f",
+    "backend\\verify_sec_originals.py": "8e619286f20d26db7c87f47946e6415ff727c1afa876f0eb97e89ca907cc72c6",
+    "frontend\\src\\components\\AssetAssessment.jsx": "405ed564b9bb64ea8ef69f174105bdbcda7812486e72a46531888ff7819847a4",
+    "frontend\\src\\components\\ScoringProvenance.jsx": "acc999525c1ceee996df07729aff2278de1e77b975a7715112a50b6d32bbd4d4",
+    "frontend\\src\\i18n.jsx": "843a9fac2b11807d11cd61d3be10b52295a9eaa05c90e538c1e7800a0f84a3df",
+    "frontend\\src\\lib\\asset-assessment.js": "e6db56e91a26c19fc3f8b55d656a57834e18dfe1b1e9e46f22e04fbe0968fed7",
+    "frontend\\src\\lib\\asset-assessment.test.js": "8de4d91067accbd6e7d80fc4001060d59ae96139e553128a43bc3e4d642d947c",
+    "frontend\\src\\lib\\product-data.js": "7db8bb70d9c13cf14207139f265d79d3f5bb742e1db7839c247036b570b52d4a",
+    "frontend\\src\\lib\\product-observations.json": "28f7c51e657f4b5927f153ca9529d25a92bd515065f651b481d13a281a58c810",
+    "frontend\\src\\lib\\scoring.js": "f6e79d5cae4546f6c9c8f3b78fc2f22afe63b074648475c6d584e8a2ec1f641e",
+    "frontend\\src\\pages\\ScoringDashboard.jsx": "4b98570546618f60e2b9812c64645675c2f6aa3ceaa8ee0943a1f922d1509f55",
+    "frontend\\src\\quant-platform.jsx": "24df86995b12dfc982fa0e690ba0cc289f18b21cd8392cd9e4cb167ad3f79c9e",
+    "frontend\\tests-e2e\\scoring-v3.spec.ts": "2ff7976bd505ffa3a21fae0bccfa073b57dabc3c9b55005e4efe4819037dc37e",
+    "backend\\crypto_evidence.py": "8effb3cc1ded8ce7af87ef7e64c7cd781c9d45263e808a1d5cf57cdcff38367b",
+    "backend\\audit_scoring_completion.py": "7467c71739a25af3354976d9eeb01cab3b283da3ebde2d5a45c7bd9a19064b02",
+    "backend\\score_validation.py": "c9c07981aaf6614387485ebf3f7a4fcde5becd1102e002cec4f54f376b663eeb",
+    "backend\\score_explanation.py": "2457785c9a3e407bceff101a5f29bb42816707f3cd4f84e02f4dbbcb14c667ac",
+    "backend\\tests\\test_scoring_completion.py": "92fad543c7fddd95b97e6e19df97fa44cc277a87656d936c11d28e7983e873b4",
+    "frontend\\src\\lib\\score-validation.js": "2107e3847cfc795a9476d5c85ae751f681b54c63f5612b7987e7008c4099fd2b",
+    "frontend\\src\\lib\\validation-policy.json": "6b3bcb8185b75027286b9482917fdadb4139df1d7a347df4c940acf3092f4ebb"
+  },
+  "checks": {
+    "backend_offline_non_slow": {
+      "passed": 1450,
+      "deselected": 12,
+      "exit_code": 0
+    },
+    "final_backend_targeted": {
+      "passed": 50,
+      "exit_code": 0
+    },
+    "frontend": {
+      "files": 48,
+      "passed": 758,
+      "exit_code": 0
+    },
+    "browser": {
+      "passed": 3,
+      "axe_serious_or_critical": 0,
+      "exit_code": 0
+    },
+    "build": "passed",
+    "ruff": "passed",
+    "bundle_budget": "passed",
+    "version": "passed",
+    "release_workflow_config": "passed",
+    "vercel_function_budget": {
+      "count": 11,
+      "limit": 12
+    }
+  },
+  "production_deployed": false,
+  "model_validation_passed": false,
+  "model_change_allowed": false,
+  "performance": {
+    "desktop": {
+      "lcpMs": 876,
+      "cls": 0.004249056153827243,
+      "shifts": [
+        {
+          "value": 0.004249056153827243,
+          "time": 523.5,
+          "nodes": [
+            "",
+            "<button class=\"flex items-center gap-1 px-2.5 py-1.5 md:px-2 md:py-0.5 rounded-lg md:rounded-md bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white transition-all disabled:opacity-50 active:scale-95 border borde",
+            "<button class=\"flex items-center gap-1.5 shrink-0 hover:opacity-80 transition-opacity cursor-pointer\" title=\"点击查看宏观看板 · 综合 17 因子方向化温度\"><span class=\"text-[#a0aec0] font-medium uppercase text-[9px]\">宏观</span><span class=\"f",
+            "<button class=\"hidden md:inline-flex items-center gap-1 hover:opacity-80 transition-opacity cursor-pointer\" title=\"点击查看宏观看板 · 综合 17 因子方向化温度\"><span class=\"text-[#a0aec0] uppercase text-[9px] font-medium\">宏观</span><span cl",
+            ""
+          ]
+        }
+      ],
+      "domContentLoadedMs": 33.599999994039536,
+      "scope": "Local unthrottled Chromium, offline snapshot; not real-user INP or a Lighthouse audit"
+    },
+    "mobile": {
+      "lcpMs": 92,
+      "cls": 0.000968024884828191,
+      "shifts": [
+        {
+          "value": 0.000968024884828191,
+          "time": 496.59999999403954,
+          "nodes": [
+            "",
+            "<div class=\"flex items-center gap-2\"><button type=\"button\" class=\"mobile-status-chip is-compact \" aria-label=\"数据滞后，暂无更新时间，查看数据状态\" style=\"color: var(--sem-warn); background: color-mix(in srgb, var(--sem-warn) 12%, transpa"
+          ]
+        }
+      ],
+      "domContentLoadedMs": 32.099999994039536,
+      "scope": "Local unthrottled Chromium, offline snapshot; not real-user INP or a Lighthouse audit"
+    }
+  }
+}

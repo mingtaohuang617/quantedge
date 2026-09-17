@@ -6,7 +6,7 @@ const rounded = x => Math.floor(x * 10 + .5 + 1e-9) / 10;
 const day = s => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s) && Number.isFinite(Date.parse(s)) && new Date(s).toISOString().slice(0, 10) === s ? Date.parse(s) / 86400000 : null;
 export function productAssessment(stock) {
   const dates = [day(stock.scoring?.priceAsOf), day(stock.productDataAsOf)].filter(d => d != null);
-  const reference = dates.length ? Math.max(...dates) : null, fields = {}, missing = [], reasons = {};
+  const reference = stock.evaluationAsOf ? day(stock.evaluationAsOf) : dates.length ? Math.max(...dates) : null, fields = {}, missing = [], reasons = {};
   for (const [key, spec] of Object.entries(specs)) {
     const raw = stock.productMetrics?.[key];
     const entry = raw && typeof raw === 'object' && !Array.isArray(raw) && Object.keys(raw).length ? raw : null;

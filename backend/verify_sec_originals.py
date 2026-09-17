@@ -132,7 +132,9 @@ def parse_original(html, cik, tags=None):
                 uri, concept = etree.QName(fact).namespace, etree.QName(fact).localname
             else:
                 uri, concept = qualified(fact, fact.get('name', ''))
-            if not re.fullmatch(r'https?://fasb.org/us-gaap/\d{4}(?:-\d{2}-\d{2})?', uri or '') or concept not in tags:
+            gaap = re.fullmatch(r'https?://fasb.org/us-gaap/\d{4}(?:-\d{2}-\d{2})?', uri or '')
+            dei = concept == 'EntityCommonStockSharesOutstanding' and re.fullmatch(r'https?://xbrl.sec.gov/dei/\d{4}(?:-\d{2}-\d{2})?', uri or '')
+            if not (gaap or dei) or concept not in tags:
                 continue
             context, unit = contexts.get(fact.get('contextRef')), units.get(fact.get('unitRef'))
             if context is None or unit is None:

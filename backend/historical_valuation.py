@@ -38,7 +38,7 @@ def split_factor(events, *, start, end):
 
 
 def evaluate(*, as_of, price, shares, eps, equity, revenue, financial_available_at,
-             shares_date, period_end, basis):
+             shares_date, period_end, basis, share_policy='same_day', share_evidence=None):
     """Diagnostics can use explicit assumptions; admitted inputs cannot."""
     blocks = []
     instant = timestamp(as_of)
@@ -58,7 +58,16 @@ def evaluate(*, as_of, price, shares, eps, equity, revenue, financial_available_
             or basis.get('price_basis_id') != basis.get('financial_basis_id')):
         blocks.append('Price, EPS and shares lack a verified common split basis')
     # A period-end share count is a disclosed observation, not current shares.
-    if shares_date != timestamp(price['closed_at']).date().isoformat():
+    if share_policy not in ('same_day', 'latest_disclosed'):
+        raise ValueError('Unknown share policy')
+    estimated = share_policy == 'latest_disclosed'
+    if estimated:
+        evidence = share_evidence or {}
+        if (not evidence.get('source') or not evidence.get('is_latest_public') or age > 45
+                or not evidence.get('available_at') or timestamp(evidence['available_at']) > instant
+                or evidence.get('capital_actions_reviewed_through', '') < timestamp(price['closed_at']).date().isoformat()):
+            blocks.append('Latest-disclosed share estimate lacks freshness, publication or capital-action review')
+    elif shares_date != timestamp(price['closed_at']).date().isoformat():
         blocks.append('Period-end shares are a proxy, not shares at the valuation date')
     p = Decimal(str(price['close']))
     market_cap = p * Decimal(str(shares)) if positive(shares) else None
@@ -69,7 +78,8 @@ def evaluate(*, as_of, price, shares, eps, equity, revenue, financial_available_
                   'marketCapCurrency': 'USD', 'financialCurrency': 'USD'}
     if not positive(shares):
         blocks.append('Missing positive outstanding shares; weighted-average shares are not a substitute')
-    return {'status': 'blocked' if blocks else 'research_candidate', 'inputs': {} if blocks else diagnostic,
+    return {'status': 'blocked' if blocks else 'research_estimate' if estimated else 'research_candidate', 'inputs': {} if blocks else diagnostic,
             'diagnostics': diagnostic, 'blocks': blocks, 'share_age_days': age,
+            'share_policy': share_policy, 'estimated_market_cap': estimated,
             'diagnostic_assumption': 'Provider close and original financial units assumed equal; period-end shares held constant',
             'strict_pit_eligible': False, 'model_change_allowed': False}

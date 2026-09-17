@@ -54,8 +54,9 @@ function preferredStaticMarket() {
     const saved = JSON.parse(sessionStorage.getItem('qe:scoring:filters') || '{}');
     if (saved.mkt === 'HK') return 'HK';
     if (saved.mkt === 'SH' || saved.mkt === 'SZ' || saved.mkt === 'CN') return 'CN';
+    if (saved.mkt === 'US') return 'US';
   } catch {}
-  return 'US';
+  return null; // ALL: publish the complete initial universe once, without rank jumps.
 }
 
 function mergeStaticStocks(current, incoming) {
@@ -406,8 +407,7 @@ function DataProvider({ children }) {
   const [standalone, setStandalone] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  // 认证成功后只先取用户当前市场；其余市场在浏览器空闲时补齐。
-  // 认证页不再等待 543 个标的，评分页仍会逐步恢复完整跨市场集合。
+  // 认证后按需加载；ALL 一次发布完整集合，避免先显示美股再重排整张列表。
   useEffect(() => {
     let cancelled = false;
     let idleHandle = null;
@@ -418,12 +418,14 @@ function DataProvider({ children }) {
       setStocks(current => mergeStaticStocks(current, incoming));
     };
 
-    Promise.all([loadStaticMarket(preferred), loadStaticAlerts()])
+    const initialMarkets = preferred ? [preferred] : Object.keys(STATIC_MARKET_LOADERS);
+    Promise.all([Promise.all(initialMarkets.map(loadStaticMarket)).then(chunks => chunks.flat()), loadStaticAlerts()])
       .then(([stocksForMarket, staticAlerts]) => {
         if (cancelled) return;
         applyStocks(stocksForMarket);
         STATIC_ALERTS = staticAlerts;
         setAlerts(current => current.length > 0 ? current : staticAlerts);
+        if (!preferred) return;
 
         const loadRemaining = () => {
           Promise.all(Object.keys(STATIC_MARKET_LOADERS)
