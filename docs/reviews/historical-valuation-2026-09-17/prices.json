@@ -1,0 +1,82 @@
+[
+  {
+    "symbol": "NVDA",
+    "first": "2026-02-25",
+    "last": "2026-09-15",
+    "rows": 140,
+    "actions": {
+      "dividends": 3,
+      "splits": 0,
+      "capitalGains": 0
+    },
+    "issues": [],
+    "return_basis": "vendor_adjusted_proxy",
+    "strict_total_return_eligible": false,
+    "excluded_sessions": [
+      "2026-09-16"
+    ],
+    "raw_sha256": "6805e552382ca6a0438412d63d54df8aabb4bb2f5f9da82e5e4e881dc4c9b0df",
+    "evidence_folder": "C:\\Users\\Minto\\Downloads\\\u81ea\u7814\u91cf\u5316\u6295\u8d44\u5e73\u53f0\\release\\scoring-v32\\backend\\data\\price_evidence\\503cd2b03fe1c8ce2116c00b58cd36f817da35b48e21310312263e367ab123f2",
+    "status": "captured"
+  },
+  {
+    "symbol": "PLUG",
+    "first": "2021-05-14",
+    "last": "2026-09-15",
+    "rows": 1340,
+    "actions": {
+      "dividends": 0,
+      "splits": 0,
+      "capitalGains": 0
+    },
+    "issues": [],
+    "return_basis": "vendor_adjusted_proxy",
+    "strict_total_return_eligible": false,
+    "excluded_sessions": [
+      "2026-09-16"
+    ],
+    "raw_sha256": "1f75f7400dbf98743f3a463996643d01b44e393f0da782e78ed832b867ee20dd",
+    "evidence_folder": "C:\\Users\\Minto\\Downloads\\\u81ea\u7814\u91cf\u5316\u6295\u8d44\u5e73\u53f0\\release\\scoring-v32\\backend\\data\\price_evidence\\f56c7ba5ff941eec25d082499f05c0bbf3a179d8d7f4fc2ae95268010528abe0",
+    "status": "captured"
+  },
+  {
+    "symbol": "MU",
+    "first": "2023-10-06",
+    "last": "2026-09-15",
+    "rows": 737,
+    "actions": {
+      "dividends": 12,
+      "splits": 0,
+      "capitalGains": 0
+    },
+    "issues": [],
+    "return_basis": "vendor_adjusted_proxy",
+    "strict_total_return_eligible": false,
+    "excluded_sessions": [
+      "2026-09-16"
+    ],
+    "raw_sha256": "9b3d82f4e2cd7d8f3a548988ca4df841c73cb2072ebf8d846e49d662bef0655d",
+    "evidence_folder": "C:\\Users\\Minto\\Downloads\\\u81ea\u7814\u91cf\u5316\u6295\u8d44\u5e73\u53f0\\release\\scoring-v32\\backend\\data\\price_evidence\\98938fa0f7b59393a255168ff755bd50fc8fae4d5a0b78a42c4035189da769d4",
+    "status": "captured"
+  },
+  {
+    "symbol": "MSFT",
+    "first": "2024-07-30",
+    "last": "2026-09-15",
+    "rows": 534,
+    "actions": {
+      "dividends": 9,
+      "splits": 0,
+      "capitalGains": 0
+    },
+    "issues": [],
+    "return_basis": "vendor_adjusted_proxy",
+    "strict_total_return_eligible": false,
+    "excluded_sessions": [
+      "2026-09-16"
+    ],
+    "raw_sha256": "c3a09d6fa683e71ca51c920491bbb1855ae912b4a832f593769e3507165ab6fd",
+    "evidence_folder": "C:\\Users\\Minto\\Downloads\\\u81ea\u7814\u91cf\u5316\u6295\u8d44\u5e73\u53f0\\release\\scoring-v32\\backend\\data\\price_evidence\\212ead9eb0c4ec6a35a5fc28f994747d72d0578220fe6f6fd76e0fb061cd63cb",
+    "status": "captured"
+  }
+]

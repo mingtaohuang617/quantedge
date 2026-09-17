@@ -57,7 +57,8 @@ def numeric(element):
     return value * (Decimal(10) ** scale) * (-1 if element.get('sign') == '-' else 1)
 
 
-def parse_original(html, cik):
+def parse_original(html, cik, tags=None):
+    tags = TAGS if tags is None else tags
     if re.search(r'<!\s*(?:DOCTYPE|ENTITY)\b', html, re.I):
         raise ValueError('DTD/entity declarations not supported')
     # Older issuer XHTML uses standard HTML named entities. Resolve only this
@@ -131,7 +132,7 @@ def parse_original(html, cik):
                 uri, concept = etree.QName(fact).namespace, etree.QName(fact).localname
             else:
                 uri, concept = qualified(fact, fact.get('name', ''))
-            if not re.fullmatch(r'https?://fasb.org/us-gaap/\d{4}(?:-\d{2}-\d{2})?', uri or '') or concept not in TAGS:
+            if not re.fullmatch(r'https?://fasb.org/us-gaap/\d{4}(?:-\d{2}-\d{2})?', uri or '') or concept not in tags:
                 continue
             context, unit = contexts.get(fact.get('contextRef')), units.get(fact.get('unitRef'))
             if context is None or unit is None:

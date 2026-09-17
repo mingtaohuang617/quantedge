@@ -1,0 +1,658 @@
+{
+  "schema": "historical-valuation-audit-1.0.0",
+  "input_sha256": {
+    "docs\\reviews\\financial-admission-2026-09-17\\trial.json": "ba96fc148654f449ca29e4e1086f4fe3d4fcd72dae95fcc7fb510e6101d3cdb3",
+    "docs\\reviews\\historical-valuation-2026-09-17\\prices.json": "5b39245a57f2989b5bf2e4f1abf8ee1c3c18c2f3458a4e7c3ef4f40fbc0d5d6d",
+    "docs\\reviews\\sec-originals-2026-09-17\\collection.json": "cfdc8d4f76ace65b9af6d85ff5e58f4f0b2733df030ae016a80c41ced2b7048f",
+    "docs\\reviews\\sec-transforms-2026-09-17\\plug-originals.json": "95d7b7f3444cb8340431913cbf1afa5506368e511f6b48873516d7b994822857",
+    "docs\\reviews\\financial-admission-2026-09-17\\mu-originals.json": "9dbd4382a98620bb793abfb47b765281aa603f5011f0a5b0c7d67c891c6e3bbc",
+    "docs\\reviews\\financial-admission-2026-09-17\\msft-originals.json": "efaf446dbfcdd63a2aa32140fb0e448dba79a9ac0aa54cf72f5d423eb2d3dce1",
+    "docs\\reviews\\sec-transforms-2026-09-17\\cases.json": "0dcbc2eebc40126534a3494285a6bf8576c24dceb57be63af3f2f46a880dea90"
+  },
+  "cases": [
+    {
+      "ticker": "NVDA",
+      "as_of": "2026-02-26T12:00:00-05:00",
+      "accession": "0001045810-26-000021",
+      "original_evidence": {
+        "raw_sha256": "819fd399dc3e2a5a9ac21d17107b37d97dbb03ec88966be4e8b3842f74f851a1",
+        "request": {
+          "accession": "0001045810-26-000021",
+          "format": "html-wrapped-as-json",
+          "provider": "SEC",
+          "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000021/nvda-20260125.htm"
+        },
+        "retrieved_at": "2026-09-17T00:37:52.159547+00:00",
+        "schema": 1
+      },
+      "shares": {
+        "status": "original_verified",
+        "value": "24304000000",
+        "originals": [
+          {
+            "concept": "CommonStockSharesOutstanding",
+            "unit": "shares",
+            "start": null,
+            "end": "2026-01-25",
+            "value": "24304000000",
+            "context_id": "c-11",
+            "fact_id": "f-199",
+            "decimals": "-6"
+          }
+        ]
+      },
+      "weighted_average_shares": {
+        "status": "original_verified",
+        "value": "24514000000",
+        "originals": [
+          {
+            "concept": "WeightedAverageNumberOfDilutedSharesOutstanding",
+            "unit": "shares",
+            "start": "2025-01-27",
+            "end": "2026-01-25",
+            "value": "24514000000",
+            "context_id": "c-1",
+            "fact_id": "f-123",
+            "decimals": "-6"
+          },
+          {
+            "concept": "WeightedAverageNumberOfDilutedSharesOutstanding",
+            "unit": "shares",
+            "start": "2025-01-27",
+            "end": "2026-01-25",
+            "value": "24514000000",
+            "context_id": "c-1",
+            "fact_id": "f-541",
+            "decimals": "-6"
+          }
+        ]
+      },
+      "annual_eps": {
+        "status": "original_verified",
+        "value": "4.90",
+        "originals": [
+          {
+            "concept": "EarningsPerShareDiluted",
+            "unit": "USD/shares",
+            "start": "2025-01-27",
+            "end": "2026-01-25",
+            "value": "4.90",
+            "context_id": "c-1",
+            "fact_id": "f-117",
+            "decimals": "2"
+          },
+          {
+            "concept": "EarningsPerShareDiluted",
+            "unit": "USD/shares",
+            "start": "2025-01-27",
+            "end": "2026-01-25",
+            "value": "4.90",
+            "context_id": "c-1",
+            "fact_id": "f-547",
+            "decimals": "2"
+          }
+        ]
+      },
+      "original_parse_issues": {
+        "excluded_context_or_unit": 4
+      },
+      "price": {
+        "close": 195.55999755859375,
+        "closed_at": "2026-02-25T16:00:00-05:00",
+        "currency": "USD",
+        "basis": "provider_close_not_asserted_as_traded"
+      },
+      "price_evidence": {
+        "raw_sha256": "6805e552382ca6a0438412d63d54df8aabb4bb2f5f9da82e5e4e881dc4c9b0df",
+        "request": {
+          "end_exclusive": "2026-09-17",
+          "events": "div,splits,capitalGains",
+          "interval": "1d",
+          "params": {
+            "events": "div,splits,capitalGains",
+            "includeAdjustedClose": "true",
+            "interval": "1d",
+            "period1": 1771977600,
+            "period2": 1789603200
+          },
+          "provider": "Yahoo Finance",
+          "start": "2026-02-25",
+          "symbol": "NVDA",
+          "url": "https://query1.finance.yahoo.com/v8/finance/chart/NVDA"
+        },
+        "retrieved_at": "2026-09-17T03:10:06.707911+00:00",
+        "schema": 1
+      },
+      "provider_splits": [],
+      "valuation": {
+        "status": "blocked",
+        "inputs": {},
+        "diagnostics": {
+          "pe": 39.910203583386476,
+          "pb": 30.216794012855388,
+          "marketCap": 4752890180664.0625,
+          "revenue": 215938000000.0,
+          "marketCapCurrency": "USD",
+          "financialCurrency": "USD"
+        },
+        "blocks": [
+          "Provider close has no independently verified as-traded basis",
+          "Price, EPS and shares lack a verified common split basis",
+          "Period-end shares are a proxy, not shares at the valuation date"
+        ],
+        "share_age_days": 32,
+        "diagnostic_assumption": "Provider close and original financial units assumed equal; period-end shares held constant",
+        "strict_pit_eligible": false,
+        "model_change_allowed": false
+      },
+      "qualityScore": null,
+      "scoring": {
+        "version": "3.2.0",
+        "status": "insufficient_data",
+        "coverage": 30.0,
+        "qualityCoverage": 50.0,
+        "timingCoverage": 0.0,
+        "peerGroup": "US / stock / unknown",
+        "factorPeerCounts": {
+          "ey": 0,
+          "by": 0,
+          "sy": 0,
+          "roe": 0,
+          "margin": 0,
+          "grow": 0
+        },
+        "momentumPeers": 0,
+        "priceAsOf": null,
+        "financialPeriod": null,
+        "financialPublishedAt": null,
+        "warnings": [
+          "部分因子同类样本不足，使用绝对锚或暂缺",
+          "财务币种未完整标注，营收／市值因子暂不参与"
+        ],
+        "qualityDeduction": 0.0,
+        "weights": {
+          "quality": 60,
+          "timing": 40
+        },
+        "horizon": "多月趋势描述，非买点或上涨概率"
+      }
+    },
+    {
+      "ticker": "PLUG",
+      "as_of": "2021-05-15T12:00:00-04:00",
+      "accession": "0001558370-21-007147",
+      "original_evidence": {
+        "raw_sha256": "9701d8b0f300c5140af5ffbcdc522831cbf714539cc3cece72d8b1d4e4715ee4",
+        "request": {
+          "accession": "0001558370-21-007147",
+          "format": "html-wrapped-as-json",
+          "provider": "SEC",
+          "url": "https://www.sec.gov/Archives/edgar/data/1093691/000155837021007147/plug-20201231x10k.htm"
+        },
+        "retrieved_at": "2026-09-17T00:52:56.407526+00:00",
+        "schema": 1
+      },
+      "shares": {
+        "status": "original_verified",
+        "value": "458051920",
+        "originals": [
+          {
+            "concept": "CommonStockSharesOutstanding",
+            "unit": "shares",
+            "start": null,
+            "end": "2020-12-31",
+            "value": "458051920",
+            "context_id": "As_Of_12_31_2020_jRO3KCquR0C_dkeZlrwP6g",
+            "fact_id": "Narr_h2bN7_FdzkeAK0uYMMxvSA",
+            "decimals": "INF"
+          }
+        ]
+      },
+      "weighted_average_shares": {
+        "status": "missing_or_conflicting_original",
+        "value": null,
+        "originals": []
+      },
+      "annual_eps": {
+        "status": "missing_or_conflicting_original",
+        "value": null,
+        "originals": []
+      },
+      "original_parse_issues": {
+        "excluded_context_or_unit": 2
+      },
+      "price": {
+        "close": 24.579999923706055,
+        "closed_at": "2021-05-14T16:00:00-04:00",
+        "currency": "USD",
+        "basis": "provider_close_not_asserted_as_traded"
+      },
+      "price_evidence": {
+        "raw_sha256": "1f75f7400dbf98743f3a463996643d01b44e393f0da782e78ed832b867ee20dd",
+        "request": {
+          "end_exclusive": "2026-09-17",
+          "events": "div,splits,capitalGains",
+          "interval": "1d",
+          "params": {
+            "events": "div,splits,capitalGains",
+            "includeAdjustedClose": "true",
+            "interval": "1d",
+            "period1": 1620950400,
+            "period2": 1789603200
+          },
+          "provider": "Yahoo Finance",
+          "start": "2021-05-14",
+          "symbol": "PLUG",
+          "url": "https://query1.finance.yahoo.com/v8/finance/chart/PLUG"
+        },
+        "retrieved_at": "2026-09-17T03:10:07.118598+00:00",
+        "schema": 1
+      },
+      "provider_splits": [],
+      "valuation": {
+        "status": "blocked",
+        "inputs": {},
+        "diagnostics": {
+          "pe": null,
+          "pb": 7.675213258982542,
+          "marketCap": 11258916158.653412,
+          "revenue": -93237000.0,
+          "marketCapCurrency": "USD",
+          "financialCurrency": "USD"
+        },
+        "blocks": [
+          "Provider close has no independently verified as-traded basis",
+          "Price, EPS and shares lack a verified common split basis",
+          "Period-end shares are a proxy, not shares at the valuation date"
+        ],
+        "share_age_days": 135,
+        "diagnostic_assumption": "Provider close and original financial units assumed equal; period-end shares held constant",
+        "strict_pit_eligible": false,
+        "model_change_allowed": false
+      },
+      "qualityScore": null,
+      "scoring": {
+        "version": "3.2.0",
+        "status": "insufficient_data",
+        "coverage": 10.0,
+        "qualityCoverage": 17.0,
+        "timingCoverage": 0.0,
+        "peerGroup": "US / stock / unknown",
+        "factorPeerCounts": {
+          "ey": 0,
+          "by": 0,
+          "sy": 0,
+          "roe": 0,
+          "margin": 0,
+          "grow": 0
+        },
+        "momentumPeers": 0,
+        "priceAsOf": null,
+        "financialPeriod": null,
+        "financialPublishedAt": null,
+        "warnings": [
+          "部分因子同类样本不足，使用绝对锚或暂缺",
+          "财务币种未完整标注，营收／市值因子暂不参与"
+        ],
+        "qualityDeduction": 0.0,
+        "weights": {
+          "quality": 60,
+          "timing": 40
+        },
+        "horizon": "多月趋势描述，非买点或上涨概率"
+      }
+    },
+    {
+      "ticker": "MU",
+      "as_of": "2023-10-07T12:00:00-04:00",
+      "accession": "0000723125-23-000054",
+      "original_evidence": {
+        "raw_sha256": "46877a7e75c205d8577cfd3a49d1e8328e95c15e37db916a2f07f1b7d9c1743d",
+        "request": {
+          "accession": "0000723125-23-000054",
+          "format": "html-wrapped-as-json",
+          "provider": "SEC",
+          "url": "https://www.sec.gov/Archives/edgar/data/723125/000072312523000054/mu-20230831.htm"
+        },
+        "retrieved_at": "2026-09-17T02:01:23.224932+00:00",
+        "schema": 1
+      },
+      "shares": {
+        "status": "original_verified",
+        "value": "1098000000",
+        "originals": [
+          {
+            "concept": "CommonStockSharesOutstanding",
+            "unit": "shares",
+            "start": null,
+            "end": "2023-08-31",
+            "value": "1098000000",
+            "context_id": "c-6",
+            "fact_id": "f-168",
+            "decimals": "-6"
+          }
+        ]
+      },
+      "weighted_average_shares": {
+        "status": "original_verified",
+        "value": "1093000000",
+        "originals": [
+          {
+            "concept": "WeightedAverageNumberOfDilutedSharesOutstanding",
+            "unit": "shares",
+            "start": "2022-09-02",
+            "end": "2023-08-31",
+            "value": "1093000000",
+            "context_id": "c-1",
+            "fact_id": "f-91",
+            "decimals": "-6"
+          },
+          {
+            "concept": "WeightedAverageNumberOfDilutedSharesOutstanding",
+            "unit": "shares",
+            "start": "2022-09-02",
+            "end": "2023-08-31",
+            "value": "1093000000",
+            "context_id": "c-1",
+            "fact_id": "f-1504",
+            "decimals": "-6"
+          }
+        ]
+      },
+      "annual_eps": {
+        "status": "original_verified",
+        "value": "-5.34",
+        "originals": [
+          {
+            "concept": "EarningsPerShareDiluted",
+            "unit": "USD/shares",
+            "start": "2022-09-02",
+            "end": "2023-08-31",
+            "value": "-5.34",
+            "context_id": "c-1",
+            "fact_id": "f-85",
+            "decimals": "2"
+          },
+          {
+            "concept": "EarningsPerShareDiluted",
+            "unit": "USD/shares",
+            "start": "2022-09-02",
+            "end": "2023-08-31",
+            "value": "-5.34",
+            "context_id": "c-1",
+            "fact_id": "f-1510",
+            "decimals": "2"
+          }
+        ]
+      },
+      "original_parse_issues": {
+        "excluded_context_or_unit": 2
+      },
+      "price": {
+        "close": 69.95999908447266,
+        "closed_at": "2023-10-06T16:00:00-04:00",
+        "currency": "USD",
+        "basis": "provider_close_not_asserted_as_traded"
+      },
+      "price_evidence": {
+        "raw_sha256": "9b3d82f4e2cd7d8f3a548988ca4df841c73cb2072ebf8d846e49d662bef0655d",
+        "request": {
+          "end_exclusive": "2026-09-17",
+          "events": "div,splits,capitalGains",
+          "interval": "1d",
+          "params": {
+            "events": "div,splits,capitalGains",
+            "includeAdjustedClose": "true",
+            "interval": "1d",
+            "period1": 1696550400,
+            "period2": 1789603200
+          },
+          "provider": "Yahoo Finance",
+          "start": "2023-10-06",
+          "symbol": "MU",
+          "url": "https://query1.finance.yahoo.com/v8/finance/chart/MU"
+        },
+        "retrieved_at": "2026-09-17T03:10:07.528961+00:00",
+        "schema": 1
+      },
+      "provider_splits": [],
+      "valuation": {
+        "status": "blocked",
+        "inputs": {},
+        "diagnostics": {
+          "pe": null,
+          "pb": 1.7410716000623523,
+          "marketCap": 76816078994.75098,
+          "revenue": 15540000000.0,
+          "marketCapCurrency": "USD",
+          "financialCurrency": "USD"
+        },
+        "blocks": [
+          "Provider close has no independently verified as-traded basis",
+          "Price, EPS and shares lack a verified common split basis",
+          "Period-end shares are a proxy, not shares at the valuation date"
+        ],
+        "share_age_days": 37,
+        "diagnostic_assumption": "Provider close and original financial units assumed equal; period-end shares held constant",
+        "strict_pit_eligible": false,
+        "model_change_allowed": false
+      },
+      "qualityScore": null,
+      "scoring": {
+        "version": "3.2.0",
+        "status": "insufficient_data",
+        "coverage": 30.0,
+        "qualityCoverage": 50.0,
+        "timingCoverage": 0.0,
+        "peerGroup": "US / stock / unknown",
+        "factorPeerCounts": {
+          "ey": 0,
+          "by": 0,
+          "sy": 0,
+          "roe": 0,
+          "margin": 0,
+          "grow": 0
+        },
+        "momentumPeers": 0,
+        "priceAsOf": null,
+        "financialPeriod": null,
+        "financialPublishedAt": null,
+        "warnings": [
+          "部分因子同类样本不足，使用绝对锚或暂缺",
+          "财务币种未完整标注，营收／市值因子暂不参与"
+        ],
+        "qualityDeduction": 0.0,
+        "weights": {
+          "quality": 60,
+          "timing": 40
+        },
+        "horizon": "多月趋势描述，非买点或上涨概率"
+      }
+    },
+    {
+      "ticker": "MSFT",
+      "as_of": "2024-07-31T12:00:00-04:00",
+      "accession": "0000950170-24-087843",
+      "original_evidence": {
+        "raw_sha256": "c9c88dfb72e54294f144b1aa2c6f30abc0cf415fc4966efd38414b61e9ae28a0",
+        "request": {
+          "accession": "0000950170-24-087843",
+          "format": "html-wrapped-as-json",
+          "provider": "SEC",
+          "url": "https://www.sec.gov/Archives/edgar/data/789019/000095017024087843/msft-20240630.htm"
+        },
+        "retrieved_at": "2026-09-17T02:01:23.765346+00:00",
+        "schema": 1
+      },
+      "shares": {
+        "status": "original_verified",
+        "value": "7434000000",
+        "originals": [
+          {
+            "concept": "CommonStockSharesOutstanding",
+            "unit": "shares",
+            "start": null,
+            "end": "2024-06-30",
+            "value": "7434000000",
+            "context_id": "C_910b395a-5d62-4894-aa42-1da4086261cc",
+            "fact_id": "F_ccc8e6a1-48a5-4b0c-86f7-cc95e2941146",
+            "decimals": "-6"
+          },
+          {
+            "concept": "CommonStockSharesOutstanding",
+            "unit": "shares",
+            "start": null,
+            "end": "2024-06-30",
+            "value": "7434000000",
+            "context_id": "C_910b395a-5d62-4894-aa42-1da4086261cc",
+            "fact_id": "F_99920b71-4408-41f4-87ac-3198c062e74b",
+            "decimals": "-6"
+          }
+        ]
+      },
+      "weighted_average_shares": {
+        "status": "original_verified",
+        "value": "7469000000",
+        "originals": [
+          {
+            "concept": "WeightedAverageNumberOfDilutedSharesOutstanding",
+            "unit": "shares",
+            "start": "2023-07-01",
+            "end": "2024-06-30",
+            "value": "7469000000",
+            "context_id": "C_6dbdb3a2-9baf-41b4-922d-f59879124337",
+            "fact_id": "F_babafdb8-c048-4965-98e4-d00e0b32cbfd",
+            "decimals": "-6"
+          },
+          {
+            "concept": "WeightedAverageNumberOfDilutedSharesOutstanding",
+            "unit": "shares",
+            "start": "2023-07-01",
+            "end": "2024-06-30",
+            "value": "7469000000",
+            "context_id": "C_6dbdb3a2-9baf-41b4-922d-f59879124337",
+            "fact_id": "F_1ad2c259-4852-4c11-8dd7-34726856d381",
+            "decimals": "-6"
+          }
+        ]
+      },
+      "annual_eps": {
+        "status": "original_verified",
+        "value": "11.80",
+        "originals": [
+          {
+            "concept": "EarningsPerShareDiluted",
+            "unit": "USD/shares",
+            "start": "2023-07-01",
+            "end": "2024-06-30",
+            "value": "11.80",
+            "context_id": "C_6dbdb3a2-9baf-41b4-922d-f59879124337",
+            "fact_id": "F_5f32be82-5930-41e2-935a-8629b5e25adc",
+            "decimals": "2"
+          },
+          {
+            "concept": "EarningsPerShareDiluted",
+            "unit": "USD/shares",
+            "start": "2023-07-01",
+            "end": "2024-06-30",
+            "value": "11.80",
+            "context_id": "C_6dbdb3a2-9baf-41b4-922d-f59879124337",
+            "fact_id": "F_8185f17c-f16f-4182-bf37-2a43fbe50844",
+            "decimals": "2"
+          }
+        ]
+      },
+      "original_parse_issues": {},
+      "price": {
+        "close": 422.9200134277344,
+        "closed_at": "2024-07-30T16:00:00-04:00",
+        "currency": "USD",
+        "basis": "provider_close_not_asserted_as_traded"
+      },
+      "price_evidence": {
+        "raw_sha256": "c3a09d6fa683e71ca51c920491bbb1855ae912b4a832f593769e3507165ab6fd",
+        "request": {
+          "end_exclusive": "2026-09-17",
+          "events": "div,splits,capitalGains",
+          "interval": "1d",
+          "params": {
+            "events": "div,splits,capitalGains",
+            "includeAdjustedClose": "true",
+            "interval": "1d",
+            "period1": 1722297600,
+            "period2": 1789603200
+          },
+          "provider": "Yahoo Finance",
+          "start": "2024-07-30",
+          "symbol": "MSFT",
+          "url": "https://query1.finance.yahoo.com/v8/finance/chart/MSFT"
+        },
+        "retrieved_at": "2026-09-17T03:10:07.949319+00:00",
+        "schema": 1
+      },
+      "provider_splits": [],
+      "valuation": {
+        "status": "blocked",
+        "inputs": {},
+        "diagnostics": {
+          "pe": 35.840679104045286,
+          "pb": 11.710453334258716,
+          "marketCap": 3143987379821.7773,
+          "revenue": 245122000000.0,
+          "marketCapCurrency": "USD",
+          "financialCurrency": "USD"
+        },
+        "blocks": [
+          "Provider close has no independently verified as-traded basis",
+          "Price, EPS and shares lack a verified common split basis",
+          "Period-end shares are a proxy, not shares at the valuation date"
+        ],
+        "share_age_days": 31,
+        "diagnostic_assumption": "Provider close and original financial units assumed equal; period-end shares held constant",
+        "strict_pit_eligible": false,
+        "model_change_allowed": false
+      },
+      "qualityScore": null,
+      "scoring": {
+        "version": "3.2.0",
+        "status": "insufficient_data",
+        "coverage": 30.0,
+        "qualityCoverage": 50.0,
+        "timingCoverage": 0.0,
+        "peerGroup": "US / stock / unknown",
+        "factorPeerCounts": {
+          "ey": 0,
+          "by": 0,
+          "sy": 0,
+          "roe": 0,
+          "margin": 0,
+          "grow": 0
+        },
+        "momentumPeers": 0,
+        "priceAsOf": null,
+        "financialPeriod": null,
+        "financialPublishedAt": null,
+        "warnings": [
+          "部分因子同类样本不足，使用绝对锚或暂缺",
+          "财务币种未完整标注，营收／市值因子暂不参与"
+        ],
+        "qualityDeduction": 0.0,
+        "weights": {
+          "quality": 60,
+          "timing": 40
+        },
+        "horizon": "多月趋势描述，非买点或上涨概率"
+      }
+    }
+  ],
+  "issuer_split_case": {
+    "ticker": "NVDA",
+    "source": "https://www.sec.gov/Archives/edgar/data/1045810/000104581024000144/nvda-20240607.htm",
+    "factor": "10",
+    "original_quarterly_eps": "5.98",
+    "aligned_quarterly_eps": "0.598",
+    "limitation": "Quarterly unit reconciliation only; not annual/TTM EPS or a complete action chain"
+  },
+  "strict_pit_eligible": false,
+  "model_change_allowed": false
+}
