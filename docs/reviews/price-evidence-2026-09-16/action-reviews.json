@@ -1,0 +1,30 @@
+{
+  "reviewed_at": "2026-09-16",
+  "scope": "selected split dates and ratios only; no certification of complete distributions or total returns",
+  "split_reviews": [
+    {
+      "symbol": "NVDA",
+      "date": "2024-06-10",
+      "ratio": 10,
+      "source": "https://www.sec.gov/Archives/edgar/data/1045810/000104581024000144/nvda-20240607.htm",
+      "date_basis": "first split-adjusted trading date"
+    },
+    {
+      "symbol": "TQQQ",
+      "date": "2025-11-20",
+      "ratio": 2,
+      "source": "https://www.proshares.com/press-releases/proshares-announces-etf-share-splits5",
+      "corroborating_source": "https://www.proshares.com/globalassets/proshares/form-8937/tqqq-form-8937.pdf",
+      "date_basis": "first split-adjusted trading date"
+    },
+    {
+      "symbol": "RKLX",
+      "date": "2025-12-09",
+      "ratio": 3,
+      "source": "https://www.sec.gov/Archives/edgar/data/1924868/000199937125018306/defiance-497_112125.htm",
+      "corroborating_source": "https://www.sec.gov/Archives/edgar/data/1924868/000199937126018558/defiance2xlong-ncsr_043026.htm",
+      "date_basis": "first split-adjusted trading date; effective after December 8 close",
+      "source_conflict": "Older semiannual shareholder report mentions December 2; use the split-specific supplement and subsequent annual report, retain discrepancy."
+    }
+  ]
+}

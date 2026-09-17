@@ -285,37 +285,11 @@ def explain_score(stock: dict, weights: dict, ttl_seconds: int = 86400, lang: st
     返回 {ok, ticker, explanation: str, cached}
     """
     ticker = stock.get("ticker", "?")
-    score = stock.get("score")
-    subs = stock.get("subScores") or {}
-    qs = stock.get("qualityScore")
-    ts = stock.get("timingScore")
-
-    # 归一化 quality/timing 权重
-    total = sum(v for v in weights.values() if isinstance(v, (int, float)))
-    if total <= 0:
-        wq, wt = 0.6, 0.4
-    else:
-        wq = weights.get("quality", 0) / total
-        wt = weights.get("timing", 0) / total
-
-    if stock.get("isETF"):
-        prompt = (
-            f"ETF {ticker} 综合得分 {score}/100 = 质量 {qs} × {wq*100:.0f}% + 时机 {ts} × {wt*100:.0f}%。\n"
-            f"质量子项: 成本={subs.get('cost')}, 流动性={subs.get('liquidity')}, 分散={subs.get('diversification')}；"
-            f"时机子项: 动量={subs.get('momentum')}, 趋势={subs.get('trend')}, RSI={subs.get('rsi')}（各 0-100，越高越好）。\n"
-            "用 1-2 句中文解释为什么得这个分（哪一轨/哪个子项拉高或拉低了综合分），≤50 字，纯文本。"
-        )
-    else:
-        prompt = (
-            f"个股 {ticker} 综合得分 {score}/100 = 质量 {qs} × {wq*100:.0f}% + 时机 {ts} × {wt*100:.0f}%。\n"
-            f"质量子项: 估值={subs.get('valuation')}, 盈利={subs.get('profitability')}, 成长={subs.get('growth')}；"
-            f"时机子项: 动量={subs.get('momentum')}, 趋势={subs.get('trend')}, RSI={subs.get('rsi')}（各 0-100）。\n"
-            "用 1-2 句中文解释为什么得这个分（指出质量轨与时机轨哪个更强、哪个子项拉高/拉低），"
-            "≤50 字，纯文本不要 JSON。"
-        )
-
-    prompt = _lang_wrap(prompt, lang)
-    prompt += "\n模型与数据限制：" + str(stock.get("scoring") or {}) + "；缺失值不作中性分，规模仅为流动性代理；趋势分不是买点或上涨概率。"
+    from score_explanation import build_score_prompt
+    try:
+        prompt = _lang_wrap(build_score_prompt(stock, weights), lang)
+    except ValueError as exc:
+        return {"ok": False, "ticker": ticker, "error": str(exc)}
     cache_key = _db.llm_cache_key("explain-score", DEFAULT_MODEL, prompt)
     cached = None if force else _db.llm_cache_get(cache_key)
     if cached:

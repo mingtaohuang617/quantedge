@@ -1,0 +1,20 @@
+{
+  "folder": "C:\\Users\\Minto\\Downloads\\\u81ea\u7814\u91cf\u5316\u6295\u8d44\u5e73\u53f0\\release\\scoring-v32\\backend\\data\\price_evidence\\8da3b2d912cb768a1c41c918a1f3f02033c5514727d224ee293443d5c4a79b38",
+  "payload": {
+    "data": {
+      "symbol": "MSFT",
+      "totalRecords": 0,
+      "tradesTable": {
+        "asOf": null,
+        "headers": null,
+        "rows": null
+      }
+    },
+    "message": null,
+    "status": {
+      "rCode": 200,
+      "bCodeMessage": null,
+      "developerMessage": null
+    }
+  }
+}

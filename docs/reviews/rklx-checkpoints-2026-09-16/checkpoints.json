@@ -1,0 +1,136 @@
+{
+  "symbol": "RKLX",
+  "checks": [
+    {
+      "as_of": "2026-08-31",
+      "period": "YTD",
+      "issuer_nav_return": -0.6225,
+      "issuer_market_return": -0.621,
+      "start": "2025-12-31",
+      "end": "2026-08-31",
+      "vendor_proxy_return": -0.6210103147340881,
+      "difference_bps": -0.10314734088079369,
+      "market_minus_nav_bps": 15.000000000000568,
+      "status": "within_display_rounding"
+    },
+    {
+      "as_of": "2026-08-31",
+      "period": "1 Month",
+      "issuer_nav_return": -0.0825,
+      "issuer_market_return": -0.0788,
+      "start": "2026-07-31",
+      "end": "2026-08-31",
+      "vendor_proxy_return": -0.07880273973081564,
+      "difference_bps": -0.027397308156457134,
+      "market_minus_nav_bps": 37.000000000000085,
+      "status": "within_display_rounding"
+    },
+    {
+      "as_of": "2026-08-31",
+      "period": "3 Months",
+      "issuer_nav_return": -0.8543999999999999,
+      "issuer_market_return": -0.8537,
+      "start": "2026-05-29",
+      "end": "2026-08-31",
+      "vendor_proxy_return": -0.8537342371785654,
+      "difference_bps": -0.34237178565432735,
+      "market_minus_nav_bps": 6.999999999999229,
+      "status": "within_display_rounding"
+    },
+    {
+      "as_of": "2026-08-31",
+      "period": "6 Months",
+      "issuer_nav_return": -0.5464,
+      "issuer_market_return": -0.5444,
+      "start": "2026-02-27",
+      "end": "2026-08-31",
+      "vendor_proxy_return": -0.5444108574356521,
+      "difference_bps": -0.10857435652100733,
+      "market_minus_nav_bps": 20.000000000000018,
+      "status": "within_display_rounding"
+    },
+    {
+      "as_of": "2026-06-30",
+      "period": "YTD",
+      "issuer_nav_return": 0.1173,
+      "issuer_market_return": 0.1199,
+      "start": "2025-12-31",
+      "end": "2026-06-30",
+      "vendor_proxy_return": 0.11987937542123217,
+      "difference_bps": -0.20624578767836077,
+      "market_minus_nav_bps": 26.00000000000005,
+      "status": "within_display_rounding"
+    },
+    {
+      "as_of": "2026-06-30",
+      "period": "1 Month",
+      "issuer_nav_return": -0.569,
+      "issuer_market_return": -0.5678,
+      "start": "2026-05-29",
+      "end": "2026-06-30",
+      "vendor_proxy_return": -0.5677982344056394,
+      "difference_bps": 0.017655943606031954,
+      "market_minus_nav_bps": 11.999999999999789,
+      "status": "within_display_rounding"
+    },
+    {
+      "as_of": "2026-06-30",
+      "period": "3 Months",
+      "issuer_nav_return": 0.7358,
+      "issuer_market_return": 0.7426999999999999,
+      "start": "2026-03-31",
+      "end": "2026-06-30",
+      "vendor_proxy_return": 0.7426672626167719,
+      "difference_bps": -0.327373832280653,
+      "market_minus_nav_bps": 68.99999999999906,
+      "status": "within_display_rounding"
+    },
+    {
+      "as_of": "2026-06-30",
+      "period": "6 Months",
+      "issuer_nav_return": 0.1173,
+      "issuer_market_return": 0.1199,
+      "start": "2025-12-31",
+      "end": "2026-06-30",
+      "vendor_proxy_return": 0.11987937542123217,
+      "difference_bps": -0.20624578767836077,
+      "market_minus_nav_bps": 26.00000000000005,
+      "status": "within_display_rounding"
+    }
+  ],
+  "tolerance_bps": 0.5,
+  "passed_checkpoints": 8,
+  "strict_total_return_eligible": false,
+  "model_change_allowed": false,
+  "scope": "Cumulative market-price return checkpoints only. Overlapping periods are not independent samples. NAV is reference only.",
+  "excluded": "Since inception: inception NAV is not the first exchange closing price. Annualized tables are not mixed with cumulative returns.",
+  "sources": {
+    "issuer": {
+      "source": "https://www.defianceetfs.com/rklx/",
+      "params": null,
+      "retrievedAt": "2026-09-16",
+      "sha256": "c30a513eef2ab13c61708da58e564a8f52c36cd88836a44e2e14d6f366fd66cf"
+    },
+    "candidate": {
+      "raw_sha256": "12a269fe622e47cf4267e4e0fbff640bc470984ef1ca79f5490bd042a24ee7b1",
+      "request": {
+        "end_exclusive": "2026-09-16",
+        "events": "div,splits,capitalGains",
+        "interval": "1d",
+        "params": {
+          "events": "div,splits,capitalGains",
+          "includeAdjustedClose": "true",
+          "interval": "1d",
+          "period1": 1672531200,
+          "period2": 1789516800
+        },
+        "provider": "Yahoo Finance",
+        "start": "2023-01-01",
+        "symbol": "RKLX",
+        "url": "https://query1.finance.yahoo.com/v8/finance/chart/RKLX"
+      },
+      "retrieved_at": "2026-09-16T14:30:51.665665+00:00",
+      "schema": 1
+    }
+  }
+}

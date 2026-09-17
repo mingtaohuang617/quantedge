@@ -1,0 +1,19 @@
+[
+  {
+    "accession": "0001558370-20-002267",
+    "url": "https://www.sec.gov/Archives/edgar/data/1093691/000155837020002267/plug-20191231.xml",
+    "folder": "C:\\Users\\Minto\\Downloads\\\u81ea\u7814\u91cf\u5316\u6295\u8d44\u5e73\u53f0\\release\\scoring-v32\\backend\\data\\sec_filing_evidence\\004b1a9e4151db165931f4cc4fbb0eb72a729d85f6613cda4dbe1bc78b62c775",
+    "primary_url": "https://www.sec.gov/Archives/edgar/data/1093691/000155837020002267/plug-20191231x10k.htm",
+    "primary_html_folder": "C:\\Users\\Minto\\Downloads\\\u81ea\u7814\u91cf\u5316\u6295\u8d44\u5e73\u53f0\\release\\scoring-v32\\backend\\data\\sec_filing_evidence\\e8e748571d74b2d47685a81548937e64f252e5d2f52b6c4a2c44737db47fbd57"
+  },
+  {
+    "accession": "0001558370-21-007147",
+    "url": "https://www.sec.gov/Archives/edgar/data/1093691/000155837021007147/plug-20201231x10k.htm",
+    "folder": "C:\\Users\\Minto\\Downloads\\\u81ea\u7814\u91cf\u5316\u6295\u8d44\u5e73\u53f0\\release\\scoring-v32\\backend\\data\\sec_filing_evidence\\2a3f382ad1dc6775f8b675cc577e036559cd2edbca29292f963883825a3cecdf"
+  },
+  {
+    "accession": "0001558370-22-003577",
+    "url": "https://www.sec.gov/Archives/edgar/data/1093691/000155837022003577/plug-20201231x10ka.htm",
+    "folder": "C:\\Users\\Minto\\Downloads\\\u81ea\u7814\u91cf\u5316\u6295\u8d44\u5e73\u53f0\\release\\scoring-v32\\backend\\data\\sec_filing_evidence\\ddf576301260bc42977400dbe9a83ea2ebd89063ca342c9f91a4cb89f2178c1a"
+  }
+]

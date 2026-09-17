@@ -1,0 +1,5 @@
+
+> quantedge-frontend@0.8.0 check:version
+> node scripts/check-version.mjs
+
+QuantEdge version 0.8.0 is consistent across project manifests.

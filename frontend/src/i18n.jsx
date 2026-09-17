@@ -91,6 +91,10 @@ const toTW = (text) => {
 
 // ─── English Translation Dictionary ─────────────────────────
 const EN = {
+  '验证状态：实验性研究，尚未通过完整样本外验证。': 'Validation: experimental research; full out-of-sample validation is pending.',
+  '数据覆盖率表示可计算的输入比例，不是准确率或上涨概率。': 'Coverage measures available inputs, not accuracy or the probability of a price rise.',
+  '资产分类尚缺一手来源核验。': 'Asset classification still requires primary-source verification.',
+  '发行商本次响应缺少有效价差观测': 'The current issuer response has no valid spread observation',
   '仅手动更新：页面按钮更新本机快照，运行期间请勿关闭页面；云端更新需在 GitHub 点击 Run workflow，结果供各设备读取。': 'Manual updates only. Page buttons update this browser; keep the page open. For a shared cloud update, click Run workflow on GitHub.',
   '打开云端手动更新（GitHub）': 'Open manual cloud refresh (GitHub)',
   '最近云端手动更新': 'Last manual cloud refresh',

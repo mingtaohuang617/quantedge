@@ -1,0 +1,176 @@
+{
+  "as_of": "2026-09-16",
+  "strict_total_return_eligible": false,
+  "model_change_allowed": false,
+  "production_database_modified": false,
+  "evidence": {
+    "etf": {
+      "raw_sha256": "12a269fe622e47cf4267e4e0fbff640bc470984ef1ca79f5490bd042a24ee7b1",
+      "request": {
+        "end_exclusive": "2026-09-16",
+        "events": "div,splits,capitalGains",
+        "interval": "1d",
+        "params": {
+          "events": "div,splits,capitalGains",
+          "includeAdjustedClose": "true",
+          "interval": "1d",
+          "period1": 1672531200,
+          "period2": 1789516800
+        },
+        "provider": "Yahoo Finance",
+        "start": "2023-01-01",
+        "symbol": "RKLX",
+        "url": "https://query1.finance.yahoo.com/v8/finance/chart/RKLX"
+      },
+      "retrieved_at": "2026-09-16T14:30:51.665665+00:00",
+      "schema": 1
+    },
+    "underlying": {
+      "raw_sha256": "d4993ca5fdd18b9a81fdc3838783ca951a8d0e0afb0c4c68104a93fb4c749c1f",
+      "request": {
+        "end_exclusive": "2026-09-16",
+        "events": "div,splits,capitalGains",
+        "interval": "1d",
+        "params": {
+          "events": "div,splits,capitalGains",
+          "includeAdjustedClose": "true",
+          "interval": "1d",
+          "period1": 1672531200,
+          "period2": 1789516800
+        },
+        "provider": "Yahoo Finance",
+        "start": "2023-01-01",
+        "symbol": "RKLB",
+        "url": "https://query1.finance.yahoo.com/v8/finance/chart/RKLB"
+      },
+      "retrieved_at": "2026-09-16T14:43:02.242397+00:00",
+      "schema": 1
+    },
+    "issuer": {
+      "source": "https://www.defianceetfs.com/rklx/",
+      "params": null,
+      "retrievedAt": "2026-09-16",
+      "sha256": "c30a513eef2ab13c61708da58e564a8f52c36cd88836a44e2e14d6f366fd66cf"
+    },
+    "legacy_rows_sha256": "e37ec5ef73868ebcf84916dc1289a16c0c204a0558da2a3995f3b49da4f47f33"
+  },
+  "distribution": {
+    "ex_date": "2025-12-30",
+    "issuer_usd_per_share": "5.94640256",
+    "vendor_usd_per_share": 5.946,
+    "difference_usd_per_share": "0.00040256",
+    "unit_note": "Issuer cash is after the reviewed 2025-12-09 3:1 split; provider historical close share units remain uncertified."
+  },
+  "pre_distribution_affine_fit": {
+    "pairs": 198,
+    "slope": 1.0000000909699418,
+    "offset": -5.946401993670545,
+    "max_absolute_residual": 0.00016664009705991134,
+    "offset_plus_issuer_cash": 5.663294553315268e-07
+  },
+  "legacy_nonpositive_or_missing_ohlc": [
+    {
+      "date": "2025-03-13",
+      "open": 0.770266659,
+      "high": 0.780266659,
+      "low": -0.044033339,
+      "close": 0.107033327,
+      "source": "futu"
+    },
+    {
+      "date": "2025-03-31",
+      "open": 0.086933327,
+      "high": 0.416933326,
+      "low": -0.253066672,
+      "close": 0.103599993,
+      "source": "futu"
+    },
+    {
+      "date": "2025-04-01",
+      "open": 0.043599994,
+      "high": 0.72026666,
+      "low": -0.363066672,
+      "close": 0.32026666,
+      "source": "futu"
+    },
+    {
+      "date": "2025-04-02",
+      "open": -0.053066672,
+      "high": 1.376933326,
+      "low": -0.154733339,
+      "close": 1.120266659,
+      "source": "futu"
+    },
+    {
+      "date": "2025-04-03",
+      "open": -0.086400005,
+      "high": 0.32026666,
+      "low": -0.256400005,
+      "close": 0.056933327,
+      "source": "futu"
+    },
+    {
+      "date": "2025-04-09",
+      "open": -0.433066672,
+      "high": 2.073599991,
+      "low": -0.433066672,
+      "close": 1.600266659,
+      "source": "futu"
+    },
+    {
+      "date": "2025-04-21",
+      "open": 0.740266659,
+      "high": 0.826933326,
+      "low": -0.164733339,
+      "close": 0.14026666,
+      "source": "futu"
+    }
+  ],
+  "legacy_calendar": {
+    "version": "us-equity-daily-2026-09-16",
+    "start": "2025-03-13",
+    "end": "2026-09-01",
+    "expected": 370,
+    "missing": [
+      "2025-04-04",
+      "2025-04-07",
+      "2025-04-08"
+    ],
+    "unexpected": [],
+    "duplicates": [],
+    "passed": false,
+    "sources": [
+      "https://www.nasdaqtrader.com/content/technicalsupport/2025tradingcalendar.pdf",
+      "https://nasdaqtrader.com/Trader.aspx?id=Calendar",
+      "https://www.nasdaqtrader.com/TraderNews.aspx?id=ETA2025-1"
+    ]
+  },
+  "candidate_calendar": {
+    "version": "us-equity-daily-2026-09-16",
+    "start": "2025-03-13",
+    "end": "2026-09-15",
+    "expected": 379,
+    "missing": [],
+    "unexpected": [],
+    "duplicates": [],
+    "passed": true,
+    "sources": [
+      "https://www.nasdaqtrader.com/content/technicalsupport/2025tradingcalendar.pdf",
+      "https://nasdaqtrader.com/Trader.aspx?id=Calendar",
+      "https://www.nasdaqtrader.com/TraderNews.aspx?id=ETA2025-1"
+    ]
+  },
+  "may_8_comparison": {
+    "rklx_market_close_return": 0.6770361485712362,
+    "rklb_close_return": 0.34219901709166867,
+    "two_times_rklb": 0.6843980341833373,
+    "difference_bps": -73.6188561210116,
+    "status": "directionally_explained_not_NAV_tracking_certified"
+  },
+  "decision": "Legacy additive-adjusted prices cannot be ratioed as shareholder total return. No automated repair.",
+  "remaining_gates": [
+    "independent price/NAV check",
+    "complete cash and split share-unit certification",
+    "historical universe and financial publication vintages"
+  ]
+}

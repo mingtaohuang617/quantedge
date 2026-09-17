@@ -1,0 +1,67 @@
+
+> quantedge-frontend@0.8.0 check:bundle
+> node scripts/check-bundle-budget.mjs
+
+{
+  "initialGzipBytes": 72148,
+  "initialLimit": 75209,
+  "target30PercentReductionBytes": 242053,
+  "lazyRouteLimitBytes": 153600,
+  "lazyRoutes": [
+    {
+      "route": "ScoringDashboard",
+      "chunkGzipBytes": 129723,
+      "incrementalGraphGzipBytes": 449030
+    },
+    {
+      "route": "BacktestEngine",
+      "chunkGzipBytes": 34746,
+      "incrementalGraphGzipBytes": 354221
+    },
+    {
+      "route": "StockGene",
+      "chunkGzipBytes": 29659,
+      "incrementalGraphGzipBytes": 221310
+    },
+    {
+      "route": "Screener10x",
+      "chunkGzipBytes": 29038,
+      "incrementalGraphGzipBytes": 220916
+    },
+    {
+      "route": "Journal",
+      "chunkGzipBytes": 24380,
+      "incrementalGraphGzipBytes": 344822
+    },
+    {
+      "route": "MacroDashboard",
+      "chunkGzipBytes": 23508,
+      "incrementalGraphGzipBytes": 343371
+    },
+    {
+      "route": "MiningAlpha",
+      "chunkGzipBytes": 15446,
+      "incrementalGraphGzipBytes": 334203
+    },
+    {
+      "route": "Monitor",
+      "chunkGzipBytes": 13848,
+      "incrementalGraphGzipBytes": 205243
+    },
+    {
+      "route": "CompoundPower",
+      "chunkGzipBytes": 11678,
+      "incrementalGraphGzipBytes": 331153
+    },
+    {
+      "route": "SmartBeta",
+      "chunkGzipBytes": 10349,
+      "incrementalGraphGzipBytes": 329106
+    },
+    {
+      "route": "DailyResearch",
+      "chunkGzipBytes": 4540,
+      "incrementalGraphGzipBytes": 195935
+    }
+  ]
+}

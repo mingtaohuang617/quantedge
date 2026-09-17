@@ -1,0 +1,60 @@
+
+> quantedge-frontend@0.8.0 prebuild
+> npm run data:split && node scripts/prepare-tradingview-runtime.mjs
+
+
+> quantedge-frontend@0.8.0 data:split
+> node scripts/split-market-data.mjs
+
+us: 132 stocks
+hk: 110 stocks
+cn: 301 stocks
+alerts: 134
+Prepared isolated TradingView runtime: 44 packages
+
+> quantedge-frontend@0.8.0 build
+> vite build
+
+vite v8.2.2 building client environment for production...
+transforming...
+✓ 2604 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                               4.04 kB │ gzip:   1.81 kB
+dist/.vite/manifest.json                      9.69 kB │ gzip:   1.31 kB
+dist/assets/index-DqgMpMa0.css              191.51 kB │ gzip:  28.16 kB
+dist/assets/EmptyState-zR7yXrgh.js            0.33 kB │ gzip:   0.25 kB
+dist/assets/formatters-DmUiH6pL.js            0.39 kB │ gzip:   0.22 kB
+dist/assets/macroAdjust-CAQhGD-8.js           0.55 kB │ gzip:   0.32 kB
+dist/assets/rolldown-runtime-hePW80VL.js      0.71 kB │ gzip:   0.42 kB
+dist/assets/stats-J50qarAN.js                 1.61 kB │ gzip:   0.72 kB
+dist/assets/smartBetaDemo-tbX54Qub.js         1.76 kB │ gzip:   0.69 kB
+dist/assets/digestBuilder-DQQvL180.js         1.95 kB │ gzip:   1.10 kB
+dist/assets/screener10xDemo-CRiRyDSp.js       2.33 kB │ gzip:   0.82 kB
+dist/assets/stockGeneDemo-zEbd0aEU.js         2.82 kB │ gzip:   1.12 kB
+dist/assets/miningAlphaDemo-DGFaMems.js       3.76 kB │ gzip:   1.98 kB
+dist/assets/DailyResearch-DBo7HHF7.js        11.00 kB │ gzip:   4.54 kB
+dist/assets/esm-C8beNgr7.js                  11.26 kB │ gzip:   3.73 kB
+dist/assets/index-y4b2n3B8.js                12.18 kB │ gzip:   5.30 kB
+dist/assets/es-BOAyukm3.js                   12.50 kB │ gzip:   4.97 kB
+dist/assets/alerts-Fc9jA7_B.js               16.64 kB │ gzip:   2.32 kB
+dist/assets/icons-vendor-Cu9IiIJw.js         28.01 kB │ gzip:  10.00 kB
+dist/assets/SmartBeta-CR0xMK7e.js            36.06 kB │ gzip:  10.39 kB
+dist/assets/CompoundPower-kk6sr9I3.js        38.89 kB │ gzip:  11.72 kB
+dist/assets/Monitor-BSYYQVwA.js              51.48 kB │ gzip:  13.90 kB
+dist/assets/MiningAlpha-IRwxIxKx.js          56.73 kB │ gzip:  15.54 kB
+dist/assets/MacroDashboard-D3mPlx1p.js       85.75 kB │ gzip:  23.63 kB
+dist/assets/Journal-Ww-BQKY5.js              98.81 kB │ gzip:  24.50 kB
+dist/assets/Screener10x-B30BNafo.js         111.46 kB │ gzip:  29.22 kB
+dist/assets/StockGene-B4ncL3Es.js           111.74 kB │ gzip:  29.85 kB
+dist/assets/BacktestEngine-DzEt9Dou.js      133.45 kB │ gzip:  34.98 kB
+dist/assets/react-vendor-XuqcK4nM.js        182.12 kB │ gzip:  57.31 kB
+dist/assets/hk-BJiKJiE8.js                  198.08 kB │ gzip:  29.88 kB
+dist/assets/us-DvROnP_t.js                  282.75 kB │ gzip:  52.83 kB
+dist/assets/ScoringDashboard-BjavA6vR.js    421.26 kB │ gzip: 130.88 kB
+dist/assets/recharts-vendor-C1vLlwnt.js     466.53 kB │ gzip: 128.80 kB
+dist/assets/cn-BApUCa8o.js                  529.23 kB │ gzip:  75.87 kB
+dist/assets/quant-platform-CrKd9ElL.js      532.54 kB │ gzip: 193.07 kB
+dist/assets/full-CYs3krCB.js              1,192.97 kB │ gzip: 520.25 kB
+
+✓ built in 629ms

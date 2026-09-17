@@ -1,0 +1,1893 @@
+{
+  "schema": "financial-admission-trial-1.0.0",
+  "input_sha256": {
+    "docs\\reviews\\financial-admission-2026-09-17\\non-reliance.json": "93b2f59dc817b8e80a1147f8a63c70c56f388a345d06f844120712f22c0828fd",
+    "docs\\reviews\\sec-vintages-2026-09-16\\nvda.json": "cb7f6d4419e402e55981f1242c6229f4875d30c8ee5c7200af457947537c6e32",
+    "docs\\reviews\\sec-originals-2026-09-17\\verification.json": "7ac53fd04bde31b75f71f7e2807f39ae85b919620cc247daf46d5fe82447564e",
+    "docs\\reviews\\sec-transforms-2026-09-17\\plug-candidates.json": "b32ee7c60f05bf706038b09a612adc2e45a340ebe15874713d98dc5b55c91e1b",
+    "docs\\reviews\\financial-admission-2026-09-17\\plug-verification.json": "d476149dbf40c06c371d9cf6957b1ac36fd40ffc57b389fc4f97ed7916d3038a",
+    "docs\\reviews\\financial-admission-2026-09-17\\mu-candidates.json": "b5735af2ddd8f0691449427a624e7193ecfbf4b1ba6c9151d630cadb2d4d110a",
+    "docs\\reviews\\financial-admission-2026-09-17\\mu-verification.json": "b59a870156bf94c1ea4cbaebb09b55b0b3727bb3a9915e0389af1ac132e03690",
+    "docs\\reviews\\financial-admission-2026-09-17\\msft-candidates.json": "b47bf9b75356adf0bda9cfa12a50414394c2554ab66923f195f668e0d5edbac8",
+    "docs\\reviews\\financial-admission-2026-09-17\\msft-verification.json": "9d1ccb868e4ee1c09aaa2b8d946cb5a86b71b35b5dd0f089f4771868a4c1eeb3"
+  },
+  "cases": [
+    {
+      "ticker": "NVDA",
+      "as_of": "2026-02-26T12:00:00-05:00",
+      "accession": "0001045810-26-000021",
+      "period": [
+        "2025-01-27",
+        "2026-01-25"
+      ],
+      "inputs": {
+        "roe": 101.48508156537909,
+        "profitMargin": 55.60253406070261,
+        "revenueGrowth": 65.47353579009479
+      },
+      "input_blocks": {},
+      "source_facts": {
+        "income": {
+          "status": "research_candidate",
+          "fact": {
+            "cik": "0001045810",
+            "taxonomy": "us-gaap",
+            "concept": "NetIncomeLoss",
+            "unit": "USD",
+            "start": "2025-01-27",
+            "end": "2026-01-25",
+            "value": 120067000000,
+            "accession": "0001045810-26-000021",
+            "form": "10-K",
+            "filed": "2026-02-25",
+            "accepted_at": "2026-02-25T21:42:19+00:00",
+            "available_at": "2026-02-26T00:00:00-05:00",
+            "primary_document": "nvda-20260125.htm",
+            "source": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000021/nvda-20260125.htm",
+            "status": "filing_linked_candidate",
+            "original_check": "matched",
+            "original_facts": [
+              {
+                "concept": "NetIncomeLoss",
+                "unit": "USD",
+                "start": "2025-01-27",
+                "end": "2026-01-25",
+                "value": "120067000000",
+                "context_id": "c-1",
+                "fact_id": "f-111",
+                "decimals": "-6"
+              },
+              {
+                "concept": "NetIncomeLoss",
+                "unit": "USD",
+                "start": "2025-01-27",
+                "end": "2026-01-25",
+                "value": "120067000000",
+                "context_id": "c-1",
+                "fact_id": "f-126",
+                "decimals": "-6"
+              },
+              {
+                "concept": "NetIncomeLoss",
+                "unit": "USD",
+                "start": "2025-01-27",
+                "end": "2026-01-25",
+                "value": "120067000000",
+                "context_id": "c-1",
+                "fact_id": "f-273",
+                "decimals": "-6"
+              },
+              {
+                "concept": "NetIncomeLoss",
+                "unit": "USD",
+                "start": "2025-01-27",
+                "end": "2026-01-25",
+                "value": "120067000000",
+                "context_id": "c-1",
+                "fact_id": "f-299",
+                "decimals": "-6"
+              },
+              {
+                "concept": "NetIncomeLoss",
+                "unit": "USD",
+                "start": "2025-01-27",
+                "end": "2026-01-25",
+                "value": "120067000000",
+                "context_id": "c-1",
+                "fact_id": "f-532",
+                "decimals": "-6"
+              }
+            ]
+          },
+          "strict_pit_eligible": false,
+          "notice_coverage_complete": false
+        },
+        "revenue": {
+          "status": "research_candidate",
+          "fact": {
+            "cik": "0001045810",
+            "taxonomy": "us-gaap",
+            "concept": "Revenues",
+            "unit": "USD",
+            "start": "2025-01-27",
+            "end": "2026-01-25",
+            "value": 215938000000,
+            "accession": "0001045810-26-000021",
+            "form": "10-K",
+            "filed": "2026-02-25",
+            "accepted_at": "2026-02-25T21:42:19+00:00",
+            "available_at": "2026-02-26T00:00:00-05:00",
+            "primary_document": "nvda-20260125.htm",
+            "source": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000021/nvda-20260125.htm",
+            "status": "filing_linked_candidate",
+            "original_check": "matched",
+            "original_facts": [
+              {
+                "concept": "Revenues",
+                "unit": "USD",
+                "start": "2025-01-27",
+                "end": "2026-01-25",
+                "value": "215938000000",
+                "context_id": "c-1",
+                "fact_id": "f-72",
+                "decimals": "-6"
+              },
+              {
+                "concept": "Revenues",
+                "unit": "USD",
+                "start": "2025-01-27",
+                "end": "2026-01-25",
+                "value": "215938000000",
+                "context_id": "c-1",
+                "fact_id": "f-1189",
+                "decimals": "-6"
+              },
+              {
+                "concept": "Revenues",
+                "unit": "USD",
+                "start": "2025-01-27",
+                "end": "2026-01-25",
+                "value": "215938000000",
+                "context_id": "c-1",
+                "fact_id": "f-1223",
+                "decimals": "-6"
+              }
+            ]
+          },
+          "strict_pit_eligible": false,
+          "notice_coverage_complete": false
+        },
+        "prior_revenue": {
+          "status": "research_candidate",
+          "fact": {
+            "cik": "0001045810",
+            "taxonomy": "us-gaap",
+            "concept": "Revenues",
+            "unit": "USD",
+            "start": "2024-01-29",
+            "end": "2025-01-26",
+            "value": 130497000000,
+            "accession": "0001045810-26-000021",
+            "form": "10-K",
+            "filed": "2026-02-25",
+            "accepted_at": "2026-02-25T21:42:19+00:00",
+            "available_at": "2026-02-26T00:00:00-05:00",
+            "primary_document": "nvda-20260125.htm",
+            "source": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000021/nvda-20260125.htm",
+            "status": "filing_linked_candidate",
+            "original_check": "matched",
+            "original_facts": [
+              {
+                "concept": "Revenues",
+                "unit": "USD",
+                "start": "2024-01-29",
+                "end": "2025-01-26",
+                "value": "130497000000",
+                "context_id": "c-9",
+                "fact_id": "f-73",
+                "decimals": "-6"
+              },
+              {
+                "concept": "Revenues",
+                "unit": "USD",
+                "start": "2024-01-29",
+                "end": "2025-01-26",
+                "value": "130497000000",
+                "context_id": "c-9",
+                "fact_id": "f-1190",
+                "decimals": "-6"
+              },
+              {
+                "concept": "Revenues",
+                "unit": "USD",
+                "start": "2024-01-29",
+                "end": "2025-01-26",
+                "value": "130497000000",
+                "context_id": "c-9",
+                "fact_id": "f-1224",
+                "decimals": "-6"
+              }
+            ]
+          },
+          "strict_pit_eligible": false,
+          "notice_coverage_complete": false
+        },
+        "opening_equity": {
+          "status": "research_candidate",
+          "fact": {
+            "cik": "0001045810",
+            "taxonomy": "us-gaap",
+            "concept": "StockholdersEquity",
+            "unit": "USD",
+            "start": null,
+            "end": "2025-01-26",
+            "value": 79327000000,
+            "accession": "0001045810-26-000021",
+            "form": "10-K",
+            "filed": "2026-02-25",
+            "accepted_at": "2026-02-25T21:42:19+00:00",
+            "available_at": "2026-02-26T00:00:00-05:00",
+            "primary_document": "nvda-20260125.htm",
+            "source": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000021/nvda-20260125.htm",
+            "status": "filing_linked_candidate",
+            "original_check": "matched",
+            "original_facts": [
+              {
+                "concept": "StockholdersEquity",
+                "unit": "USD",
+                "start": null,
+                "end": "2025-01-26",
+                "value": "79327000000",
+                "context_id": "c-12",
+                "fact_id": "f-212",
+                "decimals": "-6"
+              },
+              {
+                "concept": "StockholdersEquity",
+                "unit": "USD",
+                "start": null,
+                "end": "2025-01-26",
+                "value": "79327000000",
+                "context_id": "c-12",
+                "fact_id": "f-271",
+                "decimals": "-6"
+              }
+            ]
+          },
+          "strict_pit_eligible": false,
+          "notice_coverage_complete": false
+        },
+        "closing_equity": {
+          "status": "research_candidate",
+          "fact": {
+            "cik": "0001045810",
+            "taxonomy": "us-gaap",
+            "concept": "StockholdersEquity",
+            "unit": "USD",
+            "start": null,
+            "end": "2026-01-25",
+            "value": 157293000000,
+            "accession": "0001045810-26-000021",
+            "form": "10-K",
+            "filed": "2026-02-25",
+            "accepted_at": "2026-02-25T21:42:19+00:00",
+            "available_at": "2026-02-26T00:00:00-05:00",
+            "primary_document": "nvda-20260125.htm",
+            "source": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000021/nvda-20260125.htm",
+            "status": "filing_linked_candidate",
+            "original_check": "matched",
+            "original_facts": [
+              {
+                "concept": "StockholdersEquity",
+                "unit": "USD",
+                "start": null,
+                "end": "2026-01-25",
+                "value": "157293000000",
+                "context_id": "c-11",
+                "fact_id": "f-211",
+                "decimals": "-6"
+              },
+              {
+                "concept": "StockholdersEquity",
+                "unit": "USD",
+                "start": null,
+                "end": "2026-01-25",
+                "value": "157293000000",
+                "context_id": "c-11",
+                "fact_id": "f-298",
+                "decimals": "-6"
+              }
+            ]
+          },
+          "strict_pit_eligible": false,
+          "notice_coverage_complete": false
+        }
+      },
+      "qualityScore": null,
+      "subScores": {
+        "valuation": null,
+        "profitability": 89.0,
+        "growth": 90.0,
+        "momentum": null,
+        "trend": null,
+        "rsi": null
+      },
+      "scoring": {
+        "version": "3.2.0",
+        "status": "insufficient_data",
+        "coverage": 30.0,
+        "qualityCoverage": 50.0,
+        "timingCoverage": 0.0,
+        "peerGroup": "US / stock / unknown",
+        "factorPeerCounts": {
+          "ey": 0,
+          "by": 0,
+          "sy": 0,
+          "roe": 0,
+          "margin": 0,
+          "grow": 0
+        },
+        "momentumPeers": 0,
+        "priceAsOf": null,
+        "financialPeriod": "2026-01-25",
+        "financialPublishedAt": null,
+        "warnings": [
+          "部分因子同类样本不足，使用绝对锚或暂缺",
+          "财务币种未完整标注，营收／市值因子暂不参与"
+        ],
+        "qualityDeduction": 0.0,
+        "weights": {
+          "quality": 60,
+          "timing": 40
+        },
+        "horizon": "多月趋势描述，非买点或上涨概率"
+      },
+      "strict_pit_eligible": false,
+      "model_change_allowed": false,
+      "limitations": [
+        "Annual fiscal-period ratios; no quarterly TTM inference",
+        "Historical price, share count and valuation inputs missing",
+        "Independent cases with absolute anchors; no cross-date peer ranking",
+        "Reviewed notices only; notice and revision coverage incomplete"
+      ]
+    },
+    {
+      "ticker": "PLUG",
+      "as_of": "2021-05-15T12:00:00-04:00",
+      "accession": "0001558370-21-007147",
+      "period": [
+        "2020-01-01",
+        "2020-12-31"
+      ],
+      "inputs": {
+        "roe": -74.66763692657233,
+        "profitMargin": null,
+        "revenueGrowth": null
+      },
+      "input_blocks": {
+        "profitMargin": "Missing admitted inputs or nonpositive revenue",
+        "revenueGrowth": "Missing admitted inputs or nonpositive prior/negative current revenue"
+      },
+      "source_facts": {
+        "income": {
+          "status": "research_candidate",
+          "fact": {
+            "cik": "0001093691",
+            "taxonomy": "us-gaap",
+            "concept": "NetIncomeLoss",
+            "unit": "USD",
+            "start": "2020-01-01",
+            "end": "2020-12-31",
+            "value": -596155000,
+            "accession": "0001558370-21-007147",
+            "form": "10-K",
+            "filed": "2021-05-14",
+            "accepted_at": "2021-05-14T10:20:25+00:00",
+            "available_at": "2021-05-15T00:00:00-04:00",
+            "primary_document": "plug-20201231x10k.htm",
+            "source": "https://www.sec.gov/Archives/edgar/data/1093691/000155837021007147/plug-20201231x10k.htm",
+            "status": "filing_linked_candidate",
+            "original_check": "matched",
+            "original_facts": [
+              {
+                "concept": "NetIncomeLoss",
+                "unit": "USD",
+                "start": "2020-01-01",
+                "end": "2020-12-31",
+                "value": "-596155000",
+                "context_id": "Duration_1_1_2020_To_12_31_2020__5nMVkGDcUOukp2j0ICmYQ",
+                "fact_id": "Tc_iBiN6J72PEu43-vtKhnPuw_38_3",
+                "decimals": "-3"
+              },
+              {
+                "concept": "NetIncomeLoss",
+                "unit": "USD",
+                "start": "2020-01-01",
+                "end": "2020-12-31",
+                "value": "-596155000",
+                "context_id": "Duration_1_1_2020_To_12_31_2020__5nMVkGDcUOukp2j0ICmYQ",
+                "fact_id": "Tc_TX35iuVImESGSA7FRT3NQA_3_3",
+                "decimals": "-3"
+              },
+              {
+                "concept": "NetIncomeLoss",
+                "unit": "USD",
+                "start": "2020-01-01",
+                "end": "2020-12-31",
+                "value": "-596155000",
+                "context_id": "Duration_1_1_2020_To_12_31_2020__5nMVkGDcUOukp2j0ICmYQ",
+                "fact_id": "Tc__9SBFTr0tkaW6sFTNlVuPw_30_22",
+                "decimals": "-3"
+              },
+              {
+                "concept": "NetIncomeLoss",
+                "unit": "USD",
+                "start": "2020-01-01",
+                "end": "2020-12-31",
+                "value": "-596155000",
+                "context_id": "Duration_1_1_2020_To_12_31_2020__5nMVkGDcUOukp2j0ICmYQ",
+                "fact_id": "Tc_lAoEUvXCHkGbD_AERBnIpg_4_3",
+                "decimals": "-3"
+              },
+              {
+                "concept": "NetIncomeLoss",
+                "unit": "USD",
+                "start": "2020-01-01",
+                "end": "2020-12-31",
+                "value": "-596155000",
+                "context_id": "Duration_1_1_2020_To_12_31_2020__5nMVkGDcUOukp2j0ICmYQ",
+                "fact_id": "Tc_k5FHq5uoZU6asFP-a9-Xeg_6_9",
+                "decimals": "-3"
+              }
+            ],
+            "rounding_intervals": []
+          },
+          "strict_pit_eligible": false,
+          "notice_coverage_complete": false
+        },
+        "revenue": {
+          "status": "research_candidate",
+          "fact": {
+            "cik": "0001093691",
+            "taxonomy": "us-gaap",
+            "concept": "Revenues",
+            "unit": "USD",
+            "start": "2020-01-01",
+            "end": "2020-12-31",
+            "value": -93237000,
+            "accession": "0001558370-21-007147",
+            "form": "10-K",
+            "filed": "2021-05-14",
+            "accepted_at": "2021-05-14T10:20:25+00:00",
+            "available_at": "2021-05-15T00:00:00-04:00",
+            "primary_document": "plug-20201231x10k.htm",
+            "source": "https://www.sec.gov/Archives/edgar/data/1093691/000155837021007147/plug-20201231x10k.htm",
+            "status": "filing_linked_candidate",
+            "original_check": "matched_with_rounding",
+            "original_facts": [
+              {
+                "concept": "Revenues",
+                "unit": "USD",
+                "start": "2020-01-01",
+                "end": "2020-12-31",
+                "value": "-93237000",
+                "context_id": "Duration_1_1_2020_To_12_31_2020__5nMVkGDcUOukp2j0ICmYQ",
+                "fact_id": "Tc_j1m7lRdJckKWtSBjdXaxNA_9_3",
+                "decimals": "-3"
+              },
+              {
+                "concept": "Revenues",
+                "unit": "USD",
+                "start": "2020-01-01",
+                "end": "2020-12-31",
+                "value": "-93237000",
+                "context_id": "Duration_1_1_2020_To_12_31_2020__5nMVkGDcUOukp2j0ICmYQ",
+                "fact_id": "Tc_ADBhztHKTUWk0Y1qcP2hoA_11_3",
+                "decimals": "-3"
+              },
+              {
+                "concept": "Revenues",
+                "unit": "USD",
+                "start": "2020-01-01",
+                "end": "2020-12-31",
+                "value": "-93200000.0",
+                "context_id": "Duration_1_1_2020_To_12_31_2020__5nMVkGDcUOukp2j0ICmYQ",
+                "fact_id": "Narr_toseUG3rSkCO2yMBPjRd7w",
+                "decimals": "-5"
+              }
+            ],
+            "rounding_intervals": [
+              {
+                "fact_id": "Tc_j1m7lRdJckKWtSBjdXaxNA_9_3",
+                "decimals": "-3",
+                "lower": "-93237500.0",
+                "upper": "-93236500.0"
+              },
+              {
+                "fact_id": "Tc_ADBhztHKTUWk0Y1qcP2hoA_11_3",
+                "decimals": "-3",
+                "lower": "-93237500.0",
+                "upper": "-93236500.0"
+              },
+              {
+                "fact_id": "Narr_toseUG3rSkCO2yMBPjRd7w",
+                "decimals": "-5",
+                "lower": "-93250000.0",
+                "upper": "-93150000.0"
+              }
+            ]
+          },
+          "strict_pit_eligible": false,
+          "notice_coverage_complete": false
+        },
+        "prior_revenue": {
+          "status": "research_candidate",
+          "fact": {
+            "cik": "0001093691",
+            "taxonomy": "us-gaap",
+            "concept": "Revenues",
+            "unit": "USD",
+            "start": "2019-01-01",
+            "end": "2019-12-31",
+            "value": 229975000,
+            "accession": "0001558370-21-007147",
+            "form": "10-K",
+            "filed": "2021-05-14",
+            "accepted_at": "2021-05-14T10:20:25+00:00",
+            "available_at": "2021-05-15T00:00:00-04:00",
+            "primary_document": "plug-20201231x10k.htm",
+            "source": "https://www.sec.gov/Archives/edgar/data/1093691/000155837021007147/plug-20201231x10k.htm",
+            "status": "filing_linked_candidate",
+            "original_check": "matched",
+            "original_facts": [
+              {
+                "concept": "Revenues",
+                "unit": "USD",
+                "start": "2019-01-01",
+                "end": "2019-12-31",
+                "value": "229975000",
+                "context_id": "Duration_1_1_2019_To_12_31_2019_HKA09hUp70aIVUW8mh_6vw",
+                "fact_id": "Tc_a31Ba2DWF0qlhXzW-M4giQ_9_6",
+                "decimals": "-3"
+              },
+              {
+                "concept": "Revenues",
+                "unit": "USD",
+                "start": "2019-01-01",
+                "end": "2019-12-31",
+                "value": "229975000",
+                "context_id": "Duration_1_1_2019_To_12_31_2019_HKA09hUp70aIVUW8mh_6vw",
+                "fact_id": "Tc_jssFVz2XN0u_E02MYxFdow_11_9",
+                "decimals": "-3"
+              },
+              {
+                "concept": "Revenues",
+                "unit": "USD",
+                "start": "2019-01-01",
+                "end": "2019-12-31",
+                "value": "229975000",
+                "context_id": "Duration_1_1_2019_To_12_31_2019_HKA09hUp70aIVUW8mh_6vw",
+                "fact_id": "Tc_wGnIa2wVW0mDX3f9Ef7zzg_11_6",
+                "decimals": "-3"
+              }
+            ],
+            "rounding_intervals": []
+          },
+          "strict_pit_eligible": false,
+          "notice_coverage_complete": false
+        },
+        "opening_equity": {
+          "status": "research_candidate",
+          "fact": {
+            "cik": "0001093691",
+            "taxonomy": "us-gaap",
+            "concept": "StockholdersEquity",
+            "unit": "USD",
+            "start": null,
+            "end": "2019-12-31",
+            "value": 129904000,
+            "accession": "0001558370-21-007147",
+            "form": "10-K",
+            "filed": "2021-05-14",
+            "accepted_at": "2021-05-14T10:20:25+00:00",
+            "available_at": "2021-05-15T00:00:00-04:00",
+            "primary_document": "plug-20201231x10k.htm",
+            "source": "https://www.sec.gov/Archives/edgar/data/1093691/000155837021007147/plug-20201231x10k.htm",
+            "status": "filing_linked_candidate",
+            "original_check": "matched",
+            "original_facts": [
+              {
+                "concept": "StockholdersEquity",
+                "unit": "USD",
+                "start": null,
+                "end": "2019-12-31",
+                "value": "129904000",
+                "context_id": "As_Of_12_31_2019_en2towGhmkCTq4OsiO0s5g",
+                "fact_id": "Tc_mdLA7RRxfkGMV2D5y-vAFA_50_6",
+                "decimals": "-3"
+              },
+              {
+                "concept": "StockholdersEquity",
+                "unit": "USD",
+                "start": null,
+                "end": "2019-12-31",
+                "value": "129904000",
+                "context_id": "As_Of_12_31_2019_en2towGhmkCTq4OsiO0s5g",
+                "fact_id": "Tc_CVr2VsgcU06o-EJfYJTvYQ_29_22",
+                "decimals": "-3"
+              },
+              {
+                "concept": "StockholdersEquity",
+                "unit": "USD",
+                "start": null,
+                "end": "2019-12-31",
+                "value": "129904000",
+                "context_id": "As_Of_12_31_2019_en2towGhmkCTq4OsiO0s5g",
+                "fact_id": "Tc_2QXY7nNN30ywRFGggVWl_A_52_9",
+                "decimals": "-3"
+              },
+              {
+                "concept": "StockholdersEquity",
+                "unit": "USD",
+                "start": null,
+                "end": "2019-12-31",
+                "value": "129904000",
+                "context_id": "As_Of_12_31_2019_en2towGhmkCTq4OsiO0s5g",
+                "fact_id": "Tc_5Lq6mhuKoEaR0ZUO1kyt8Q_15_22",
+                "decimals": "-3"
+              }
+            ],
+            "rounding_intervals": []
+          },
+          "strict_pit_eligible": false,
+          "notice_coverage_complete": false
+        },
+        "closing_equity": {
+          "status": "research_candidate",
+          "fact": {
+            "cik": "0001093691",
+            "taxonomy": "us-gaap",
+            "concept": "StockholdersEquity",
+            "unit": "USD",
+            "start": null,
+            "end": "2020-12-31",
+            "value": 1466919000,
+            "accession": "0001558370-21-007147",
+            "form": "10-K",
+            "filed": "2021-05-14",
+            "accepted_at": "2021-05-14T10:20:25+00:00",
+            "available_at": "2021-05-15T00:00:00-04:00",
+            "primary_document": "plug-20201231x10k.htm",
+            "source": "https://www.sec.gov/Archives/edgar/data/1093691/000155837021007147/plug-20201231x10k.htm",
+            "status": "filing_linked_candidate",
+            "original_check": "matched",
+            "original_facts": [
+              {
+                "concept": "StockholdersEquity",
+                "unit": "USD",
+                "start": null,
+                "end": "2020-12-31",
+                "value": "1466919000",
+                "context_id": "As_Of_12_31_2020_jRO3KCquR0C_dkeZlrwP6g",
+                "fact_id": "Tc_E82DA__o_ESazAwna7r6RQ_50_3",
+                "decimals": "-3"
+              },
+              {
+                "concept": "StockholdersEquity",
+                "unit": "USD",
+                "start": null,
+                "end": "2020-12-31",
+                "value": "1466919000",
+                "context_id": "As_Of_12_31_2020_jRO3KCquR0C_dkeZlrwP6g",
+                "fact_id": "Tc_mHu4M_gxy0a1cTj_p6ddDw_46_22",
+                "decimals": "-3"
+              }
+            ],
+            "rounding_intervals": []
+          },
+          "strict_pit_eligible": false,
+          "notice_coverage_complete": false
+        }
+      },
+      "qualityScore": null,
+      "subScores": {
+        "valuation": null,
+        "profitability": 20.0,
+        "growth": null,
+        "momentum": null,
+        "trend": null,
+        "rsi": null
+      },
+      "scoring": {
+        "version": "3.2.0",
+        "status": "insufficient_data",
+        "coverage": 10.0,
+        "qualityCoverage": 17.0,
+        "timingCoverage": 0.0,
+        "peerGroup": "US / stock / unknown",
+        "factorPeerCounts": {
+          "ey": 0,
+          "by": 0,
+          "sy": 0,
+          "roe": 0,
+          "margin": 0,
+          "grow": 0
+        },
+        "momentumPeers": 0,
+        "priceAsOf": null,
+        "financialPeriod": "2020-12-31",
+        "financialPublishedAt": null,
+        "warnings": [
+          "部分因子同类样本不足，使用绝对锚或暂缺",
+          "财务币种未完整标注，营收／市值因子暂不参与"
+        ],
+        "qualityDeduction": 0.0,
+        "weights": {
+          "quality": 60,
+          "timing": 40
+        },
+        "horizon": "多月趋势描述，非买点或上涨概率"
+      },
+      "strict_pit_eligible": false,
+      "model_change_allowed": false,
+      "limitations": [
+        "Annual fiscal-period ratios; no quarterly TTM inference",
+        "Historical price, share count and valuation inputs missing",
+        "Independent cases with absolute anchors; no cross-date peer ranking",
+        "Reviewed notices only; notice and revision coverage incomplete"
+      ]
+    },
+    {
+      "ticker": "MU",
+      "as_of": "2023-10-07T12:00:00-04:00",
+      "accession": "0000723125-23-000054",
+      "period": [
+        "2022-09-02",
+        "2023-08-31"
+      ],
+      "inputs": {
+        "roe": -12.407074563689154,
+        "profitMargin": -37.53539253539253,
+        "revenueGrowth": -49.47655894401456
+      },
+      "input_blocks": {},
+      "source_facts": {
+        "income": {
+          "status": "research_candidate",
+          "fact": {
+            "cik": "0000723125",
+            "taxonomy": "us-gaap",
+            "concept": "NetIncomeLoss",
+            "unit": "USD",
+            "start": "2022-09-02",
+            "end": "2023-08-31",
+            "value": -5833000000,
+            "accession": "0000723125-23-000054",
+            "form": "10-K",
+            "filed": "2023-10-06",
+            "accepted_at": "2023-10-06T20:01:37+00:00",
+            "available_at": "2023-10-07T00:00:00-04:00",
+            "primary_document": "mu-20230831.htm",
+            "source": "https://www.sec.gov/Archives/edgar/data/723125/000072312523000054/mu-20230831.htm",
+            "status": "filing_linked_candidate",
+            "original_check": "matched",
+            "original_facts": [
+              {
+                "concept": "NetIncomeLoss",
+                "unit": "USD",
+                "start": "2022-09-02",
+                "end": "2023-08-31",
+                "value": "-5833000000",
+                "context_id": "c-1",
+                "fact_id": "f-79",
+                "decimals": "-6"
+              },
+              {
+                "concept": "NetIncomeLoss",
+                "unit": "USD",
+                "start": "2022-09-02",
+                "end": "2023-08-31",
+                "value": "-5833000000",
+                "context_id": "c-1",
+                "fact_id": "f-94",
+                "decimals": "-6"
+              },
+              {
+                "concept": "NetIncomeLoss",
+                "unit": "USD",
+                "start": "2022-09-02",
+                "end": "2023-08-31",
+                "value": "-5833000000",
+                "context_id": "c-1",
+                "fact_id": "f-255",
+                "decimals": "-6"
+              },
+              {
+                "concept": "NetIncomeLoss",
+                "unit": "USD",
+                "start": "2022-09-02",
+                "end": "2023-08-31",
+                "value": "-5833000000",
+                "context_id": "c-1",
+                "fact_id": "f-281",
+                "decimals": "-6"
+              },
+              {
+                "concept": "NetIncomeLoss",
+                "unit": "USD",
+                "start": "2022-09-02",
+                "end": "2023-08-31",
+                "value": "-5833000000",
+                "context_id": "c-1",
+                "fact_id": "f-1492",
+                "decimals": "-6"
+              }
+            ],
+            "rounding_intervals": []
+          },
+          "strict_pit_eligible": false,
+          "notice_coverage_complete": false
+        },
+        "revenue": {
+          "status": "research_candidate",
+          "fact": {
+            "cik": "0000723125",
+            "taxonomy": "us-gaap",
+            "concept": "RevenueFromContractWithCustomerExcludingAssessedTax",
+            "unit": "USD",
+            "start": "2022-09-02",
+            "end": "2023-08-31",
+            "value": 15540000000,
+            "accession": "0000723125-23-000054",
+            "form": "10-K",
+            "filed": "2023-10-06",
+            "accepted_at": "2023-10-06T20:01:37+00:00",
+            "available_at": "2023-10-07T00:00:00-04:00",
+            "primary_document": "mu-20230831.htm",
+            "source": "https://www.sec.gov/Archives/edgar/data/723125/000072312523000054/mu-20230831.htm",
+            "status": "filing_linked_candidate",
+            "original_check": "matched",
+            "original_facts": [
+              {
+                "concept": "RevenueFromContractWithCustomerExcludingAssessedTax",
+                "unit": "USD",
+                "start": "2022-09-02",
+                "end": "2023-08-31",
+                "value": "15540000000",
+                "context_id": "c-1",
+                "fact_id": "f-37",
+                "decimals": "-6"
+              },
+              {
+                "concept": "RevenueFromContractWithCustomerExcludingAssessedTax",
+                "unit": "USD",
+                "start": "2022-09-02",
+                "end": "2023-08-31",
+                "value": "15540000000",
+                "context_id": "c-1",
+                "fact_id": "f-1207",
+                "decimals": "-6"
+              },
+              {
+                "concept": "RevenueFromContractWithCustomerExcludingAssessedTax",
+                "unit": "USD",
+                "start": "2022-09-02",
+                "end": "2023-08-31",
+                "value": "15540000000",
+                "context_id": "c-1",
+                "fact_id": "f-1536",
+                "decimals": "-6"
+              },
+              {
+                "concept": "RevenueFromContractWithCustomerExcludingAssessedTax",
+                "unit": "USD",
+                "start": "2022-09-02",
+                "end": "2023-08-31",
+                "value": "15540000000",
+                "context_id": "c-1",
+                "fact_id": "f-1663",
+                "decimals": "-6"
+              }
+            ],
+            "rounding_intervals": []
+          },
+          "strict_pit_eligible": false,
+          "notice_coverage_complete": false
+        },
+        "prior_revenue": {
+          "status": "research_candidate",
+          "fact": {
+            "cik": "0000723125",
+            "taxonomy": "us-gaap",
+            "concept": "RevenueFromContractWithCustomerExcludingAssessedTax",
+            "unit": "USD",
+            "start": "2021-09-03",
+            "end": "2022-09-01",
+            "value": 30758000000,
+            "accession": "0000723125-23-000054",
+            "form": "10-K",
+            "filed": "2023-10-06",
+            "accepted_at": "2023-10-06T20:01:37+00:00",
+            "available_at": "2023-10-07T00:00:00-04:00",
+            "primary_document": "mu-20230831.htm",
+            "source": "https://www.sec.gov/Archives/edgar/data/723125/000072312523000054/mu-20230831.htm",
+            "status": "filing_linked_candidate",
+            "original_check": "matched",
+            "original_facts": [
+              {
+                "concept": "RevenueFromContractWithCustomerExcludingAssessedTax",
+                "unit": "USD",
+                "start": "2021-09-03",
+                "end": "2022-09-01",
+                "value": "30758000000",
+                "context_id": "c-4",
+                "fact_id": "f-38",
+                "decimals": "-6"
+              },
+              {
+                "concept": "RevenueFromContractWithCustomerExcludingAssessedTax",
+                "unit": "USD",
+                "start": "2021-09-03",
+                "end": "2022-09-01",
+                "value": "30758000000",
+                "context_id": "c-4",
+                "fact_id": "f-1208",
+                "decimals": "-6"
+              },
+              {
+                "concept": "RevenueFromContractWithCustomerExcludingAssessedTax",
+                "unit": "USD",
+                "start": "2021-09-03",
+                "end": "2022-09-01",
+                "value": "30758000000",
+                "context_id": "c-4",
+                "fact_id": "f-1537",
+                "decimals": "-6"
+              },
+              {
+                "concept": "RevenueFromContractWithCustomerExcludingAssessedTax",
+                "unit": "USD",
+                "start": "2021-09-03",
+                "end": "2022-09-01",
+                "value": "30758000000",
+                "context_id": "c-4",
+                "fact_id": "f-1664",
+                "decimals": "-6"
+              }
+            ],
+            "rounding_intervals": []
+          },
+          "strict_pit_eligible": false,
+          "notice_coverage_complete": false
+        },
+        "opening_equity": {
+          "status": "research_candidate",
+          "fact": {
+            "cik": "0000723125",
+            "taxonomy": "us-gaap",
+            "concept": "StockholdersEquity",
+            "unit": "USD",
+            "start": null,
+            "end": "2022-09-01",
+            "value": 49907000000,
+            "accession": "0000723125-23-000054",
+            "form": "10-K",
+            "filed": "2023-10-06",
+            "accepted_at": "2023-10-06T20:01:37+00:00",
+            "available_at": "2023-10-07T00:00:00-04:00",
+            "primary_document": "mu-20230831.htm",
+            "source": "https://www.sec.gov/Archives/edgar/data/723125/000072312523000054/mu-20230831.htm",
+            "status": "filing_linked_candidate",
+            "original_check": "matched",
+            "original_facts": [
+              {
+                "concept": "StockholdersEquity",
+                "unit": "USD",
+                "start": null,
+                "end": "2022-09-01",
+                "value": "49907000000",
+                "context_id": "c-7",
+                "fact_id": "f-184",
+                "decimals": "-6"
+              },
+              {
+                "concept": "StockholdersEquity",
+                "unit": "USD",
+                "start": null,
+                "end": "2022-09-01",
+                "value": "49907000000",
+                "context_id": "c-7",
+                "fact_id": "f-253",
+                "decimals": "-6"
+              }
+            ],
+            "rounding_intervals": []
+          },
+          "strict_pit_eligible": false,
+          "notice_coverage_complete": false
+        },
+        "closing_equity": {
+          "status": "research_candidate",
+          "fact": {
+            "cik": "0000723125",
+            "taxonomy": "us-gaap",
+            "concept": "StockholdersEquity",
+            "unit": "USD",
+            "start": null,
+            "end": "2023-08-31",
+            "value": 44120000000,
+            "accession": "0000723125-23-000054",
+            "form": "10-K",
+            "filed": "2023-10-06",
+            "accepted_at": "2023-10-06T20:01:37+00:00",
+            "available_at": "2023-10-07T00:00:00-04:00",
+            "primary_document": "mu-20230831.htm",
+            "source": "https://www.sec.gov/Archives/edgar/data/723125/000072312523000054/mu-20230831.htm",
+            "status": "filing_linked_candidate",
+            "original_check": "matched",
+            "original_facts": [
+              {
+                "concept": "StockholdersEquity",
+                "unit": "USD",
+                "start": null,
+                "end": "2023-08-31",
+                "value": "44120000000",
+                "context_id": "c-6",
+                "fact_id": "f-183",
+                "decimals": "-6"
+              },
+              {
+                "concept": "StockholdersEquity",
+                "unit": "USD",
+                "start": null,
+                "end": "2023-08-31",
+                "value": "44120000000",
+                "context_id": "c-6",
+                "fact_id": "f-280",
+                "decimals": "-6"
+              }
+            ],
+            "rounding_intervals": []
+          },
+          "strict_pit_eligible": false,
+          "notice_coverage_complete": false
+        }
+      },
+      "qualityScore": null,
+      "subScores": {
+        "valuation": null,
+        "profitability": 19.0,
+        "growth": 25.0,
+        "momentum": null,
+        "trend": null,
+        "rsi": null
+      },
+      "scoring": {
+        "version": "3.2.0",
+        "status": "insufficient_data",
+        "coverage": 30.0,
+        "qualityCoverage": 50.0,
+        "timingCoverage": 0.0,
+        "peerGroup": "US / stock / unknown",
+        "factorPeerCounts": {
+          "ey": 0,
+          "by": 0,
+          "sy": 0,
+          "roe": 0,
+          "margin": 0,
+          "grow": 0
+        },
+        "momentumPeers": 0,
+        "priceAsOf": null,
+        "financialPeriod": "2023-08-31",
+        "financialPublishedAt": null,
+        "warnings": [
+          "部分因子同类样本不足，使用绝对锚或暂缺",
+          "财务币种未完整标注，营收／市值因子暂不参与"
+        ],
+        "qualityDeduction": 0.0,
+        "weights": {
+          "quality": 60,
+          "timing": 40
+        },
+        "horizon": "多月趋势描述，非买点或上涨概率"
+      },
+      "strict_pit_eligible": false,
+      "model_change_allowed": false,
+      "limitations": [
+        "Annual fiscal-period ratios; no quarterly TTM inference",
+        "Historical price, share count and valuation inputs missing",
+        "Independent cases with absolute anchors; no cross-date peer ranking",
+        "Reviewed notices only; notice and revision coverage incomplete"
+      ]
+    },
+    {
+      "ticker": "MSFT",
+      "as_of": "2024-07-31T12:00:00-04:00",
+      "accession": "0000950170-24-087843",
+      "period": [
+        "2023-07-01",
+        "2024-06-30"
+      ],
+      "inputs": {
+        "roe": 37.13334737729092,
+        "profitMargin": 35.955972944084984,
+        "revenueGrowth": 15.66996201307128
+      },
+      "input_blocks": {},
+      "source_facts": {
+        "income": {
+          "status": "research_candidate",
+          "fact": {
+            "cik": "0000789019",
+            "taxonomy": "us-gaap",
+            "concept": "NetIncomeLoss",
+            "unit": "USD",
+            "start": "2023-07-01",
+            "end": "2024-06-30",
+            "value": 88136000000,
+            "accession": "0000950170-24-087843",
+            "form": "10-K",
+            "filed": "2024-07-30",
+            "accepted_at": "2024-07-30T20:06:22+00:00",
+            "available_at": "2024-07-31T00:00:00-04:00",
+            "primary_document": "msft-20240630.htm",
+            "source": "https://www.sec.gov/Archives/edgar/data/789019/000095017024087843/msft-20240630.htm",
+            "status": "filing_linked_candidate",
+            "original_check": "matched",
+            "original_facts": [
+              {
+                "concept": "NetIncomeLoss",
+                "unit": "USD",
+                "start": "2023-07-01",
+                "end": "2024-06-30",
+                "value": "88136000000",
+                "context_id": "C_6dbdb3a2-9baf-41b4-922d-f59879124337",
+                "fact_id": "F_3c4d165a-f26d-4aa0-a83e-99380112214a",
+                "decimals": "-6"
+              },
+              {
+                "concept": "NetIncomeLoss",
+                "unit": "USD",
+                "start": "2023-07-01",
+                "end": "2024-06-30",
+                "value": "88136000000",
+                "context_id": "C_6dbdb3a2-9baf-41b4-922d-f59879124337",
+                "fact_id": "F_714a947f-05f7-402c-87e6-f86aa4fcfda3",
+                "decimals": "-6"
+              },
+              {
+                "concept": "NetIncomeLoss",
+                "unit": "USD",
+                "start": "2023-07-01",
+                "end": "2024-06-30",
+                "value": "88136000000",
+                "context_id": "C_6dbdb3a2-9baf-41b4-922d-f59879124337",
+                "fact_id": "F_f64e1c58-cebb-406d-a001-e8e6d17f94f4",
+                "decimals": "-6"
+              },
+              {
+                "concept": "NetIncomeLoss",
+                "unit": "USD",
+                "start": "2023-07-01",
+                "end": "2024-06-30",
+                "value": "88136000000",
+                "context_id": "C_6dbdb3a2-9baf-41b4-922d-f59879124337",
+                "fact_id": "F_b3541fc0-0c23-4318-9151-86b93ded2b77",
+                "decimals": "-6"
+              }
+            ],
+            "rounding_intervals": []
+          },
+          "strict_pit_eligible": false,
+          "notice_coverage_complete": false
+        },
+        "revenue": {
+          "status": "research_candidate",
+          "fact": {
+            "cik": "0000789019",
+            "taxonomy": "us-gaap",
+            "concept": "RevenueFromContractWithCustomerExcludingAssessedTax",
+            "unit": "USD",
+            "start": "2023-07-01",
+            "end": "2024-06-30",
+            "value": 245122000000,
+            "accession": "0000950170-24-087843",
+            "form": "10-K",
+            "filed": "2024-07-30",
+            "accepted_at": "2024-07-30T20:06:22+00:00",
+            "available_at": "2024-07-31T00:00:00-04:00",
+            "primary_document": "msft-20240630.htm",
+            "source": "https://www.sec.gov/Archives/edgar/data/789019/000095017024087843/msft-20240630.htm",
+            "status": "filing_linked_candidate",
+            "original_check": "matched",
+            "original_facts": [
+              {
+                "concept": "RevenueFromContractWithCustomerExcludingAssessedTax",
+                "unit": "USD",
+                "start": "2023-07-01",
+                "end": "2024-06-30",
+                "value": "245122000000",
+                "context_id": "C_6dbdb3a2-9baf-41b4-922d-f59879124337",
+                "fact_id": "F_3c083f9d-9cbe-4037-b6c1-310e199227a1",
+                "decimals": "-6"
+              },
+              {
+                "concept": "RevenueFromContractWithCustomerExcludingAssessedTax",
+                "unit": "USD",
+                "start": "2023-07-01",
+                "end": "2024-06-30",
+                "value": "245122000000",
+                "context_id": "C_6dbdb3a2-9baf-41b4-922d-f59879124337",
+                "fact_id": "F_2e631cf5-584a-4ec4-88db-cd4fa33164e5",
+                "decimals": "-6"
+              },
+              {
+                "concept": "RevenueFromContractWithCustomerExcludingAssessedTax",
+                "unit": "USD",
+                "start": "2023-07-01",
+                "end": "2024-06-30",
+                "value": "245122000000",
+                "context_id": "C_6dbdb3a2-9baf-41b4-922d-f59879124337",
+                "fact_id": "F_8223d43d-9f8d-4d62-859b-926825fcfdae",
+                "decimals": "-6"
+              },
+              {
+                "concept": "RevenueFromContractWithCustomerExcludingAssessedTax",
+                "unit": "USD",
+                "start": "2023-07-01",
+                "end": "2024-06-30",
+                "value": "245122000000",
+                "context_id": "C_6dbdb3a2-9baf-41b4-922d-f59879124337",
+                "fact_id": "F_9dc4fe8b-ee6b-4ee5-a2e8-b2e71ad640f9",
+                "decimals": "-6"
+              }
+            ],
+            "rounding_intervals": []
+          },
+          "strict_pit_eligible": false,
+          "notice_coverage_complete": false
+        },
+        "prior_revenue": {
+          "status": "research_candidate",
+          "fact": {
+            "cik": "0000789019",
+            "taxonomy": "us-gaap",
+            "concept": "RevenueFromContractWithCustomerExcludingAssessedTax",
+            "unit": "USD",
+            "start": "2022-07-01",
+            "end": "2023-06-30",
+            "value": 211915000000,
+            "accession": "0000950170-24-087843",
+            "form": "10-K",
+            "filed": "2024-07-30",
+            "accepted_at": "2024-07-30T20:06:22+00:00",
+            "available_at": "2024-07-31T00:00:00-04:00",
+            "primary_document": "msft-20240630.htm",
+            "source": "https://www.sec.gov/Archives/edgar/data/789019/000095017024087843/msft-20240630.htm",
+            "status": "filing_linked_candidate",
+            "original_check": "matched",
+            "original_facts": [
+              {
+                "concept": "RevenueFromContractWithCustomerExcludingAssessedTax",
+                "unit": "USD",
+                "start": "2022-07-01",
+                "end": "2023-06-30",
+                "value": "211915000000",
+                "context_id": "C_ae7e339c-3219-4fd1-a57c-be06046f6b58",
+                "fact_id": "F_f6620662-6db2-4b98-bd6a-3b5658226fae",
+                "decimals": "-6"
+              },
+              {
+                "concept": "RevenueFromContractWithCustomerExcludingAssessedTax",
+                "unit": "USD",
+                "start": "2022-07-01",
+                "end": "2023-06-30",
+                "value": "211915000000",
+                "context_id": "C_ae7e339c-3219-4fd1-a57c-be06046f6b58",
+                "fact_id": "F_08b1c4c3-ec31-40f9-8a3c-ef12ff3d495c",
+                "decimals": "-6"
+              },
+              {
+                "concept": "RevenueFromContractWithCustomerExcludingAssessedTax",
+                "unit": "USD",
+                "start": "2022-07-01",
+                "end": "2023-06-30",
+                "value": "211915000000",
+                "context_id": "C_ae7e339c-3219-4fd1-a57c-be06046f6b58",
+                "fact_id": "F_45374f82-c390-426b-92ce-c4c4cc0963e6",
+                "decimals": "-6"
+              },
+              {
+                "concept": "RevenueFromContractWithCustomerExcludingAssessedTax",
+                "unit": "USD",
+                "start": "2022-07-01",
+                "end": "2023-06-30",
+                "value": "211915000000",
+                "context_id": "C_ae7e339c-3219-4fd1-a57c-be06046f6b58",
+                "fact_id": "F_2c5c0a87-0db9-4add-95d0-4af2a1041bb7",
+                "decimals": "-6"
+              }
+            ],
+            "rounding_intervals": []
+          },
+          "strict_pit_eligible": false,
+          "notice_coverage_complete": false
+        },
+        "opening_equity": {
+          "status": "research_candidate",
+          "fact": {
+            "cik": "0000789019",
+            "taxonomy": "us-gaap",
+            "concept": "StockholdersEquity",
+            "unit": "USD",
+            "start": null,
+            "end": "2023-06-30",
+            "value": 206223000000,
+            "accession": "0000950170-24-087843",
+            "form": "10-K",
+            "filed": "2024-07-30",
+            "accepted_at": "2024-07-30T20:06:22+00:00",
+            "available_at": "2024-07-31T00:00:00-04:00",
+            "primary_document": "msft-20240630.htm",
+            "source": "https://www.sec.gov/Archives/edgar/data/789019/000095017024087843/msft-20240630.htm",
+            "status": "filing_linked_candidate",
+            "original_check": "matched",
+            "original_facts": [
+              {
+                "concept": "StockholdersEquity",
+                "unit": "USD",
+                "start": null,
+                "end": "2023-06-30",
+                "value": "206223000000",
+                "context_id": "C_005805a9-264e-4b1d-93ea-497c67cc9a68",
+                "fact_id": "F_ea2f855c-cb30-4118-ace9-c255de541eab",
+                "decimals": "-6"
+              },
+              {
+                "concept": "StockholdersEquity",
+                "unit": "USD",
+                "start": null,
+                "end": "2023-06-30",
+                "value": "206223000000",
+                "context_id": "C_005805a9-264e-4b1d-93ea-497c67cc9a68",
+                "fact_id": "F_5b7cbbbc-6d9d-4f13-8b91-f3a73a5ebe70",
+                "decimals": "-6"
+              }
+            ],
+            "rounding_intervals": []
+          },
+          "strict_pit_eligible": false,
+          "notice_coverage_complete": false
+        },
+        "closing_equity": {
+          "status": "research_candidate",
+          "fact": {
+            "cik": "0000789019",
+            "taxonomy": "us-gaap",
+            "concept": "StockholdersEquity",
+            "unit": "USD",
+            "start": null,
+            "end": "2024-06-30",
+            "value": 268477000000,
+            "accession": "0000950170-24-087843",
+            "form": "10-K",
+            "filed": "2024-07-30",
+            "accepted_at": "2024-07-30T20:06:22+00:00",
+            "available_at": "2024-07-31T00:00:00-04:00",
+            "primary_document": "msft-20240630.htm",
+            "source": "https://www.sec.gov/Archives/edgar/data/789019/000095017024087843/msft-20240630.htm",
+            "status": "filing_linked_candidate",
+            "original_check": "matched",
+            "original_facts": [
+              {
+                "concept": "StockholdersEquity",
+                "unit": "USD",
+                "start": null,
+                "end": "2024-06-30",
+                "value": "268477000000",
+                "context_id": "C_910b395a-5d62-4894-aa42-1da4086261cc",
+                "fact_id": "F_359f19fb-e6da-4189-95c2-a47496a97c49",
+                "decimals": "-6"
+              },
+              {
+                "concept": "StockholdersEquity",
+                "unit": "USD",
+                "start": null,
+                "end": "2024-06-30",
+                "value": "268477000000",
+                "context_id": "C_910b395a-5d62-4894-aa42-1da4086261cc",
+                "fact_id": "F_62be980c-8bd3-4f12-afb5-a3f0dbd6ab1b",
+                "decimals": "-6"
+              }
+            ],
+            "rounding_intervals": []
+          },
+          "strict_pit_eligible": false,
+          "notice_coverage_complete": false
+        }
+      },
+      "qualityScore": null,
+      "subScores": {
+        "valuation": null,
+        "profitability": 89.0,
+        "growth": 72.0,
+        "momentum": null,
+        "trend": null,
+        "rsi": null
+      },
+      "scoring": {
+        "version": "3.2.0",
+        "status": "insufficient_data",
+        "coverage": 30.0,
+        "qualityCoverage": 50.0,
+        "timingCoverage": 0.0,
+        "peerGroup": "US / stock / unknown",
+        "factorPeerCounts": {
+          "ey": 0,
+          "by": 0,
+          "sy": 0,
+          "roe": 0,
+          "margin": 0,
+          "grow": 0
+        },
+        "momentumPeers": 0,
+        "priceAsOf": null,
+        "financialPeriod": "2024-06-30",
+        "financialPublishedAt": null,
+        "warnings": [
+          "部分因子同类样本不足，使用绝对锚或暂缺",
+          "财务币种未完整标注，营收／市值因子暂不参与"
+        ],
+        "qualityDeduction": 0.0,
+        "weights": {
+          "quality": 60,
+          "timing": 40
+        },
+        "horizon": "多月趋势描述，非买点或上涨概率"
+      },
+      "strict_pit_eligible": false,
+      "model_change_allowed": false,
+      "limitations": [
+        "Annual fiscal-period ratios; no quarterly TTM inference",
+        "Historical price, share count and valuation inputs missing",
+        "Independent cases with absolute anchors; no cross-date peer ranking",
+        "Reviewed notices only; notice and revision coverage incomplete"
+      ]
+    }
+  ],
+  "non_reliance_queries": [
+    {
+      "as_of": "2021-03-12T23:00:00Z",
+      "status": "research_candidate",
+      "fact": {
+        "cik": "0001093691",
+        "taxonomy": "us-gaap",
+        "concept": "NetIncomeLoss",
+        "unit": "USD",
+        "start": "2019-01-01",
+        "end": "2019-12-31",
+        "value": -85465000,
+        "accession": "0001558370-20-002267",
+        "form": "10-K",
+        "filed": "2020-03-10",
+        "accepted_at": "2020-03-10T01:56:15+00:00",
+        "available_at": "2020-03-11T00:00:00-04:00",
+        "primary_document": "plug-20191231x10k.htm",
+        "source": "https://www.sec.gov/Archives/edgar/data/1093691/000155837020002267/plug-20191231x10k.htm",
+        "status": "filing_linked_candidate",
+        "original_check": "matched",
+        "original_facts": [
+          {
+            "concept": "NetIncomeLoss",
+            "unit": "USD",
+            "start": "2019-01-01",
+            "end": "2019-12-31",
+            "value": "-85465000",
+            "context_id": "Duration_1_1_2019_To_12_31_2019",
+            "fact_id": null,
+            "decimals": "-3"
+          },
+          {
+            "concept": "NetIncomeLoss",
+            "unit": "USD",
+            "start": "2019-01-01",
+            "end": "2019-12-31",
+            "value": "-85465000",
+            "context_id": "Duration_1_1_2019_To_12_31_2019",
+            "fact_id": null,
+            "decimals": "-3"
+          },
+          {
+            "concept": "NetIncomeLoss",
+            "unit": "USD",
+            "start": "2019-01-01",
+            "end": "2019-12-31",
+            "value": "-85465000",
+            "context_id": "Duration_1_1_2019_To_12_31_2019",
+            "fact_id": null,
+            "decimals": "-3"
+          },
+          {
+            "concept": "NetIncomeLoss",
+            "unit": "USD",
+            "start": "2019-01-01",
+            "end": "2019-12-31",
+            "value": "-85465000",
+            "context_id": "Duration_1_1_2019_To_12_31_2019",
+            "fact_id": null,
+            "decimals": "-3"
+          },
+          {
+            "concept": "NetIncomeLoss",
+            "unit": "USD",
+            "start": "2019-01-01",
+            "end": "2019-12-31",
+            "value": "-85465000",
+            "context_id": "Duration_1_1_2019_To_12_31_2019",
+            "fact_id": null,
+            "decimals": "-3"
+          }
+        ],
+        "rounding_intervals": []
+      },
+      "strict_pit_eligible": false,
+      "notice_coverage_complete": false
+    },
+    {
+      "as_of": "2021-03-16T20:52:20Z",
+      "status": "research_candidate",
+      "fact": {
+        "cik": "0001093691",
+        "taxonomy": "us-gaap",
+        "concept": "NetIncomeLoss",
+        "unit": "USD",
+        "start": "2019-01-01",
+        "end": "2019-12-31",
+        "value": -85465000,
+        "accession": "0001558370-20-002267",
+        "form": "10-K",
+        "filed": "2020-03-10",
+        "accepted_at": "2020-03-10T01:56:15+00:00",
+        "available_at": "2020-03-11T00:00:00-04:00",
+        "primary_document": "plug-20191231x10k.htm",
+        "source": "https://www.sec.gov/Archives/edgar/data/1093691/000155837020002267/plug-20191231x10k.htm",
+        "status": "filing_linked_candidate",
+        "original_check": "matched",
+        "original_facts": [
+          {
+            "concept": "NetIncomeLoss",
+            "unit": "USD",
+            "start": "2019-01-01",
+            "end": "2019-12-31",
+            "value": "-85465000",
+            "context_id": "Duration_1_1_2019_To_12_31_2019",
+            "fact_id": null,
+            "decimals": "-3"
+          },
+          {
+            "concept": "NetIncomeLoss",
+            "unit": "USD",
+            "start": "2019-01-01",
+            "end": "2019-12-31",
+            "value": "-85465000",
+            "context_id": "Duration_1_1_2019_To_12_31_2019",
+            "fact_id": null,
+            "decimals": "-3"
+          },
+          {
+            "concept": "NetIncomeLoss",
+            "unit": "USD",
+            "start": "2019-01-01",
+            "end": "2019-12-31",
+            "value": "-85465000",
+            "context_id": "Duration_1_1_2019_To_12_31_2019",
+            "fact_id": null,
+            "decimals": "-3"
+          },
+          {
+            "concept": "NetIncomeLoss",
+            "unit": "USD",
+            "start": "2019-01-01",
+            "end": "2019-12-31",
+            "value": "-85465000",
+            "context_id": "Duration_1_1_2019_To_12_31_2019",
+            "fact_id": null,
+            "decimals": "-3"
+          },
+          {
+            "concept": "NetIncomeLoss",
+            "unit": "USD",
+            "start": "2019-01-01",
+            "end": "2019-12-31",
+            "value": "-85465000",
+            "context_id": "Duration_1_1_2019_To_12_31_2019",
+            "fact_id": null,
+            "decimals": "-3"
+          }
+        ],
+        "rounding_intervals": []
+      },
+      "strict_pit_eligible": false,
+      "notice_coverage_complete": false
+    },
+    {
+      "as_of": "2021-03-16T20:52:21Z",
+      "status": "blocked_non_reliance",
+      "notice": {
+        "cik": "0001093691",
+        "known_at": "2021-03-16T20:52:21+00:00",
+        "decision_date": "2021-03-12",
+        "source": "https://www.sec.gov/Archives/edgar/data/1093691/000110465921037184/tm219753d1_8k.htm",
+        "evidence_folder": "C:\\Users\\Minto\\Downloads\\自研量化投资平台\\release\\scoring-v32\\backend\\data\\sec_filing_evidence\\eb4caeda428ff8072da3dbba3a8ed12bc7e8a4ffb50d47cdb57f4d9b5f3b8371",
+        "affected_period_ends": [
+          "2018-12-31",
+          "2019-03-31",
+          "2019-06-30",
+          "2019-09-30",
+          "2019-12-31",
+          "2020-03-31",
+          "2020-06-30",
+          "2020-09-30",
+          "2020-12-31"
+        ],
+        "replacement_accessions": [
+          "0001558370-21-007147",
+          "0001558370-22-003577"
+        ],
+        "review_scope": "Selected notice and original-verified replacements only; no claim of full notice coverage",
+        "accession": "0001104659-21-037184",
+        "acceptance_evidence_folder": "C:\\Users\\Minto\\Downloads\\自研量化投资平台\\release\\scoring-v32\\backend\\data\\sec_evidence\\37cfd03393bc74fa94e39f047e90dc6cfbac36679e0ee5997f5d2048b3219716"
+      },
+      "fact": null,
+      "blocked_accession": "0001558370-20-002267"
+    },
+    {
+      "as_of": "2021-05-14T16:00:00Z",
+      "status": "blocked_non_reliance",
+      "notice": {
+        "cik": "0001093691",
+        "known_at": "2021-03-16T20:52:21+00:00",
+        "decision_date": "2021-03-12",
+        "source": "https://www.sec.gov/Archives/edgar/data/1093691/000110465921037184/tm219753d1_8k.htm",
+        "evidence_folder": "C:\\Users\\Minto\\Downloads\\自研量化投资平台\\release\\scoring-v32\\backend\\data\\sec_filing_evidence\\eb4caeda428ff8072da3dbba3a8ed12bc7e8a4ffb50d47cdb57f4d9b5f3b8371",
+        "affected_period_ends": [
+          "2018-12-31",
+          "2019-03-31",
+          "2019-06-30",
+          "2019-09-30",
+          "2019-12-31",
+          "2020-03-31",
+          "2020-06-30",
+          "2020-09-30",
+          "2020-12-31"
+        ],
+        "replacement_accessions": [
+          "0001558370-21-007147",
+          "0001558370-22-003577"
+        ],
+        "review_scope": "Selected notice and original-verified replacements only; no claim of full notice coverage",
+        "accession": "0001104659-21-037184",
+        "acceptance_evidence_folder": "C:\\Users\\Minto\\Downloads\\自研量化投资平台\\release\\scoring-v32\\backend\\data\\sec_evidence\\37cfd03393bc74fa94e39f047e90dc6cfbac36679e0ee5997f5d2048b3219716"
+      },
+      "fact": null,
+      "blocked_accession": "0001558370-20-002267"
+    },
+    {
+      "as_of": "2021-05-15T04:00:00Z",
+      "status": "research_candidate",
+      "fact": {
+        "cik": "0001093691",
+        "taxonomy": "us-gaap",
+        "concept": "NetIncomeLoss",
+        "unit": "USD",
+        "start": "2019-01-01",
+        "end": "2019-12-31",
+        "value": -83743000,
+        "accession": "0001558370-21-007147",
+        "form": "10-K",
+        "filed": "2021-05-14",
+        "accepted_at": "2021-05-14T10:20:25+00:00",
+        "available_at": "2021-05-15T00:00:00-04:00",
+        "primary_document": "plug-20201231x10k.htm",
+        "source": "https://www.sec.gov/Archives/edgar/data/1093691/000155837021007147/plug-20201231x10k.htm",
+        "status": "filing_linked_candidate",
+        "original_check": "matched",
+        "original_facts": [
+          {
+            "concept": "NetIncomeLoss",
+            "unit": "USD",
+            "start": "2019-01-01",
+            "end": "2019-12-31",
+            "value": "-83743000",
+            "context_id": "Duration_1_1_2019_To_12_31_2019_HKA09hUp70aIVUW8mh_6vw",
+            "fact_id": "Tc_tJX7hMIUPE6mnhGZHfkVOQ_38_6",
+            "decimals": "-3"
+          },
+          {
+            "concept": "NetIncomeLoss",
+            "unit": "USD",
+            "start": "2019-01-01",
+            "end": "2019-12-31",
+            "value": "-83743000",
+            "context_id": "Duration_1_1_2019_To_12_31_2019_HKA09hUp70aIVUW8mh_6vw",
+            "fact_id": "Tc_dFLi-A2GuUCSaIfuId0Xmw_3_6",
+            "decimals": "-3"
+          },
+          {
+            "concept": "NetIncomeLoss",
+            "unit": "USD",
+            "start": "2019-01-01",
+            "end": "2019-12-31",
+            "value": "-83743000",
+            "context_id": "Duration_1_1_2019_To_12_31_2019_HKA09hUp70aIVUW8mh_6vw",
+            "fact_id": "Tc_ssrcKviYT0WHJlgVcOc0-A_19_22",
+            "decimals": "-3"
+          },
+          {
+            "concept": "NetIncomeLoss",
+            "unit": "USD",
+            "start": "2019-01-01",
+            "end": "2019-12-31",
+            "value": "-83743000",
+            "context_id": "Duration_1_1_2019_To_12_31_2019_HKA09hUp70aIVUW8mh_6vw",
+            "fact_id": "Tc__vc9toc0S0OMiOhM0IbvtA_4_6",
+            "decimals": "-3"
+          },
+          {
+            "concept": "NetIncomeLoss",
+            "unit": "USD",
+            "start": "2019-01-01",
+            "end": "2019-12-31",
+            "value": "-83743000",
+            "context_id": "Duration_1_1_2019_To_12_31_2019_HKA09hUp70aIVUW8mh_6vw",
+            "fact_id": "Tc_aV0CBiWVpE-iyF2uajby1A_38_9",
+            "decimals": "-3"
+          },
+          {
+            "concept": "NetIncomeLoss",
+            "unit": "USD",
+            "start": "2019-01-01",
+            "end": "2019-12-31",
+            "value": "-83743000",
+            "context_id": "Duration_1_1_2019_To_12_31_2019_HKA09hUp70aIVUW8mh_6vw",
+            "fact_id": "Tc_6oNmPKTuyEOcYo06ItcpaA_5_9",
+            "decimals": "-3"
+          },
+          {
+            "concept": "NetIncomeLoss",
+            "unit": "USD",
+            "start": "2019-01-01",
+            "end": "2019-12-31",
+            "value": "-83743000",
+            "context_id": "Duration_1_1_2019_To_12_31_2019_HKA09hUp70aIVUW8mh_6vw",
+            "fact_id": "Tc_DwsKjhPRm02YtjBuKV5Jgg_5_9",
+            "decimals": "-3"
+          },
+          {
+            "concept": "NetIncomeLoss",
+            "unit": "USD",
+            "start": "2019-01-01",
+            "end": "2019-12-31",
+            "value": "-83743000",
+            "context_id": "Duration_1_1_2019_To_12_31_2019_HKA09hUp70aIVUW8mh_6vw",
+            "fact_id": "Tc_zwFED3G0nECIrk8jVwgEtA_6_18",
+            "decimals": "-3"
+          }
+        ],
+        "rounding_intervals": []
+      },
+      "strict_pit_eligible": false,
+      "notice_coverage_complete": false
+    },
+    {
+      "as_of": "2022-03-15T04:00:00Z",
+      "status": "research_candidate",
+      "fact": {
+        "cik": "0001093691",
+        "taxonomy": "us-gaap",
+        "concept": "NetIncomeLoss",
+        "unit": "USD",
+        "start": "2019-01-01",
+        "end": "2019-12-31",
+        "value": -83743000,
+        "accession": "0001558370-22-003577",
+        "form": "10-K/A",
+        "filed": "2022-03-14",
+        "accepted_at": "2022-03-14T21:30:04+00:00",
+        "available_at": "2022-03-15T00:00:00-04:00",
+        "primary_document": "plug-20201231x10ka.htm",
+        "source": "https://www.sec.gov/Archives/edgar/data/1093691/000155837022003577/plug-20201231x10ka.htm",
+        "status": "filing_linked_candidate",
+        "original_check": "matched",
+        "original_facts": [
+          {
+            "concept": "NetIncomeLoss",
+            "unit": "USD",
+            "start": "2019-01-01",
+            "end": "2019-12-31",
+            "value": "-83743000",
+            "context_id": "Duration_1_1_2019_To_12_31_2019_JgkNdMllZU-gFI7kdHGdjg",
+            "fact_id": "Tc__DXDDvEEvkuA3NTJMXysiw_38_6",
+            "decimals": "-3"
+          },
+          {
+            "concept": "NetIncomeLoss",
+            "unit": "USD",
+            "start": "2019-01-01",
+            "end": "2019-12-31",
+            "value": "-83743000",
+            "context_id": "Duration_1_1_2019_To_12_31_2019_JgkNdMllZU-gFI7kdHGdjg",
+            "fact_id": "Tc_WWY6qCnbU0qYbS8OThpefA_3_6",
+            "decimals": "-3"
+          },
+          {
+            "concept": "NetIncomeLoss",
+            "unit": "USD",
+            "start": "2019-01-01",
+            "end": "2019-12-31",
+            "value": "-83743000",
+            "context_id": "Duration_1_1_2019_To_12_31_2019_JgkNdMllZU-gFI7kdHGdjg",
+            "fact_id": "Tc_P1KwT25mok6sdyeL0KuWsA_19_22",
+            "decimals": "-3"
+          },
+          {
+            "concept": "NetIncomeLoss",
+            "unit": "USD",
+            "start": "2019-01-01",
+            "end": "2019-12-31",
+            "value": "-83743000",
+            "context_id": "Duration_1_1_2019_To_12_31_2019_JgkNdMllZU-gFI7kdHGdjg",
+            "fact_id": "Tc_MpwAS-HUjU63xk1ulxnOeA_4_6",
+            "decimals": "-3"
+          },
+          {
+            "concept": "NetIncomeLoss",
+            "unit": "USD",
+            "start": "2019-01-01",
+            "end": "2019-12-31",
+            "value": "-83743000",
+            "context_id": "Duration_1_1_2019_To_12_31_2019_JgkNdMllZU-gFI7kdHGdjg",
+            "fact_id": "Tc_bpeBxkcEWUaRV9f0C73Pbw_38_9",
+            "decimals": "-3"
+          },
+          {
+            "concept": "NetIncomeLoss",
+            "unit": "USD",
+            "start": "2019-01-01",
+            "end": "2019-12-31",
+            "value": "-83743000",
+            "context_id": "Duration_1_1_2019_To_12_31_2019_JgkNdMllZU-gFI7kdHGdjg",
+            "fact_id": "Tc_GhFjL2zHw0qreQL3RXpM7Q_5_9",
+            "decimals": "-3"
+          },
+          {
+            "concept": "NetIncomeLoss",
+            "unit": "USD",
+            "start": "2019-01-01",
+            "end": "2019-12-31",
+            "value": "-83743000",
+            "context_id": "Duration_1_1_2019_To_12_31_2019_JgkNdMllZU-gFI7kdHGdjg",
+            "fact_id": "Tc_Oz-XYzqctU-6xoe5YPiNEA_5_9",
+            "decimals": "-3"
+          },
+          {
+            "concept": "NetIncomeLoss",
+            "unit": "USD",
+            "start": "2019-01-01",
+            "end": "2019-12-31",
+            "value": "-83743000",
+            "context_id": "Duration_1_1_2019_To_12_31_2019_JgkNdMllZU-gFI7kdHGdjg",
+            "fact_id": "Tc_X1n63aGd7U-nS6ujnldMew_6_18",
+            "decimals": "-3"
+          }
+        ],
+        "rounding_intervals": []
+      },
+      "strict_pit_eligible": false,
+      "notice_coverage_complete": false
+    }
+  ],
+  "strict_pit_eligible": false,
+  "model_change_allowed": false
+}

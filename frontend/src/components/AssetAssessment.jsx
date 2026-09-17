@@ -6,6 +6,7 @@ const paths = { up: '每天上涨 1%', down: '每天下跌 1%', round_trip: '上
 const reasons = { missing: '缺少有效观测', expired: '费率减免已到期，需重新核验', stale: '观测已过期', not_yet_available: '评价时点尚不可得', invalid: '数据口径未通过校验' };
 const issues = { official_index_daily_series_required: '尚缺官方基准每日收益序列', nav_total_return_daily_series_required: '尚缺经过公司行动核验的每日净值总回报序列', issuer_fetch_or_schema_failure: '发行商数据获取或字段校验失败', tracking_alignment_or_action_review_required: '跟踪序列或公司行动需要复核' };
 const feeBasis = { gross: '总费率', net: '减免后净费率', prospectus: '招募说明书费率' };
+issues.median_spread_unavailable = '发行商本次响应缺少有效价差观测';
 export default function AssetAssessment({ stock }) {
   const { t } = useLang();
   const assessment = stock.assetAssessment;

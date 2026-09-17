@@ -1,0 +1,14 @@
+{
+  "version": "1.0.0",
+  "reviewedAt": "2026-09-17",
+  "predictiveStatus": "not_validated",
+  "weightChangeAllowed": false,
+  "requirements": {
+    "stock": ["historical_financials", "price_share_basis", "historical_membership", "out_of_sample"],
+    "index_etf": ["product_history", "benchmark_alignment", "out_of_sample"],
+    "other_etf": ["verified_classification", "product_history", "benchmark_alignment", "out_of_sample"],
+    "leveraged_stock_etf": ["underlying_link", "daily_reset_path", "product_history", "out_of_sample"],
+    "leveraged_index_etf": ["benchmark_alignment", "daily_reset_path", "product_history", "out_of_sample"],
+    "crypto": ["utc_calendar", "venue_liquidity", "category_fundamentals", "historical_membership", "out_of_sample"]
+  }
+}

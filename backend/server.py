@@ -1707,6 +1707,7 @@ def llm_journal_structure(req: LLMJournalReq, lang: str = "zh", force: bool = Fa
 class LLMExplainScoreReq(BaseModel):
     """B2: 评分解读请求。"""
     ticker: str
+    assetType: str | None = None
     score: float | None = None
     isETF: bool = False
     subScores: dict = {}
@@ -1724,6 +1725,7 @@ def llm_explain_score(req: LLMExplainScoreReq, lang: str = "zh", force: bool = F
         raise HTTPException(503, "llm 模块未加载（DEEPSEEK_API_KEY 未设？）")
     stock = {
         "ticker": req.ticker,
+        "assetType": req.assetType,
         "score": req.score,
         "isETF": req.isETF,
         "subScores": req.subScores,

@@ -1,0 +1,972 @@
+{
+  "schema_version": "sec-original-checks-1.0.0",
+  "candidate_sha256": "b5735af2ddd8f0691449427a624e7193ecfbf4b1ba6c9151d630cadb2d4d110a",
+  "filings": [
+    {
+      "accession": "0000723125-23-000054",
+      "evidence": {
+        "raw_sha256": "46877a7e75c205d8577cfd3a49d1e8328e95c15e37db916a2f07f1b7d9c1743d",
+        "request": {
+          "accession": "0000723125-23-000054",
+          "format": "html-wrapped-as-json",
+          "provider": "SEC",
+          "url": "https://www.sec.gov/Archives/edgar/data/723125/000072312523000054/mu-20230831.htm"
+        },
+        "retrieved_at": "2026-09-17T02:01:23.224932+00:00",
+        "schema": 1
+      },
+      "issues": {
+        "excluded_context_or_unit": 96
+      },
+      "counts": {
+        "matched": 21
+      },
+      "checks": [
+        {
+          "cik": "0000723125",
+          "taxonomy": "us-gaap",
+          "concept": "Assets",
+          "unit": "USD",
+          "start": null,
+          "end": "2022-09-01",
+          "value": 66283000000,
+          "accession": "0000723125-23-000054",
+          "form": "10-K",
+          "filed": "2023-10-06",
+          "accepted_at": "2023-10-06T20:01:37+00:00",
+          "available_at": "2023-10-07T00:00:00-04:00",
+          "primary_document": "mu-20230831.htm",
+          "source": "https://www.sec.gov/Archives/edgar/data/723125/000072312523000054/mu-20230831.htm",
+          "status": "filing_linked_candidate",
+          "original_check": "matched",
+          "original_facts": [
+            {
+              "concept": "Assets",
+              "unit": "USD",
+              "start": null,
+              "end": "2022-09-01",
+              "value": "66283000000",
+              "context_id": "c-7",
+              "fact_id": "f-142",
+              "decimals": "-6"
+            }
+          ],
+          "rounding_intervals": []
+        },
+        {
+          "cik": "0000723125",
+          "taxonomy": "us-gaap",
+          "concept": "Assets",
+          "unit": "USD",
+          "start": null,
+          "end": "2023-08-31",
+          "value": 64254000000,
+          "accession": "0000723125-23-000054",
+          "form": "10-K",
+          "filed": "2023-10-06",
+          "accepted_at": "2023-10-06T20:01:37+00:00",
+          "available_at": "2023-10-07T00:00:00-04:00",
+          "primary_document": "mu-20230831.htm",
+          "source": "https://www.sec.gov/Archives/edgar/data/723125/000072312523000054/mu-20230831.htm",
+          "status": "filing_linked_candidate",
+          "original_check": "matched",
+          "original_facts": [
+            {
+              "concept": "Assets",
+              "unit": "USD",
+              "start": null,
+              "end": "2023-08-31",
+              "value": "64254000000",
+              "context_id": "c-6",
+              "fact_id": "f-141",
+              "decimals": "-6"
+            }
+          ],
+          "rounding_intervals": []
+        },
+        {
+          "cik": "0000723125",
+          "taxonomy": "us-gaap",
+          "concept": "EarningsPerShareDiluted",
+          "unit": "USD/shares",
+          "start": "2020-09-04",
+          "end": "2021-09-02",
+          "value": 5.14,
+          "accession": "0000723125-23-000054",
+          "form": "10-K",
+          "filed": "2023-10-06",
+          "accepted_at": "2023-10-06T20:01:37+00:00",
+          "available_at": "2023-10-07T00:00:00-04:00",
+          "primary_document": "mu-20230831.htm",
+          "source": "https://www.sec.gov/Archives/edgar/data/723125/000072312523000054/mu-20230831.htm",
+          "status": "filing_linked_candidate",
+          "original_check": "matched",
+          "original_facts": [
+            {
+              "concept": "EarningsPerShareDiluted",
+              "unit": "USD/shares",
+              "start": "2020-09-04",
+              "end": "2021-09-02",
+              "value": "5.14",
+              "context_id": "c-5",
+              "fact_id": "f-87",
+              "decimals": "2"
+            },
+            {
+              "concept": "EarningsPerShareDiluted",
+              "unit": "USD/shares",
+              "start": "2020-09-04",
+              "end": "2021-09-02",
+              "value": "5.14",
+              "context_id": "c-5",
+              "fact_id": "f-1512",
+              "decimals": "2"
+            }
+          ],
+          "rounding_intervals": []
+        },
+        {
+          "cik": "0000723125",
+          "taxonomy": "us-gaap",
+          "concept": "EarningsPerShareDiluted",
+          "unit": "USD/shares",
+          "start": "2021-09-03",
+          "end": "2022-09-01",
+          "value": 7.75,
+          "accession": "0000723125-23-000054",
+          "form": "10-K",
+          "filed": "2023-10-06",
+          "accepted_at": "2023-10-06T20:01:37+00:00",
+          "available_at": "2023-10-07T00:00:00-04:00",
+          "primary_document": "mu-20230831.htm",
+          "source": "https://www.sec.gov/Archives/edgar/data/723125/000072312523000054/mu-20230831.htm",
+          "status": "filing_linked_candidate",
+          "original_check": "matched",
+          "original_facts": [
+            {
+              "concept": "EarningsPerShareDiluted",
+              "unit": "USD/shares",
+              "start": "2021-09-03",
+              "end": "2022-09-01",
+              "value": "7.75",
+              "context_id": "c-4",
+              "fact_id": "f-86",
+              "decimals": "2"
+            },
+            {
+              "concept": "EarningsPerShareDiluted",
+              "unit": "USD/shares",
+              "start": "2021-09-03",
+              "end": "2022-09-01",
+              "value": "7.75",
+              "context_id": "c-4",
+              "fact_id": "f-1511",
+              "decimals": "2"
+            }
+          ],
+          "rounding_intervals": []
+        },
+        {
+          "cik": "0000723125",
+          "taxonomy": "us-gaap",
+          "concept": "EarningsPerShareDiluted",
+          "unit": "USD/shares",
+          "start": "2022-09-02",
+          "end": "2023-08-31",
+          "value": -5.34,
+          "accession": "0000723125-23-000054",
+          "form": "10-K",
+          "filed": "2023-10-06",
+          "accepted_at": "2023-10-06T20:01:37+00:00",
+          "available_at": "2023-10-07T00:00:00-04:00",
+          "primary_document": "mu-20230831.htm",
+          "source": "https://www.sec.gov/Archives/edgar/data/723125/000072312523000054/mu-20230831.htm",
+          "status": "filing_linked_candidate",
+          "original_check": "matched",
+          "original_facts": [
+            {
+              "concept": "EarningsPerShareDiluted",
+              "unit": "USD/shares",
+              "start": "2022-09-02",
+              "end": "2023-08-31",
+              "value": "-5.34",
+              "context_id": "c-1",
+              "fact_id": "f-85",
+              "decimals": "2"
+            },
+            {
+              "concept": "EarningsPerShareDiluted",
+              "unit": "USD/shares",
+              "start": "2022-09-02",
+              "end": "2023-08-31",
+              "value": "-5.34",
+              "context_id": "c-1",
+              "fact_id": "f-1510",
+              "decimals": "2"
+            }
+          ],
+          "rounding_intervals": []
+        },
+        {
+          "cik": "0000723125",
+          "taxonomy": "us-gaap",
+          "concept": "NetCashProvidedByUsedInOperatingActivities",
+          "unit": "USD",
+          "start": "2020-09-04",
+          "end": "2021-09-02",
+          "value": 12468000000,
+          "accession": "0000723125-23-000054",
+          "form": "10-K",
+          "filed": "2023-10-06",
+          "accepted_at": "2023-10-06T20:01:37+00:00",
+          "available_at": "2023-10-07T00:00:00-04:00",
+          "primary_document": "mu-20230831.htm",
+          "source": "https://www.sec.gov/Archives/edgar/data/723125/000072312523000054/mu-20230831.htm",
+          "status": "filing_linked_candidate",
+          "original_check": "matched",
+          "original_facts": [
+            {
+              "concept": "NetCashProvidedByUsedInOperatingActivities",
+              "unit": "USD",
+              "start": "2020-09-04",
+              "end": "2021-09-02",
+              "value": "12468000000",
+              "context_id": "c-5",
+              "fact_id": "f-316",
+              "decimals": "-6"
+            }
+          ],
+          "rounding_intervals": []
+        },
+        {
+          "cik": "0000723125",
+          "taxonomy": "us-gaap",
+          "concept": "NetCashProvidedByUsedInOperatingActivities",
+          "unit": "USD",
+          "start": "2021-09-03",
+          "end": "2022-09-01",
+          "value": 15181000000,
+          "accession": "0000723125-23-000054",
+          "form": "10-K",
+          "filed": "2023-10-06",
+          "accepted_at": "2023-10-06T20:01:37+00:00",
+          "available_at": "2023-10-07T00:00:00-04:00",
+          "primary_document": "mu-20230831.htm",
+          "source": "https://www.sec.gov/Archives/edgar/data/723125/000072312523000054/mu-20230831.htm",
+          "status": "filing_linked_candidate",
+          "original_check": "matched",
+          "original_facts": [
+            {
+              "concept": "NetCashProvidedByUsedInOperatingActivities",
+              "unit": "USD",
+              "start": "2021-09-03",
+              "end": "2022-09-01",
+              "value": "15181000000",
+              "context_id": "c-4",
+              "fact_id": "f-315",
+              "decimals": "-6"
+            }
+          ],
+          "rounding_intervals": []
+        },
+        {
+          "cik": "0000723125",
+          "taxonomy": "us-gaap",
+          "concept": "NetCashProvidedByUsedInOperatingActivities",
+          "unit": "USD",
+          "start": "2022-09-02",
+          "end": "2023-08-31",
+          "value": 1559000000,
+          "accession": "0000723125-23-000054",
+          "form": "10-K",
+          "filed": "2023-10-06",
+          "accepted_at": "2023-10-06T20:01:37+00:00",
+          "available_at": "2023-10-07T00:00:00-04:00",
+          "primary_document": "mu-20230831.htm",
+          "source": "https://www.sec.gov/Archives/edgar/data/723125/000072312523000054/mu-20230831.htm",
+          "status": "filing_linked_candidate",
+          "original_check": "matched",
+          "original_facts": [
+            {
+              "concept": "NetCashProvidedByUsedInOperatingActivities",
+              "unit": "USD",
+              "start": "2022-09-02",
+              "end": "2023-08-31",
+              "value": "1559000000",
+              "context_id": "c-1",
+              "fact_id": "f-314",
+              "decimals": "-6"
+            }
+          ],
+          "rounding_intervals": []
+        },
+        {
+          "cik": "0000723125",
+          "taxonomy": "us-gaap",
+          "concept": "NetIncomeLoss",
+          "unit": "USD",
+          "start": "2020-09-04",
+          "end": "2021-09-02",
+          "value": 5861000000,
+          "accession": "0000723125-23-000054",
+          "form": "10-K",
+          "filed": "2023-10-06",
+          "accepted_at": "2023-10-06T20:01:37+00:00",
+          "available_at": "2023-10-07T00:00:00-04:00",
+          "primary_document": "mu-20230831.htm",
+          "source": "https://www.sec.gov/Archives/edgar/data/723125/000072312523000054/mu-20230831.htm",
+          "status": "filing_linked_candidate",
+          "original_check": "matched",
+          "original_facts": [
+            {
+              "concept": "NetIncomeLoss",
+              "unit": "USD",
+              "start": "2020-09-04",
+              "end": "2021-09-02",
+              "value": "5861000000",
+              "context_id": "c-5",
+              "fact_id": "f-81",
+              "decimals": "-6"
+            },
+            {
+              "concept": "NetIncomeLoss",
+              "unit": "USD",
+              "start": "2020-09-04",
+              "end": "2021-09-02",
+              "value": "5861000000",
+              "context_id": "c-5",
+              "fact_id": "f-96",
+              "decimals": "-6"
+            },
+            {
+              "concept": "NetIncomeLoss",
+              "unit": "USD",
+              "start": "2020-09-04",
+              "end": "2021-09-02",
+              "value": "5861000000",
+              "context_id": "c-5",
+              "fact_id": "f-195",
+              "decimals": "-6"
+            },
+            {
+              "concept": "NetIncomeLoss",
+              "unit": "USD",
+              "start": "2020-09-04",
+              "end": "2021-09-02",
+              "value": "5861000000",
+              "context_id": "c-5",
+              "fact_id": "f-283",
+              "decimals": "-6"
+            },
+            {
+              "concept": "NetIncomeLoss",
+              "unit": "USD",
+              "start": "2020-09-04",
+              "end": "2021-09-02",
+              "value": "5861000000",
+              "context_id": "c-5",
+              "fact_id": "f-1496",
+              "decimals": "-6"
+            }
+          ],
+          "rounding_intervals": []
+        },
+        {
+          "cik": "0000723125",
+          "taxonomy": "us-gaap",
+          "concept": "NetIncomeLoss",
+          "unit": "USD",
+          "start": "2021-09-03",
+          "end": "2022-09-01",
+          "value": 8687000000,
+          "accession": "0000723125-23-000054",
+          "form": "10-K",
+          "filed": "2023-10-06",
+          "accepted_at": "2023-10-06T20:01:37+00:00",
+          "available_at": "2023-10-07T00:00:00-04:00",
+          "primary_document": "mu-20230831.htm",
+          "source": "https://www.sec.gov/Archives/edgar/data/723125/000072312523000054/mu-20230831.htm",
+          "status": "filing_linked_candidate",
+          "original_check": "matched",
+          "original_facts": [
+            {
+              "concept": "NetIncomeLoss",
+              "unit": "USD",
+              "start": "2021-09-03",
+              "end": "2022-09-01",
+              "value": "8687000000",
+              "context_id": "c-4",
+              "fact_id": "f-80",
+              "decimals": "-6"
+            },
+            {
+              "concept": "NetIncomeLoss",
+              "unit": "USD",
+              "start": "2021-09-03",
+              "end": "2022-09-01",
+              "value": "8687000000",
+              "context_id": "c-4",
+              "fact_id": "f-95",
+              "decimals": "-6"
+            },
+            {
+              "concept": "NetIncomeLoss",
+              "unit": "USD",
+              "start": "2021-09-03",
+              "end": "2022-09-01",
+              "value": "8687000000",
+              "context_id": "c-4",
+              "fact_id": "f-228",
+              "decimals": "-6"
+            },
+            {
+              "concept": "NetIncomeLoss",
+              "unit": "USD",
+              "start": "2021-09-03",
+              "end": "2022-09-01",
+              "value": "8687000000",
+              "context_id": "c-4",
+              "fact_id": "f-282",
+              "decimals": "-6"
+            },
+            {
+              "concept": "NetIncomeLoss",
+              "unit": "USD",
+              "start": "2021-09-03",
+              "end": "2022-09-01",
+              "value": "8687000000",
+              "context_id": "c-4",
+              "fact_id": "f-1494",
+              "decimals": "-6"
+            }
+          ],
+          "rounding_intervals": []
+        },
+        {
+          "cik": "0000723125",
+          "taxonomy": "us-gaap",
+          "concept": "NetIncomeLoss",
+          "unit": "USD",
+          "start": "2022-09-02",
+          "end": "2023-08-31",
+          "value": -5833000000,
+          "accession": "0000723125-23-000054",
+          "form": "10-K",
+          "filed": "2023-10-06",
+          "accepted_at": "2023-10-06T20:01:37+00:00",
+          "available_at": "2023-10-07T00:00:00-04:00",
+          "primary_document": "mu-20230831.htm",
+          "source": "https://www.sec.gov/Archives/edgar/data/723125/000072312523000054/mu-20230831.htm",
+          "status": "filing_linked_candidate",
+          "original_check": "matched",
+          "original_facts": [
+            {
+              "concept": "NetIncomeLoss",
+              "unit": "USD",
+              "start": "2022-09-02",
+              "end": "2023-08-31",
+              "value": "-5833000000",
+              "context_id": "c-1",
+              "fact_id": "f-79",
+              "decimals": "-6"
+            },
+            {
+              "concept": "NetIncomeLoss",
+              "unit": "USD",
+              "start": "2022-09-02",
+              "end": "2023-08-31",
+              "value": "-5833000000",
+              "context_id": "c-1",
+              "fact_id": "f-94",
+              "decimals": "-6"
+            },
+            {
+              "concept": "NetIncomeLoss",
+              "unit": "USD",
+              "start": "2022-09-02",
+              "end": "2023-08-31",
+              "value": "-5833000000",
+              "context_id": "c-1",
+              "fact_id": "f-255",
+              "decimals": "-6"
+            },
+            {
+              "concept": "NetIncomeLoss",
+              "unit": "USD",
+              "start": "2022-09-02",
+              "end": "2023-08-31",
+              "value": "-5833000000",
+              "context_id": "c-1",
+              "fact_id": "f-281",
+              "decimals": "-6"
+            },
+            {
+              "concept": "NetIncomeLoss",
+              "unit": "USD",
+              "start": "2022-09-02",
+              "end": "2023-08-31",
+              "value": "-5833000000",
+              "context_id": "c-1",
+              "fact_id": "f-1492",
+              "decimals": "-6"
+            }
+          ],
+          "rounding_intervals": []
+        },
+        {
+          "cik": "0000723125",
+          "taxonomy": "us-gaap",
+          "concept": "OperatingIncomeLoss",
+          "unit": "USD",
+          "start": "2020-09-04",
+          "end": "2021-09-02",
+          "value": 6283000000,
+          "accession": "0000723125-23-000054",
+          "form": "10-K",
+          "filed": "2023-10-06",
+          "accepted_at": "2023-10-06T20:01:37+00:00",
+          "available_at": "2023-10-07T00:00:00-04:00",
+          "primary_document": "mu-20230831.htm",
+          "source": "https://www.sec.gov/Archives/edgar/data/723125/000072312523000054/mu-20230831.htm",
+          "status": "filing_linked_candidate",
+          "original_check": "matched",
+          "original_facts": [
+            {
+              "concept": "OperatingIncomeLoss",
+              "unit": "USD",
+              "start": "2020-09-04",
+              "end": "2021-09-02",
+              "value": "6283000000",
+              "context_id": "c-5",
+              "fact_id": "f-60",
+              "decimals": "-6"
+            },
+            {
+              "concept": "OperatingIncomeLoss",
+              "unit": "USD",
+              "start": "2020-09-04",
+              "end": "2021-09-02",
+              "value": "6283000000",
+              "context_id": "c-5",
+              "fact_id": "f-1595",
+              "decimals": "-6"
+            }
+          ],
+          "rounding_intervals": []
+        },
+        {
+          "cik": "0000723125",
+          "taxonomy": "us-gaap",
+          "concept": "OperatingIncomeLoss",
+          "unit": "USD",
+          "start": "2021-09-03",
+          "end": "2022-09-01",
+          "value": 9702000000,
+          "accession": "0000723125-23-000054",
+          "form": "10-K",
+          "filed": "2023-10-06",
+          "accepted_at": "2023-10-06T20:01:37+00:00",
+          "available_at": "2023-10-07T00:00:00-04:00",
+          "primary_document": "mu-20230831.htm",
+          "source": "https://www.sec.gov/Archives/edgar/data/723125/000072312523000054/mu-20230831.htm",
+          "status": "filing_linked_candidate",
+          "original_check": "matched",
+          "original_facts": [
+            {
+              "concept": "OperatingIncomeLoss",
+              "unit": "USD",
+              "start": "2021-09-03",
+              "end": "2022-09-01",
+              "value": "9702000000",
+              "context_id": "c-4",
+              "fact_id": "f-59",
+              "decimals": "-6"
+            },
+            {
+              "concept": "OperatingIncomeLoss",
+              "unit": "USD",
+              "start": "2021-09-03",
+              "end": "2022-09-01",
+              "value": "9702000000",
+              "context_id": "c-4",
+              "fact_id": "f-1594",
+              "decimals": "-6"
+            }
+          ],
+          "rounding_intervals": []
+        },
+        {
+          "cik": "0000723125",
+          "taxonomy": "us-gaap",
+          "concept": "OperatingIncomeLoss",
+          "unit": "USD",
+          "start": "2022-09-02",
+          "end": "2023-08-31",
+          "value": -5745000000,
+          "accession": "0000723125-23-000054",
+          "form": "10-K",
+          "filed": "2023-10-06",
+          "accepted_at": "2023-10-06T20:01:37+00:00",
+          "available_at": "2023-10-07T00:00:00-04:00",
+          "primary_document": "mu-20230831.htm",
+          "source": "https://www.sec.gov/Archives/edgar/data/723125/000072312523000054/mu-20230831.htm",
+          "status": "filing_linked_candidate",
+          "original_check": "matched",
+          "original_facts": [
+            {
+              "concept": "OperatingIncomeLoss",
+              "unit": "USD",
+              "start": "2022-09-02",
+              "end": "2023-08-31",
+              "value": "-5745000000",
+              "context_id": "c-1",
+              "fact_id": "f-58",
+              "decimals": "-6"
+            },
+            {
+              "concept": "OperatingIncomeLoss",
+              "unit": "USD",
+              "start": "2022-09-02",
+              "end": "2023-08-31",
+              "value": "-5745000000",
+              "context_id": "c-1",
+              "fact_id": "f-1593",
+              "decimals": "-6"
+            }
+          ],
+          "rounding_intervals": []
+        },
+        {
+          "cik": "0000723125",
+          "taxonomy": "us-gaap",
+          "concept": "RevenueFromContractWithCustomerExcludingAssessedTax",
+          "unit": "USD",
+          "start": "2020-09-04",
+          "end": "2021-09-02",
+          "value": 27705000000,
+          "accession": "0000723125-23-000054",
+          "form": "10-K",
+          "filed": "2023-10-06",
+          "accepted_at": "2023-10-06T20:01:37+00:00",
+          "available_at": "2023-10-07T00:00:00-04:00",
+          "primary_document": "mu-20230831.htm",
+          "source": "https://www.sec.gov/Archives/edgar/data/723125/000072312523000054/mu-20230831.htm",
+          "status": "filing_linked_candidate",
+          "original_check": "matched",
+          "original_facts": [
+            {
+              "concept": "RevenueFromContractWithCustomerExcludingAssessedTax",
+              "unit": "USD",
+              "start": "2020-09-04",
+              "end": "2021-09-02",
+              "value": "27705000000",
+              "context_id": "c-5",
+              "fact_id": "f-39",
+              "decimals": "-6"
+            },
+            {
+              "concept": "RevenueFromContractWithCustomerExcludingAssessedTax",
+              "unit": "USD",
+              "start": "2020-09-04",
+              "end": "2021-09-02",
+              "value": "27705000000",
+              "context_id": "c-5",
+              "fact_id": "f-1209",
+              "decimals": "-6"
+            },
+            {
+              "concept": "RevenueFromContractWithCustomerExcludingAssessedTax",
+              "unit": "USD",
+              "start": "2020-09-04",
+              "end": "2021-09-02",
+              "value": "27705000000",
+              "context_id": "c-5",
+              "fact_id": "f-1538",
+              "decimals": "-6"
+            },
+            {
+              "concept": "RevenueFromContractWithCustomerExcludingAssessedTax",
+              "unit": "USD",
+              "start": "2020-09-04",
+              "end": "2021-09-02",
+              "value": "27705000000",
+              "context_id": "c-5",
+              "fact_id": "f-1665",
+              "decimals": "-6"
+            }
+          ],
+          "rounding_intervals": []
+        },
+        {
+          "cik": "0000723125",
+          "taxonomy": "us-gaap",
+          "concept": "RevenueFromContractWithCustomerExcludingAssessedTax",
+          "unit": "USD",
+          "start": "2021-09-03",
+          "end": "2022-09-01",
+          "value": 30758000000,
+          "accession": "0000723125-23-000054",
+          "form": "10-K",
+          "filed": "2023-10-06",
+          "accepted_at": "2023-10-06T20:01:37+00:00",
+          "available_at": "2023-10-07T00:00:00-04:00",
+          "primary_document": "mu-20230831.htm",
+          "source": "https://www.sec.gov/Archives/edgar/data/723125/000072312523000054/mu-20230831.htm",
+          "status": "filing_linked_candidate",
+          "original_check": "matched",
+          "original_facts": [
+            {
+              "concept": "RevenueFromContractWithCustomerExcludingAssessedTax",
+              "unit": "USD",
+              "start": "2021-09-03",
+              "end": "2022-09-01",
+              "value": "30758000000",
+              "context_id": "c-4",
+              "fact_id": "f-38",
+              "decimals": "-6"
+            },
+            {
+              "concept": "RevenueFromContractWithCustomerExcludingAssessedTax",
+              "unit": "USD",
+              "start": "2021-09-03",
+              "end": "2022-09-01",
+              "value": "30758000000",
+              "context_id": "c-4",
+              "fact_id": "f-1208",
+              "decimals": "-6"
+            },
+            {
+              "concept": "RevenueFromContractWithCustomerExcludingAssessedTax",
+              "unit": "USD",
+              "start": "2021-09-03",
+              "end": "2022-09-01",
+              "value": "30758000000",
+              "context_id": "c-4",
+              "fact_id": "f-1537",
+              "decimals": "-6"
+            },
+            {
+              "concept": "RevenueFromContractWithCustomerExcludingAssessedTax",
+              "unit": "USD",
+              "start": "2021-09-03",
+              "end": "2022-09-01",
+              "value": "30758000000",
+              "context_id": "c-4",
+              "fact_id": "f-1664",
+              "decimals": "-6"
+            }
+          ],
+          "rounding_intervals": []
+        },
+        {
+          "cik": "0000723125",
+          "taxonomy": "us-gaap",
+          "concept": "RevenueFromContractWithCustomerExcludingAssessedTax",
+          "unit": "USD",
+          "start": "2022-09-02",
+          "end": "2023-08-31",
+          "value": 15540000000,
+          "accession": "0000723125-23-000054",
+          "form": "10-K",
+          "filed": "2023-10-06",
+          "accepted_at": "2023-10-06T20:01:37+00:00",
+          "available_at": "2023-10-07T00:00:00-04:00",
+          "primary_document": "mu-20230831.htm",
+          "source": "https://www.sec.gov/Archives/edgar/data/723125/000072312523000054/mu-20230831.htm",
+          "status": "filing_linked_candidate",
+          "original_check": "matched",
+          "original_facts": [
+            {
+              "concept": "RevenueFromContractWithCustomerExcludingAssessedTax",
+              "unit": "USD",
+              "start": "2022-09-02",
+              "end": "2023-08-31",
+              "value": "15540000000",
+              "context_id": "c-1",
+              "fact_id": "f-37",
+              "decimals": "-6"
+            },
+            {
+              "concept": "RevenueFromContractWithCustomerExcludingAssessedTax",
+              "unit": "USD",
+              "start": "2022-09-02",
+              "end": "2023-08-31",
+              "value": "15540000000",
+              "context_id": "c-1",
+              "fact_id": "f-1207",
+              "decimals": "-6"
+            },
+            {
+              "concept": "RevenueFromContractWithCustomerExcludingAssessedTax",
+              "unit": "USD",
+              "start": "2022-09-02",
+              "end": "2023-08-31",
+              "value": "15540000000",
+              "context_id": "c-1",
+              "fact_id": "f-1536",
+              "decimals": "-6"
+            },
+            {
+              "concept": "RevenueFromContractWithCustomerExcludingAssessedTax",
+              "unit": "USD",
+              "start": "2022-09-02",
+              "end": "2023-08-31",
+              "value": "15540000000",
+              "context_id": "c-1",
+              "fact_id": "f-1663",
+              "decimals": "-6"
+            }
+          ],
+          "rounding_intervals": []
+        },
+        {
+          "cik": "0000723125",
+          "taxonomy": "us-gaap",
+          "concept": "StockholdersEquity",
+          "unit": "USD",
+          "start": null,
+          "end": "2020-09-03",
+          "value": 38996000000,
+          "accession": "0000723125-23-000054",
+          "form": "10-K",
+          "filed": "2023-10-06",
+          "accepted_at": "2023-10-06T20:01:37+00:00",
+          "available_at": "2023-10-07T00:00:00-04:00",
+          "primary_document": "mu-20230831.htm",
+          "source": "https://www.sec.gov/Archives/edgar/data/723125/000072312523000054/mu-20230831.htm",
+          "status": "filing_linked_candidate",
+          "original_check": "matched",
+          "original_facts": [
+            {
+              "concept": "StockholdersEquity",
+              "unit": "USD",
+              "start": null,
+              "end": "2020-09-03",
+              "value": "38996000000",
+              "context_id": "c-13",
+              "fact_id": "f-193",
+              "decimals": "-6"
+            }
+          ],
+          "rounding_intervals": []
+        },
+        {
+          "cik": "0000723125",
+          "taxonomy": "us-gaap",
+          "concept": "StockholdersEquity",
+          "unit": "USD",
+          "start": null,
+          "end": "2021-09-02",
+          "value": 43933000000,
+          "accession": "0000723125-23-000054",
+          "form": "10-K",
+          "filed": "2023-10-06",
+          "accepted_at": "2023-10-06T20:01:37+00:00",
+          "available_at": "2023-10-07T00:00:00-04:00",
+          "primary_document": "mu-20230831.htm",
+          "source": "https://www.sec.gov/Archives/edgar/data/723125/000072312523000054/mu-20230831.htm",
+          "status": "filing_linked_candidate",
+          "original_check": "matched",
+          "original_facts": [
+            {
+              "concept": "StockholdersEquity",
+              "unit": "USD",
+              "start": null,
+              "end": "2021-09-02",
+              "value": "43933000000",
+              "context_id": "c-24",
+              "fact_id": "f-226",
+              "decimals": "-6"
+            }
+          ],
+          "rounding_intervals": []
+        },
+        {
+          "cik": "0000723125",
+          "taxonomy": "us-gaap",
+          "concept": "StockholdersEquity",
+          "unit": "USD",
+          "start": null,
+          "end": "2022-09-01",
+          "value": 49907000000,
+          "accession": "0000723125-23-000054",
+          "form": "10-K",
+          "filed": "2023-10-06",
+          "accepted_at": "2023-10-06T20:01:37+00:00",
+          "available_at": "2023-10-07T00:00:00-04:00",
+          "primary_document": "mu-20230831.htm",
+          "source": "https://www.sec.gov/Archives/edgar/data/723125/000072312523000054/mu-20230831.htm",
+          "status": "filing_linked_candidate",
+          "original_check": "matched",
+          "original_facts": [
+            {
+              "concept": "StockholdersEquity",
+              "unit": "USD",
+              "start": null,
+              "end": "2022-09-01",
+              "value": "49907000000",
+              "context_id": "c-7",
+              "fact_id": "f-184",
+              "decimals": "-6"
+            },
+            {
+              "concept": "StockholdersEquity",
+              "unit": "USD",
+              "start": null,
+              "end": "2022-09-01",
+              "value": "49907000000",
+              "context_id": "c-7",
+              "fact_id": "f-253",
+              "decimals": "-6"
+            }
+          ],
+          "rounding_intervals": []
+        },
+        {
+          "cik": "0000723125",
+          "taxonomy": "us-gaap",
+          "concept": "StockholdersEquity",
+          "unit": "USD",
+          "start": null,
+          "end": "2023-08-31",
+          "value": 44120000000,
+          "accession": "0000723125-23-000054",
+          "form": "10-K",
+          "filed": "2023-10-06",
+          "accepted_at": "2023-10-06T20:01:37+00:00",
+          "available_at": "2023-10-07T00:00:00-04:00",
+          "primary_document": "mu-20230831.htm",
+          "source": "https://www.sec.gov/Archives/edgar/data/723125/000072312523000054/mu-20230831.htm",
+          "status": "filing_linked_candidate",
+          "original_check": "matched",
+          "original_facts": [
+            {
+              "concept": "StockholdersEquity",
+              "unit": "USD",
+              "start": null,
+              "end": "2023-08-31",
+              "value": "44120000000",
+              "context_id": "c-6",
+              "fact_id": "f-183",
+              "decimals": "-6"
+            },
+            {
+              "concept": "StockholdersEquity",
+              "unit": "USD",
+              "start": null,
+              "end": "2023-08-31",
+              "value": "44120000000",
+              "context_id": "c-6",
+              "fact_id": "f-280",
+              "decimals": "-6"
+            }
+          ],
+          "rounding_intervals": []
+        }
+      ]
+    }
+  ],
+  "strict_pit_eligible": false,
+  "model_change_allowed": false,
+  "scope": "Exact original facts for selected filings only; not all filings, revision chains or share-price unit alignment"
+}

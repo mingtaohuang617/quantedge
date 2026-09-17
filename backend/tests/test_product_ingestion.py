@@ -37,8 +37,14 @@ def test_parser_fails_on_wrong_product_future_or_missing_spread(ticker):
         issuer_observations(ticker, PAGES[ticker].replace(ticker, 'WRONG'), '2026-09-16')
     with pytest.raises(ValueError):
         issuer_observations(ticker, PAGES[ticker], '2026-09-14')
-    with pytest.raises(ValueError):
-        issuer_observations(ticker, PAGES[ticker].replace('Spread', 'Unrelated'), '2026-09-16')
+    if ticker == 'TQQQ':
+        partial = issuer_observations(ticker, PAGES[ticker].replace('Spread', 'Unrelated'), '2026-09-16')
+        assert partial['productMetrics']['expenseRatio']['value'] == .82
+        assert 'medianSpread30d' not in partial['productMetrics']
+        assert partial['productDataIssues'] == ['median_spread_unavailable']
+    else:
+        with pytest.raises(ValueError):
+            issuer_observations(ticker, PAGES[ticker].replace('Spread', 'Unrelated'), '2026-09-16')
 
 
 def series():

@@ -1,0 +1,28 @@
+[WebServer] (node:38332) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 3 tests using 1 worker
+
+(node:57436) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] 下午12:08:50 [vite] http proxy error: /api/watchlist/favorites
+[WebServer] AggregateError [ECONNREFUSED]:
+[WebServer]     at internalConnectMultiple (node:net:1193:18)
+[WebServer]     at afterConnectMultiple (node:net:1783:7)
+[WebServer] 下午12:08:50 [vite] http proxy error: /api/status
+[WebServer] AggregateError [ECONNREFUSED]:
+[WebServer]     at internalConnectMultiple (node:net:1193:18)
+[WebServer]     at afterConnectMultiple (node:net:1783:7)
+[WebServer] 下午12:08:51 [vite] http proxy error: /api/status
+[WebServer] AggregateError [ECONNREFUSED]:
+[WebServer]     at internalConnectMultiple (node:net:1193:18)
+[WebServer]     at afterConnectMultiple (node:net:1783:7)
+[WebServer] 下午12:08:51 [vite] http proxy error: /api/watchlist/favorites
+[WebServer] AggregateError [ECONNREFUSED]:
+[WebServer]     at internalConnectMultiple (node:net:1193:18)
+[WebServer]     at afterConnectMultiple (node:net:1783:7)
+  ok 1 [chromium] › tests-e2e\accessibility.spec.ts:20:5 › 十个功能页无 serious 或 critical axe 问题 › 量化评分 (8.1s)
+  ok 2 [chromium] › tests-e2e\scoring-v3.spec.ts:33:1 › desktop score equation, weights, classifications and missing-data state (5.3s)
+  ok 3 [chromium] › tests-e2e\scoring-v3.spec.ts:100:1 › mobile scoring details fit the viewport and show dated evidence (1.2s)
+
+  3 passed (19.0s)

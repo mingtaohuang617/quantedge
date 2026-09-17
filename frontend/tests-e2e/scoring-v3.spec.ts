@@ -1,8 +1,15 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page, type TestInfo } from '@playwright/test';
+import { writeFile } from 'node:fs/promises';
 import { loginViaStorage } from './helpers';
 test.use({ serviceWorkers: 'block' });
 
 test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    const metrics = { lcpMs: 0, cls: 0, shifts: [] as { value: number; time: number; nodes: string[] }[] };
+    Object.assign(window, { scoringPerformance: metrics });
+    new PerformanceObserver(list => { for (const e of list.getEntries()) metrics.lcpMs = e.startTime; }).observe({ type: 'largest-contentful-paint', buffered: true });
+    new PerformanceObserver(list => { for (const e of list.getEntries() as (PerformanceEntry & { hadRecentInput: boolean; value: number; sources?: { node?: Element }[] })[]) if (!e.hadRecentInput) { metrics.cls += e.value; metrics.shifts.push({ value: e.value, time: e.startTime, nodes: (e.sources || []).map(s => s.node?.outerHTML?.slice(0, 220) || '') }); } }).observe({ type: 'layout-shift', buffered: true });
+  });
   await loginViaStorage(page);
   // Deterministic local snapshot: no third-party calls, account writes, or live trading data.
   await page.route('**/*', route => {
@@ -14,6 +21,15 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
+async function recordPerformance(page: Page, info: TestInfo) {
+  const metrics = await page.evaluate(() => ({
+    ...(window as Window & { scoringPerformance: { lcpMs: number; cls: number } }).scoringPerformance,
+    domContentLoadedMs: (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming).domContentLoadedEventEnd,
+  }));
+  expect(metrics.cls).toBeLessThan(0.1);
+  await writeFile(info.outputPath('performance.json'), JSON.stringify({ ...metrics, scope: 'Local unthrottled Chromium, offline snapshot; not real-user INP or a Lighthouse audit' }, null, 2));
+}
+
 test('desktop score equation, weights, classifications and missing-data state', async ({ page }, testInfo) => {
   const errors: string[] = [];
   page.on('pageerror', e => errors.push(e.message));
@@ -22,6 +38,8 @@ test('desktop score equation, weights, classifications and missing-data state', 
   await expect(provenance).toBeVisible({ timeout: 20000 });
   await expect(provenance).toContainText('评分行情截至');
   await expect(provenance).toContainText('财报期');
+  await expect(page.getByTestId('scoring-validation-status')).toContainText('尚未通过完整样本外验证');
+  await recordPerformance(page, testInfo);
   await expect(page.getByTestId('score-equation')).toContainText('60%');
   await page.getByTestId('score-weights-toggle').click();
   await page.getByRole('button', { name: '偏重趋势', exact: true }).click();
@@ -29,6 +47,7 @@ test('desktop score equation, weights, classifications and missing-data state', 
   const equation = await page.getByTestId('score-equation').innerText();
   const nums = equation.match(/[\d.]+/g)!.map(Number);
   expect(Math.round((nums[0] * nums[1] + nums[2] * nums[3]) / 10) / 10).toBe(nums[4]);
+  await expect(page.getByTestId('selected-score-value')).toHaveText(nums[4].toFixed(1));
   await page.getByTestId('score-weights-toggle').click();
   await page.screenshot({ path: testInfo.outputPath('scoring-v3-desktop.png'), fullPage: true });
   await page.getByTestId('scoring-type-filter').click();
@@ -48,7 +67,8 @@ test('desktop score equation, weights, classifications and missing-data state', 
   await page.getByTestId('scoring-type-filter').click();
   await page.getByRole('button', { name: '指数杠杆 ETF', exact: true }).click();
   await page.getByText('TQQQ', { exact: true }).first().click();
-  await expect(page.getByTestId('asset-assessment')).toContainText('产品数据覆盖 100%');
+  await expect(page.getByTestId('asset-assessment')).toContainText('产品数据覆盖 65%');
+  await expect(page.getByTestId('asset-assessment')).toContainText('发行商本次响应缺少有效价差观测');
   await expect(page.getByTestId('asset-assessment')).toContainText('日均跟踪偏离');
   await expect(page.getByTestId('asset-assessment')).toContainText('减免截至 2026-09-30');
   await page.getByTestId('asset-assessment').scrollIntoViewIfNeeded();
@@ -88,6 +108,8 @@ test('mobile scoring details fit the viewport and show dated evidence', async ({
   await provenance.scrollIntoViewIfNeeded();
   await expect(provenance).toContainText('数据覆盖');
   await expect(provenance).toContainText('评分行情截至');
+  await expect(page.getByTestId('scoring-validation-status')).toContainText('实验性研究');
+  await recordPerformance(page, testInfo);
   const box = await provenance.boundingBox();
   expect(box!.x).toBeGreaterThanOrEqual(0);
   expect(box!.x + box!.width).toBeLessThanOrEqual(391);

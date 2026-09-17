@@ -1,0 +1,19 @@
+{
+  "lcpMs": 876,
+  "cls": 0.004249056153827243,
+  "shifts": [
+    {
+      "value": 0.004249056153827243,
+      "time": 523.5,
+      "nodes": [
+        "",
+        "<button class=\"flex items-center gap-1 px-2.5 py-1.5 md:px-2 md:py-0.5 rounded-lg md:rounded-md bg-white/5 hover:bg-white/10 text-[#a0aec0] hover:text-white transition-all disabled:opacity-50 active:scale-95 border borde",
+        "<button class=\"flex items-center gap-1.5 shrink-0 hover:opacity-80 transition-opacity cursor-pointer\" title=\"点击查看宏观看板 · 综合 17 因子方向化温度\"><span class=\"text-[#a0aec0] font-medium uppercase text-[9px]\">宏观</span><span class=\"f",
+        "<button class=\"hidden md:inline-flex items-center gap-1 hover:opacity-80 transition-opacity cursor-pointer\" title=\"点击查看宏观看板 · 综合 17 因子方向化温度\"><span class=\"text-[#a0aec0] uppercase text-[9px] font-medium\">宏观</span><span cl",
+        ""
+      ]
+    }
+  ],
+  "domContentLoadedMs": 33.599999994039536,
+  "scope": "Local unthrottled Chromium, offline snapshot; not real-user INP or a Lighthouse audit"
+}

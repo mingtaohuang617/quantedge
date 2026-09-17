@@ -1,0 +1,140 @@
+{
+  "start": "2023-01-01",
+  "end_exclusive": "2026-09-16",
+  "results": [
+    {
+      "symbol": "NVDA",
+      "first": "2023-01-03",
+      "last": "2026-09-15",
+      "rows": 928,
+      "actions": {
+        "dividends": 15,
+        "splits": 1,
+        "capitalGains": 0
+      },
+      "issues": [],
+      "return_basis": "vendor_adjusted_proxy",
+      "strict_total_return_eligible": false,
+      "excluded_sessions": [],
+      "raw_sha256": "322fa343ab28177f5f78c38d538f454db206cc46a817828c9e7aaea1bb5ea7f9",
+      "evidence_folder": "C:\\Users\\Minto\\Downloads\\自研量化投资平台\\release\\scoring-v32\\backend\\data\\price_evidence\\3629de731ad61eb38adefe894c0f8d5636e1cd62364b7309d5a1f3942f01ff55",
+      "status": "captured"
+    },
+    {
+      "symbol": "MU",
+      "first": "2023-01-03",
+      "last": "2026-09-15",
+      "rows": 928,
+      "actions": {
+        "dividends": 14,
+        "splits": 0,
+        "capitalGains": 0
+      },
+      "issues": [],
+      "return_basis": "vendor_adjusted_proxy",
+      "strict_total_return_eligible": false,
+      "excluded_sessions": [],
+      "raw_sha256": "7ee1bdb063178a44bbea73a017fb2cf7e5869f75c49ae8e5010dd6256af99e5c",
+      "evidence_folder": "C:\\Users\\Minto\\Downloads\\自研量化投资平台\\release\\scoring-v32\\backend\\data\\price_evidence\\02c58e334ae70ca7f9cdfa2563bcf58f63e4da2e52a1291bf927665d9a332a39",
+      "status": "captured"
+    },
+    {
+      "symbol": "EWY",
+      "first": "2023-01-03",
+      "last": "2026-09-15",
+      "rows": 928,
+      "actions": {
+        "dividends": 3,
+        "splits": 0,
+        "capitalGains": 0
+      },
+      "issues": [],
+      "return_basis": "vendor_adjusted_proxy",
+      "strict_total_return_eligible": false,
+      "excluded_sessions": [],
+      "raw_sha256": "a83d365ed9895e6237c26cf45f60891143d0989f51ad74768298279b3ebf3a13",
+      "evidence_folder": "C:\\Users\\Minto\\Downloads\\自研量化投资平台\\release\\scoring-v32\\backend\\data\\price_evidence\\e549b123cd3f484045baed635e2af8dc62cc682eb914de37a8941e6074a25681",
+      "status": "captured"
+    },
+    {
+      "symbol": "TQQQ",
+      "first": "2023-01-03",
+      "last": "2026-09-15",
+      "rows": 928,
+      "actions": {
+        "dividends": 14,
+        "splits": 1,
+        "capitalGains": 0
+      },
+      "issues": [],
+      "return_basis": "vendor_adjusted_proxy",
+      "strict_total_return_eligible": false,
+      "excluded_sessions": [],
+      "raw_sha256": "f2a5b86454b63124d4f3294d59ffe4f8c3df9be18e322227715303163edcd545",
+      "evidence_folder": "C:\\Users\\Minto\\Downloads\\自研量化投资平台\\release\\scoring-v32\\backend\\data\\price_evidence\\b2628e4964429e22de631178ba70353c491efeccdff6684f627994db5f6f1c7d",
+      "status": "captured"
+    },
+    {
+      "symbol": "RKLX",
+      "first": "2025-03-13",
+      "last": "2026-09-15",
+      "rows": 379,
+      "actions": {
+        "dividends": 1,
+        "splits": 1,
+        "capitalGains": 0
+      },
+      "issues": [
+        "unreviewed_adjusted_jump_over_50pct"
+      ],
+      "return_basis": "vendor_adjusted_proxy",
+      "strict_total_return_eligible": false,
+      "excluded_sessions": [],
+      "raw_sha256": "12a269fe622e47cf4267e4e0fbff640bc470984ef1ca79f5490bd042a24ee7b1",
+      "evidence_folder": "C:\\Users\\Minto\\Downloads\\自研量化投资平台\\release\\scoring-v32\\backend\\data\\price_evidence\\85acf4781490961359436e37c9b51f3b9f64ad594bbe0ceabaf74692fb85885e",
+      "status": "captured"
+    },
+    {
+      "symbol": "BTC-USD",
+      "first": "2023-01-01",
+      "last": "2026-09-15",
+      "rows": 1354,
+      "actions": {
+        "dividends": 0,
+        "splits": 0,
+        "capitalGains": 0
+      },
+      "issues": [],
+      "return_basis": "vendor_adjusted_proxy",
+      "strict_total_return_eligible": false,
+      "excluded_sessions": [
+        "2026-09-16"
+      ],
+      "raw_sha256": "67c723626155a4866329802d946a5c626a479dd04b0eb865921f024477b42335",
+      "evidence_folder": "C:\\Users\\Minto\\Downloads\\自研量化投资平台\\release\\scoring-v32\\backend\\data\\price_evidence\\aec66e739afb3e2d6aeda2fc8b5559174d6b79c998f9403899eb7b126a2773da",
+      "status": "captured"
+    },
+    {
+      "symbol": "ETH-USD",
+      "first": "2023-01-01",
+      "last": "2026-09-15",
+      "rows": 1354,
+      "actions": {
+        "dividends": 0,
+        "splits": 0,
+        "capitalGains": 0
+      },
+      "issues": [],
+      "return_basis": "vendor_adjusted_proxy",
+      "strict_total_return_eligible": false,
+      "excluded_sessions": [
+        "2026-09-16"
+      ],
+      "raw_sha256": "595f360a1be6cda6a8859182ad5c9973106b6b90cb5a8d3958d06f691c9bc7f6",
+      "evidence_folder": "C:\\Users\\Minto\\Downloads\\自研量化投资平台\\release\\scoring-v32\\backend\\data\\price_evidence\\21dc069d03f8b50293e14d59be977c129f254328971108be2c819cd223b92c5c",
+      "status": "captured"
+    }
+  ],
+  "production_database_modified": false,
+  "model_change_allowed": false
+}

@@ -2538,7 +2538,7 @@ const ScoringDashboard = () => {
                     })()}
                     {/* PDF1 P0：评分数字 + vs 行业中位 ▲▼ delta（chip 与环并排） */}
                     <span className="inline-flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-white/5 border border-white/10 text-white">
-                      {sel.score == null ? t('暂不评分') : <CountUp value={sel.score} decimals={1} duration={500} />}
+                      <span data-testid="selected-score-value">{sel.score == null ? t('暂不评分') : sel.score.toFixed(1)}</span>
                       <span className="text-[#778] font-normal">/100</span>
                     </span>
                     {sel.score != null && sectorMedians?.score != null && (

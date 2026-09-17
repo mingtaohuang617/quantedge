@@ -5,7 +5,8 @@ import snapshot from './product-observations.json' with { type: 'json' };
 export function productEnrichment(stock) {
   const config = registry[stock.ticker];
   if (!config) return {};
+  if (stock.evaluationAsOf && (config.metadata.classificationVerifiedAt || '9999') > stock.evaluationAsOf) return {};
   const record = snapshot.products[stock.ticker];
   return { ...config.metadata, classificationSource: config.source,
-    ...(record && record.productDataAsOf >= (stock.productDataAsOf || '') ? record : {}) };
+    ...(record && (!stock.evaluationAsOf || record.productDataAsOf <= stock.evaluationAsOf) && record.productDataAsOf >= (stock.productDataAsOf || '') ? record : {}) };
 }

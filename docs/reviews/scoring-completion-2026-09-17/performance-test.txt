@@ -1,0 +1,10 @@
+[WebServer] (node:8036) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:30636) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok 1 [chromium] › tests-e2e\scoring-v3.spec.ts:99:1 › mobile scoring details fit the viewport and show dated evidence (2.3s)
+
+  1 passed (4.9s)

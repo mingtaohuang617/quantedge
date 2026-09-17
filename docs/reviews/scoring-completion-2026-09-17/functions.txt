@@ -1,0 +1,21 @@
+
+> quantedge-frontend@0.8.0 check:vercel-functions
+> node scripts/check-vercel-functions.mjs
+
+{
+  "count": 11,
+  "limit": 12,
+  "functions": [
+    "[...path].js",
+    "anomaly/scan.js",
+    "llm/[endpoint].js",
+    "smart-beta/backtest.js",
+    "smart-beta/snapshot.js",
+    "stock-gene/index.js",
+    "universe/stats.js",
+    "watchlist/10x.js",
+    "watchlist/10x/[slug].js",
+    "watchlist/favorites.js",
+    "yahoo.js"
+  ]
+}

@@ -173,7 +173,10 @@ def number(value):
 
 def asset_metadata(s):
     from product_data import product_enrichment
-    verified = {**POLICY.get("verifiedAssets", {}).get(s.get("ticker"), {}), **product_enrichment(s)}
+    override = POLICY.get("verifiedAssets", {}).get(s.get("ticker"), {})
+    if s.get('evaluationAsOf') and override.get('classificationVerifiedAt', '9999') > s['evaluationAsOf']:
+        override = {}
+    verified = {**override, **product_enrichment(s)}
     s = {**s, **verified}
     quote = str(s.get("quoteType", "")).upper()
     explicit = s.get("assetType")
@@ -307,6 +310,9 @@ def score_universe(stocks, bars_by_ticker=None):
                         "weights": POLICY["composite"], "horizon": "多月趋势描述，非买点或上涨概率"}
     from asset_assessment import attach_assessments
     attach_assessments(stocks)
+    from score_validation import score_validation
+    for s in stocks:
+        s['scoring']['validation'] = score_validation(s)
     stocks.sort(key=lambda x: x["score"] if x["score"] is not None else -1, reverse=True)
     counters = defaultdict(int)
     for s in stocks:

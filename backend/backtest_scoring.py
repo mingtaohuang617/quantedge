@@ -1,23 +1,11 @@
 #!/usr/bin/env python3
-"""评分有效性回测 —— 滚动窗口 IC（信息系数）。
-========================================================================
-把双轨评分回算到历史时点 T（K线截断到 T，无前视泄漏），测 T→T+H 日前向收益的
-横截面秩相关 IC，跨多个滚动窗口求 IC均值 / IC_IR(均值/标准差) / 胜率。
+"""Deprecated historical evaluator. Use validate_scoring.py.
 
-用途：改评分公式前先跑、确认综合分仍预测收益；监控因子衰减。
-判读：IC均值 > 0.03 视作有效；|IC_IR| > 0.5 视作稳定；胜率 > 60% 视作方向可靠。
-
-⚠️ 口径：质量分用**当前**基本面(慢变，轻度 look-ahead)；时机/动量纯 K 线，是干净的
-   point-in-time 检验。要严格验证质量分需历史时点基本面（见记忆 module_scoring_overhaul）。
-
-用法：
-  python backtest_scoring.py                  # 前向21日, 窗口 k=40..460 step20, 全体个股+美股
-  python backtest_scoring.py --horizon 63     # 前向3月
-  python backtest_scoring.py --market US      # 只看美股
+The old CLI mixed current fundamentals and unequal calendar dates. It is disabled.
+Spearman and undated synthetic window helpers remain only for regression tests.
 """
 from __future__ import annotations
 
-import argparse
 import statistics
 import sys
 import copy
@@ -27,8 +15,6 @@ BACKEND = Path(__file__).resolve().parent
 if str(BACKEND) not in sys.path:
     sys.path.insert(0, str(BACKEND))
 
-import db
-from refresh_data_js import parse_data_js
 from scoring import score_universe
 
 DATA_JS = BACKEND.parent / "frontend" / "src" / "data.js"
@@ -64,6 +50,8 @@ def spearman(xs: list[float], ys: list[float]) -> float | None:
 def window_ic(stocks, bars_all, k: int, H: int) -> dict | None:
     """单窗口：T=倒数第 k+1 根。as-of-T 评分 vs T→T+H 前向收益的 IC。
     返回 {综合,质量,时机,动量} 的 IC，样本不足返回 None。"""
+    if any(b.get("date") or b.get("trade_date") for rows in bars_all.values() for b in rows):
+        raise ValueError("Dated history requires validate_scoring.py; legacy offsets are not calendar aligned")
     trunc, keep = {}, []
     for s in stocks:
         b = bars_all.get(s["ticker"]) or []
@@ -78,6 +66,9 @@ def window_ic(stocks, bars_all, k: int, H: int) -> dict | None:
     if len(keep) < 30:
         return None
     work = copy.deepcopy([s for s in stocks if s["ticker"] in trunc])
+    for stock in work:
+        for key in ("pe", "pb", "roe", "profitMargin", "revenueGrowth", "marketCap", "revenue"):
+            stock.pop(key, None)
     score_universe(work, trunc)
     by = {s["ticker"]: s for s in work}
     fwd = [r[1] for r in keep]
@@ -121,25 +112,7 @@ def _print_report(series: dict, label: str, horizon: int):
 
 
 def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--horizon", type=int, default=21, help="前向持有交易日数(默认21≈1月)")
-    ap.add_argument("--market", default=None, help="只看某市场(如 US)；默认全体个股 + 美股两组")
-    ap.add_argument("--input", default=str(DATA_JS), help="data.js 路径")
-    args = ap.parse_args()
-
-    db.init_db()
-    st, _ = parse_data_js(Path(args.input))
-    bars_all = {s["ticker"]: db.get_bars(s["ticker"]) for s in st}
-    stocks = [s for s in st if not s.get("isETF")]
-    ks = range(40, 461, 20)
-
-    if args.market:
-        sub = [s for s in stocks if s["market"] == args.market.upper()]
-        _print_report(rolling(sub, bars_all, args.horizon, ks), f"{args.market.upper()} 个股", args.horizon)
-    else:
-        _print_report(rolling(stocks, bars_all, args.horizon, ks), "全体个股", args.horizon)
-        us = [s for s in stocks if s["market"] == "US"]
-        _print_report(rolling(us, bars_all, args.horizon, ks), "美股个股(基本面最全)", args.horizon)
+    raise SystemExit("旧回测已停用：当前基本面与倒序窗口不能验证历史评分。请运行 backend/validate_scoring.py --help")
 
 
 if __name__ == "__main__":
