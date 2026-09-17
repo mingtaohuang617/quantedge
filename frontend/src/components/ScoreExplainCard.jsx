@@ -8,13 +8,14 @@
 // 显示：1-2 句话解释为什么综合得这个分（哪个子项拉高/拉低）
 // 折叠默认；点 "AI 解读评分" 触发，缓存 24h
 // ─────────────────────────────────────────────────────────────
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Info, AlertCircle, Loader, Zap } from "lucide-react";
 import { apiFetch } from "../quant-platform.jsx";
 import { useLang } from "../i18n.jsx";
 
 export default function ScoreExplainCard({ stock, weights }) {
   const { t } = useLang();
+  const requestGeneration = useRef(0);
   const [state, setState] = useState({
     loading: false,
     text: null,
@@ -25,12 +26,15 @@ export default function ScoreExplainCard({ stock, weights }) {
 
   // 当 ticker 变化时清空（避免显示上一只标的的解读）
   useEffect(() => {
+    requestGeneration.current += 1;
     setState({ loading: false, text: null, cached: false, error: null, expanded: false });
-  }, [stock?.ticker, stock?.score, stock?.scoring?.version, weights?.quality, weights?.timing]);
+    return () => { requestGeneration.current += 1; };
+  }, [stock?.ticker, stock?.assetType, stock?.score, stock?.qualityScore, stock?.timingScore, stock?.scoring, weights?.quality, weights?.timing]);
 
-  if (!stock || !stock.ticker || !stock.subScores || stock.score == null) return null;
+  if (!stock || !stock.ticker || !stock.subScores || stock.score == null || stock.assetType !== 'stock' || stock.isETF) return null;
 
   const handleGenerate = async () => {
+    const generation = ++requestGeneration.current;
     setState((s) => ({ ...s, loading: true, error: null, expanded: true }));
     try {
       const json = await apiFetch("/llm/explain-score", {
@@ -38,6 +42,7 @@ export default function ScoreExplainCard({ stock, weights }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ticker: stock.ticker,
+          assetType: stock.assetType,
           score: stock.score ?? null,
           isETF: !!stock.isETF,
           subScores: stock.subScores || {},
@@ -48,6 +53,7 @@ export default function ScoreExplainCard({ stock, weights }) {
           weights: weights || { quality: 60, timing: 40 },
         }),
       });
+      if (generation !== requestGeneration.current) return;
       if (!json) throw new Error("后端无响应");
       if (!json.ok) throw new Error(json.error || json.detail || "AI 服务异常");
       setState({
@@ -58,6 +64,7 @@ export default function ScoreExplainCard({ stock, weights }) {
         expanded: true,
       });
     } catch (e) {
+      if (generation !== requestGeneration.current) return;
       setState((s) => ({ ...s, loading: false, error: String(e?.message || e) }));
     }
   };

@@ -93,7 +93,7 @@ def test_calculable_score_does_not_claim_validation(kind):
 
 
 def stock():
-    return {'ticker':'TEST','score':74,'qualityScore':70,'timingScore':80,'modelVersion':'3.2.0',
+    return {'ticker':'TEST','assetType':'stock','score':74,'qualityScore':70,'timingScore':80,'modelVersion':'3.2.0',
             'scoring':{'version':'3.2.0','status':'ready'},'subScores':{'growth':None}}
 
 
@@ -104,7 +104,7 @@ def test_explanation_declares_validation_and_missingness():
 
 
 @pytest.mark.parametrize('override', [{'isETF':True}, {'score':99}, {'modelVersion':'old'}, {'qualityScore':None},
-                                     {'score':float('nan')}, {'assetType':'crypto'}])
+                                     {'score':float('nan')}, {'assetType':'crypto'}, {'assetType':None}])
 def test_explanation_rejects_wrong_asset_stale_version_and_arithmetic(override):
     with pytest.raises(ValueError):
         build_score_prompt(stock() | override, {'quality':60,'timing':40})

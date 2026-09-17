@@ -4,7 +4,7 @@ import math
 
 def build_score_prompt(stock, weights):
     scoring = stock.get('scoring') or {}
-    if stock.get('isETF') or scoring.get('status') == 'separate_dimensions' or stock.get('assetType', 'stock') != 'stock':
+    if stock.get('isETF') or scoring.get('status') == 'separate_dimensions' or stock.get('assetType') != 'stock':
         raise ValueError('仅股票完整综合分支持此解读；其他资产分别解释各维度')
     def valid(value):
         return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value) and 0 <= value <= 100
