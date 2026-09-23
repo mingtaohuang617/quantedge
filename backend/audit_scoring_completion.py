@@ -19,6 +19,28 @@ ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'docs/reviews/scoring-completion-2026-09-17'
 
 
+def release_status(evidence):
+    """Report a dated release observation, never infer model validity from it."""
+    complete = bool(
+        evidence
+        and evidence.get('software_release_complete') is True
+        and evidence.get('deployment_status') == 'READY'
+        and evidence.get('deployment_target') == 'production'
+        and evidence.get('production_run_conclusion') == 'success'
+        and evidence.get('commit') and evidence.get('deployment_id')
+        and evidence.get('verified_at')
+    )
+    return {
+        'software_release_complete': complete,
+        'release_verified_at': evidence.get('verified_at') if complete else None,
+        'release_commit': evidence.get('commit') if complete else None,
+        'release_deployment_id': evidence.get('deployment_id') if complete else None,
+        'release_evidence_scope': 'Dated recorded observation; not a live health check',
+        'full_model_validation_complete': False,
+        'model_change_allowed': False,
+    }
+
+
 def crypto_diagnosis(collection):
     all_rows = collection['results']
     usable = [r for r in all_rows if r['status'] == 'captured' and r['calendar_complete']]
@@ -137,7 +159,9 @@ def main():
     inventory = [{'ticker': s['ticker'], 'assetType': s['assetType'], 'validation': s['scoring']['validation'],
                   'product': (s.get('assetAssessment') or {}).get('product'), 'classificationSource': s.get('classificationSource')}
                  for s in stocks if s['assetType'] != 'stock']
-    report = {'reviewed_at': '2026-09-17', 'input_sha256': hashes, 'model_change_allowed': False,
+    report = {'reviewed_at': '2026-09-17', 'replayed_at': datetime.now(UTC).isoformat(),
+              'replay_scope': 'Original dated inputs; not refreshed market data',
+              'input_sha256': hashes, 'model_change_allowed': False,
               'production_release_ready': False, 'asset_counts': dict(Counter(s['assetType'] for s in stocks)),
               'stock_valuation': {'latest_disclosed_shares': latest, 'evidence': manifest, 'valuation': value,
                                   'independent_price_attempt': read(OUT / 'msft-price-source.json')},
@@ -150,16 +174,25 @@ def main():
                              'Official benchmark/NAV/action and historical spread panels for all ETF classes',
                              'Crypto historical membership, network/supply/security data and venue-execution costs',
                              'Untouched final validation sample and statistical acceptance before weight changes']}
+    release_file = OUT / 'production-verification.json'
+    release = release_status(read(release_file) if release_file.exists() else {})
+    report.update(release)
+    report['production_release_ready_scope'] = 'Full model/data qualification, not software deployment status'
     report['batches'] = [
         {'id': 1, 'implementation': 'implemented', 'acceptance': 'blocked', 'reason': 'MSFT recent disclosed shares extracted; price basis and action review remain unverified'},
         {'id': 2, 'implementation': 'implemented', 'acceptance': 'blocked', 'reason': 'Equity diagnostic rerun; full historical membership and fundamentals missing'},
         {'id': 3, 'implementation': 'implemented', 'acceptance': 'blocked', 'reason': 'Partial current issuer metrics only; not complete historical product panels'},
         {'id': 4, 'implementation': 'implemented', 'acceptance': 'partial', 'reason': 'Ten spot histories and UTC validation; no crypto fundamentals or market-wide membership'},
         {'id': 5, 'implementation': 'implemented', 'acceptance': 'hold_weights', 'reason': 'Sensitivity and redundancy diagnostics do not establish predictive validity'},
-        {'id': 6, 'implementation': 'local_release_candidate', 'acceptance': 'not_released', 'reason': 'See local test artifacts; model/data gates remain blocked'},
+        {'id': 6, 'implementation': 'released' if release['software_release_complete'] else 'local_release_candidate',
+         'acceptance': 'software_released_model_unvalidated' if release['software_release_complete'] else 'release_not_verified',
+         'reason': 'Software release and full model/data qualification are separate; see dated release evidence'},
     ]
     (OUT / 'acceptance.json').write_text(json.dumps(report, indent=2, ensure_ascii=False, allow_nan=False), encoding='utf-8')
-    print(json.dumps({'asset_counts': report['asset_counts'], 'crypto': crypto['summary'], 'release_ready': False}, ensure_ascii=False))
+    print(json.dumps({'asset_counts': report['asset_counts'], 'crypto': crypto['summary'],
+                      'software_release_complete': report['software_release_complete'],
+                      'release_verified_at': report['release_verified_at'],
+                      'full_model_validation_complete': False, 'model_change_allowed': False}, ensure_ascii=False))
 
 
 if __name__ == '__main__':

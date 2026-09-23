@@ -1,5 +1,7 @@
 {
   "reviewed_at": "2026-09-17",
+  "replayed_at": "2026-09-23T11:51:56.787073+00:00",
+  "replay_scope": "Original dated inputs; not refreshed market data",
   "input_sha256": {
     "frontend\\src\\data.js": "cdfad1e8d804ef5890810d049ced4977ae4dfe9d19a42a2f7997d7f49e561371",
     "docs\\reviews\\scoring-completion-2026-09-17\\products.json": "28f7c51e657f4b5927f153ca9529d25a92bd515065f651b481d13a281a58c810",
@@ -8,7 +10,8 @@
     "docs\\reviews\\financial-admission-2026-09-17\\msft-originals.json": "efaf446dbfcdd63a2aa32140fb0e448dba79a9ac0aa54cf72f5d423eb2d3dce1",
     "docs\\reviews\\historical-valuation-2026-09-17\\valuation.json": "d3e2b098dbf2856757943b5b8013c64053480f7b7d1423569183ec1d9365b5fb",
     "docs\\reviews\\financial-admission-2026-09-17\\trial.json": "ba96fc148654f449ca29e4e1086f4fe3d4fcd72dae95fcc7fb510e6101d3cdb3",
-    "docs\\reviews\\scoring-completion-2026-09-17\\msft-price-source.json": "3625a17ef8ff82751bbd42f744df14c8cff1d575ba594b99249bc73c2713def7"
+    "docs\\reviews\\scoring-completion-2026-09-17\\msft-price-source.json": "3625a17ef8ff82751bbd42f744df14c8cff1d575ba594b99249bc73c2713def7",
+    "docs\\reviews\\scoring-completion-2026-09-17\\production-verification.json": "864b99745b1b7af0089b49b4cacdc5f2da796282163a8c0fe2b90f42c1df8e55"
   },
   "model_change_allowed": false,
   "production_release_ready": false,
@@ -1117,7 +1120,7 @@
   ],
   "product_source_archives": [
     {
-      "folder": "C:\\Users\\Minto\\Downloads\\自研量化投资平台\\release\\scoring-v32\\backend\\data\\product_evidence\\a0574e913aab37035c9c0978935350c47f5a67ad76a2238bdf387cd6668e1c71",
+      "folder": "C:\\Users\\Minto\\Downloads\\自研量化投资平台\\release\\scoring-v32\\backend\\data\\product_evidence\\c9342bb77dc1e0480fc0773e617b3d692f53995c55a3873fe45c47dea8de06a8",
       "source_metadata": {
         "source": "https://www.ishares.com/us/products/239681/ishares-msci-south-korea-capped-etf",
         "params": null,
@@ -1126,7 +1129,7 @@
       }
     },
     {
-      "folder": "C:\\Users\\Minto\\Downloads\\自研量化投资平台\\release\\scoring-v32\\backend\\data\\product_evidence\\de75ef7fc1515b5f640cc0ab06487aece82d5ff7099e6e76a4e5071ee4b5a286",
+      "folder": "C:\\Users\\Minto\\Downloads\\自研量化投资平台\\release\\scoring-v32\\backend\\data\\product_evidence\\119a036d278362687f465055c5486583533e816f21a65d1acc71e6eb75fa620f",
       "source_metadata": {
         "source": "https://www.proshares.com/our-etfs/leveraged-and-inverse/tqqq",
         "params": null,
@@ -1135,7 +1138,7 @@
       }
     },
     {
-      "folder": "C:\\Users\\Minto\\Downloads\\自研量化投资平台\\release\\scoring-v32\\backend\\data\\product_evidence\\9a5e7492ac976e65e52b8a3213d3d9daac727f4da33bf09e9b0d8402c55902fd",
+      "folder": "C:\\Users\\Minto\\Downloads\\自研量化投资平台\\release\\scoring-v32\\backend\\data\\product_evidence\\41bfcd73b7fcf0df1f0ea2282c17ec498485a8886880f4bfce05264bccad72df",
       "source_metadata": {
         "source": "https://www.defianceetfs.com/rklx/",
         "params": null,
@@ -1144,7 +1147,7 @@
       }
     },
     {
-      "folder": "C:\\Users\\Minto\\Downloads\\自研量化投资平台\\release\\scoring-v32\\backend\\data\\product_evidence\\38625b814a07c15ebe9bf96a91ef60de7cf54412012cd6b1ff3121486a0a14fd",
+      "folder": "C:\\Users\\Minto\\Downloads\\自研量化投资平台\\release\\scoring-v32\\backend\\data\\product_evidence\\67aa9eb4ab9a72be3e54854b32743562f72c5503f32bbb7ed6f8ce803bbe68f7",
       "source_metadata": {
         "source": "https://accounts.profunds.com/etfdata/ByFund/TQQQ-historical_nav.csv",
         "params": null,
@@ -1153,7 +1156,7 @@
       }
     },
     {
-      "folder": "C:\\Users\\Minto\\Downloads\\自研量化投资平台\\release\\scoring-v32\\backend\\data\\product_evidence\\e42d467f5df4d807d6281b021a4509820123a4ac1b52a70833c5cded2a784085",
+      "folder": "C:\\Users\\Minto\\Downloads\\自研量化投资平台\\release\\scoring-v32\\backend\\data\\product_evidence\\ef6d8a3c110f780f3cc62babe2802d0b7e0c05eb49c4832f8ef76487ab89e95d",
       "source_metadata": {
         "source": "https://query1.finance.yahoo.com/v8/finance/chart/%5ENDX",
         "params": {
@@ -1167,7 +1170,7 @@
       }
     },
     {
-      "folder": "C:\\Users\\Minto\\Downloads\\自研量化投资平台\\release\\scoring-v32\\backend\\data\\product_evidence\\7cf6eeb69f38b85d2f5a12c036c3817fd8f165edf6221a52d4ef01c7d320eb8f",
+      "folder": "C:\\Users\\Minto\\Downloads\\自研量化投资平台\\release\\scoring-v32\\backend\\data\\product_evidence\\215ee888aa1395ec53e89500cda77be1ed98ce73ba595372c58f5856611bacfe",
       "source_metadata": {
         "source": "https://query1.finance.yahoo.com/v8/finance/chart/TQQQ",
         "params": {
@@ -1181,7 +1184,7 @@
       }
     },
     {
-      "folder": "C:\\Users\\Minto\\Downloads\\自研量化投资平台\\release\\scoring-v32\\backend\\data\\product_evidence\\85374e8b0cf17c20527e8b45c235daec630adfb1b5a26d8c061206b910dfd094",
+      "folder": "C:\\Users\\Minto\\Downloads\\自研量化投资平台\\release\\scoring-v32\\backend\\data\\product_evidence\\31bc2f8f38f99a0dd134190d13a10c6c6da9b622f8c5ae7b73a0d86626c6e6f5",
       "source_metadata": {
         "source": "https://www.proshares.com/api/distributionsummary/",
         "params": {
@@ -9935,6 +9938,13 @@
     "Crypto historical membership, network/supply/security data and venue-execution costs",
     "Untouched final validation sample and statistical acceptance before weight changes"
   ],
+  "software_release_complete": true,
+  "release_verified_at": "2026-09-17T07:10:20Z",
+  "release_commit": "4db1b48903d9134f2dbba54186ee027ade0fde9c",
+  "release_deployment_id": "dpl_4jKpFabwwFNsSLMv82FKbVpKFTM2",
+  "release_evidence_scope": "Dated recorded observation; not a live health check",
+  "full_model_validation_complete": false,
+  "production_release_ready_scope": "Full model/data qualification, not software deployment status",
   "batches": [
     {
       "id": 1,
@@ -9968,9 +9978,9 @@
     },
     {
       "id": 6,
-      "implementation": "local_release_candidate",
-      "acceptance": "not_released",
-      "reason": "See local test artifacts; model/data gates remain blocked"
+      "implementation": "released",
+      "acceptance": "software_released_model_unvalidated",
+      "reason": "Software release and full model/data qualification are separate; see dated release evidence"
     }
   ]
 }
