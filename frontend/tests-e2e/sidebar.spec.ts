@@ -19,6 +19,13 @@ test.describe('Desktop sidebar brand visibility', () => {
     const headerBrand = page.getByTestId('header-brand');
     const sidebarBrand = sidebar.getByText('QuantEdge', { exact: true });
 
+    await expect(sidebar).toBeVisible();
+    await page.mouse.move(700, 400);
+    console.log('Sidebar initial state', await sidebar.evaluate(element => ({
+      hovered: element.matches(':hover'),
+      focusWithin: element.contains(document.activeElement),
+      expanded: element.getAttribute('data-expanded'),
+    })));
     await expect(sidebar).toHaveAttribute('data-expanded', 'false');
     await expect(headerBrand).toHaveCSS('opacity', '1');
     await expect(sidebarBrand).toHaveCSS('opacity', '0');
