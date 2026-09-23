@@ -119,12 +119,14 @@ jobs:
         shell: bash
         run: |
           mkdir -p .lighthouse
+          # Use the lockfile-selected Playwright browser, not the runner's changing system Chrome.
+          export CHROME_PATH="$(node --input-type=module -e "import { chromium } from '@playwright/test'; console.log(chromium.executablePath())")"
           npm run preview -- --host 127.0.0.1 --port 4173 > /tmp/quantedge-preview.log 2>&1 &
           for i in {1..30}; do curl --fail --silent http://127.0.0.1:4173/ >/dev/null && break; sleep 1; done
-          npx lighthouse http://127.0.0.1:4173/ --chrome-flags="--headless --no-sandbox" --only-categories=performance --output=json --output-path=.lighthouse/report.json
+          npx lighthouse http://127.0.0.1:4173/ --chrome-flags="--headless --no-sandbox" --only-categories=performance --save-assets --output=json --output-path=.lighthouse/report.json
           npm run check:lighthouse -- .lighthouse/report.json
-      - name: Upload Lighthouse report on failure
-        if: failure()
+      - name: Upload Lighthouse report and trace
+        if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: lighthouse-report
