@@ -87,6 +87,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
 // 检测到新版本 → dispatch 'quantedge:swUpdate' 事件，让 UI 显示"更新可用"
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
+    let hasController = Boolean(navigator.serviceWorker.controller);
     navigator.serviceWorker.register('/sw.js').then((reg) => {
       if (reg.waiting) {
         window.dispatchEvent(new CustomEvent('quantedge:swUpdate', { detail: { reg } }));
@@ -104,9 +105,14 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
       // 1 小时检查一次更新
       setInterval(() => reg.update().catch(() => {}), 3600 * 1000);
     }).catch(() => {});
-    // controllerchange = 新 SW 已激活 → 刷新页面以使用新代码
+    // 首次接管不刷新，避免重复启动和清空表单；后续版本接管只刷新一次。
     let refreshing = false;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!navigator.serviceWorker.controller) return;
+      if (!hasController) {
+        hasController = true;
+        return;
+      }
       if (refreshing) return;
       refreshing = true;
       window.location.reload();

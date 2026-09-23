@@ -10,12 +10,22 @@ test.describe('Desktop sidebar brand visibility', () => {
   });
 
   test('keeps a single visible brand when the sidebar expands', async ({ page }) => {
+    // The default pointer can lie over the fixed sidebar as it mounts.
+    // Establish the non-hover state before asserting the collapsed brand.
+    await page.mouse.move(700, 400);
     await page.goto('/');
 
     const sidebar = page.getByTestId('desktop-sidebar');
     const headerBrand = page.getByTestId('header-brand');
     const sidebarBrand = sidebar.getByText('QuantEdge', { exact: true });
 
+    await expect(sidebar).toBeVisible();
+    await page.mouse.move(700, 400);
+    console.log('Sidebar initial state', await sidebar.evaluate(element => ({
+      hovered: element.matches(':hover'),
+      focusWithin: element.contains(document.activeElement),
+      expanded: element.getAttribute('data-expanded'),
+    })));
     await expect(sidebar).toHaveAttribute('data-expanded', 'false');
     await expect(headerBrand).toHaveCSS('opacity', '1');
     await expect(sidebarBrand).toHaveCSS('opacity', '0');
