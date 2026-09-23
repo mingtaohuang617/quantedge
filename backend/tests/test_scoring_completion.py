@@ -12,13 +12,40 @@ from score_validation import score_validation  # noqa: E402
 from product_data import product_enrichment  # noqa: E402
 from asset_assessment import product_assessment  # noqa: E402
 from historical_valuation import evaluate  # noqa: E402
-from audit_scoring_completion import crypto_diagnosis  # noqa: E402
+from audit_scoring_completion import crypto_diagnosis, release_status  # noqa: E402
 from price_evidence import encode, persist_evidence, read_evidence  # noqa: E402
 from scoring import asset_metadata  # noqa: E402
 
 
 def candle(stamp=1704067200):
     return [stamp, 90, 110, 95, 100, 20]
+
+
+def release_evidence():
+    return {'software_release_complete': True, 'deployment_status': 'READY',
+            'deployment_target': 'production', 'production_run_conclusion': 'success',
+            'commit': 'abc', 'deployment_id': 'dpl_example', 'verified_at': '2026-09-17T07:10:20Z'}
+
+
+def test_release_does_not_promote_model_validation():
+    result = release_status({**release_evidence(), 'full_model_validation_complete': True, 'model_change_allowed': True})
+    assert result['software_release_complete'] is True
+    assert result['release_verified_at'] == '2026-09-17T07:10:20Z'
+    assert result['full_model_validation_complete'] is False
+    assert result['model_change_allowed'] is False
+
+
+@pytest.mark.parametrize('field', list(release_evidence()))
+def test_incomplete_release_evidence_is_not_success(field):
+    evidence = release_evidence()
+    del evidence[field]
+    assert release_status(evidence)['software_release_complete'] is False
+
+
+@pytest.mark.parametrize('field,value', [('deployment_target', 'preview'), ('deployment_status', 'ERROR'),
+                                        ('production_run_conclusion', 'failure'), ('software_release_complete', 'true')])
+def test_failed_or_preview_release_is_not_production(field, value):
+    assert release_status({**release_evidence(), field: value})['software_release_complete'] is False
 
 
 def test_crypto_duplicate_boundaries_and_no_weekend_skip():
