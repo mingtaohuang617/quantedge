@@ -10,6 +10,9 @@ test.describe('Desktop sidebar brand visibility', () => {
   });
 
   test('keeps a single visible brand when the sidebar expands', async ({ page }) => {
+    // The default pointer can lie over the fixed sidebar as it mounts.
+    // Establish the non-hover state before asserting the collapsed brand.
+    await page.mouse.move(700, 400);
     await page.goto('/');
 
     const sidebar = page.getByTestId('desktop-sidebar');
